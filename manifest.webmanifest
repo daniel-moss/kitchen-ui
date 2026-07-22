@@ -1,0 +1,8 @@
+{
+  "name": "Kitchen UI",
+  "short_name": "Kitchen UI",
+  "display": "standalone",
+  "background_color": "#f0f0f0",
+  "theme_color": "#f0f0f0",
+  "orientation": "portrait"
+}
