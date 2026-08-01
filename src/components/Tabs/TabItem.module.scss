@@ -1,0 +1,223 @@
+@use "../../styles/mixins/font" as *;
+
+// ===== base =====
+.tab {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-2); // 8px icon ↔ text (sm overrides to 6px)
+  flex: none;
+
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--text-subtle); // muted icon + text, resting (gray-a11)
+
+  transition:
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+// Focus — 2px gray-12 ring drawn just inside the edge (no layout shift, keeps
+// any variant shadow). outline-offset follows the border-radius.
+.tab:focus-visible {
+  outline: 2px solid var(--gray-12);
+  outline-offset: -2px;
+}
+
+.tab:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.tab.loading {
+  cursor: progress;
+  opacity: 1;
+}
+
+// ===== content =====
+.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4); // 16px box, 14px glyph (md / lg)
+  height: var(--size-4);
+}
+// Left-slot avatar (xxs 16px at sm, xs 20px at md/lg — sized by the element).
+.avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.text {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1_5); // 6px label ↔ counter
+}
+// label + counter inherit the tab's color + font.
+.counter {
+  font-variant-numeric: tabular-nums;
+}
+
+// ===== sizes (height / horizontal padding / font) =====
+.sm {
+  height: var(--size-7); // 28px
+  padding: 0 var(--size-2); // 8px
+  gap: var(--size-1_5); // 6px at sm
+  @include font("caption-medium-500"); // Inter Medium 13/20
+}
+// sm draws a 12px glyph in a 14px box.
+.sm .icon {
+  width: var(--size-3_5); // 14px
+  height: var(--size-3_5);
+}
+.md {
+  height: var(--size-8); // 32px
+  padding: 0 var(--size-2_5); // 10px
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.lg {
+  height: var(--size-9); // 36px
+  padding: 0 var(--size-3); // 12px
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+
+// iconOnly draws icon (+ counter) closer together.
+.iconOnly {
+  gap: var(--size-1_5); // 6px
+}
+
+// ===== variant: default (soft fill when selected) =====
+.default {
+  border-radius: var(--border-radius-1_5); // 6px
+}
+
+@media (hover: hover) {
+.default:hover {
+  color: var(--text-strong); // brighten, no fill
+}
+}
+.default:active {
+  background: var(--gray-a3);
+  color: var(--text-strong);
+}
+.default.selected {
+  background: var(--gray-a3);
+  color: var(--text-strong);
+}
+.default.selected:active {
+  background: var(--gray-a4);
+}
+
+// ===== variant: container (raised segmented look when selected) =====
+.container {
+  border-radius: 5px; // Figma uses 5px here (between radius-1 and radius-1_5)
+}
+
+@media (hover: hover) {
+.container:hover {
+  color: var(--text-strong);
+}
+}
+.container:active {
+  background: var(--gray-a3);
+  color: var(--text-strong);
+}
+.container.selected {
+  background: var(--surface-interactive-default); // white surface
+  color: var(--text-strong);
+  box-shadow: 0 1px 1.5px 0 var(--box-shadow-shadow-default);
+}
+// The group owns the sliding indicator → the tab drops its own raised surface
+// (text stays strong). Higher specificity wins over the fill rules above.
+.container.selected.noSurface {
+  background: transparent;
+  box-shadow: none;
+}
+
+// Container tabs sit inside the group's 2px-padded track, so they are 4px
+// shorter than the nominal size — the track then totals it (e.g. lg: 32 + 2×2
+// = 36). Vertical tabs keep their auto height.
+.container.sm:not(.vertical) {
+  height: var(--size-6); // 24px
+}
+.container.md:not(.vertical) {
+  height: var(--size-7); // 28px
+}
+.container.lg:not(.vertical) {
+  height: var(--size-8); // 32px
+}
+
+// container vertical — icon on top, label below.
+.vertical {
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  height: auto;
+  padding: var(--size-2_5) var(--size-3) var(--size-1_5); // 10px 12px 6px
+}
+.vertical .text {
+  justify-content: center;
+}
+
+// ===== variant: underline (bottom line when selected) =====
+.underline {
+  position: relative;
+  border-radius: 0;
+}
+// Full-width bottom line (spans the +10px hit area); shown only when selected.
+.underline::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: transparent;
+}
+
+@media (hover: hover) {
+.underline:hover {
+  color: var(--text-strong);
+}
+}
+.underline:active {
+  color: var(--text-strong);
+}
+.underline.selected {
+  color: var(--text-strong);
+}
+.underline.selected::after {
+  background: var(--gray-12);
+}
+// The group owns the sliding line → this tab drops its own.
+.underline.selected.noSurface::after {
+  background: transparent;
+}
+
+// ===== loading skeleton =====
+.skeleton {
+  width: 40px;
+  height: 14px;
+  border-radius: var(--border-radius-full);
+  background: var(--gray-a3);
+  animation: ku-tabitem-loading 800ms ease-in-out infinite alternate;
+}
+.iconOnly .skeleton {
+  width: var(--size-4); // 16px
+}
+.vertical .skeleton {
+  width: 40px;
+  height: 30px;
+}
+
+@keyframes ku-tabitem-loading {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

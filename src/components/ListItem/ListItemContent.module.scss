@@ -1,0 +1,20 @@
+// Content region — [avatar slot] + text, top-aligned.
+.content {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+// The xl (36px) avatar: 2px vertical padding centers it against the 40px
+// text block; 12px gap to the text.
+.slotLeft {
+  flex: none;
+  display: flex;
+  padding: var(--size-0_5) var(--size-3) var(--size-0_5) 0; // 2px / 12px right
+}
+
+.text {
+  flex: 1 1 0;
+  min-width: 0;
+}

@@ -1,0 +1,76 @@
+// TabGroup — a tablist row. The variant sets the gap and (for contained) the
+// track surface; the child TabItems carry the per-tab look. See Figma "TabGroup".
+.group {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+}
+
+// default — plain row of soft-fill tabs.
+.default {
+  gap: var(--size-0_5); // 2px
+}
+
+// contained — a gray segmented track wrapping raised tabs.
+.contained {
+  position: relative; // origin for the sliding indicator
+  gap: var(--size-0_5); // 2px
+  padding: var(--size-0_5); // 2px
+  background: var(--gray-a3);
+  border-radius: var(--border-radius-1_5); // 6px
+}
+
+// underlined — wider spacing; the selected tab's bottom line slides.
+.underlined {
+  position: relative; // origin for the sliding indicator
+  gap: var(--size-5); // 20px
+  align-items: stretch;
+}
+
+// Tabs paint above the sliding indicator.
+.contained > [role="tab"],
+.underlined > [role="tab"] {
+  position: relative;
+  z-index: 1;
+}
+
+// ===== sliding indicator (contained surface / underlined line) =====
+// One shared element the group moves to the selected tab. The tab itself drops
+// its own surface (TabItem `selectedSurface={false}`), so only this animates.
+.indicator {
+  position: absolute;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.indicatorContained {
+  top: 0;
+  background: var(--surface-interactive-default); // white surface
+  border-radius: 5px; // matches the contained tab
+  box-shadow: 0 1px 1.5px 0 var(--box-shadow-shadow-default);
+}
+.indicatorUnderlined {
+  bottom: 0;
+  height: 1px;
+  background: var(--gray-12);
+}
+// Enabled after the first placement so mounting doesn't animate from 0,0.
+.indicatorReady {
+  transition:
+    transform 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .indicatorReady {
+    transition: none;
+  }
+}
+
+// Full width — the group stretches and the tabs share the width equally.
+.fullWidth {
+  width: 100%;
+}
+.fullWidth > [role="tab"] {
+  flex: 1 1 0;
+  min-width: 0;
+}

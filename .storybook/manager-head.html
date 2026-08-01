@@ -1,0 +1,138 @@
+<!-- Manager-only additions: Inter for the outer UI + NavSidebar-look rows for
+     the story tree. The manager cannot use the DS tokens (separate app), so
+     the palettes are declared here as custom properties — light by default,
+     dark under html[data-kitchen-theme="dark"], which manager.js sets while
+     following the preview's theme toolbar (auto follows the OS). Each value
+     is commented with the token it mirrors. Row geometry comes from
+     NavSidebarItem.module.scss: 32px rows, radius 6, Medium 14/20,
+     subtle → strong on hover, gray-a3/a4 fills. -->
+<style>
+  @font-face {
+    font-family: "InterVariable";
+    /* Relative (no leading slash) so the sidebar font resolves under a subpath
+       too — GitHub Pages serves the build at /<repo>/. */
+    src: url("fonts/InterVariable.woff2") format("woff2");
+    font-weight: 100 900;
+    font-display: swap;
+  }
+
+  :root {
+    --kui-text-subtle: #0000009b; /* gray-a11 */
+    --kui-text-strong: #202020; /* gray-12 */
+    --kui-fill-hover: #0000000f; /* gray-a3 */
+    --kui-fill-press: #00000017; /* gray-a4 */
+    --kui-heading: #0000007c; /* gray-a10 */
+    /* IconButton subtle (surface-interactive-* + shadow tokens) */
+    --kui-btn-bg: #ffffff; /* surface-interactive-default = pure-white */
+    --kui-btn-bg-hover: #e8e8e8; /* surface-interactive-hover = gray-4 */
+    --kui-btn-bg-press: #e0e0e0; /* surface-interactive-press = gray-5 */
+    --kui-btn-fg: #202020; /* gray-12 */
+    --kui-btn-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); /* black-a2 */
+    --kui-border: #00000031; /* gray-a7 */
+  }
+  html[data-kitchen-theme="dark"] {
+    --kui-text-subtle: #ffffffaf; /* gray-a11 (dark) */
+    --kui-text-strong: #eeeeee; /* gray-12 (dark) */
+    --kui-fill-hover: #ffffff12; /* gray-a3 (dark) */
+    --kui-fill-press: #ffffff1b; /* gray-a4 (dark) */
+    --kui-heading: #ffffff72; /* gray-a10 (dark) */
+    --kui-btn-bg: #484848; /* surface-interactive-default = gray-7 (dark) */
+    --kui-btn-bg-hover: #3a3a3a; /* gray-6 (dark) */
+    --kui-btn-bg-press: #313131; /* gray-5 (dark) */
+    --kui-btn-fg: #eeeeee; /* gray-12 (dark) */
+    --kui-btn-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2); /* black-a4 (dark) */
+    --kui-border: #ffffff3b; /* gray-a7 (dark) */
+  }
+
+  /* The search field's stroke is an inset ring (box-shadow), and the
+     sidebar's right divider a border — BOTH ignore the theme's
+     appBorderColor and keep Storybook's bluish default, so they are
+     recolored here to gray-a7. The divider's element has no stable class;
+     :has() finds the bordered ancestor of the story tree. */
+  .search-field {
+    box-shadow: inset 0 0 0 1px var(--kui-border) !important;
+  }
+  div:has(#storybook-explorer-tree) {
+    border-right-color: var(--kui-border) !important;
+  }
+
+  /* Brand — "Kitchen UI". */
+  .sidebar-header a[href="./"] {
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  /* The "Create a new story" button next to the search = the DS subtle
+     IconButton (white fill, quiet shadow, gray-4/5 hover/press). The
+     selector anchors on the stable .search-field class: the button is the
+     search row's direct-child button. */
+  div:has(> .search-field) > button,
+  div:has(> .search-field) > div > button {
+    background: var(--kui-btn-bg);
+    color: var(--kui-btn-fg);
+    border: none;
+    border-radius: 6px; /* border-radius-1_5 */
+    box-shadow: var(--kui-btn-shadow);
+  }
+  div:has(> .search-field) > button:hover,
+  div:has(> .search-field) > div > button:hover {
+    background: var(--kui-btn-bg-hover);
+  }
+  div:has(> .search-field) > button:active,
+  div:has(> .search-field) > div > button:active {
+    background: var(--kui-btn-bg-press);
+  }
+  div:has(> .search-field) > button svg,
+  div:has(> .search-field) > div > button svg {
+    color: var(--kui-btn-fg);
+  }
+
+  /* Story-tree rows = NavSidebarItem (desktop). */
+  #storybook-explorer-tree .sidebar-item {
+    height: 32px; /* size-8 */
+    align-items: center;
+    border-radius: 6px; /* border-radius-1_5 */
+    padding-right: 10px; /* size-2_5 */
+    margin-bottom: 2px; /* size-0_5 — the NavSidebar row gap */
+    color: var(--kui-text-subtle);
+    font-size: 14px;
+    line-height: 20px; /* body-500-compact */
+    font-weight: 500;
+    font-feature-settings: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+  }
+  #storybook-explorer-tree .sidebar-item:hover {
+    background: var(--kui-fill-hover);
+    color: var(--kui-text-strong);
+  }
+  #storybook-explorer-tree .sidebar-item:active {
+    background: var(--kui-fill-press);
+  }
+  /* Selected = NavSidebar active: gray-a3 fill + strong text (the theme's
+     colorSecondary would paint it as a solid block instead). */
+  #storybook-explorer-tree .sidebar-item[data-selected="true"] {
+    background: var(--kui-fill-hover) !important;
+    color: var(--kui-text-strong) !important;
+  }
+  #storybook-explorer-tree .sidebar-item[data-selected="true"]:hover {
+    background: var(--kui-fill-press) !important; /* active rows step up */
+  }
+  #storybook-explorer-tree .sidebar-item[data-selected="true"] svg {
+    color: var(--kui-text-strong) !important;
+  }
+
+  /* Monochrome tree icons (folders/components/stories are colored by
+     default; NavSidebar icons are neutral gray). */
+  #storybook-explorer-tree .sidebar-item svg {
+    color: var(--kui-text-subtle);
+  }
+  #storybook-explorer-tree .sidebar-item:hover svg {
+    color: var(--kui-text-strong);
+  }
+
+  /* Section headings ("COMPONENTS", "FORMS", …) — quiet caption. */
+  .sidebar-subheading {
+    color: var(--kui-heading);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+</style>

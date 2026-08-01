@@ -1,0 +1,11 @@
+// "Time logged" (Complete) dialog body: a padded info alert, then the tech's
+// session group (its GroupLabel/rows carry their own insets). Inside a Dialog
+// (which adds no padding of its own). Figma node 24110-19261.
+.body {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.alert {
+  padding: var(--size-4) var(--size-4) var(--size-2); // 16 / 16 / 8
+}

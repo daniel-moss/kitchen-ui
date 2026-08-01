@@ -1,0 +1,94 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SearchFieldStories from "./SearchField.stories";
+
+<Meta of={SearchFieldStories} />
+
+# SearchField
+
+We use **SearchField** for typing in a search request.
+
+<Canvas of={SearchFieldStories.Hero} />
+
+```tsx
+<SearchField
+  value={query}
+  onChange={(e) => setQuery(e.target.value)}
+  onClear={() => setQuery("")}
+  placeholder="Search…"
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+### Field
+
+Supports an icon on the left. When filled, it shows the "Clear" button.
+
+A `--size-8` (32px) box: radius `--border-radius-1_5` (6px), background
+`--gray-a2`, border `--gray-a7`, horizontal padding `--size-2_5` (10px). The
+search icon is 14px regular `--gray-a9` with a `--size-2` (8px) gap to the
+text (body-400-compact; placeholder `--text-placeholder`, value
+`--text-strong`). The "Clear" button is an IconButton `muted` `xs` (24px) —
+`--size-1` (4px) from the right edge, at least `--size-2_5` (10px) from the
+value.
+
+<Canvas of={SearchFieldStories.AnatomyField} />
+
+### Bar
+
+Supports an icon on the left. Contains a Divider at the bottom. When filled,
+it shows the "Clear" button.
+
+A `--size-9` (36px) row over a 1px Divider (37px total): no border and no
+radius — the same `--gray-a2` background with horizontal padding `--size-4`
+(16px). The "Clear" button steps up to IconButton `muted` `sm` (28px) and
+keeps the full `--size-4` (16px) inset from the right edge.
+
+<Canvas of={SearchFieldStories.AnatomyBar} />
+
+## Behaviour
+
+### "Clear" button
+
+The "Clear" button clears the field. Hovering the button triggers the
+tooltip. After clearing, focus returns to the input, so the next search can
+be typed right away. The story is live — try it:
+
+<Canvas of={SearchFieldStories.ClearButton} />
+
+### Field
+
+Empty. The "Search" icon changes color on hover.
+
+<Canvas of={SearchFieldStories.FieldStates} />
+
+Filled — `disabled` hides the "Clear" button:
+
+<Canvas of={SearchFieldStories.FieldStatesFilled} />
+
+### Bar
+
+Empty. The "Search" icon changes color on hover.
+
+<Canvas of={SearchFieldStories.BarStates} />
+
+Filled — `disabled` hides the "Clear" button:
+
+<Canvas of={SearchFieldStories.BarStatesFilled} />
+
+### Mobile keyboard
+
+We use the "search" keyboard. The input is a native `type="search"`, so the
+phone's on-screen keyboard replaces the return key with a **search** action.
+Open this page on a phone to see it.
+
+<Canvas of={SearchFieldStories.MobileKeyboard} />
+
+## Props
+
+<ArgTypes of={SearchFieldStories} />

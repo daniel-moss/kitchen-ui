@@ -1,0 +1,49 @@
+@use "../../styles/mixins/font" as *;
+
+// Desktop: a full-screen scrim centering the prompt card. Non-dismissible, so
+// the scrim has no click handler. Keep the duration in sync with Prompt.tsx.
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--pure-black-a7);
+
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+.scrimOpen {
+  opacity: 1;
+}
+
+// Mobile: a fixed full-screen layer hosting the Popover drawer (bottom sheet).
+.fixedLayer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+}
+
+// The content block: title + body text.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px
+  padding: var(--size-4); // 16px
+}
+
+.title {
+  margin: 0;
+  color: var(--text-strong);
+
+  @include font("heading-h3"); // Inter SemiBold 15/24
+}
+
+.text {
+  color: var(--text-subtle);
+
+  @include font("body-400-spacious"); // Inter Regular 14/22
+}

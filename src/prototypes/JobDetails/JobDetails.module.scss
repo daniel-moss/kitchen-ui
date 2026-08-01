@@ -1,0 +1,368 @@
+// ---- desktop ---------------------------------------------------------------
+
+.desktop {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-level-first);
+  // iPad standalone (Add to Home Screen): the page draws BEHIND the native
+  // status bar (black-translucent + viewport-fit=cover), so the shell must
+  // reserve that space itself — same pattern as .mobile below. Zero in
+  // desktop browsers (env() resolves to 0). NO bottom reservation: a reserved
+  // home-indicator strip reads as a dead band on iPad — native iPad apps draw
+  // to the bottom edge and let the indicator float over the content.
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+
+  padding-top: var(--shell-safe-top);
+}
+
+.workArea {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+.contentRow {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+// The flexible middle: a ScrollArea that centers the content column.
+.mainArea {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mainAreaScroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: clip;
+}
+
+// Content never stretches edge to edge (Figma annotation).
+.mainContent {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 640px;
+}
+
+// The right details sidebar: fixed width, its own ScrollArea; the ActionBar
+// stays pinned on top while it scrolls.
+.sidebar {
+  flex: none;
+  width: 400px;
+}
+
+.sidebarScroll {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+// The action bar + active-session bar, pinned together at the top of the sidebar
+// (an extension of the action bar). The app-background fill occludes the content
+// scrolling underneath.
+.sidebarHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-level-first);
+}
+
+.details {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+// ---- mobile ----------------------------------------------------------------
+
+.mobile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-level-first);
+  // Native status bar / home indicator space. The vars come from the device
+  // container (PhoneViewport measures the EFFECTIVE bottom overlap — plain
+  // env() would double-reserve in standalone; DeviceFrame sets them only
+  // while its mock chrome is shown). env() is the real-phone fallback.
+  // Pre-resolve the env() fallbacks into plain custom properties — Safari
+  // mishandles env() inside var() fallbacks when the value is used in calc().
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+  --shell-safe-bottom: var(--phone-safe-bottom, env(safe-area-inset-bottom, 0px));
+
+  padding-top: var(--shell-safe-top);
+  padding-bottom: var(--shell-safe-bottom);
+}
+
+// The scroll container the NavTopBar sticks to (hideOnScroll).
+.mobileScroll {
+  flex: 1 1 0;
+}
+
+.mobileScrollInner {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  overscroll-behavior: none; // no iOS rubber-band bounce at the ends
+}
+
+// Taller than the viewport ON PURPOSE for now — so the hide-on-scroll top
+// bar can be tried before real content exists.
+.mobileContent {
+  flex: 1 0 auto;
+  min-height: calc(100% + 240px);
+}
+
+// The job context menu card wrapper — anchored under the title's ellipsis
+// button (position set inline from its rect). Same layer as modals.
+.contextMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// The session bar's context menu card. Explicit width — the Menu's fit-content
+// sizing can't measure a growing title next to a long tag (see the MenuItem
+// "KNOWN LIMIT" note). The Figma card (24358-37633) is 234 but was drawn with
+// the short "Travelling" tag; 272 keeps "My status" one-line with the longest
+// status ("Gathering parts") — flagged to Daniel.
+.sessionMenuCard {
+  width: 272px;
+}
+
+// ---- shared ----------------------------------------------------------------
+
+// The stretched main action in the ActionBar (Figma: Button fills the row).
+.grow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Marks an empty content area (Figma's violet placeholder fill).
+.placeholder {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-4);
+  overflow: hidden;
+  background: var(--violet-a2);
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 24px;
+    color: var(--violet-a9);
+  }
+}
+
+// The check-in Timer Bar — the mobile second bottom bar (above the action bar),
+// shown only while checked in. Prototype-local; no DS timer bar yet. Divider on
+// top, running clock left, "Check out" right. (Ported from Time Tracker.)
+.timerBar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--surface-level-first);
+}
+.timerRow {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-3);
+  width: 100%;
+  padding: var(--size-2_5) var(--size-4); // 10px / 16px (Figma 24058-15482)
+}
+.timerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px — avatar ↔ text
+  min-width: 0;
+}
+// The active-session avatar: a 36px solid-tomato box with a light stopwatch
+// (Figma 24178-58250). No animation (Daniel removed the earlier pulse).
+.timerAvatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--tomato-9);
+  color: var(--tomato-1);
+}
+// Idle on an ACTIVE job (Figma 24178-58693): amber warning box.
+.timerAvatarIdle {
+  background: var(--amber-10);
+  color: var(--amber-1);
+}
+// Idle on any OTHER status (Figma 24358-37516): neutral gray box, the
+// regular stopwatch in gray-a8.
+.timerAvatarNeutral {
+  background: var(--gray-a3);
+  color: var(--gray-a8);
+}
+.timerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+// Running clock: red while tracking (Figma 24178-58252); idle "00:00" dims to
+// the placeholder color (24178-58695).
+.timerClock {
+  font: var(--font-body-500-compact); // Inter Medium 14/20
+  font-variant-numeric: tabular-nums;
+  color: var(--text-error);
+}
+.timerClockIdle {
+  color: var(--text-placeholder);
+}
+// Caption: "Tracked" subtle; idle "You're not tracking time" goes amber warning.
+.timerLabel {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+}
+.timerLabelIdle {
+  color: var(--text-warning);
+}
+
+// ===== mobile session pill + drawer (Figma 24178-58264 / 58551 / 58902) =====
+
+// Zero-height anchor placed right above the action bar in the flex column —
+// the pill hangs 12px above the bar's top edge, floating over the content,
+// and follows the safe-area inset automatically (the bar owns that padding).
+.pillAnchor {
+  position: relative;
+  z-index: 10; // above the scrolled content; far below modals (1000)
+  width: 100%;
+  height: 0;
+}
+
+// The pill: 40px tall, full radius, 16px side padding, 10px icon↔text gap,
+// lg/down shadow. Left-aligned 16px from the screen edge (Figma).
+.pill {
+  position: absolute;
+  bottom: var(--size-3); // 12px above the action bar
+  left: var(--size-4); // 16px
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2_5); // 10px
+  align-items: center;
+  height: var(--size-10); // 40px
+  padding: 0 var(--size-4); // 16px
+  border: none;
+  border-radius: var(--border-radius-full);
+  box-shadow: var(--box-shadow-lg-down);
+  cursor: pointer;
+}
+
+// Running session: tomato pill, light content, solid stopwatch, tabular time.
+.pillActive {
+  background: var(--tomato-9);
+  color: var(--tomato-1);
+}
+
+// No session on an ACTIVE job (Figma 24181-59180): amber warning pill.
+.pillIdle {
+  background: var(--amber-10);
+  color: var(--amber-1);
+}
+
+// No session on any OTHER status (Figma 24358-37529): neutral white pill,
+// strong content, 1px gray-12 ring (Daniel 2026-07-28). The ring is an inset
+// box-shadow, not a border — a border would grow the auto-sized pill — and
+// it stacks with the base drop shadow (this box-shadow REPLACES .pill's, so
+// the drop shadow must be restated).
+.pillNeutral {
+  background: var(--surface-level-third);
+  color: var(--text-strong);
+  box-shadow:
+    inset 0 0 0 1px var(--gray-12),
+    var(--box-shadow-lg-down);
+}
+
+.pillLabel {
+  font: var(--font-body-500-compact); // Inter Medium 14/20
+  white-space: nowrap;
+}
+
+// The live time uses the tabular digits so the width doesn't jump every second.
+.pillTime {
+  font: var(--font-body-500-compact-tabular);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+// The session drawer's body: 16px padding, value block over the button.
+.sessionDrawerBody {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+}
+
+// Centered status caption + the big red timer (2px apart; 8px above/below —
+// Figma 24201-77263).
+.sessionDrawerValue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  align-items: center;
+  padding: var(--size-2) 0; // 8px
+  text-align: center;
+}
+
+.sessionDrawerCaption {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+}
+
+.sessionDrawerClock {
+  font: var(--font-heading-h1); // Inter SemiBold 24/32
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-error);
+}
+
+// The real-time tab pager (swipe surface = the tab content only; NavTopBar and
+// the ActionBar sit outside it). Horizontal overflow is clipped while the
+// track drags; `touch-action: pan-y` keeps vertical scrolling native and gives
+// horizontal moves to the pager. min-height keeps short tabs swipeable on the
+// empty space below their content.
+.pager {
+  // As a flex-column item its automatic minimum is min-content — a wide inner
+  // element (500px+) would push the whole pager (and every page) wider than
+  // the screen. Pin it to the container.
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  touch-action: pan-y;
+  min-height: 70vh;
+}
+
+.pagerTrack {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  will-change: transform;
+}
+
+.page {
+  flex: 0 0 100%;
+  min-width: 100%;
+  max-width: 100%;
+  overflow-x: clip; // wide inner content clips inside its own page
+}

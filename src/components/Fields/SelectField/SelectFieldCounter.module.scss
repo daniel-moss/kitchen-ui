@@ -1,0 +1,67 @@
+@use "../../../styles/mixins/font" as *;
+
+// The dark count pill: [count] [× clear]. 24px tall, fully rounded.
+.counter {
+  flex: none;
+  box-sizing: border-box; // so the read-only min-width includes its padding
+  display: inline-flex;
+  align-items: center;
+  height: var(--size-6); // 24px
+  gap: var(--size-0_5); // 2px
+  padding-left: var(--size-2); // 8px (× button provides the right inset)
+  border-radius: var(--border-radius-full); // stadium
+  background: var(--gray-12);
+}
+
+.count {
+  color: var(--gray-1);
+
+  @include font("caption-small-400"); // Inter Regular 12/16
+}
+
+// × clear button — 24px visible circle, hover tints with a translucent white.
+.clear {
+  flex: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-6); // 24px
+  height: var(--size-6);
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius-full);
+  background: transparent;
+  color: var(--gray-1);
+  cursor: pointer;
+
+  transition: background-color 120ms ease;
+}
+
+// Touch area extends 4px beyond the visible circle on all sides (32px total)
+// without affecting layout — a pseudo-element counts for hit-testing.
+.clear::before {
+  content: "";
+
+  position: absolute;
+  inset: -4px;
+}
+
+@media (hover: hover) {
+.clear:hover {
+  background: var(--pure-a3);
+}
+}
+
+// Read-only — outlined number, no × button.
+.readOnly {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--gray-a6);
+  gap: 0;
+  padding: 0 var(--size-2); // 8px
+  min-width: var(--size-6); // 24px
+  justify-content: center;
+}
+.readOnly .count {
+  color: var(--text-strong);
+}

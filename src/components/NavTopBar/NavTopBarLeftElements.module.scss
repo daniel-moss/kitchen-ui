@@ -1,0 +1,21 @@
+// NavTopBarLeftElements — values from Figma "#️⃣ NavTopBar_LeftElements":
+// [back button?] 8px [title] 8px [actions button?], centered.
+
+.root {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.slotLeft {
+  display: flex;
+  flex: none;
+  padding-right: var(--size-2); // 8px
+}
+
+.slotRight {
+  display: flex;
+  flex: none;
+  padding-left: var(--size-2); // 8px
+}

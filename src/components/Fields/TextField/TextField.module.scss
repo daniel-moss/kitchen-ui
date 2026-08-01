@@ -1,0 +1,147 @@
+@use "../../../styles/mixins/font" as *;
+@use "../../../styles/mixins/input-chrome" as *;
+
+// ===== root (field + optional error help text) =====
+// Unlike SelectField (which can hug its value), a text field fills its
+// container.
+.root {
+  @include input-root;
+
+  width: 100%;
+}
+
+.disabled {
+  @include input-disabled;
+}
+
+// ===== field ================================================================
+// Shared chrome (fill, inset-shadow borders, state ladder) — see
+// styles/mixins/_input-chrome.scss. Active = the input has focus.
+.field {
+  @include input-field;
+  @include input-field-grouped; // fused-border chrome inside an InputGroup
+
+  gap: var(--size-2); // 8px — prefix ↔ value ↔ suffix
+  width: 100%;
+  cursor: text;
+  overflow: hidden; // clips the at-rest mirror on the rounded border
+}
+
+// Inside an InputGroup: the field becomes an equal flex segment.
+.groupedRoot {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+@media (hover: hover) {
+.field:hover {
+  @include input-field-hover;
+}
+}
+
+.field:focus-within {
+  @include input-field-active;
+}
+
+.field.invalid,
+.field.invalid:hover,
+.field.invalid:focus-within {
+  @include input-field-invalid;
+}
+
+// Read-only (declared AFTER :focus-within/invalid — same specificity, so it
+// wins): no active border on focus, the OS pointer is the BLOCKED cursor
+// (not the text I-beam), and the text caret never appears inside the field.
+// The value stays focusable and selectable (copyable).
+.field.readOnly {
+  @include input-field-readonly;
+
+  .input {
+    cursor: not-allowed;
+    caret-color: transparent;
+  }
+}
+
+// ===== content ==============================================================
+
+.input {
+  @include font("body-400-compact"); // Inter Regular 14/20
+
+  flex: 1 1 0;
+  min-width: 0;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  outline: none;
+
+  // The glyphs are painted by .overlay — the input only shows the caret (and
+  // the placeholder, recolored below).
+  color: transparent;
+  caret-color: var(--text-strong);
+
+  &::placeholder {
+    color: var(--text-placeholder);
+  }
+
+  &:disabled {
+    // the root already dims; keep the native control from double-styling
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    opacity: 1;
+  }
+}
+
+// The value is DRAWN by the .overlay span, not by the input (Daniel,
+// 2026-07-29): the input's text is transparent (the caret stays visible and
+// keeps the normal 12px insets — it never touches the border), while the
+// overlay mirrors the value at the exact same glyph positions, synced to the
+// input's scroll. The overlay may extend PAST the viewport to the field
+// borders, so overflowing text — at rest and while editing — is clipped by
+// the field border itself, making it clear the text continues. clip-path
+// widens the viewport's clip 12px on any side WITHOUT an affix (with an
+// affix the text must not run under it).
+.valueViewport {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+  height: 100%;
+  clip-path: inset(-20px 0);
+
+  &.reachRight {
+    clip-path: inset(-20px calc(var(--size-3) * -1) -20px 0);
+  }
+
+  &.reachLeft {
+    clip-path: inset(-20px 0 -20px calc(var(--size-3) * -1));
+  }
+
+  &.reachLeft.reachRight {
+    clip-path: inset(-20px calc(var(--size-3) * -1));
+  }
+}
+
+.overlay {
+  @include font("body-400-compact");
+
+  position: absolute;
+  left: 0;
+  color: var(--text-strong);
+  white-space: pre;
+  pointer-events: none;
+}
+
+// Prefix / suffix — subtle, never grow, truncate when absurdly long.
+.affix {
+  @include font("body-400-compact");
+
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
+  color: var(--text-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

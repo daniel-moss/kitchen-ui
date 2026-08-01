@@ -1,0 +1,88 @@
+// NavSidebar — the desktop navigation sidebar. Values from Figma "NavSidebar":
+// 280px column, divider on the right edge, 52px header, 8px side padding.
+
+.sidebar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  width: 281px; // 280 + the 1px edge divider
+  height: 100%;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  min-height: 0;
+}
+
+// Sticks on top: it simply sits outside the scroll container.
+.header {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  gap: var(--size-2); // the minimum workspace ↔ profile gap
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 var(--size-2);
+}
+
+// A long workspace name gives way (truncates) instead of pushing the profile.
+.workspace {
+  min-width: 0;
+}
+
+// The ScrollArea wrapper — takes the flex slot below the header.
+.scrollWrap {
+  flex: 1 1 0;
+}
+
+// Everything below the header scrolls when the height runs out; while it
+// fits, the bottom block pins to the bottom (space-between). Scrolling and
+// the overlay thumb come from ScrollArea (the thumb sits in the 8px right
+// padding, so rows keep their full width).
+.scroll {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // keeps ≥8px between top and bottom when overflowing
+  justify-content: space-between;
+  padding: 0 var(--size-2) var(--size-2);
+}
+
+.top {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-2); // 8px search ↔ items
+  width: 100%;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px between rows
+  width: 100%;
+}
+
+.bottom {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-2); // 8px items ↔ Create
+  width: 100%;
+}
+
+.edge {
+  flex: none;
+  height: 100%;
+}
+
+// The desktop Create menu: a body portal fixed to the right of the button,
+// bottoms aligned (left/bottom measured from the button).
+.createMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

@@ -1,0 +1,19 @@
+@use "../../styles/mixins/font" as *;
+
+// A 20px pill: gray-a2 fill, 1px gray-a4 border, centered count. See Figma "Counter".
+.counter {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-5); // 20px
+  min-width: var(--size-5); // 20px
+  padding: 0 var(--size-1); // 0 4px
+
+  background: var(--gray-a2);
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--border-radius-1); // 4px
+  color: var(--gray-12);
+
+  @include font("caption-small-500"); // Inter Medium 12/16
+}

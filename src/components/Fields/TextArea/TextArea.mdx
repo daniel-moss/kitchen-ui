@@ -1,0 +1,91 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TextAreaStories from "./TextArea.stories";
+
+<Meta of={TextAreaStories} />
+
+# TextArea
+
+We use **TextArea** for entering paragraphs of text.
+
+<Canvas of={TextAreaStories.Basic} />
+
+```tsx
+<Input label="Reason for call">
+  <TextArea value={reason} onChange={handleChange} onClear={() => setReason("")} />
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Doesn't support a placeholder. Any informative text is shown either as a hint
+next to the label, or as help text (both on the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper — the field is bare).
+
+<Canvas of={TextAreaStories.Empty} />
+
+Supports a **Clear** button when filled (`clearable`, on by default).
+
+<Canvas of={TextAreaStories.Basic} />
+
+## Behaviour
+
+Min height is 4 rows. It can not be less than that.
+
+<Canvas of={TextAreaStories.Empty} />
+
+Doesn't support inner scroll. If the value does not fit the height, the
+container expands — there is no maximum height. (Our customers intentionally
+asked for this behaviour; it provides better UX on mobile.) The example below
+is live — type into it and watch it grow:
+
+<Canvas of={TextAreaStories.Grows} />
+
+We show the **Clear** button when a value is provided. Hovering it triggers
+the tooltip; clicking triggers the confirm
+<a href="/?path=/story/components-prompt--playground" target="_top">Prompt</a>
+("Clear [label]?" — the label derives from the Input wrapper, or
+`clearPromptLabel`). It helps to avoid accidental clicking and losing the
+data. Try all three on the live example:
+
+<Canvas of={TextAreaStories.WithClear} />
+
+### States
+
+Empty + Valid:
+
+<Canvas of={TextAreaStories.EmptyValid} />
+
+Empty + Invalid — `disabled` can not be invalid:
+
+<Canvas of={TextAreaStories.EmptyInvalid} />
+
+Filled + Valid:
+
+<Canvas of={TextAreaStories.FilledValid} />
+
+Filled + Invalid — `disabled` and `readOnly` can not be invalid:
+
+<Canvas of={TextAreaStories.FilledInvalid} />
+
+### "Missing value" message
+
+The message starts with the verb **"Provide"** followed by the input label,
+which starts with an uppercase letter. No period in the end. It derives from
+the Input wrapper's label automatically — the example below passes no
+`errorMessage`:
+
+<Canvas of={TextAreaStories.MissingValueMessage} />
+
+### Mobile keyboard
+
+We use the `text` keyboard variant — always; there is nothing to configure.
+
+## Props
+
+<ArgTypes of={TextAreaStories} />

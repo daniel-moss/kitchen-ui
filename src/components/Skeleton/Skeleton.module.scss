@@ -1,0 +1,14 @@
+.base {
+  display: inline-block;
+  background: var(--gray-a3);
+  animation: ku-skeleton 800ms ease-in-out infinite alternate;
+}
+
+@keyframes ku-skeleton {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

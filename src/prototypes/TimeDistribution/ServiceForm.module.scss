@@ -1,0 +1,22 @@
+// The Service edit-form body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6);
+  width: 100%;
+}
+
+// Recall to: the select then the recalled-job preview card, 8px apart.
+.recall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+
+// The Priority value: the duotone bars icon + label.
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+}

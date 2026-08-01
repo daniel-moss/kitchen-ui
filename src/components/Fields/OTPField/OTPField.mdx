@@ -1,0 +1,97 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as OTPFieldStories from "./OTPField.stories";
+
+<Meta of={OTPFieldStories} />
+
+# OTPField
+
+We use **OTPField** for entering a 6-digit code.
+
+<Canvas of={OTPFieldStories.Basic} />
+
+```tsx
+<Input label="Verification code">
+  <OTPField value={code} onChange={setCode} onComplete={verify} isValid={valid} />
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Consists of 6 inputs grouped together — one input for each code digit
+(`length`, default `6`). Each box is 40px tall, in the shared input chrome
+(`--gray-a2` fill, `--gray-a7` border, `--border-radius-1_5` (6px) corners),
+and the digit is Inter Semi Bold 18/28 (`--font-heading-h2`), centered. An
+empty box shows a "–" placeholder. The boxes sit 8px apart (`--size-2`) and
+share the width equally.
+
+There is a maximum and a minimum width — the whole field is responsive
+between `--size-56` (224px) and `--size-96` (384px):
+
+<Canvas of={OTPFieldStories.MinMaxWidth} />
+
+## Behaviour
+
+### Active by default
+
+The field is active by default — the first input is in the active state, which
+indicates that the user can type in the code.
+
+Entry is **strictly sequential**: the user types from the first box to the last,
+in that order only. A specific digit can not be edited — clicking a box always
+returns focus to the current position. The user can erase in reverse with
+Backspace (last digit first), but can not skip digits. A pasted code fills the
+boxes in order from the current position.
+
+When the last digit is entered the code is complete and is verified
+automatically (via `onComplete`) — on success the flow proceeds; on failure the
+error is shown (below).
+
+<Canvas of={OTPFieldStories.ActiveByDefault} />
+
+### Error and reset
+
+If the code is expired or invalid, we show the error state and message. There
+is also a shake animation, which indicates a negative response. The error state
+is kept for 2 seconds — then the input group resets automatically: the digits
+**and** the error state are cleared (the boxes return to normal). Only the error
+message stays, until the user starts typing again.
+
+The component owns this behaviour: the consumer only flips `isValid` (and
+optionally `errorMessage`) when its check rejects the code; the shake, the
+2-second hold, and the reset happen on their own. Re-arm the next failure by
+setting `isValid` back to true when the user edits.
+
+<Canvas of={OTPFieldStories.ErrorReset} />
+
+### Input states
+
+A single box in each state — Empty / Filled × Valid / Invalid. In each row the
+boxes are, left to right: default, hovered, active (focused), disabled. Invalid
+rows omit disabled — a disabled box can not be invalid.
+
+<Canvas of={OTPFieldStories.InputStates} />
+
+### Group states
+
+The whole field — Empty / Filled × Valid / Invalid. A disabled field dims every
+box; an invalid field shows the tomato boxes and the error help text below.
+
+<Canvas of={OTPFieldStories.GroupStates} />
+
+### Mobile keyboard
+
+By default we use the `tel` keyboard variant with the boxes (the math-modifiers
+button is not shown). The first box also carries `autocomplete="one-time-code"`,
+so an SMS code offered by the OS fills the whole field. Open this page on a
+phone to feel the keyboard.
+
+<Canvas of={OTPFieldStories.MobileKeyboard} />
+
+## Props
+
+<ArgTypes of={OTPFieldStories} />

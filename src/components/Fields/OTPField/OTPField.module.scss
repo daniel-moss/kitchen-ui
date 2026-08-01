@@ -1,0 +1,43 @@
+// OTPField — a row of digit boxes (OTPBox) plus an optional error help text.
+// The whole field is responsive between a min and a max width (Figma: min 224 /
+// max 384); the boxes share the width equally (each OTPBox is flex: 1).
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px — boxes ↔ error help text
+  width: 100%;
+  min-width: var(--size-56); // 224px
+  max-width: var(--size-96); // 384px
+}
+
+.group {
+  display: flex;
+  gap: var(--size-2); // 8px between boxes
+  width: 100%;
+}
+
+// Shake on error (negative response). Skipped when the user prefers less motion.
+@media (prefers-reduced-motion: no-preference) {
+  .shake {
+    animation: otp-shake 400ms ease;
+  }
+}
+
+@keyframes otp-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}

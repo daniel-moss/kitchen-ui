@@ -1,0 +1,98 @@
+@use "../../../styles/mixins/input-chrome" as *;
+
+// ===== root (field + optional error help text) =====
+// Fills its container (the Figma default — like every other field).
+.root {
+  @include input-root;
+
+  width: 100%;
+}
+// Hug the value instead (opt-in): the width adapts to the content; a container
+// can still constrain it (max-width kicks in), which re-enables truncation.
+.fitContent {
+  width: fit-content;
+  max-width: 100%;
+}
+// Whole field dims when disabled (matches Figma's opacity on the Input).
+.disabled {
+  @include input-disabled;
+}
+
+// ===== field (the trigger surface) =====
+// The chrome (fill, inset-shadow borders, state ladder) is the shared input
+// chrome — see styles/mixins/_input-chrome.scss.
+.field {
+  @include input-field;
+  @include input-field-grouped; // fused-border chrome inside an InputGroup
+
+  gap: var(--size-3); // 12px — body ↔ chevron
+  width: 100%;
+  cursor: pointer;
+}
+
+// Inside an InputGroup: the field becomes an equal flex segment.
+.groupedRoot {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — counter ↔ body
+}
+.body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.chevron {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--gray-a9); // resting chevron
+  transition: color 120ms ease;
+}
+
+@media (hover: hover) {
+// hover — darker border, chevron to full strength.
+.field:hover {
+  @include input-field-hover;
+}
+}
+
+@media (hover: hover) {
+.field:hover .chevron {
+  color: var(--gray-12);
+}
+}
+
+// active — focus-visible or forced-open: gray-12 border.
+.field:focus-visible,
+.field.open {
+  @include input-field-active;
+}
+.field:focus-visible .chevron,
+.field.open .chevron {
+  color: var(--gray-12);
+}
+
+// error — stays on hover / active.
+.field.invalid,
+.field.invalid:hover,
+.field.invalid:focus-visible,
+.field.invalid.open {
+  @include input-field-invalid;
+}
+.field.invalid:hover .chevron,
+.field.invalid:focus-visible .chevron,
+.field.invalid.open .chevron {
+  color: var(--gray-12);
+}
+
+// read-only — no fill, softer border (chevron is not rendered).
+.field.readOnly {
+  @include input-field-readonly;
+}

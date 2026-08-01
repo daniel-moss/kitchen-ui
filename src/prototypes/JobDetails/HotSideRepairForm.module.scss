@@ -1,0 +1,15 @@
+// "Hot Side - Repair" form (Figma 23920-13390) — a flat 24px column of fields
+// (no FormModules), most of them MediaFields.
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+}
+
+// Desktop context-menu card anchored to a file card's ⋯ button.
+.cardMenu {
+  position: fixed;
+  z-index: 1000;
+}

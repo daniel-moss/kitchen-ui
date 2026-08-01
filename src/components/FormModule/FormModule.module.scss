@@ -1,0 +1,74 @@
+@use "../../styles/mixins/font" as *;
+
+// A form section — header above a body of fields (Figma "FormModule").
+.module {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px — header ↔ body (Figma update 2026-07-29; was 16)
+  width: 100%;
+}
+
+// Header: the title/caption block, then (optionally) a banner.
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px — content ↔ banner
+}
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px — title ↔ caption
+}
+
+// Title — the module's own part (heading/h3, Semibold 15/24). A row so the
+// optional "(optional)" condition + hint trigger sit inline after it.
+// Top-aligned so the condition and hint trigger stay on the FIRST line when
+// the title wraps (Figma update 2026-07-29; was center).
+.title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-1); // 4px (only shows with a condition / hint)
+}
+.titleText {
+  @include font("heading-h3"); // Inter Semibold 15/24
+
+  color: var(--text-strong);
+}
+// Condition ("(optional)") — Regular 15/24, subtle. No named token at this size,
+// so composed from the weight/size/family tokens.
+.condition {
+  font: var(--font-weight-normal) 0.9375rem/1.5rem var(--font-family-base);
+  font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
+
+  color: var(--text-subtle);
+}
+
+// The trigger's 24×24 box — matches the title's 24px line-height, so the icon
+// centers on the first title line ("HintTrigger Container" in Figma).
+.hintTriggerContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-6); // 24px
+  height: var(--size-6);
+}
+
+.caption {
+  @include font("body-400-compact"); // Inter Regular 14/20
+
+  margin: 0;
+  color: var(--text-subtle);
+}
+
+// Body: the fields, stacked 24px apart (Figma content-slot gap; Daniel,
+// 2026-07-25 — was 16px). The Figma slot is items-start, but the code KEEPS
+// the stretch default on purpose (2026-07-29): consumers wrap fields in plain
+// divs (rows, conditional groups) that rely on block-like filling — items-start
+// broke every form prototype. A hugging child (e.g. the ghost "Add labels"
+// Button) sets `align-self: flex-start` itself; the rendered result matches
+// Figma either way.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+}

@@ -1,0 +1,80 @@
+/* Kitchen UI — alias color tokens */
+/* The only semantic/alias layer in Kitchen UI. Maps Radix base scales to
+   usage-based tokens. Use these (not raw scale steps) wherever they apply. */
+
+:root {
+  /* Live Collaboration Colors */
+
+  --live-collaboration-crimson: var(--crimson-9);
+  --live-collaboration-pink: var(--pink-9);
+  --live-collaboration-plum: var(--plum-9);
+  --live-collaboration-violet: var(--violet-9);
+  --live-collaboration-indigo: var(--indigo-9);
+  --live-collaboration-blue: var(--blue-9);
+  --live-collaboration-cyan: var(--cyan-9);
+  --live-collaboration-teal: var(--teal-9);
+  --live-collaboration-orange: var(--orange-9);
+  --live-collaboration-amber: var(--amber-10);
+}
+
+/* Text Colors — declared in every theme context so the referenced gray scales
+   re-resolve per theme (a plain :root block would pin them to light values and
+   they would NOT flip in dark mode or under an inverted-theme wrapper). */
+:root,
+.light,
+.light-theme,
+.dark,
+.dark-theme {
+  --text-strong: var(--gray-12);
+  --text-subtle: var(--gray-a11);
+  --text-placeholder: var(--gray-a9);
+  --text-info: var(--blue-a11);
+  --text-success: var(--jade-a11);
+  --text-warning: var(--amber-a11);
+  --text-error: var(--tomato-a11);
+}
+
+:root,
+.light,
+.light-theme {
+  /* Base Colors */
+
+  --white: hsl(0, 0%, 100%);
+  --black: hsl(0, 0%, 0%);
+
+  /* Surfaces */
+
+  --surface-level-first: var(--gray-3);
+  --surface-level-second: var(--gray-2);
+  --surface-level-third: var(--gray-1);
+  --surface-interactive-default: var(--pure-white);
+  --surface-interactive-hover: var(--gray-4);
+  --surface-interactive-press: var(--gray-5);
+
+  /* Shadows */
+
+  --box-shadow-shadow-default: var(--black-a2);
+  --box-shadow-shadow-contrast: var(--black-a4);
+}
+
+.dark,
+.dark-theme {
+  /* Base Colors */
+
+  --white: var(--gray-1);
+  --black: var(--gray-12);
+
+  /* Surfaces */
+
+  --surface-level-first: var(--gray-4);
+  --surface-level-second: var(--gray-5);
+  --surface-level-third: var(--gray-6);
+  --surface-interactive-default: var(--gray-7);
+  --surface-interactive-hover: var(--gray-6);
+  --surface-interactive-press: var(--gray-5);
+
+  /* Shadows */
+
+  --box-shadow-shadow-default: var(--black-a4);
+  --box-shadow-shadow-contrast: var(--black-a6);
+}

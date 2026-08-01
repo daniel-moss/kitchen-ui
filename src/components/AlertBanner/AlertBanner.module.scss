@@ -1,0 +1,113 @@
+@use "../../styles/mixins/font" as *;
+
+// An inline alert. Status drives every color via the --al-* variables set on the
+// status class. See Kitchen UI/components/alert-banner.md.
+.alert {
+  position: relative;
+  display: flex;
+  gap: var(--size-2_5); // 10px
+  // 12px vertical; horizontal defaults to 12px but the host can override it via
+  // --al-pad-x (the banner variant adapts its left/right padding to fit).
+  padding: var(--size-3) var(--al-pad-x, var(--size-3));
+}
+
+.horizontal {
+  align-items: center;
+}
+.vertical {
+  align-items: flex-start;
+}
+
+// ---- types ----
+.card {
+  background: var(--al-bg);
+  // Border drawn as an inset ring (like Figma's inside stroke) so it does not
+  // add 2px to the height — keeps card the same 42px as banner.
+  box-shadow: inset 0 0 0 1px var(--al-border);
+  border-radius: var(--border-radius-1_5); // 6px
+}
+.banner {
+  // same tint, no border/radius (full-bleed). Padding may be adjusted per host.
+  background: var(--al-bg);
+}
+
+// ---- icon ----
+.icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--al-fg);
+}
+.vertical .icon {
+  margin-top: 3px; // nudge to align with the first text line
+}
+
+// ---- body / text ----
+.body {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.vertical .body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px — CTA sits below the text
+}
+
+.text {
+  color: var(--al-fg);
+
+  @include font("body-400-spacious"); // Inter Regular 14/22
+}
+
+// ---- CTA (a LinkButton) ----
+.cta {
+  flex: none;
+  display: inline-flex;
+  padding: 0 var(--size-2); // horizontal breathing room around the hit area
+}
+.vertical .cta {
+  padding: 0; // flush-left below the text
+}
+
+// ---- dismiss (muted IconButton) ----
+// The resting icon color is overridden to the status --al-dismiss inline; hover
+// / press stay standard muted (gray). The 36px hit area uses ::after — the
+// IconButton itself uses ::before for its focus ring.
+.dismiss {
+  position: relative;
+  flex: none;
+}
+.dismiss::after {
+  content: "";
+  position: absolute;
+  inset: -7px; // 22px button + 2×7 = 36px hit area
+}
+
+// ---- status → color variables ----
+.info {
+  --al-bg: var(--blue-a2);
+  --al-border: var(--blue-a4);
+  --al-fg: var(--blue-a11);
+  --al-dismiss: var(--blue-a9);
+}
+.success {
+  --al-bg: var(--jade-a2);
+  --al-border: var(--jade-a4);
+  --al-fg: var(--jade-a11);
+  --al-dismiss: var(--jade-a9);
+}
+.warning {
+  --al-bg: var(--amber-a2);
+  --al-border: var(--amber-a4);
+  --al-fg: var(--amber-a11);
+  --al-dismiss: var(--amber-a9);
+}
+.error {
+  --al-bg: var(--tomato-a2);
+  --al-border: var(--tomato-a4);
+  --al-fg: var(--tomato-a11);
+  --al-dismiss: var(--tomato-a9);
+}

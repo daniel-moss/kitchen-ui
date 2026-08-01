@@ -1,0 +1,154 @@
+@use "../../styles/mixins/font" as *;
+
+// Toast — values from Figma "Toast" (Daniel's 2026-07-14 restyle): 384px chip
+// on surface-level-third, radius 6, sm/down shadow, 12px padding both
+// variants, 10px root gap, compact (14/20) copy.
+
+.toast {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2_5);
+  width: var(--size-96); // 384px, fixed (the mobile toaster stretches it)
+  padding: var(--size-3);
+  overflow: hidden;
+  background: var(--surface-level-third);
+  border-radius: var(--border-radius-1_5);
+  // A 1px per-type INNER stroke (inset shadow, so it never adds size) lifts the
+  // toast off a low-contrast background; the colour also signals the status.
+  // Default covers neutral + processing; the coloured types override below.
+  --toast-stroke: var(--gray-12);
+  box-shadow:
+    inset 0 0 0 1px var(--toast-stroke),
+    var(--box-shadow-sm-down);
+}
+
+.success {
+  --toast-stroke: var(--jade-9);
+}
+.informative {
+  --toast-stroke: var(--blue-9);
+}
+.warning {
+  --toast-stroke: var(--amber-9);
+}
+.error {
+  --toast-stroke: var(--tomato-9);
+}
+
+.default {
+  align-items: center;
+  // Keep a consistent single-row height whether or not the toast carries a
+  // dismiss (×) / CTA. The dismiss IconButton (--size-5_5 = 22px) is the tallest
+  // standard control and normally drives the height; reserve that row even when
+  // only the 20px title is present, so a non-dismissible toast (e.g. processing)
+  // isn't 2px shorter than the rest. Multi-line titles still grow past it.
+  min-height: calc(var(--size-6) + var(--size-5_5)); // 24px padding + 22px row = 46px
+}
+
+.detailed {
+  align-items: flex-start;
+}
+
+// ---- status icon -----------------------------------------------------------
+
+.icon {
+  color: var(--text-strong);
+}
+
+.success .icon {
+  color: var(--text-success);
+}
+.informative .icon {
+  color: var(--text-info);
+}
+.warning .icon {
+  color: var(--text-warning);
+}
+.error .icon {
+  color: var(--text-error);
+}
+
+// Detailed: centers the 16px icon box on the title's first line (20px).
+.iconOffset {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 20px;
+}
+
+// ---- copy ------------------------------------------------------------------
+
+.title {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+  word-break: break-word;
+}
+
+// The default-variant title fills the row (pushes CTA + × right).
+.grow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.success .title {
+  color: var(--text-success);
+}
+.informative .title {
+  color: var(--text-info);
+}
+.warning .title {
+  color: var(--text-warning);
+}
+.error .title {
+  color: var(--text-error);
+}
+
+.copyAndCtas {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--size-1_5);
+  min-width: 0;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5);
+}
+
+.caption {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+  word-break: break-word;
+}
+
+// ---- CTAs / dismiss --------------------------------------------------------
+
+// Default variant: the Figma "Button Margins" wrapper — 8px side margins, so
+// the action sits 20px from the title and the ×.
+.ctaMargins {
+  flex: none;
+  padding: 0 var(--size-2);
+}
+
+// Detailed variant: Primary + Secondary row (4px bottom padding restored).
+.ctas {
+  display: flex;
+  gap: var(--size-4);
+  align-items: center;
+  padding-bottom: var(--size-1);
+}
+
+// Extra touch area for the 22px × (docs) — ::after, IconButton's own focus
+// ring uses ::before.
+.dismiss {
+  position: relative;
+  flex: none;
+
+  &::after {
+    position: absolute;
+    inset: -7px; // 22px button → 36px touch target
+    content: "";
+  }
+}

@@ -1,0 +1,38 @@
+// The Billing intention edit-form body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+// A radio label with a trailing info-hint icon.
+.hintLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1); // 4px — label ↔ hint icon
+}
+
+// The "Bill to different client" expandable content: label + client select + card.
+// The RadioItem content slot imposes no padding, so the picker brings its own
+// 16px inset (Figma). box-sizing keeps the full-width SelectField inside it.
+.clientPicker {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+  width: 100%;
+  padding: var(--size-4); // 16px
+}
+
+// The picked-client card sits 16px below the select input (Daniel; desktop +
+// mobile). The picker's own 8px gap + 8px here = 16px.
+.clientCard {
+  margin-top: var(--size-2); // +8px → 16px total
+}
+
+// Active / Inactive group-label icons (color only — the Icon owns its sizing).
+.activeDot {
+  color: var(--jade-9);
+}
+.inactiveDot {
+  color: var(--gray-a9);
+}

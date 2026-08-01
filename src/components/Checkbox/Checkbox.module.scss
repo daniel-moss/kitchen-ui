@@ -1,0 +1,32 @@
+// A 16px checkbox: a visually hidden native input overlays the shared CheckboxBox
+// visual. The box's look comes from CheckboxBox; this file only handles the input
+// hit area and cursors. See Figma "Checkbox".
+.root {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+  vertical-align: middle;
+}
+
+// The real control — invisible, on top, so it takes the click/focus and stays
+// keyboard/AT accessible.
+.input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.disabled,
+.disabled .input {
+  cursor: not-allowed;
+}
+
+.loading,
+.loading .input {
+  cursor: progress;
+}

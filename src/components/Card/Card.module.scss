@@ -1,0 +1,107 @@
+// An interactive container. Radius, shadow and background are the only
+// component-level design params; everything inside is a slot. See Figma "Card".
+
+// Interactive descendants inside the body (e.g. the CardFile ⋯ menu button, a
+// link) get their OWN states — hovering / pressing them must NOT tint the whole
+// card. Same idea as ListItem's slot exclusion. The body itself is a `[role=
+// button]` div, not one of these elements, so it is not matched here.
+$interactive: 'button, a, input, select, textarea, [role="button"], [role="switch"]';
+
+.card {
+  position: relative;
+  // Resting drop shadow, kept in a var so interaction states can drop it.
+  --card-shadow: 0 1px 3px 0 var(--box-shadow-shadow-default);
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--surface-interactive-default);
+  box-shadow: var(--card-shadow);
+  // The interaction tint lives on the card itself (see below), so an alert
+  // banner's area changes with it too.
+  transition: background-color 120ms ease;
+  // Clip the banner + body to the radius so their corners round automatically.
+  overflow: hidden;
+}
+
+// Alert ring — drawn as an inset 1px box-shadow (like Figma's inside stroke) so
+// it never changes the card's size. Layered over the (droppable) drop shadow.
+.ring {
+  box-shadow:
+    var(--card-shadow),
+    inset 0 0 0 1px var(--card-ring);
+}
+
+// ---- body: the interactive region (everything below an optional banner) ----
+.body {
+  position: relative;
+  border-radius: var(--border-radius-1_5); // 6px
+}
+// With a banner on top, only the bottom corners are rounded — the top edge meets
+// the banner square.
+.bodyUnderBanner {
+  border-radius: 0 0 var(--border-radius-1_5) var(--border-radius-1_5);
+}
+
+// ---- interactive states ----
+.interactive .body {
+  cursor: pointer;
+}
+.interactive .body:focus-visible {
+  outline: none;
+}
+
+// Hover / press / focus tint the WHOLE card and flatten the resting drop shadow.
+// The body is the interactive / focusable region, but the tint (and the focus
+// border) are applied to the card via :has() so the alert banner's area — which
+// sits over the card background — changes with the state too. The banner's own
+// fill is a translucent status color, so the tint shows through behind it.
+@media (hover: hover) {
+.interactive:has(.body:hover):not(:has(.body :is(#{$interactive}):hover)) {
+  background: var(--surface-interactive-hover);
+  --card-shadow: 0 0 0 0 transparent;
+}
+}
+.interactive:has(.body:active):not(:has(.body :is(#{$interactive}):active)) {
+  background: var(--surface-interactive-press);
+  --card-shadow: 0 0 0 0 transparent;
+}
+// Keyboard focus — a solid 2px gray-12 border (inset shadow, so the card's
+// overflow clip does not cut it) wrapping the whole card, over the hover fill.
+.interactive:has(.body:focus-visible) {
+  background: var(--surface-interactive-hover);
+  --card-shadow: 0 0 0 0 transparent;
+  box-shadow: inset 0 0 0 2px var(--gray-12);
+}
+
+// ---- dragging: lifted card — 1px gray-12 border + a large lift shadow ----
+.dragging {
+  --card-shadow: 0 8px 16px 0 var(--box-shadow-shadow-default);
+  box-shadow:
+    var(--card-shadow),
+    inset 0 0 0 1px var(--gray-12);
+}
+
+// ---- disabled: non-interactive, content dimmed ----
+.disabled .body {
+  cursor: not-allowed;
+}
+.disabled {
+  opacity: 0.3;
+}
+
+// ---- loading: non-interactive, native busy cursor ----
+.loading .body {
+  cursor: progress;
+}
+
+// ---- status → ring color (status-9, the solid scale step) ----
+.info {
+  --card-ring: var(--blue-9);
+}
+.success {
+  --card-ring: var(--jade-9);
+}
+.warning {
+  --card-ring: var(--amber-9);
+}
+.error {
+  --card-ring: var(--tomato-9);
+}

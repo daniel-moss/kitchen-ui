@@ -1,0 +1,96 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ButtonStories from "./Button.stories";
+
+<Meta of={ButtonStories} />
+
+# Button
+
+We use **Button** for the actions in a view — a labelled control the user
+clicks to make something happen. It carries a text label, optional icons, and
+comes in four variants and three sizes. For an icon-only action use
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>.
+
+<Canvas of={ButtonStories.Hero} />
+
+```tsx
+<Button variant="solid" size="md" leftIcon="plus" onClick={createJob}>
+  New job
+</Button>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+A Button is a **label** with optional **icons** on the left and/or right (14px,
+in the label's weight), on a `--border-radius-1_5` (6px) rounded fill. The three
+sizes set the height, horizontal padding and font:
+
+- **sm** — `--size-7` (28px) tall, `--size-2` (8px) padding, `caption-medium-500`
+  (Medium 13/20).
+- **md** — `--size-8` (32px) tall, `--size-2_5` (10px) padding, `body-500-compact`
+  (Medium 14/20).
+- **lg** — `--size-9` (36px) tall, `--size-3` (12px) padding, `body-500-compact`.
+
+<Canvas of={ButtonStories.Sizes} />
+
+## Behaviour
+
+### Variants
+
+Four styles, in descending emphasis: **solid** is the primary action (aim for one
+per view), **subtle** is the secondary action, **ghost** is low-emphasis, and
+**danger** is the destructive action.
+
+<Canvas of={ButtonStories.Variants} />
+
+### Icons
+
+`leftIcon` and `rightIcon` take an icon name and render it at 14px in the label's
+weight. Use either side, or both.
+
+<Canvas of={ButtonStories.WithIcons} />
+
+### Full width
+
+`isFullWidth` stretches the button to fill its container — used for full-width
+form and dialog actions on mobile.
+
+<Canvas of={ButtonStories.FullWidth} />
+
+### States
+
+Every variant has 7 states: **default**, **hovered**, **pressed**, **focused**
+(a 2px ring with a 2px gap), **processing** (a spinner replaces the content and
+blocks clicks, keeping the button's width), **disabled** (dimmed to 30% with the
+not-allowed cursor), and **loading** (a skeleton label while content loads). Each
+style is shown across all seven below.
+
+**Solid**
+
+<Canvas of={ButtonStories.StatesSolid} />
+
+**Subtle**
+
+<Canvas of={ButtonStories.StatesSubtle} />
+
+**Ghost**
+
+<Canvas of={ButtonStories.StatesGhost} />
+
+**Danger**
+
+<Canvas of={ButtonStories.StatesDanger} />
+
+### Debounced click
+
+`onClick` is debounced on the leading edge — it fires immediately, then ignores
+repeat clicks for a short window, so a fast double-tap can not submit twice. It
+is built in; pass `noDebounce` to opt out.
+
+## Props
+
+<ArgTypes of={ButtonStories} />

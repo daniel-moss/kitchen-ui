@@ -1,0 +1,68 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as StepItemGroupStories from "./StepItemGroup.stories";
+
+<Meta of={StepItemGroupStories} />
+
+# StepItemGroup
+
+We use **StepItemGroup** to provide navigation within multi-step forms. It lays
+a row of
+<a href="/?path=/docs/components-stepitemgroup-stepitem--docs" target="_top">StepItem</a>s
+out as a stepper.
+
+<Canvas of={StepItemGroupStories.Anatomy} />
+
+```tsx
+<StepItemGroup>
+  <StepItem progress="completed" label="Details" onClick={goToStep} />
+  <StepItem progress="current" label="Payment" />
+  <StepItem progress="incompleted" label="Review" />
+</StepItemGroup>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The band has left/right padding and top + bottom hairline strokes; there is no
+gap between steps. Inside is a responsive **inner container** — centered, capped
+at `528px` — that holds the step stack. The steps stretch equally and their
+status lines join into one continuous progress bar.
+
+<Canvas of={StepItemGroupStories.Anatomy} />
+
+## Behaviour
+
+### Responsiveness
+
+The inner container is responsive and centered, capped at `528px`. The steps
+stretch to fill it; once they hit their `104px` min-width, they extend beyond
+the container and it scrolls horizontally.
+
+<Canvas of={StepItemGroupStories.Quantities} />
+
+### Navigation
+
+When the steps overflow, the stack scrolls and keeps the **current** step in
+view — it is auto-centered as the flow advances.
+
+<Canvas of={StepItemGroupStories.Overflow} />
+
+### Interactivity
+
+By default the flow is one-directional: the user cannot skip ahead, but can jump
+**back** to a completed step. Flexible navigation (jump to any step) is also
+possible.
+
+**StepItemGroup does not enforce this itself** — the consumer decides which
+steps get an `onClick`. In the example below the completed steps are clickable
+and the current and later steps are not.
+
+<Canvas of={StepItemGroupStories.Interactive} />
+
+## Props
+
+<ArgTypes of={StepItemGroupStories} />

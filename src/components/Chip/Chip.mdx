@@ -1,0 +1,87 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ChipStories from "./Chip.stories";
+
+<Meta of={ChipStories} />
+
+# Chip
+
+We use **Chip** as a small interactive element for single or multiple
+selections. It works as a toggle — clicking or tapping switches it between
+inactive and active.
+
+<Canvas of={ChipStories.Interactive} />
+
+```tsx
+<Chip active={selected} onClick={() => setSelected((v) => !v)}>
+  Chip
+</Chip>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The bare minimum is text only. Chip has two sizes: **md** (`--size-7` (28px) —
+caption 13/20, `--size-2` (8px) padding, `--size-1_5` (6px) gap) and **lg**
+(`--size-8` (32px) — body 14/20, `--size-2_5` (10px) padding, `--size-2` (8px)
+gap). Both have `--border-radius-1_5` (6px) corners.
+
+<Canvas of={ChipStories.Sizes} />
+
+Chip supports a **left slot** — an
+<a href="/?path=/story/components-icon--default" target="_top">Icon</a>
+or an avatar. The icon is solid, size 14, and inherits the label color; all its
+parameters are editable. The avatar size is fixed at **xxs (16px)**, but any
+avatar is supported.
+
+<Canvas of={ChipStories.SlotLeft} />
+
+## Behaviour
+
+### Active and inactive
+
+A chip is inactive or active, and clicking or tapping switches between them.
+Inactive is a `--surface-interactive-default` fill with a 1px `--gray-a2`
+border and the `--box-shadow-xs-down` shadow; active is a `--gray-a2` fill with
+a 1px `--gray-12` border and no shadow. `active` also sets `aria-pressed`, so
+pass it on chips that work as toggles.
+
+<Canvas of={ChipStories.ActiveInactive} />
+
+### States
+
+Each value has 5 states: default, focused (keyboard only), hovered, pressed and
+disabled. **Inactive** hover/press fill `--surface-interactive-hover` /
+`--surface-interactive-press` and drop the border and shadow. **Active**
+hover/press step to `--gray-a3` / `--gray-a4` and keep the border. **Focus** is
+the Button-style ring — a 2px `--gray-a12` ring with a 2px gap and an inner fill
+block. **Disabled** dims to 30% with the not-allowed cursor.
+
+Inactive
+
+<Canvas of={ChipStories.InactiveStates} />
+
+Active
+
+<Canvas of={ChipStories.ActiveStates} />
+
+### Loading
+
+`isLoading` swaps the label for a skeleton bar and the left slot (if one is
+set) for a `--gray-a3` circle — 14px for an icon, 16px for an avatar. The chip
+is not interactive and shows the busy cursor.
+
+lg
+
+<Canvas of={ChipStories.LoadingLg} />
+
+md
+
+<Canvas of={ChipStories.LoadingMd} />
+
+## Props
+
+<ArgTypes of={ChipStories} />

@@ -1,0 +1,96 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as CardStories from "./Card.stories";
+
+<Meta of={CardStories} />
+
+# Card
+
+We use **Card** as an interactive container for any type of data.
+
+<Canvas of={CardStories.Hero} />
+
+```tsx
+<Card onClick={openDetails}>
+  <YourContent />
+</Card>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)
+
+## Anatomy
+
+The card works as a container for any type of data. The only parameters defined
+on the component level are **corner radius** (`--border-radius-1_5` (6px)),
+**shadow** (a resting `0 1px 3px` drop shadow) and **background**
+(`--surface-interactive-default`). Everything else is a slot — pass any content
+as the card's children.
+
+<Canvas of={CardStories.Hero} />
+
+The card supports an **alert ring** — a 1px status-colored inset border — in 4
+statuses: info (`--blue-9`), success (`--jade-9`), warning (`--amber-9`) and
+error (`--tomato-9`). Set `ring` and pick the color with `status`.
+
+<Canvas of={CardStories.AnatomyRing} />
+
+It also supports an **alert banner** — an
+<a href="/?path=/story/components-alertbanner--playground" target="_top">AlertBanner</a>
+pinned at the top. The alert ring must be used with the alert banner, so passing
+`banner` always draws a matching ring. The banner's color and icon come from the
+card's `status`.
+
+<Canvas of={CardStories.AnatomyBanner} />
+
+## Behaviour
+
+If the card content couldn't be loaded for some reason, the card displays an
+**error state** — it replaces the body with an
+<a href="/?path=/story/components-emptystate--playground" target="_top">EmptyState</a>
+and a Reload button (wire `onRetry`). The card is non-interactive in this state.
+
+<Canvas of={CardStories.ErrorState} />
+
+### States
+
+The card is interactive by default — the whole body is a button, and the states
+apply to every variant (with or without a ring or banner). Interactive elements
+inside the body (a link, a menu button) keep their own states, so hovering or
+pressing them does not tint the whole card.
+
+**Default** — the `--surface-interactive-default` fill and the resting
+`0 1px 3px` shadow.
+
+<Canvas of={CardStories.StateDefault} />
+
+**Focused** — a 2px `--gray-12` border over the hover fill (keyboard focus).
+
+<Canvas of={CardStories.StateFocused} />
+
+**Hovered** — the `--surface-interactive-hover` fill; the resting shadow flattens.
+
+<Canvas of={CardStories.StateHovered} />
+
+**Pressed** — the `--surface-interactive-press` fill; the shadow flattens.
+
+<Canvas of={CardStories.StatePressed} />
+
+**Dragging** — a 1px `--gray-12` border + a large lift shadow (`0 8px 16px`); the
+card is non-interactive.
+
+<Canvas of={CardStories.StateDragging} />
+
+**Disabled** — 30% opacity; the card is non-interactive.
+
+<Canvas of={CardStories.StateDisabled} />
+
+**Loading** — the card is non-interactive while it's loading and shows the native
+busy cursor. The loading content is specified by the consumer — supply your own
+skeletons that match the card's real content.
+
+<Canvas of={CardStories.StateLoading} />
+
+## Props
+
+<ArgTypes of={CardStories} />

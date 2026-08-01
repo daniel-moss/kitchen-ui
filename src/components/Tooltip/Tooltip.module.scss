@@ -1,0 +1,102 @@
+@use "../../styles/mixins/font" as *;
+
+// Root: ambient theme (NOT inverted) so the drop-shadow follows normal mode.
+.tooltip {
+  position: relative;
+  display: inline-block;
+  z-index: var(--z-tooltip);
+
+  // Shadow follows the chip+tongue shape and never inverts.
+  filter: drop-shadow(0 4px 10px var(--box-shadow-shadow-contrast));
+}
+
+// Body: inverted (the opposite theme class is applied alongside). All colors are
+// scale tokens, so they resolve to the opposite theme.
+.body {
+  position: relative;
+  box-sizing: border-box;
+
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+
+  max-width: 240px;
+  padding: var(--size-1_5) var(--size-2_5); // 6 / 10
+
+  background: var(--gray-1);
+  color: var(--gray-12);
+  border-radius: var(--border-radius-1_5);
+
+  @include font("caption-medium-500");
+  text-align: center;
+}
+
+// Avatar body (single avatar+text or an AvatarGroup) uses even padding.
+.avatar {
+  padding: var(--size-3);
+}
+
+.textLeft {
+  text-align: left;
+}
+
+// ---- tongue (arrow): 8px square rotated 45°, same bg as body ----
+.arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: var(--gray-1);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+// placement = the trigger edge the tongue sits on
+.bottom .arrow {
+  top: -2px;
+}
+
+.top .arrow {
+  bottom: -2px;
+}
+
+.right .arrow {
+  left: -2px;
+}
+
+.left .arrow {
+  right: -2px;
+}
+
+// align along a horizontal edge (top / bottom placements)
+.bottom.start .arrow,
+.top.start .arrow {
+  left: var(--size-2);
+}
+
+.bottom.center .arrow,
+.top.center .arrow {
+  left: 50%;
+  margin-left: -4px;
+}
+
+.bottom.end .arrow,
+.top.end .arrow {
+  right: var(--size-2);
+}
+
+// align along a vertical edge (left / right placements)
+.left.start .arrow,
+.right.start .arrow {
+  top: var(--size-2);
+}
+
+.left.center .arrow,
+.right.center .arrow {
+  top: 50%;
+  margin-top: -4px;
+}
+
+.left.end .arrow,
+.right.end .arrow {
+  bottom: var(--size-2);
+}

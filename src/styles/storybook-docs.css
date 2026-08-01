@@ -1,0 +1,266 @@
+/* Shared styling for Storybook DOCS pages (.mdx) — loaded globally from
+   .storybook/preview.js, so every docs page gets it without a per-file
+   <style> block. Overrides Storybook's built-in docs theme with design-system
+   tokens: the tokens flip with the .dark / .light-theme class the theme
+   decorator sets on <html>, so docs follow the light / dark toolbar.
+
+   IMPORTANT: every text rule carries :not(.docs-story *) — the docs page
+   wraps the STORY PREVIEWS in the same .sbdocs tree, and a bare `.sbdocs p`
+   outweighs a component's own class (e.g. FormModule's caption went
+   text-strong instead of text-subtle). The guard keeps this chrome styling
+   off the components.
+
+   Type + spacing spec is Daniel's (2026-07-29), mirroring the Figma doc
+   pages: page pt 128 (above the h1, Daniel 2026-08-01) · h1 40/48 ·
+   h2 32/40 (pt 80, pb 16, divider on TOP) · h3 24/32
+   (pt 64, pb 16) · p 16/24 (py 48, dropped on the heading side) · strong 600
+   · links text-strong underline · chips 14 · code block 14 on the FIXED
+   dark-mode surface. ZERO margins — every gap comes from the elements' own
+   paddings. */
+
+/* Page: surface-level-first background, 700px content column. The top padding
+   is the space above the H1 on EVERY docs page (Storybook's own default here
+   is 64px). */
+.sbdocs.sbdocs-wrapper {
+  background: var(--surface-level-first);
+  padding-top: var(--size-32); /* 128 */
+}
+.sbdocs.sbdocs-content {
+  max-width: 700px;
+}
+
+/* Zero out Storybook's element margins — spacing is paddings-only. */
+.sbdocs .sbdocs-content > * {
+  margin: 0 !important;
+}
+
+/* DS font: InterVariable (fonts.css is loaded in this iframe) with the DS's
+   standard Inter features. The wrapper rule covers inheritance; the element
+   rules beat Storybook's own element styles. */
+.sbdocs.sbdocs-wrapper {
+  font-family: var(--font-family-base);
+}
+.sbdocs h1:not(.docs-story *),
+.sbdocs h2:not(.docs-story *),
+.sbdocs h3:not(.docs-story *),
+.sbdocs h4:not(.docs-story *),
+.sbdocs p:not(.docs-story *),
+.sbdocs li:not(.docs-story *),
+.sbdocs td:not(.docs-story *),
+.sbdocs th:not(.docs-story *),
+.sbdocs a:not(.docs-story *),
+.sbdocs strong:not(.docs-story *) {
+  font-family: var(--font-family-base);
+  font-feature-settings: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+}
+
+/* Headings — Semibold 600, text-strong. */
+.sbdocs h1:not(.docs-story *),
+.sbdocs h2:not(.docs-story *),
+.sbdocs h3:not(.docs-story *),
+.sbdocs h4:not(.docs-story *) {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+.sbdocs h1:not(.docs-story *) {
+  font-size: 40px;
+  line-height: 48px;
+}
+/* h2 block, top to bottom: 80px — divider — 80px — text — 16px. The block
+   owns the space on BOTH sides of the line (margins stay zero), so the line
+   is a positioned pseudo, not a border. */
+.sbdocs h2:not(.docs-story *) {
+  font-size: 32px;
+  line-height: 40px;
+  position: relative;
+  padding: calc(var(--size-20) * 2 + 1px) 0 var(--size-4); /* 80+1+80 / 16 */
+  border-bottom: none;
+}
+.sbdocs h2:not(.docs-story *)::before {
+  content: "";
+  position: absolute;
+  top: var(--size-20); /* 80px */
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--gray-a4);
+}
+.sbdocs h3:not(.docs-story *) {
+  font-size: 24px;
+  line-height: 32px;
+  padding: var(--size-16) 0 var(--size-4); /* 64 / 16 */
+}
+.sbdocs h4:not(.docs-story *) {
+  font-size: 20px;
+  line-height: 28px;
+  padding: var(--size-12) 0 var(--size-2); /* 48 / 8 */
+}
+
+/* Body text 16/24, 48px above and below — except against a heading, whose
+   own bottom padding (16) supplies the smaller gap; and only ONE 48 between
+   two adjacent paragraphs (the upper one's). */
+.sbdocs p:not(.docs-story *),
+.sbdocs li:not(.docs-story *) {
+  font-size: 16px;
+  line-height: 28px;
+  color: var(--text-subtle);
+}
+.sbdocs p:not(.docs-story *) {
+  padding: var(--size-12) 0; /* 48 */
+}
+/* The ↳ TOC lines — the only paragraphs holding in-page # links: 32px lines
+   (Daniel; matches the Figma doc pages). Applies on every docs page
+   automatically. */
+.sbdocs p:has(a[href^="#"]):not(.docs-story *) {
+  line-height: 32px;
+}
+.sbdocs h2 + p:not(.docs-story *),
+.sbdocs h3 + p:not(.docs-story *),
+.sbdocs h4 + p:not(.docs-story *),
+.sbdocs p + p:not(.docs-story *) {
+  padding-top: 0;
+}
+.sbdocs p:has(+ h2):not(.docs-story *),
+.sbdocs p:has(+ h3):not(.docs-story *),
+.sbdocs p:has(+ h4):not(.docs-story *) {
+  padding-bottom: 0;
+}
+/* Lists: markdown splits "intro line + bullets" into p + ul — rejoin them in
+   the rhythm: --size-6 (24px) intro ↔ list (like the Figma text blocks),
+   the standard --size-12 (48px) after the list, 24px bullet indent. */
+.sbdocs p:has(+ ul):not(.docs-story *),
+.sbdocs p:has(+ ol):not(.docs-story *) {
+  padding-bottom: var(--size-6); /* 24 */
+}
+.sbdocs ul:not(.docs-story *),
+.sbdocs ol:not(.docs-story *) {
+  padding: 0 0 var(--size-12) 24px; /* 48 below, bullets indented 24 */
+}
+/* The intro paragraph right below the page title: 24px both sides. */
+.sbdocs h1 + p:not(.docs-story *) {
+  padding: var(--size-6) 0; /* 24 */
+}
+
+.sbdocs strong:not(.docs-story *) {
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+/* Links: strong color, Regular 400, underline. Storybook's heading
+   self-link anchors stay plain (they ARE the heading text). */
+.sbdocs a:not(.docs-story *) {
+  color: var(--text-strong);
+  font-weight: 400;
+  text-decoration: underline;
+}
+.sbdocs h1 a:not(.docs-story *),
+.sbdocs h2 a:not(.docs-story *),
+.sbdocs h3 a:not(.docs-story *),
+.sbdocs h4 a:not(.docs-story *) {
+  text-decoration: none;
+}
+
+/* Inline code chips. */
+.sbdocs code:not(.docs-story *):not(.docblock-source *) {
+  font-size: 14px;
+  background: var(--gray-a3);
+  color: var(--text-strong);
+  border-color: var(--gray-a5);
+}
+
+/* Code snippets (the ```tsx blocks and every "Show code" panel): FIXED
+   Roopairs dark-mode colors in both page themes — background =
+   surface-level-first (dark) = gray-4 dark, base text = gray-11 dark,
+   accents = the radix dark -11 steps. */
+.sbdocs .docblock-source {
+  background: #2a2a2a; /* surface-level-first (dark) */
+  border: 1px solid var(--gray-a6);
+  border-radius: var(--border-radius-2_5); /* 10px — same as the story blocks */
+}
+.sbdocs .docblock-source code,
+.sbdocs .docblock-source pre {
+  font-size: 14px;
+  color: #b4b4b4; /* gray-11 (dark) */
+}
+.sbdocs .docblock-source .token.punctuation,
+.sbdocs .docblock-source .token.operator {
+  color: #7b7b7b; /* gray-10 (dark) */
+}
+.sbdocs .docblock-source .token.tag,
+.sbdocs .docblock-source .token.keyword,
+.sbdocs .docblock-source .token.class-name,
+.sbdocs .docblock-source .token.function {
+  color: #70b8ff; /* blue-11 (dark) */
+}
+.sbdocs .docblock-source .token.attr-name,
+.sbdocs .docblock-source .token.property {
+  color: #ffca16; /* amber-11 (dark) */
+}
+.sbdocs .docblock-source .token.string,
+.sbdocs .docblock-source .token.attr-value {
+  color: #1fd8a4; /* jade-11 (dark) */
+}
+.sbdocs .docblock-source .token.number,
+.sbdocs .docblock-source .token.boolean {
+  color: #ff92ad; /* crimson-11 (dark) */
+}
+.sbdocs .docblock-source .token.comment {
+  color: #6e6e6e; /* gray-9 (dark) */
+  font-style: italic;
+}
+
+/* Props table (ArgTypes): DS colors, follows the theme. */
+/* NOTE: the rendered table's class is `.docblock-argstable`. (There is ALSO
+   a hidden `.sb-argstableBlock` skeleton inside `.sb-preparing-docs` — do
+   not style that one or probe it; it is a 0×0 loading template.) !important
+   where Storybook's own emotion styles (injected later, same specificity)
+   would win — without it the dark theme got light text on Storybook's white
+   cells. */
+.docblock-argstable {
+  font-family: var(--font-family-base);
+  font-feature-settings: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+}
+.docblock-argstable th {
+  color: var(--text-strong) !important;
+}
+.docblock-argstable td {
+  background: var(--surface-level-third) !important;
+  color: var(--text-subtle);
+  border-color: var(--gray-a4) !important;
+}
+/* The prop name + description keep the DS text colors over Storybook's own
+   span styling. */
+.docblock-argstable td:first-of-type span {
+  color: var(--text-strong) !important;
+}
+.docblock-argstable td div,
+.docblock-argstable td p {
+  color: var(--text-subtle);
+}
+/* Type / default chips inside the table. */
+.docblock-argstable td code {
+  background: var(--gray-a3) !important;
+  color: var(--text-strong) !important;
+  border-color: var(--gray-a5) !important;
+}
+
+/* Preview surfaces: no fill of their own (the page's surface-level-first
+   shows through) — a 1px gray-6 stroke with the 2_5 (10px) radius outlines
+   the story block. */
+.sbdocs .docs-story,
+.sbdocs .sbdocs-preview,
+.sbdocs .sb-story {
+  background: transparent;
+}
+.sbdocs .sbdocs-preview {
+  border: 1px solid var(--gray-a6);
+  border-radius: var(--border-radius-2_5);
+  box-shadow: none;
+}
+
+/* The story container defaults to overflow:auto, which flashes a scrollbar
+   while an example resizes (e.g. truncation expand/collapse). Let it grow. */
+.sbdocs .docs-story,
+.sbdocs .docs-story > * {
+  overflow: visible !important;
+}

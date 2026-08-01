@@ -1,0 +1,128 @@
+@use "../../styles/mixins/font" as *;
+
+// "Complete job" — the 5-step focus Dialog (Figma section 24106-16424).
+
+// The Skip-forms Prompt's action-button warning icon is amber (Figma), even on
+// the dark solid button.
+.warnIcon {
+  color: var(--amber-9);
+}
+
+// A vertical field/module stack inside a FormModule body (SelectField + the
+// equipment modules; the three charges modules). 16px apart (Figma).
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  width: 100%;
+}
+
+// Work summary: the Generate button + the summary TextArea, 12px apart (Figma).
+.genStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  width: 100%;
+}
+
+// ===== "Job total time" widget (Figma 24401-45608) ==========================
+// A header-less DisplayModule card; centered label + big value + span caption.
+.totalTime {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.totalLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+
+.totalValueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  align-items: center;
+  width: 100%;
+}
+
+.totalValue {
+  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
+  font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
+  color: var(--text-strong);
+}
+
+.totalCaption {
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-subtle);
+}
+
+// ===== Charges module (Figma 24395-36688) ===================================
+// The line rows sit flush to the module edges (cancel DisplayModule's 16px
+// content padding — same approach as ChargesTab), then a group-total footer.
+.chargeBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// gray-a2 rounded box, right-aligned (Figma footer), inset 8px from the edges.
+.subtotalRow {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  justify-content: flex-end;
+  margin: 0 var(--size-2) var(--size-2); // 0 8px 8px
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+  text-align: right;
+}
+
+.subtotalLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.subtotalValue {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// Empty (zero) subtotal value — muted, like the Figma Discounts total.
+.subtotalMuted {
+  @include font("body-500-compact");
+  color: var(--text-placeholder);
+  white-space: nowrap;
+}
+
+// ===== Job subtotal (Figma 24401-45..) ======================================
+// A right-aligned block below the modules: subtle label + big Inter value.
+.jobSubtotal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px
+  align-items: flex-end;
+  width: 100%;
+  text-align: right;
+}
+
+.jobSubtotalLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+
+.jobSubtotalValue {
+  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
+  font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
+  color: var(--text-strong);
+}

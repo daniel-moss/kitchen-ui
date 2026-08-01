@@ -1,0 +1,31 @@
+@use "../../styles/mixins/font" as *;
+
+.row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+// Font/color only; the flex/ellipsis live on TruncatingText's wrapper.
+.caption {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+}
+
+// Slots: spaced --size-2 from the text (padding, not row gap). A bare Icon
+// inherits the caption's subtle color.
+.left {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding-right: var(--size-2);
+  color: var(--text-subtle);
+}
+
+.right {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding-left: var(--size-2);
+  color: var(--text-subtle);
+}

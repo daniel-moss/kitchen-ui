@@ -1,0 +1,9 @@
+@use "../../styles/mixins/font" as *;
+
+// The emphasised run inside a log sentence — the user name, a field name, a new
+// value. The sentence around it is regular / subtle; this is medium / strong.
+.emphasis {
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}

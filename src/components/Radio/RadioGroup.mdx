@@ -1,0 +1,53 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as RadioGroupStories from "./RadioGroup.stories";
+
+<Meta of={RadioGroupStories} />
+
+# RadioGroup
+
+We use **RadioGroup** for grouping radio items when there are up to 4 options
+and only one of them must be selected. The group is bare — its label and help
+text come from the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper.
+
+<Canvas of={RadioGroupStories.Interactive} />
+
+```tsx
+<Input label="Rate">
+  <RadioGroup orientation="horizontal" value={rate} onChange={setRate}>
+    <RadioItem value="standard" label="Standard" />
+    <RadioItem value="overtime" label="Overtime" />
+    <RadioItem value="emergency" label="Emergency" />
+  </RadioGroup>
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Items in the radio group might be aligned **vertically** or **horizontally**.
+The radio group supports the **card**
+<a href="/?path=/docs/components-radio-radioitem--docs" target="_top">RadioItem</a>
+variant only — the group forces it on every item. The items sit `--size-2`
+(8px) apart; horizontal items share the width equally.
+
+<Canvas of={RadioGroupStories.Orientation} />
+
+## Behaviour
+
+If selection is required and the user leaves the radio group without a
+selection, we show the error state after validation: every item turns error and
+one shared message shows `--size-1_5` (6px) below. The default message is
+**“Choose [Label]”** — derived automatically from the Input label
+(`errorMessage` overrides it).
+
+<Canvas of={RadioGroupStories.Invalid} />
+
+## Props
+
+<ArgTypes of={RadioGroupStories} />

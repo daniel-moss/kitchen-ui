@@ -1,0 +1,31 @@
+@use "../../styles/mixins/font" as *;
+
+.row {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+// Font/color only; the flex/ellipsis live on TruncatingText's wrapper.
+.title {
+  @include font("heading-h3");
+  color: var(--text-strong);
+}
+
+// Slots: spaced --size-2 from the text (padding, not row gap — matches Figma).
+// A bare Icon inherits the placeholder color; a HintTrigger keeps its own color.
+.left {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding-right: var(--size-2);
+  color: var(--gray-12);
+}
+
+.right {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding-left: var(--size-2);
+  color: var(--gray-12);
+}

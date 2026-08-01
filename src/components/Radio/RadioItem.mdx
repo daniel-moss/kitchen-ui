@@ -1,0 +1,117 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as RadioItemStories from "./RadioItem.stories";
+
+<Meta of={RadioItemStories} />
+
+# RadioItem
+
+We use **RadioItem** when there are up to 4 options and only one of them must
+be selected. The whole item is one control — clicking anywhere on it selects
+the radio.
+
+<Canvas of={RadioItemStories.Interactive} />
+
+```tsx
+<RadioItem
+  variant="card"
+  label="Standard rate"
+  caption="Billed at the default hourly rate"
+  checked={rate === "standard"}
+  onChange={() => setRate("standard")}
+/>
+```
+
+↳&nbsp;&nbsp;[Inline](#inline)<br />
+↳&nbsp;&nbsp;[Card](#card)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Inline
+
+The inline variant does not have a background. It consists of
+<a href="/?path=/docs/components-radio-radio--docs" target="_top">Radio</a>
+and text. Elements are top-aligned — the radio has offsets (a 2px top offset,
+`--size-2` (8px) before the text) which keep the elements aligned when there
+are multiple lines of text. The label is Medium strong; the caption is Regular
+subtle, `--size-0_5` (2px) below.
+
+<Canvas of={RadioItemStories.Inline} />
+
+The inline variant supports a caption.
+
+<Canvas of={RadioItemStories.InlineCaption} />
+
+The label and the caption wrap when they do not fit one line.
+
+<Canvas of={RadioItemStories.InlineWrap} />
+
+RadioItem supports an icon on the left. Elements are top-aligned — the icon has
+offsets (a 16px box with a 2px top offset and `--size-2` (8px) on the right) to
+align it perfectly.
+
+<Canvas of={RadioItemStories.InlineIcon} />
+
+Unselected
+
+<Canvas of={RadioItemStories.InlineUnselected} />
+
+Selected
+
+<Canvas of={RadioItemStories.InlineSelected} />
+
+The loading state depends on the caption visibility — one skeleton line without
+a caption, two with it. The radio pulses and the cursor is busy.
+
+<Canvas of={RadioItemStories.InlineLoading} />
+
+## Card
+
+The card variant has a background; the radio sits on the right. It consists of
+<a href="/?path=/docs/components-radio-radio--docs" target="_top">Radio</a>
+and text. Elements are top-aligned — the radio has offsets which keep the
+elements aligned when there are multiple lines of text. The card: `--size-3`
+`--size-4` (12px 16px) padding, `--size-4` (16px) gap, `--border-radius-1_5`
+(6px) corners. A selected card gets the dark stroke, the raised surface and the
+elevation shadow.
+
+<Canvas of={RadioItemStories.Card} />
+
+Caption is an optional element.
+
+<Canvas of={RadioItemStories.CardNoCaption} />
+
+Content wraps when it does not fit one line.
+
+<Canvas of={RadioItemStories.CardWrap} />
+
+RadioItem supports an icon on the left, with the same offsets as inline.
+
+<Canvas of={RadioItemStories.CardIcon} />
+
+A selected card has 2 variants: with and without a **content container**. The
+content container is used when we need to show additional content related to
+the selected option. It can contain any type of content — the same logic as for
+<a href="/?path=/story/components-displaymodule--playground" target="_top">DisplayModule</a>.
+The container is separated by a divider and has `--size-4` (16px) padding.
+
+<Canvas of={RadioItemStories.CardContainer} />
+
+Unselected
+
+<Canvas of={RadioItemStories.CardUnselected} />
+
+Selected (no content slot)
+
+<Canvas of={RadioItemStories.CardSelected} />
+
+Selected (with content slot)
+
+<Canvas of={RadioItemStories.CardSelectedContainer} />
+
+Loading states.
+
+<Canvas of={RadioItemStories.CardLoading} />
+
+## Props
+
+<ArgTypes of={RadioItemStories} />

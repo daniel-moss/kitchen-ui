@@ -1,0 +1,385 @@
+// The Timesheet tab (Figma "Timesheet" frame): widgets + the time-log accordion
+// + a summary with two distribution charts.
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 100%;
+  padding: var(--size-4);
+}
+
+// List-item module bodies pull back the 16px content padding to the rows' 4px.
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// ---- widgets ----------------------------------------------------------------
+.widgets {
+  display: flex;
+  gap: var(--size-4);
+}
+// Mobile: the two widgets stack vertically. Reset the row's `flex: 1 1 0` (a 0
+// basis collapses the height in a column) — each widget sizes to its content
+// and stretches full-width.
+.widgetsMobile {
+  flex-direction: column;
+}
+.widgetsMobile .widget {
+  flex: none;
+}
+// The widget IS a bodyOnly DisplayModule (bg / radius / shadow come from it).
+.widget {
+  flex: 1 1 0;
+  min-width: 0;
+}
+// Figma body: px-16 py-12, gap-16 — pull back DisplayModule's default 16px and
+// re-apply px-16 py-12.
+.widgetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px — label ↔ value block
+  margin: calc(-1 * var(--size-4));
+  padding: var(--size-3) var(--size-4); // 12px / 16px
+}
+.widgetLabel {
+  font: var(--font-body-400-compact); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+.widgetValueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  min-width: 0;
+}
+.widgetValue {
+  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.widgetSub {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+}
+// Empty state → the value + caption both read placeholder.
+.widgetValueBlockEmpty .widgetValue,
+.widgetValueBlockEmpty .widgetSub {
+  color: var(--text-placeholder);
+}
+
+// ---- date chip (the "JAN 1" mini badge on a log / timeline) ------------------
+.dateChip {
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a3);
+}
+.dateChipMonth {
+  font: var(--font-weight-medium) 0.5rem / 0.75rem var(--font-family-base);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+}
+.dateChipDay {
+  font: var(--font-body-500-compact);
+  color: var(--text-strong);
+}
+
+// ---- log row right slot -----------------------------------------------------
+.logRight {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+.logDuration {
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// ---- time sessions ----------------------------------------------------------
+// Ended-session avatar: a calendar glyph (gray-a3 box, "JAN" header + a
+// surface-filled date box). Figma "Calendar Glyph".
+.calGlyph {
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a3);
+}
+.calGlyphMonth {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--font-weight-semibold) 0.5rem / 0.5rem var(--font-family-base); // SemiBold 8/8
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gray-a9);
+}
+.calGlyphDateWrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  padding: 0 var(--size-0_5) var(--size-0_5); // px-2 pb-2
+}
+.calGlyphDate {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 5px 5px;
+  background: var(--surface-level-second);
+  font: var(--font-weight-semibold) 0.75rem / 1 var(--font-family-base); // SemiBold 12
+  color: var(--gray-a9);
+}
+// Warning-session avatar: an amber box with a warning triangle (≥ 8 h or
+// cross-day session). Figma 21803-49361 / 49414.
+.warnGlyph {
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--amber-a3);
+  color: var(--amber-10);
+}
+// Warning copy — the amber caption (cross-day) / duration (long session).
+// Doubled selector so it out-specifies `.sessionValue` / `.caption` (which are
+// declared later at equal specificity and would otherwise win the color).
+.warnText.warnText {
+  color: var(--text-warning);
+}
+
+// Active-session avatar: a red "recording" dot.
+.activeDot {
+  // The active-session status avatar (Figma 24196-75349): a 36px solid-tomato
+  // box with the light status icon (was the pulsing red dot before Concept 7).
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--tomato-9);
+  color: var(--tomato-1);
+}
+
+// The active row's right block: red live timer over the status caption.
+.activeRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: var(--size-10); // 40px row
+  text-align: right;
+}
+.activeTimer {
+  font: var(--font-body-500-compact-tabular); // Inter Medium 14/20 tabular
+  font-variant-numeric: lining-nums tabular-nums;
+  color: var(--text-error);
+  white-space: nowrap;
+}
+.activeRightCaption {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+// The session row's right side: the value + the Stop / edit control.
+.sessionRight {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+}
+.sessionValue {
+  font: var(--font-body-500-compact); // Medium 14/20
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+// Active session — the live timer is the title, in the default title color
+// (Daniel). Doubled selector to out-specify the ListItem's own `.title` color;
+// tabular-nums keeps the running digits from shifting.
+.sessionTimerTitle.sessionTimerTitle {
+  color: var(--gray-12);
+  font-variant-numeric: tabular-nums;
+}
+// The ended-session context menu, anchored under its ellipsis trigger (desktop).
+.sessionMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// The active row's context menu card. Explicit width — the Menu's fit-content
+// sizing can't measure a growing title next to a long tag (see the MenuItem
+// "KNOWN LIMIT" note). The Figma card is 234 but was drawn with the short
+// "Travelling" tag; 272 keeps "My status" one-line with the longest status
+// ("Gathering parts") — flagged to Daniel.
+.sessionMenuCard {
+  width: 272px;
+}
+
+// ---- summary + charts -------------------------------------------------------
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+}
+
+// Three summary cards in a row (Time / Days / Techs) — label left, value right.
+.summaryCards {
+  display: flex;
+  gap: var(--size-3);
+}
+// Mobile: the three cards stack vertically (Figma node 21803-50077).
+.summaryCardsMobile {
+  flex-direction: column;
+}
+.card {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-2);
+  min-height: var(--size-11); // 44px
+  padding: var(--size-2_5) var(--size-3);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a2);
+}
+.cardLabel {
+  font: var(--font-body-400-compact);
+  color: var(--text-subtle);
+}
+.cardValue {
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.cardValueEmpty {
+  color: var(--text-placeholder);
+}
+
+// "No time logged" — the empty state inside a tech group and a chart section.
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-5) 0;
+  font: var(--font-body-400-compact);
+  color: var(--text-placeholder);
+}
+.chartSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1_5);
+  font: var(--font-body-500-compact);
+  color: var(--text-strong);
+}
+.chartTitleInfo {
+  display: inline-flex;
+  color: var(--text-subtle);
+}
+
+// The bar: top labels (avatar / date chip), the segmented bar, then values —
+// each column flex-grows by its share so the three rows stay aligned.
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+.chartRow {
+  display: flex;
+  gap: var(--size-0_5);
+}
+.chartCell {
+  min-width: 0;
+  display: flex;
+  justify-content: center; // avatar / date-glyph / value centered over their segment
+}
+.chartBar {
+  height: 3px;
+}
+.chartSeg {
+  min-width: 0;
+  height: 3px;
+  border-radius: var(--border-radius-full);
+}
+.chartValue {
+  font: var(--font-body-500-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// ---- legend -----------------------------------------------------------------
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  padding: var(--size-2_5) var(--size-3);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a2);
+}
+.legendDot {
+  flex: none;
+  width: var(--size-2);
+  height: var(--size-2);
+  border-radius: var(--border-radius-full);
+}
+.legendName {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+}
+.legendValue {
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.legendPct {
+  color: var(--text-subtle);
+}
+
+// The active-session "Stop" button: red circle-stop icon, dark text (Figma 21803-49328).
+.stopIcon {
+  color: var(--tomato-9);
+}
+
+// The session-menu drawer header's title = the RUNNING TIMER: red, tabular
+// (Daniel; the node's text was a placeholder).
+.headerTimer {
+  color: var(--text-error);
+  font-variant-numeric: lining-nums tabular-nums;
+}

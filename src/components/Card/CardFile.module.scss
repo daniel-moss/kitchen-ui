@@ -1,0 +1,182 @@
+// CardFile — a file card: a square preview tile + a footer (name + ⋯ menu).
+// Built on Card (padding 0); Card owns the surface, radius, shadow and the
+// interactive / disabled / loading states. See Figma "CardFile".
+@use "../../styles/mixins/font" as *;
+
+// ---- the square tile (preview area) ------------------------------------
+// Always 1:1 and full width, so the card height follows its width.
+.tale {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  overflow: hidden;
+}
+
+// ---- preview: a real image / video thumbnail ----
+.preview {
+  position: absolute;
+  inset: 0;
+}
+.previewImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; // crop any source ratio to the square
+  pointer-events: none;
+}
+// Video: a dark scrim + a centered play glyph over the thumbnail.
+.videoOverlay {
+  position: absolute;
+  inset: 0;
+  background: var(--pure-black-a4); // always-black, both themes
+}
+.playIcon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  // Always white — the scrim is always dark, so this must not follow the theme
+  // (Figma used the theme-adaptive --pure-a12, which would invert in dark).
+  color: var(--pure-white-a12);
+}
+
+// ---- no preview: a colored file-type placeholder ----
+// Icon top-left; the file name fills the rest of the height below it (left
+// aligned). bg + fg come from the file-type color class (--tile-bg / --tile-fg).
+.noPreview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; // left-align the icon + name (was centered)
+  gap: var(--size-4); // 16
+  padding: var(--size-4); // 16
+  overflow: hidden;
+  background: var(--tile-bg);
+  color: var(--tile-fg); // icon + name inherit this
+}
+.noPreviewIcon {
+  flex-shrink: 0;
+}
+// Fills the space left below the icon; the height here (flex:1) is what the
+// filename's line count is measured against. The name is bottom-aligned within
+// it (short names sit at the bottom; long names fill up from the bottom).
+.noPreviewNameBox {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+// The name wraps to as many lines as fit, then ellipsis-truncates (the visible
+// line count is set inline via --webkit-line-clamp from the measured height).
+.noPreviewName {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere; // long unbroken filenames still wrap
+  @include font("caption-medium-500"); // Inter Medium 13/20
+}
+
+// ---- loading: skeletons replace the name --------------------------------
+// The tile keeps the file-type placeholder (colored bg + icon); the name is
+// replaced by two skeleton lines pinned to the bottom (icon top, lines bottom).
+.loadingTile {
+  justify-content: space-between;
+  gap: 0;
+}
+.loadingLines {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// ---- danger action button (e.g. delete): a red ghost IconButton ---------
+// The DS has no danger IconButton variant, so this recolors the ghost button's
+// own color vars locally. Doubled class so it beats IconButton's .ghostVariant.
+.dangerAction.dangerAction {
+  --ibtn-fg: var(--text-error);
+  --ibtn-fg-hover: var(--text-error);
+  --ibtn-bg-hover: var(--tomato-a3);
+  --ibtn-bg-press: var(--tomato-a4);
+  --ibtn-ring: var(--tomato-9);
+  --ibtn-focus-bg: var(--tomato-a3);
+}
+
+// ---- footer -------------------------------------------------------------
+.footer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+.footerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12
+  padding: var(--size-2) var(--size-2) var(--size-2) var(--size-4); // 8 / 8 / 8 / 16
+  overflow: hidden;
+}
+// No action button while loading — symmetric horizontal padding.
+.footerRowLoading {
+  padding-right: var(--size-4); // 16
+}
+// The name fills the row (pushing the action button to the right edge).
+// TruncatingText owns the ellipsis and the full-name tooltip on hover.
+.footerNameWrap {
+  flex: 1 0 0;
+  min-width: 0;
+}
+.footerName {
+  color: var(--text-strong);
+  @include font("caption-medium-500"); // Inter Medium 13/20
+}
+// The ⋯ lives inside Card's clickable body; isolate its clicks so a tap on the
+// menu never triggers the card's onClick.
+.menuGuard {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+// ---- file-type colors (Radix alpha scales → dark theme adapts) ----------
+.blue {
+  --tile-bg: var(--blue-a2);
+  --tile-fg: var(--blue-a11);
+}
+.jade {
+  --tile-bg: var(--jade-a2);
+  --tile-fg: var(--jade-a11);
+}
+.cyan {
+  --tile-bg: var(--cyan-a2);
+  --tile-fg: var(--cyan-a11);
+}
+.amber {
+  --tile-bg: var(--amber-a2);
+  --tile-fg: var(--amber-a11);
+}
+.violet {
+  --tile-bg: var(--violet-a2);
+  --tile-fg: var(--violet-a11);
+}
+.tomato {
+  --tile-bg: var(--tomato-a2);
+  --tile-fg: var(--tomato-a11);
+}
+.orange {
+  --tile-bg: var(--orange-a2);
+  --tile-fg: var(--orange-a11);
+}
+.crimson {
+  --tile-bg: var(--crimson-a2);
+  --tile-fg: var(--crimson-a11);
+}
+.teal {
+  --tile-bg: var(--teal-a2);
+  --tile-fg: var(--teal-a11);
+}
+.gray {
+  --tile-bg: var(--gray-a2);
+  --tile-fg: var(--gray-a11);
+}

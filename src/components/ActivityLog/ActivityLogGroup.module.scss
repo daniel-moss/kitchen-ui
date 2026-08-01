@@ -1,0 +1,26 @@
+@use "../../styles/mixins/collapse" as *;
+
+// ActivityLogGroup — a GroupLabel header over the group's log stack.
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.collapse {
+  @include collapse;
+}
+.collapseOpen {
+  @include collapse-open;
+}
+.collapseInner {
+  @include collapse-inner;
+}
+
+// The 8px header ↔ stack gap lives on the stack, not as a flex gap on the
+// root — a flex gap would keep its 8px while the stack is collapsed to 0.
+.stack {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--size-2); // 8px
+}

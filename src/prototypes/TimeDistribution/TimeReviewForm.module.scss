@@ -1,0 +1,144 @@
+@use "../../styles/mixins/font" as *;
+
+// The "Time review" check-out form (Figma 24184-61522 / 62305).
+
+// Top block: centered tracked total + the start -> end selects (16px padding,
+// 24px between the two groups).
+.top {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+  padding: var(--size-4); // 16px
+}
+
+.totalBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  align-items: center;
+  text-align: center;
+}
+
+.totalLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+
+.totalValue {
+  font: var(--font-heading-h1); // Inter SemiBold 24/32
+  color: var(--text-strong);
+}
+
+.rangeRow {
+  display: flex;
+  gap: var(--size-3); // 12px
+  align-items: center;
+  width: 100%;
+
+  // The two selects share the row equally.
+  > :first-child,
+  > :last-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+.rangeArrow {
+  font: var(--font-heading-h3); // Inter SemiBold 15/24
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// Mixed-color session-row text: the unknown / empty parts dim to placeholder.
+.placeholderText {
+  color: var(--text-placeholder);
+}
+
+.rowTitle {
+  color: var(--text-strong);
+}
+
+// The right-side duration (Inter Medium 14/20, right-aligned) — matches the
+// Timesheet session rows' value.
+.rowValue {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+  text-align: right;
+  white-space: nowrap;
+}
+
+// ===== distribution slider ==================================================
+
+.sliderBlock {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  width: 100%;
+  padding: var(--size-4); // 16px
+}
+
+// The 44px full-radius track (gray-a2 fill, gray-a7 border) with the side
+// labels inside.
+.track {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  overflow: hidden;
+  border: 1px solid var(--gray-a7);
+  border-radius: var(--border-radius-full);
+  background: var(--gray-a2);
+  touch-action: none; // the drag IS the interaction — never pan the sheet
+  cursor: pointer;
+}
+
+.trackLabelLeft,
+.trackLabelRight {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-strong);
+  pointer-events: none;
+  user-select: none;
+}
+
+.trackLabelLeft {
+  left: var(--size-5); // 20px
+}
+
+.trackLabelRight {
+  right: var(--size-5);
+}
+
+// The 36px round knob (gray-12, white arrows icon). Positioned by the drag
+// fraction; centered before the first drag.
+.knob {
+  position: absolute;
+  top: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--border-radius-full);
+  background: var(--gray-12);
+  box-shadow: var(--box-shadow-xs-down);
+  color: var(--gray-1);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.sliderCaption {
+  @include font("caption-medium-400"); // Inter Regular 13/20
+  width: 100%;
+  color: var(--text-subtle);
+  text-align: center;
+}

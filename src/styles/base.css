@@ -1,0 +1,20 @@
+/* Base behavior fixes — the kitchen-ui counterpart of the codebase's
+   _reboot.scss (only what we actually need). */
+
+html {
+  /* Render Inter the way Figma's canvas and Linear do. macOS' default web text
+     rendering (subpixel-antialiased) fattens every stroke, so the same weight
+     looks heavier than in Figma. Grayscale antialiasing + optimizeLegibility
+     make strokes thinner/cleaner and match the design. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  /* iOS paints a gray rectangle over any tapped target. Our components draw
+     their own press states, so the flash reads as a glitch — most visibly
+     over round content like the live-users avatar stack. Inherited by every
+     element (same rule as production's reboot). */
+  -webkit-tap-highlight-color: rgb(0 0 0 / 0%);
+}

@@ -1,0 +1,48 @@
+// A horizontal band wrapping a row of StepItems (a stepper). Hairline borders on
+// top and bottom; the inner stack is centered and capped at 528px.
+.group {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 var(--size-4); // 0 / 16
+  // Top + bottom hairlines drawn inset (inside the box) so they don't add height
+  // or sit outside the band — same technique as the AlertBanner card border.
+  box-shadow:
+    inset 0 1px 0 0 var(--gray-a3),
+    inset 0 -1px 0 0 var(--gray-a3);
+
+  // The band never clips the steps at the stack's 528px cap (see .stack). Only
+  // when even the FULL band is narrower than the steps (e.g. 7 × 104px on a
+  // phone) does it scroll, as the last resort — scrollbar hidden, the current
+  // step auto-centered by StepItemGroup.
+  overflow-x: auto;
+  scrollbar-width: none; // Firefox
+  &::-webkit-scrollbar {
+    display: none; // WebKit
+  }
+}
+
+// The stack: fills the band up to the 528px cap, centered; steps stretch to
+// fill it. Once the steps hit their 104px min-width and need MORE than the
+// cap, min-content wins and the stack grows BEYOND the cap, still centered
+// (Daniel 2026-07-27, per the designs) — the cap must never clip or squeeze
+// the steps. Centering is done with auto margins, not justify-content: in the
+// scrolling band, justify-content-centering would make the left overflow
+// unreachable; auto margins collapse to 0 and the band scrolls from the edge.
+.stack {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: none;
+  margin-inline: auto;
+  width: 528px; // the cap…
+  max-width: 100%; // …shrinks with a narrow band…
+  min-width: min-content; // …but never below the steps' own min widths.
+}
+
+// Each step stretches equally; StepItem supplies its own 104px min-width, so at
+// the floor the stack's min-content is exactly steps × 104.
+.stack > * {
+  flex: 1 1 0;
+}

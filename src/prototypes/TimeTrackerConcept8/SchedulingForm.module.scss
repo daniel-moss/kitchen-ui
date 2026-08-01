@@ -1,0 +1,30 @@
+// The Scheduling edit-form body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px — module ↔ divider ↔ module
+  width: 100%;
+}
+
+// Duration: the InputGroup then its preset chips.
+.duration {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px — field ↔ chips
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+}
+
+// The ItemGroup already provides its OWN 4px padding around the rows, so the
+// DisplayModule's 16px content padding must be pulled back to ZERO here (else
+// the two stack into 8px). Full negative margin = the ItemGroup's 4px is the
+// only padding (Figma: ItemGroup at 0 in the module body, items at 4px).
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4)); // -16px
+}

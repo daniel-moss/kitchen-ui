@@ -1,0 +1,82 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as DateFieldStories from "./DateField.stories";
+
+<Meta of={DateFieldStories} />
+
+# DateField
+
+We use **DateField** for typing in a date. The parsing is based on the
+<a href="https://github.com/wanasit/chrono" target="_blank" rel="noreferrer">Chrono</a>
+library — check out the
+<a href="https://wanasit.github.io/pages/chrono/" target="_blank" rel="noreferrer">demo</a>
+to test the library functionality.
+
+<Canvas of={DateFieldStories.Basic} />
+
+```tsx
+<Input label="Date received">
+  <DateField value={date} onDateChange={setDate} />
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Doesn't support a placeholder. Any informative text is shown either as a
+hint, or as help text (both live on the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper — the field is bare).
+
+<Canvas of={DateFieldStories.Basic} />
+
+Contains the value and the calendar icon. The committed value displays in the
+standardized format — "Thursday, January 1" — with the year appended only
+when it is not the current year (`formatValue` overrides the display).
+
+<Canvas of={DateFieldStories.Filled} />
+
+## Behaviour
+
+By default, DateField triggers the
+<a href="/?path=/story/components-datepicker-datepicker--playground" target="_top">DatePicker</a>.
+The user can either pick a date in the date picker or enter it manually —
+typed input is parsed by Chrono in any format ("tomorrow", "next friday",
+"1/15") and standardizes on commit (blur or Enter); unparseable text reverts.
+The example below is live — click it to open the picker, or type into it:
+
+<Canvas of={DateFieldStories.OpensPicker} />
+
+### States
+
+Empty + Valid:
+
+<Canvas of={DateFieldStories.EmptyValid} />
+
+Empty + Invalid — `disabled` can not be invalid:
+
+<Canvas of={DateFieldStories.EmptyInvalid} />
+
+Filled + Valid:
+
+<Canvas of={DateFieldStories.FilledValid} />
+
+Filled + Invalid — `disabled` and `readOnly` can not be invalid:
+
+<Canvas of={DateFieldStories.FilledInvalid} />
+
+### "Missing value" message
+
+The message starts with the verb **"Choose"** followed by the input label,
+which starts with an uppercase letter. No period in the end. It derives from
+the Input wrapper's label automatically — the example below passes no
+`errorMessage`:
+
+<Canvas of={DateFieldStories.MissingValueMessage} />
+
+## Props
+
+<ArgTypes of={DateFieldStories} />

@@ -1,0 +1,23 @@
+// InputGroup — the fused field row with one shared error message below. The
+// label/help header lives on the Input wrapper.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px — fused row ↔ error
+  width: 100%;
+}
+
+// The fused row: the child field segments sit side by side. Each field pulls
+// 1px left (via the grouped chrome) so the seam borders collapse into one line.
+.fused {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+// Group disabled: one opacity over the whole fused box (the segments already
+// carry `disabled` on their inputs).
+.disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}

@@ -1,0 +1,73 @@
+/* Kitchen UI — box shadow tokens */
+/* 7 sizes x 4 directions x default/contrast. Color comes from theme-aware
+   --box-shadow-shadow-default / --box-shadow-shadow-contrast (tokens/colors-alias.css). */
+
+:root {
+  /* Variant down */
+
+  --box-shadow-xs-down: 0px 1px 3px 0px var(--box-shadow-shadow-default);
+  --box-shadow-sm-down: 0px 2px 5px 0px var(--box-shadow-shadow-default);
+  --box-shadow-md-down: 0px 4px 10px 0px var(--box-shadow-shadow-default);
+  --box-shadow-lg-down: 0px 8px 16px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xl-down: 0px 12px 24px 0px var(--box-shadow-shadow-default);
+  --box-shadow-2xl-down: 0px 16px 32px 0px var(--box-shadow-shadow-default);
+  --box-shadow-3xl-down: 0px 32px 64px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xs-down-contrast: 0px 1px 3px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-sm-down-contrast: 0px 2px 5px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-md-down-contrast: 0px 4px 10px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-lg-down-contrast: 0px 8px 16px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-xl-down-contrast: 0px 12px 24px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-2xl-down-contrast: 0px 16px 32px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-3xl-down-contrast: 0px 32px 64px 0px var(--box-shadow-shadow-contrast);
+
+  /* Variant up */
+
+  --box-shadow-xs-up: 0px -1px 3px 0px var(--box-shadow-shadow-default);
+  --box-shadow-sm-up: 0px -2px 5px 0px var(--box-shadow-shadow-default);
+  --box-shadow-md-up: 0px -4px 10px 0px var(--box-shadow-shadow-default);
+  --box-shadow-lg-up: 0px -8px 16px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xl-up: 0px -12px 24px 0px var(--box-shadow-shadow-default);
+  --box-shadow-2xl-up: 0px -16px 32px 0px var(--box-shadow-shadow-default);
+  --box-shadow-3xl-up: 0px -32px 64px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xs-up-contrast: 0px -1px 3px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-sm-up-contrast: 0px -2px 5px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-md-up-contrast: 0px -4px 10px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-lg-up-contrast: 0px -8px 16px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-xl-up-contrast: 0px -12px 24px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-2xl-up-contrast: 0px -16px 32px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-3xl-up-contrast: 0px -32px 64px 0px var(--box-shadow-shadow-contrast);
+
+  /* Variant left */
+
+  --box-shadow-xs-left: -1px 0px 3px 0px var(--box-shadow-shadow-default);
+  --box-shadow-sm-left: -2px 0px 5px 0px var(--box-shadow-shadow-default);
+  --box-shadow-md-left: -4px 0px 10px 0px var(--box-shadow-shadow-default);
+  --box-shadow-lg-left: -8px 0px 16px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xl-left: -12px 0px 24px 0px var(--box-shadow-shadow-default);
+  --box-shadow-2xl-left: -16px 0px 32px 0px var(--box-shadow-shadow-default);
+  --box-shadow-3xl-left: -32px 0px 64px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xs-left-contrast: -1px 0px 3px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-sm-left-contrast: -2px 0px 5px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-md-left-contrast: -4px 0px 10px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-lg-left-contrast: -8px 0px 16px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-xl-left-contrast: -12px 0px 24px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-2xl-left-contrast: -16px 0px 32px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-3xl-left-contrast: -32px 0px 64px 0px var(--box-shadow-shadow-contrast);
+
+  /* Variant right */
+
+  --box-shadow-xs-right: 1px 0px 3px 0px var(--box-shadow-shadow-default);
+  --box-shadow-sm-right: 2px 0px 5px 0px var(--box-shadow-shadow-default);
+  --box-shadow-md-right: 4px 0px 10px 0px var(--box-shadow-shadow-default);
+  --box-shadow-lg-right: 8px 0px 16px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xl-right: 12px 0px 24px 0px var(--box-shadow-shadow-default);
+  --box-shadow-2xl-right: 16px 0px 32px 0px var(--box-shadow-shadow-default);
+  --box-shadow-3xl-right: 32px 0px 64px 0px var(--box-shadow-shadow-default);
+  --box-shadow-xs-right-contrast: 1px 0px 3px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-sm-right-contrast: 2px 0px 5px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-md-right-contrast: 4px 0px 10px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-lg-right-contrast: 8px 0px 16px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-xl-right-contrast: 12px 0px 24px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-2xl-right-contrast: 16px 0px 32px 0px var(--box-shadow-shadow-contrast);
+  --box-shadow-3xl-right-contrast: 32px 0px 64px 0px var(--box-shadow-shadow-contrast);
+}

@@ -1,0 +1,51 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as RadioStories from "./Radio.stories";
+
+<Meta of={RadioStories} />
+
+# Radio
+
+We use **Radio** inside
+<a href="/?path=/docs/components-radio-radioitem--docs" target="_top">RadioItem</a>.
+It can also be used inside radio-like local components in designs.
+
+<Canvas of={RadioStories.Interactive} />
+
+```tsx
+<Radio checked={value === "a"} onChange={() => setValue("a")} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Radio is a circle frame with another circle inside on selected states. The
+frame is `--size-4` (16px) with `--border-radius-full` corners and a 1px
+`--gray-a7` border when unselected. Selected fills the frame with `--gray-12`
+and shows a `--size-1_5` (6px) `--gray-1` center dot.
+
+<Canvas of={RadioStories.Anatomy} />
+
+## Behaviour
+
+Every value has 7 states: default, focused (keyboard only), hovered, pressed,
+error, disabled and loading. A **selected** circle keeps one look on hover and
+press — only the focus ring is added. **Error** is a `--tomato-9` border when
+unselected and a `--tomato-9` fill when selected. **Disabled** dims the circle
+to 30% and shows the not-allowed cursor. **Loading** is a plain `--gray-a3`
+fill with no dot and the busy cursor.
+
+Unselected
+
+<Canvas of={RadioStories.Unselected} />
+
+Selected
+
+<Canvas of={RadioStories.Selected} />
+
+## Props
+
+<ArgTypes of={RadioStories} />

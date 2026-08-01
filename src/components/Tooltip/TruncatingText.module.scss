@@ -1,0 +1,38 @@
+// The shrinkable text item; not clipped, so the overlay tooltip can escape.
+.wrap {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: block;
+}
+
+// The actual text: single line with ellipsis. Font/color come from the caller.
+.text {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Multi-line: clamp after N lines (set inline via -webkit-line-clamp).
+.clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  overflow: hidden;
+}
+
+// Overlay tooltip: rendered in a body-level portal, so `left`/`top` are viewport
+// coordinates (the cursor X and the text's top edge). Positioned above the text,
+// centered on the cursor, with an 8px gap (4px visual + 4px tongue).
+.overlay {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+
+  // Intrinsic width so the tooltip keeps a constant size regardless of the
+  // cursor's X (otherwise shrink-to-fit squeezes it as it moves right).
+  width: max-content;
+
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}

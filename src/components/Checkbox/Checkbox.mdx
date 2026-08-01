@@ -1,0 +1,55 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as CheckboxStories from "./Checkbox.stories";
+
+<Meta of={CheckboxStories} />
+
+# Checkbox
+
+We use **Checkbox** inside
+<a href="/?path=/docs/components-checkbox-checkboxitem--docs" target="_top">CheckboxItem</a>.
+It can also be used inside checkbox-like local components in designs.
+
+<Canvas of={CheckboxStories.Interactive} />
+
+```tsx
+<Checkbox checked={isSelected} onChange={(e) => setSelected(e.target.checked)} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Checkbox is a square with a **check** icon on selected states and a **hyphen**
+icon on intermediate states. The box is `--size-4` (16px) with
+`--border-radius-1` (4px) corners; the glyphs are solid 10px icons in
+`--gray-1` on a `--gray-12` fill.
+
+<Canvas of={CheckboxStories.Values} />
+
+## Behaviour
+
+Every value has 7 states: default, focused (keyboard only), hovered, pressed,
+error, disabled and loading. A **filled** box (checked or indeterminate) keeps
+one look on hover and press — only the focus ring is added. **Error** is a
+`--tomato-9` border when unchecked and a `--tomato-9` fill when filled.
+**Disabled** dims the box to 30% and shows the not-allowed cursor.
+**Loading** is a plain `--gray-a3` fill with no icon and the busy cursor.
+
+Unchecked
+
+<Canvas of={CheckboxStories.Unchecked} />
+
+Indeterminate
+
+<Canvas of={CheckboxStories.Indeterminate} />
+
+Checked
+
+<Canvas of={CheckboxStories.Checked} />
+
+## Props
+
+<ArgTypes of={CheckboxStories} />

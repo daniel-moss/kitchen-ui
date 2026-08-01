@@ -1,0 +1,17 @@
+// ValueDisplayGroup — sections (the horizontal stack, then each vertical
+// pair) with 12px around the dividers between them.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px section ↔ divider
+  align-items: flex-start;
+  width: 100%;
+}
+
+// Horizontal pairs sit 4px apart.
+.horizontalGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+  width: 100%;
+}

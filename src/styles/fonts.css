@@ -1,0 +1,54 @@
+/* Inter (the UI font your tokens reference) */
+@font-face {
+  font-family: "InterVariable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("../assets/fonts/InterVariable.woff2") format("woff2");
+}
+
+/* Font Awesome Pro, used by the Icon component (rendered by codepoint) */
+@font-face {
+  font-family: "FA Classic";
+  src: url("../assets/fonts/fa7-pro-regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "FA Classic";
+  src: url("../assets/fonts/fa7-pro-solid.otf") format("opentype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Brand pack (FA Brands) */
+@font-face {
+  font-family: "FA Brands";
+  src: url("../assets/fonts/fa7-brands.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Custom kit pack — kit ca85bd147f web download (custom-icons.woff2). */
+@font-face {
+  font-family: "FA Custom";
+  src: url("../assets/fonts/fa-kit-custom.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}
+
+/* Custom kit duotone pack — kit ca85bd147f web download
+   (custom-icons-duotone.woff2). Each icon is two glyphs in one font: the base
+   codepoint is the primary layer, and the `ss01` feature swaps to the
+   secondary layer (see Icon.module.scss .customDuotone). */
+@font-face {
+  font-family: "FA Custom Duotone";
+  src: url("../assets/fonts/fa-kit-duotone.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: block;
+}

@@ -1,0 +1,78 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as StepItemStories from "./StepItem.stories";
+
+<Meta of={StepItemStories} />
+
+# StepItem
+
+We use **StepItem** within
+<a href="/?path=/docs/components-stepitemgroup-stepitemgroup--docs" target="_top">StepItemGroup</a>.
+It represents one step in a multi-step form.
+
+<Canvas of={StepItemStories.Anatomy} />
+
+```tsx
+<StepItem progress="current" label="Payment" onClick={goToStep} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+A StepItem is a **status icon**, a **label**, and a 2px **status line** across
+the top. The icon is a solid 14px glyph; the label is caption 13/20. It has a
+`104px` min-width and fills the available width.
+
+<Canvas of={StepItemStories.Anatomy} />
+
+## Behaviour
+
+### Responsiveness
+
+A step fills the width of its container until it reaches its `104px` min-width.
+Inside a StepItemGroup, the steps stretch equally and their status lines form
+one continuous progress bar.
+
+<Canvas of={StepItemStories.Responsiveness} />
+
+### Statuses
+
+Five statuses drive the icon, colors, and status line:
+
+- **incomplete** — `--gray-a10` icon, `--text-subtle` label, no line
+- **current** — `--gray-12`
+- **completed** — `--jade-9`
+- **warning** — `--amber-9`
+- **error** — `--tomato-9`
+
+<Canvas of={StepItemStories.Statuses} />
+
+### Text
+
+The label truncates with an ellipsis when it does not fit; hovering shows the
+full text in a tooltip.
+
+<Canvas of={StepItemStories.Text} />
+
+### States
+
+A step is interactive when given an `onClick` — it renders a `<button>` with
+hover, focus, and press states (in a stepper the completed and error steps get
+one). Hover is `--gray-a3`, focus is `--gray-a3` with a 2px `--gray-12` ring,
+press is `--gray-a4`, and disabled dims to 30%.
+
+<Canvas of={StepItemStories.States} />
+
+### Loading
+
+The loading state looks the same across every status — a skeleton label and a
+loading icon.
+
+<Canvas of={StepItemStories.Loading} />
+
+## Props
+
+<ArgTypes of={StepItemStories} />

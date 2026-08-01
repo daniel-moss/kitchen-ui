@@ -1,0 +1,21 @@
+// The smooth accordion collapse (DisplayModule, ListItem): an outer grid
+// animating grid-template-rows 0fr → 1fr, with an overflow-hidden inner.
+// Usage:
+//   .collapse { @include collapse; }
+//   .collapseOpen { @include collapse-open; }
+//   .collapseInner { @include collapse-inner; }
+
+@mixin collapse($duration: 200ms) {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows $duration ease;
+}
+
+@mixin collapse-open {
+  grid-template-rows: 1fr;
+}
+
+@mixin collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+}

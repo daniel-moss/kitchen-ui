@@ -1,0 +1,194 @@
+@use "../../styles/mixins/interaction" as *;
+@use "../../styles/mixins/collapse" as *;
+
+// ListItem — the row container. Static variant has no interaction states;
+// draggable adds the left grip handle + the dragging / disabled looks.
+.item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-3); // 12px — drag handle ↔ body
+  width: 100%;
+  padding: var(--size-2_5) var(--size-3); // 10px 12px
+  border-radius: var(--border-radius-1_5); // 6px
+  overflow: hidden;
+}
+
+// Body + bottom slot column.
+.main {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px — body ↔ bottom slot
+}
+
+// The bottom slot stretches its single instance to the full row width.
+// (The .item prefix outranks the instance's own width rule, e.g. the
+// SelectField's fit-content.)
+.item .slotBottom {
+  width: 100%;
+}
+.item .slotBottom > * {
+  width: 100%;
+  max-width: none;
+}
+
+// ---- clickable ----
+// Row states. Hovering / pressing a slot control (right-slot actions, bottom
+// slot) styles only that element, not the row.
+.clickable {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+  // iOS groups two quick taps within ~40px as a double tap ON THE FIRST
+  // TARGET — tapping two adjacent rows quickly toggled the first one twice.
+  // `manipulation` turns off double-tap handling; taps land where they are.
+  touch-action: manipulation;
+}
+
+// Only INTERACTIVE things inside a slot cancel the row states — static
+// instances (ListItemSlotIcon, avatars) belong to the row: hovering the open
+// chevron must not drop the row hover (Daniel).
+$slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="switch"]';
+
+@media (hover: hover) {
+// (While dragging, the lifted-card look wins over hover/press.)
+.clickable:hover:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):hover)):not(:has(.slotBottom :is(#{$slot-interactive}):hover)) {
+  @include row-hover-fill;
+}
+}
+.clickable:active:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) {
+  @include row-press-fill;
+}
+// Focus — the DS focus ring: 2px stroke, 2px gap, fill corner radius lands at 2px.
+.clickable:focus-visible {
+  @include row-focus-ring;
+}
+
+// Wrapper that keeps right-slot clicks from reaching the row. A real box (so
+// :hover/:active exclusions above can match it) that mirrors the slot row's
+// layout: centered instances, 8px apart.
+.slotStop {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+}
+
+// ---- draggable ----
+// The grip handle centers on the 40px first text row. The visible icon is
+// small, so an invisible ::before widens the touch target to ~40×40 (12px
+// each side — over the row padding on the left and the gap on the right)
+// without affecting layout. Applies to every variant with dragging.
+.handle {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-10); // 40px
+  color: var(--gray-a8);
+  cursor: grab;
+  touch-action: none; // dragging the handle must not scroll the page
+  -webkit-touch-callout: none; // no iOS long-press callout mid-drag
+  user-select: none;
+  -webkit-user-select: none;
+}
+.handle::before {
+  content: "";
+  position: absolute;
+  inset: 0 calc(-1 * var(--size-3)); // +12px hit area left and right
+}
+
+// Dragging — the row lifts into a card: third-level surface, 1px gray-12
+// border (inset shadow, so no size change) under the lg/down shadow.
+.dragging {
+  background: var(--surface-level-third);
+  box-shadow:
+    inset 0 0 0 1px var(--gray-12),
+    0 8px 16px 0 var(--box-shadow-shadow-default);
+}
+.dragging .handle {
+  color: var(--gray-12);
+  cursor: grabbing;
+}
+
+.disabled {
+  @include row-disabled;
+}
+
+// ---- accordion ----
+// The root becomes a column container (the header carries the row padding);
+// open shows the gray-a2 surface. The root's radius + overflow clip the body.
+.accordion {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+}
+.accordionOpen {
+  background: var(--gray-a2);
+}
+
+// The header is the toggle — same paddings and states as a clickable row.
+.accordionHeader {
+  box-sizing: border-box;
+  touch-action: manipulation; // no iOS double-tap grouping (see .clickable)
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-3); // 12px — caret ↔ body
+  width: 100%;
+  padding: var(--size-2_5) var(--size-3); // 10px 12px
+  border-radius: var(--border-radius-1_5); // 6px
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.accordionOpen .accordionHeader {
+  border-radius: var(--border-radius-1_5) var(--border-radius-1_5) 0 0; // top only — the bottom meets the body
+}
+
+@media (hover: hover) {
+.accordionHeader:hover:not(:has(.slotStop :is(#{$slot-interactive}):hover)):not(:has(.slotBottom :is(#{$slot-interactive}):hover)) {
+  @include row-hover-fill;
+}
+}
+.accordionHeader:active:not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) {
+  @include row-press-fill;
+}
+.accordionHeader:focus-visible {
+  @include row-focus-ring;
+}
+// Disabled dims the header only — an open body stays readable.
+.accordionHeader.disabled {
+  @include row-disabled;
+}
+
+// The caret centers on the 40px first text row; rotates from right (closed)
+// to down (open).
+.caret {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-10); // 40px
+  width: var(--size-4); // 16px
+  color: var(--gray-12);
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+}
+.caretOpen {
+  transform: rotate(0deg);
+}
+
+// Smooth collapse via grid-template-rows (shared mixin).
+.collapse {
+  @include collapse;
+}
+.collapseOpen {
+  @include collapse-open;
+}
+.collapseInner {
+  @include collapse-inner;
+}
+.accordionBody {
+  width: 100%;
+}

@@ -1,0 +1,167 @@
+@use "../../styles/mixins/font" as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+
+  gap: var(--size-0_5); // gap before the dismiss button
+
+  // Colors read from overridable vars (BadgeColor sets these per scheme); the
+  // fallbacks are the default (uncolored) Badge.
+  border: 1px solid var(--badge-border, var(--gray-a6));
+  border-radius: var(--border-radius-1_5);
+  background: var(--badge-bg, transparent);
+  color: var(--badge-fg, var(--text-strong));
+
+  white-space: nowrap;
+}
+
+.main {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+// When a container constrains the badge (e.g. a ValueDisplay value), the label
+// truncates with an ellipsis instead of overflowing. No effect when unconstrained.
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Left icon default color (customizable via the leftIconColor prop, or the
+// --badge-icon var for BadgeColor).
+.icon {
+  color: var(--badge-icon, var(--gray-12));
+}
+
+// Small dot slot (currentColor = the label color). Used by status templates.
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--border-radius-full);
+  background: currentColor;
+  flex: none;
+}
+
+// ---- sizes ----
+.sm {
+  height: var(--size-6); // 24px
+  padding: 0 var(--size-2);
+
+  .main {
+    gap: var(--size-1_5);
+  }
+
+  .label {
+    @include font("caption-small-400");
+  }
+}
+
+.md {
+  height: var(--size-7); // 28px
+  padding: 0 var(--size-2);
+  gap: var(--size-1); // 4px before the dismiss button
+
+  .main {
+    gap: var(--size-1_5);
+  }
+
+  .label {
+    @include font("caption-medium-400");
+  }
+}
+
+.lg {
+  height: var(--size-8); // 32px
+  padding: 0 var(--size-2_5);
+  gap: var(--size-1); // 4px before the dismiss button
+
+  .main {
+    gap: var(--size-2);
+  }
+
+  .label {
+    @include font("body-400-compact");
+  }
+}
+
+// Dismissable: reduce right padding so the button sits closer to the edge.
+.dismissable {
+  &.sm {
+    padding-right: var(--size-0_5);
+  }
+
+  &.md,
+  &.lg {
+    padding-right: var(--size-1);
+  }
+}
+
+// ---- dismiss button (custom muted button; visible 20/20/24, hit area 24/28/32) ----
+.dismiss {
+  position: relative;
+  flex: none;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 20px;
+  height: 20px;
+  padding: 0;
+
+  border: none;
+  border-radius: var(--border-radius-1_5);
+  background: transparent;
+  color: var(--badge-dismiss, var(--gray-a9));
+  cursor: pointer;
+
+  transition: background 120ms ease, color 120ms ease;
+
+@media (hover: hover) {
+&:hover {
+    background: var(--badge-dismiss-hover-bg, var(--gray-a3));
+    color: var(--badge-dismiss-strong, var(--gray-12));
+  }
+}
+
+  &:active {
+    background: var(--badge-dismiss-active-bg, var(--gray-a4));
+    color: var(--badge-dismiss-strong, var(--gray-12));
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--badge-focus-ring, var(--gray-a12));
+    outline-offset: 1px;
+    color: var(--badge-dismiss-strong, var(--gray-12));
+  }
+
+  // Invisible expanded hit area = full badge height.
+  &::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+  }
+}
+
+.md .dismiss::before {
+  width: 28px;
+  height: 28px;
+}
+
+.lg .dismiss {
+  width: 24px;
+  height: 24px;
+
+  &::before {
+    width: 32px;
+    height: 32px;
+  }
+}

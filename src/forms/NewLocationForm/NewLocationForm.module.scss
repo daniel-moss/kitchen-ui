@@ -1,0 +1,36 @@
+// The street block: field + (no-match) "Enter manually" button, 8px apart
+// (Figma 11804:2346).
+.streetBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+
+// State / Province + Postal code share one row (Figma "Frame 2": 16px gap).
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--size-4);
+}
+
+// The Labels chips row (Figma 25810:6532): the selected badges, then the plus
+// IconButton last, 8px apart, wrapping.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2);
+  align-items: center;
+}
+
+// The suggestions list's "Powered by Google" row (Figma 0:395 — 28px row,
+// centered). Styled text stands in for the Google brand lockup image.
+.googleRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 100%;
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  color: var(--text-subtle);
+}

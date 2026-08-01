@@ -1,0 +1,179 @@
+@use "../../styles/mixins/font" as *;
+
+// ===== Charges list module ==================================================
+// The line rows sit flush to the module edges, so cancel DisplayModule's 16px
+// content padding (same approach as the Summary Forms module).
+.chargesBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// Subtotal footer wrapper (Figma): 0 top / 8px right / 8px bottom / 8px left.
+.subtotalWrap {
+  padding: 0 var(--size-2) var(--size-2); // 0 8px 8px
+}
+
+// gray-a2 rounded box, content right-aligned (Figma "Log").
+.subtotalBox {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+  text-align: right;
+}
+
+.subtotalLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.subtotalValue {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// ===== Stat modules (Profitability / Technician utilization) ================
+// Desktop = 2 columns [big value box | rows group]; mobile = stacked column.
+.stat {
+  display: flex;
+  gap: var(--size-3); // 12px
+}
+
+.statDesktop {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.statMobile {
+  flex-direction: column;
+}
+
+// The big "Value" box: title pinned top, main value pinned bottom.
+.valueBox {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+  min-height: 100px;
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+}
+
+.statDesktop .valueBox {
+  flex: 1 1 0;
+}
+
+.valueTitle {
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  width: 100%;
+}
+
+.valueLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+// The main value row (big number [+ icon] on the left, secondary on the right).
+.valueMain {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.success {
+  color: var(--text-success);
+}
+
+.mainValue {
+  display: flex;
+  gap: var(--size-3); // 12px
+  align-items: center;
+}
+
+// Raw 28px FA-Classic-Regular glyph (Figma renders a bare glyph here, not a DS
+// Icon — whose max size is 24). Same codepoint mechanism as the Icon component.
+.mainIcon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  font-family: "FA Classic";
+  font-weight: 400;
+  font-style: normal;
+  font-size: 28px;
+  line-height: 1;
+  color: currentColor; // inherit the success color
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  &::before {
+    content: var(--glyph, "");
+  }
+}
+
+.bigNumber {
+  font: var(--font-weight-medium) 2rem / 2.125rem var(--font-family-base); // Inter Medium 32/34
+  font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
+  white-space: nowrap;
+}
+
+.mainSecondary {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  text-align: right;
+  white-space: nowrap;
+}
+
+// The two-row "value group" (Cost/Total, Billed/Tracked).
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  min-width: 0;
+}
+
+.statDesktop .rows {
+  flex: 1 1 0;
+}
+
+.row {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  width: 100%;
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+}
+
+.rowLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-subtle);
+}
+
+.rowValue {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+.rowValueSm {
+  @include font("caption-medium-500"); // Inter Medium 13/20
+  color: var(--gray-12);
+  white-space: nowrap;
+}

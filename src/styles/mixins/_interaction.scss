@@ -1,0 +1,42 @@
+// Shared interaction-state declarations for interactive rows (MenuItem,
+// SelectListItem, ListItem, GroupLabel / DisplayModule accordion headers).
+// These are DECLARATION mixins — each component keeps its own selectors
+// (pseudo-classes, exclusions like :not(:has(...))) and includes the fills,
+// so the VALUES live in exactly one place.
+
+// Hover fill. Danger rows pass var(--tomato-a3).
+@mixin row-hover-fill($color: var(--gray-a3)) {
+  background: $color;
+}
+
+// Press fill. Danger rows pass var(--tomato-a4).
+@mixin row-press-fill($color: var(--gray-a4)) {
+  background: $color;
+}
+
+// Focus without a ring (menus/select options): the hover fill only.
+@mixin row-focus-fill($color: var(--gray-a3)) {
+  outline: none;
+  background: $color;
+}
+
+// The focus ring: a 2px gray-12 stroke at the row bounds, a $gap of the
+// surrounding surface, then the gray-a3 fill (its visible corner radius =
+// the row radius minus the insets). Stacked inset shadows — no layout shift.
+// The DS spec gap is 2px (ListItem, GroupLabel); DisplayModule uses 4px.
+// $fill is the focus fill — always that row's HOVER fill, so a row that rests
+// filled needs the next step (ActivityLogItem: gray-a3 closed, gray-a4 open).
+@mixin row-focus-ring($gap: 2px, $surface: var(--surface-level-first), $fill: var(--gray-a3)) {
+  outline: none;
+  background: $fill;
+  box-shadow:
+    inset 0 0 0 2px var(--gray-12),
+    inset 0 0 0 (2px + $gap) $surface;
+}
+
+// Disabled row: dimmed and inert. Most rows dim to 0.3; SelectListItem uses 0.4.
+@mixin row-disabled($opacity: 0.3) {
+  opacity: $opacity;
+  cursor: not-allowed;
+  pointer-events: none;
+}

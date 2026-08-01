@@ -1,0 +1,65 @@
+// The Details content (Figma "Details" frame): a 16px-padded column of
+// DisplayModules, 16px apart.
+
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 100%;
+  padding: var(--size-4);
+}
+
+// List-item module bodies use 4px margins around the rows (Figma), not the
+// module's default 16px content padding — pull the padding back locally.
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * (var(--size-4) - var(--size-1)));
+}
+
+// The "Open in maps" row inside the Location module: 16px side/bottom
+// margins in Figma (4px from .listBody + 12px here).
+.mapButton {
+  padding: var(--size-1) var(--size-3) var(--size-3);
+}
+
+// Labels: chips wrap, 8px apart.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2);
+}
+
+// Two-line hover tooltips of the contact actions (Send email / Call).
+// nowrap: the phone number must stay on ONE line (Daniel).
+.contactTooltip {
+  display: block;
+  text-align: center;
+  white-space: nowrap;
+}
+
+// The per-role empty row (Figma "Job contacts" Empty State): dashed
+// placeholder avatar + subtle text + an Add button.
+.emptyContact {
+  box-sizing: border-box; // 60px INCLUDES the padding (no global reset here!)
+  display: flex;
+  gap: var(--size-2_5);
+  align-items: center;
+  min-height: 60px;
+  padding: var(--size-2_5) var(--size-3);
+}
+
+.emptyContactLabel {
+  flex: 1 1 0;
+  min-width: 0;
+  font: var(--font-body-400-compact);
+  color: var(--text-subtle);
+}
+
+// A contact's context-menu card, anchored under its ellipsis (end-aligned —
+// the sidebar sits at the right screen edge).
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}

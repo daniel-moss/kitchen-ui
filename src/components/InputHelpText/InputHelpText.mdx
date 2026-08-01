@@ -1,0 +1,62 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as InputHelpTextStories from "./InputHelpText.stories";
+
+<Meta of={InputHelpTextStories} />
+
+# InputHelpText
+
+We use **InputHelpText** primarily within forms to provide contextual
+information. It might be used directly within inputs (the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper's `helpText`, and the fields' error messages), or as an independent
+component.
+
+<Canvas of={InputHelpTextStories.Basic} />
+
+```tsx
+<InputHelpText status="success" slotLeft>
+  Code confirmed.
+</InputHelpText>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Variants](#variants)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Supports an optional left slot (`slotLeft`). Currently, the left slot only
+supports an **Icon** — 14px, `--size-2` (8px) before the text.
+
+<Canvas of={InputHelpTextStories.Parts} />
+
+The `neutral` status supports any icon (the `icon` prop, by name):
+
+<Canvas of={InputHelpTextStories.CustomIcon} />
+
+The icon on the other statuses is pre-defined — each brings its own:
+
+<Canvas of={InputHelpTextStories.StatusIcons} />
+
+## Variants
+
+2 variants with and without an icon + 5 status variants: `neutral`, `info`,
+`success`, `warning` and `error`.
+
+<Canvas of={InputHelpTextStories.Variants} />
+
+## Behaviour
+
+The text wraps. Elements are top-aligned — the icon stays on the first line.
+
+<Canvas of={InputHelpTextStories.Wrapping} />
+
+Loading state (`isLoading`) is the same for all variants.
+
+<Canvas of={InputHelpTextStories.Loading} />
+
+## Props
+
+<ArgTypes of={InputHelpTextStories} />

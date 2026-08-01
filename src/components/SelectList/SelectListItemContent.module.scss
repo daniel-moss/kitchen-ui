@@ -1,0 +1,22 @@
+// Content region: [left slot] [copy], top-aligned.
+.content {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+// Left slot — 8px gap before the copy. A 20px min-height box with centered
+// content aligns the first line: a 16px icon nudges down 2px, a 20px avatar fits.
+.slotLeft {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-5); // 20px (the copy's first line)
+  padding-right: var(--size-2); // 8px
+}
+
+.copy {
+  flex: 1 1 0;
+  min-width: 0;
+}

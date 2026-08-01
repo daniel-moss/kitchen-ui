@@ -1,0 +1,27 @@
+// SelectListItemGroup — header (padded GroupLabel) + items stack + divider.
+.group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.header {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--size-2) var(--size-2) 0; // 8px top/sides, none below
+}
+
+.items {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--size-1); // 4px around the option rows
+  overflow: hidden;
+}
+
+.dividerWrap {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 var(--size-4); // 16px inset
+}

@@ -1,0 +1,9 @@
+// Stacks FormModules with a low Divider between each. The 32px gap applies
+// between every child (module ↔ divider ↔ module), so each divider sits 32px
+// from the modules on either side.
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8); // 32px
+  width: 100%;
+}

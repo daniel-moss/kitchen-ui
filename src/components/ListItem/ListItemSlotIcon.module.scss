@@ -1,0 +1,11 @@
+// A fixed 32×32 icon box — the same footprint as an md IconButton, so icon
+// instances align with button instances in the right slot.
+.box {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-8); // 32px
+  height: var(--size-8);
+  color: var(--gray-a9);
+}

@@ -1,0 +1,107 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as MenuItemStories from "./MenuItem.stories";
+
+<Meta of={MenuItemStories} />
+
+# MenuItem
+
+We use **MenuItem** inside the
+<a href="/?path=/story/components-menu-menu--playground" target="_top">Menu</a>
+component to give access to a set of actions. It is an action row:
+`[left slot] title [tag] [right slot]` with an optional caption.
+
+<Canvas of={MenuItemStories.Interactive} />
+
+```tsx
+<MenuItem label="Edit" slotLeft={<Icon icon="pen" />} onClick={handleEdit} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The row has `--size-1_5` `--size-3` (6px 12px) padding and `--border-radius-1_5`
+(6px) corners. Its parts are top-aligned.
+
+### Copy
+
+The bare minimum is copy only. The copy container has `--size-0_5` (2px) padding
+top and bottom to align it with the slots. A **caption** sits below the title
+with no gap (caption 13/20, `--text-subtle`). A **tag** sits at the right of the
+title row instead (14/20, `--text-subtle`). Only one extra text layer is
+supported — a caption **or** a tag, never both.
+
+<Canvas of={MenuItemStories.Copy} />
+
+### Left slot
+
+The left slot takes an
+<a href="/?path=/story/components-icon--default" target="_top">Icon</a>
+(a fixed 16px box; its other parameters are editable) or an **xs** Avatar (20px,
+any type). It is `--size-2` (8px) from the copy and tinted `--gray-12`.
+
+<Canvas of={MenuItemStories.LeftSlot} />
+
+### Right slot
+
+The right slot takes a chevron (`angle-right`), a
+<a href="/?path=/docs/components-toggle-toggle--docs" target="_top">Toggle</a>,
+or a generic icon. Icons are tinted `--gray-a9` and sit `--size-4` (16px) from
+the copy. A chevron usually comes from `subMenu` automatically (see
+[Sub-menu](#sub-menu)); the toggle makes the whole row a switch (see
+[Toggle](#toggle)).
+
+<Canvas of={MenuItemStories.RightSlot} />
+
+## Behaviour
+
+### Copy
+
+The **title truncates** to one line when it does not fit. The **caption wraps**.
+A **tag takes priority** over the title — the title ellipsizes to give the tag
+its full width.
+
+<Canvas of={MenuItemStories.Overflow} />
+
+### Toggle
+
+When a toggle is set in the right slot (`toggle`), the whole MenuItem functions
+as a switch — clicking anywhere on the row flips it (`role="menuitemcheckbox"`).
+
+<Canvas of={MenuItemStories.Toggle} />
+
+### Sub-menu
+
+`subMenu` makes the item a sub-menu trigger — a chevron is added automatically.
+On **desktop** the sub-menu opens on hover as a nested card `4px` beside the
+item (it flips or shifts to stay on screen). On **mobile**, inside a Menu,
+tapping swaps the drawer content — a back button plus this item's label as the
+title (override it with `subMenuTitle`, e.g. "Create job"). Hover the trigger
+below to open it.
+
+<Canvas of={MenuItemStories.SubMenu} />
+
+### States
+
+The row has five states: default; **focused** (keyboard only) and **hovered**
+share the same `--gray-a3` tint (no ring, like SelectListItem); **pressed** is
+`--gray-a4`; **disabled** dims to 30% with the not-allowed cursor.
+
+<Canvas of={MenuItemStories.States} />
+
+### Danger
+
+Items that trigger destructive actions use `danger` — all copy and the left icon
+are coloured `--text-error`, and there is no right slot. The interaction tints
+shift to tomato: `--tomato-a3` on focus/hover, `--tomato-a4` on press.
+
+<Canvas of={MenuItemStories.Danger} />
+
+<Canvas of={MenuItemStories.DangerStates} />
+
+## Props
+
+<ArgTypes of={MenuItemStories} />

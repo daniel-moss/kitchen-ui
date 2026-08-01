@@ -1,0 +1,96 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TextFieldStories from "./TextField.stories";
+
+<Meta of={TextFieldStories} />
+
+# TextField
+
+We use **TextField** for entering a single line of text.
+
+<Canvas of={TextFieldStories.Basic} />
+
+```tsx
+<Input label="Company name">
+  <TextField value={name} onChange={handleChange} />
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Supports a placeholder. The placeholder is optional — the DS default is
+none (informative text goes to the hint or the help text on the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper); use one only as a format hint, like a masked time input showing
+"00:00".
+
+<Canvas of={TextFieldStories.WithPlaceholder} />
+
+Filled out:
+
+<Canvas of={TextFieldStories.FilledOut} />
+
+Supports a prefix (`prefix` — subtle text before the value):
+
+<Canvas of={TextFieldStories.WithPrefix} />
+
+Supports a suffix (`suffix` — subtle text after the value):
+
+<Canvas of={TextFieldStories.WithSuffix} />
+
+Supports both as well:
+
+<Canvas of={TextFieldStories.WithBoth} />
+
+## Behaviour
+
+### States
+
+Empty + Valid:
+
+<Canvas of={TextFieldStories.EmptyValid} />
+
+Empty + Invalid — `disabled` can not be invalid:
+
+<Canvas of={TextFieldStories.EmptyInvalid} />
+
+Filled + Valid:
+
+<Canvas of={TextFieldStories.FilledValid} />
+
+Filled + Invalid — `disabled` and `readOnly` can not be invalid:
+
+<Canvas of={TextFieldStories.FilledInvalid} />
+
+### "Missing value" message
+
+The message starts with the verb **"Enter"** followed by the input label,
+which starts with an uppercase letter. No period in the end. It derives from
+the Input wrapper's label automatically — the example below passes no
+`errorMessage`:
+
+<Canvas of={TextFieldStories.MissingValueMessage} />
+
+### Mobile keyboard
+
+The `keyboard` prop picks the mobile on-screen keyboard (it maps to the
+native `type`/`inputMode` attributes — open this page on a phone to feel the
+difference):
+
+- By default, we use the `text` keyboard variant
+- If the input handles email-format data, the `email` keyboard must be used
+- If the input handles URL-format data, the `url` keyboard must be used
+- If the input handles phone-format data, the `tel` keyboard must be used
+  (the math-modifiers button is not shown)
+- If the input handles phone extension data, the `numeric` keyboard must be
+  used
+
+<Canvas of={TextFieldStories.Keyboards} />
+
+## Props
+
+<ArgTypes of={TextFieldStories} />

@@ -1,0 +1,28 @@
+// No background — sits on the drawer surface.
+.drawerHeader {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// Full-width row holding the centered handle bar. --size-2_5 top & bottom.
+.handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: var(--size-2_5) 0;
+}
+
+// When a PopoverHeader follows, drop the bottom padding (the header adds its own).
+.withBody {
+  padding-bottom: 0;
+}
+
+// The drag handle pill: 40 × 4px, --gray-a7, radius 8px.
+.bar {
+  width: 40px;
+  height: 4px;
+  border-radius: var(--border-radius-2);
+  background: var(--gray-a7);
+}

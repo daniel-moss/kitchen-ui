@@ -1,0 +1,67 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as DividerStories from "./Divider.stories";
+
+<Meta of={DividerStories} />
+
+# Divider
+
+We use **Divider** to separate content with a thin line — between sections,
+list rows, or two areas of a layout. It is pure presentation.
+
+<Canvas of={DividerStories.Hero} />
+
+```tsx
+<Divider />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+A Divider is a single **1px line** (2px when dashed) sitting inside a box. A
+horizontal divider fills the width and is 1px tall; a vertical divider fills the
+height and is 1px wide. The optional `padding` insets the line on all sides. It
+renders a `<div>` with no interactive behaviour.
+
+<Canvas of={DividerStories.Orientation} />
+
+## Behaviour
+
+### Orientation
+
+**Horizontal** (the default) fills the width of its container. **Vertical** fills
+the height — so the parent must give it one (for example a flex row with
+`align-items: stretch`, or a fixed height).
+
+<Canvas of={DividerStories.Orientation} />
+
+### Contrast
+
+Three strengths: **low** (`--gray-a3`), **medium** (`--gray-a4`) and **high**
+(`--gray-a5`). Low is the default and the most common; step up when the line
+needs to read against a busier surface.
+
+<Canvas of={DividerStories.Contrast} />
+
+### Dashed
+
+`dashed` draws a 2px round-dot line instead of the solid one. It is two contrast
+steps darker than the solid line at each level (low `--gray-a5`, medium
+`--gray-a6`, high `--gray-a7`) so the dots keep the same visual weight.
+
+<Canvas of={DividerStories.Dashed} />
+
+### Padding
+
+`padding` takes any CSS padding value (a number is px). The line sits inside the
+padding, so it both **spaces** the line from the content around it and **insets**
+its ends.
+
+<Canvas of={DividerStories.Padded} />
+
+## Props
+
+<ArgTypes of={DividerStories} />

@@ -1,0 +1,101 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as InputStories from "./Input.stories";
+
+<Meta of={InputStories} />
+
+# Input
+
+We use **Input** as the wrapper for input components. It provides the label,
+the help text and a few other auxiliary components.
+
+<Canvas of={InputStories.WithLabel} />
+
+```tsx
+<Input label="Name" helpText="How we should address you.">
+  <TextField value={name} onChange={handleChange} />
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Supported fields](#supported-fields)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Utilizes the
+<a href="/?path=/docs/components-label--docs" target="_top">Label</a>
+component as the label, `--size-1_5` (6px) above the field. A string label
+also flows down into the field, which uses it to build its **default** error
+message ("Enter/Choose/Provide/Add [Label]") and related copy. Validation and
+the error message stay the **field's** job — `isValid` / `errorMessage` live
+on the field and Input renders no errors; the shared label only means you
+rarely need to write custom `errorMessage` copy.
+
+<Canvas of={InputStories.WithLabel} />
+
+Utilizes **InputHelpText** as the help text (optional), `--size-0_5` (2px)
+below the label.
+
+<Canvas of={InputStories.WithHelpText} />
+
+Supports a right slot next to the label. Currently it is only used for the
+**StrengthIndicator** (the `strength` prop — the value comes from the
+consumer, Input has no strength logic).
+
+<Canvas of={InputStories.WithRightSlot} />
+
+## Supported fields
+
+One field per Input — any of the field components below. (The exception is
+the combined pair at the end.)
+
+### TextField
+
+<Canvas of={InputStories.WithTextField} />
+
+### TextArea
+
+<Canvas of={InputStories.WithTextArea} />
+
+### SelectField
+
+<Canvas of={InputStories.WithSelectField} />
+
+### PasswordField
+
+<Canvas of={InputStories.WithPasswordField} />
+
+### DateField
+
+<Canvas of={InputStories.WithDateField} />
+
+### InputGroup
+
+<Canvas of={InputStories.WithInputGroup} />
+
+### CheckboxGroup
+
+<Canvas of={InputStories.WithCheckboxGroup} />
+
+### RadioGroup
+
+<Canvas of={InputStories.WithRadioGroup} />
+
+### MediaField
+
+(See the
+<a href="/?path=/docs/components-fields-mediafield--docs" target="_top">MediaField documentation</a>.)
+
+<Canvas of={InputStories.WithMediaField} />
+
+### Combined fields
+
+**TextArea + MediaField** — the `textAreaMedia` pair: two fields under one
+shared header, stacked `--size-3` (12px) apart.
+
+<Canvas of={InputStories.CombinedFields} />
+
+## Props
+
+<ArgTypes of={InputStories} />

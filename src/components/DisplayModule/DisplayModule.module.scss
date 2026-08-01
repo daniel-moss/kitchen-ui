@@ -1,0 +1,182 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+@use "../../styles/mixins/collapse" as *;
+
+// ===== outer container (the card) =====
+.module {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-level-second);
+  border-radius: var(--border-radius-2_5); // 10px
+  overflow: hidden; // clip the banner / accordion body to the radius
+  box-shadow: 0 1px 3px 0 var(--box-shadow-shadow-default);
+}
+// `.accordion` is just a modifier now (the card provides the rounding/clip); it
+// scopes the header interaction states below.
+
+// ===== status ring — 1px inset, layered onto the drop shadow (like Card) =====
+.ring {
+  box-shadow:
+    inset 0 0 0 1px var(--dm-ring),
+    0 1px 3px 0 var(--box-shadow-shadow-default);
+}
+.info {
+  --dm-ring: var(--blue-9);
+}
+.success {
+  --dm-ring: var(--jade-9);
+}
+.warning {
+  --dm-ring: var(--amber-9);
+}
+.error {
+  --dm-ring: var(--tomato-9);
+}
+
+// ===== header bar (padded row; the accordion one is the toggle) =====
+.headerRow {
+  box-sizing: border-box; // 52px includes the padding (Figma semantics), not + it
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px — space for the accordion caret
+  min-height: 52px;
+  padding: var(--size-2_5) var(--size-4); // 10px 16px
+  width: 100%;
+}
+// The accordion trigger (role="button") — interactive states. The bg is clipped
+// by the accordion's rounded overflow (all corners when closed, top-only when
+// open), so it needs no per-corner radii.
+.accordion .headerRow {
+  cursor: pointer;
+  user-select: none;
+  background: transparent;
+  transition: background-color 120ms ease;
+  // Round the header itself so the focus ring / bg corners are rounded (not
+  // clipped square by the container). Closed = all corners; open below.
+  border-radius: var(--border-radius-2_5); // 10px
+}
+// Open: only the top corners round — the bottom meets the body, so it stays square.
+.accordion .headerRow.open {
+  border-radius: var(--border-radius-2_5) var(--border-radius-2_5) 0 0;
+}
+// With a banner above, the header top meets the banner — never round the top.
+.accordion.hasBanner .headerRow {
+  border-radius: 0 0 var(--border-radius-2_5) var(--border-radius-2_5); // closed: bottom only
+}
+.accordion.hasBanner .headerRow.open {
+  border-radius: 0; // open: none (top meets banner, bottom meets body)
+}
+
+@media (hover: hover) {
+// Exclude the right-slot: hovering / pressing an action there should style only
+// that element, not the header (`:hover`/`:active` otherwise propagate up).
+.accordion .headerRow:hover:not(:has(.slotRight:hover)) {
+  @include row-hover-fill;
+}
+}
+.accordion .headerRow:active:not(:has(.slotRight:active)) {
+  @include row-press-fill;
+}
+// Focus — the DS focus ring, with DisplayModule's wider 4px gap.
+.accordion .headerRow:focus-visible {
+  @include row-focus-ring($gap: 4px);
+}
+.accordion .headerRow.disabled {
+  @include row-disabled;
+}
+
+// Caret (accordion) — rotates from right (closed) to down (open).
+.caret {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+  color: var(--gray-12);
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+}
+.caretOpen {
+  transform: rotate(0deg);
+}
+
+// ===== header content (avatar + copy + actions) =====
+.header {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.slotLeft {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-right: var(--size-2_5); // 10px
+}
+.copy {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+.title {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.titleText {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.titleSlot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-left: var(--size-2); // 8px
+}
+.caption {
+  width: 100%;
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}
+.slotRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px between the (max 2) elements
+  padding-left: var(--size-4); // 16px
+}
+
+// ===== body (content slot) =====
+.body {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--size-4); // 16px default content padding
+}
+// An EmptyState body (error state or a caption-only empty content) brings its
+// own inner padding — don't add the body padding on top.
+.bodyError {
+  padding: 0;
+}
+
+// ===== accordion collapse (smooth height via the shared mixin) =====
+.collapse {
+  @include collapse;
+}
+.collapseOpen {
+  @include collapse-open;
+}
+.collapseInner {
+  @include collapse-inner;
+}

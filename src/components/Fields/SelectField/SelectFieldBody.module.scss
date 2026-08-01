@@ -1,0 +1,45 @@
+@use "../../../styles/mixins/font" as *;
+
+// The body row: [slotLeft] value (flex, truncates) [suffix].
+.body {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+// Left slot (icon / user avatar) — 8px gap before the value.
+.slotLeft {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-right: var(--size-2); // 8px
+}
+
+// Value — grows and truncates.
+.value {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-strong);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+// Right slot — suffix text (subtle), 8px gap after the value.
+.suffix {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding-left: var(--size-2); // 8px
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}

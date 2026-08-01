@@ -1,0 +1,113 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as FormModuleStories from "./FormModule.stories";
+
+<Meta of={FormModuleStories} />
+
+# FormModule
+
+We use **FormModule** to wrap a part of the form into its own semantic section.
+
+<Canvas of={FormModuleStories.WithBanner} />
+
+```tsx
+<FormModule
+  title="Location"
+  caption="Select the location where the equipment needing service is installed."
+  banner={
+    <AlertBanner orientation="vertical" status="info" onDismiss={hideBanner}>
+      Always pick the end-client location…
+    </AlertBanner>
+  }
+>
+  <SelectField value={location} onClick={openLocationList} />
+</FormModule>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Supports a **title**, a **caption**, an
+<a href="/?path=/story/components-alertbanner--playground" target="_top">AlertBanner</a>
+and the content slot. The title (`title`) is required. The caption (`caption`)
+sits below it and wraps when it does not fit one line. The banner (`banner`)
+takes an `AlertBanner` element. The children are the module body — the form
+fields.
+
+The component renders a `<section>`. The measurements, top to bottom: title ↔
+caption `--size-1` (4px); title/caption block ↔ banner `--size-4` (16px);
+header ↔ body `--size-6` (24px); fields inside the body stack `--size-6`
+(24px) apart. The title is `heading-h3` (Semibold 15/24), the caption
+`body-400-compact` (Regular 14/20). The title row is top-aligned: when the
+title wraps, the condition caption and the hint trigger (a `--size-6` (24px)
+square container matching the title's line) stay on the first line.
+
+<Canvas of={FormModuleStories.WithBanner} />
+
+Caption and AlertBanner are optional.
+
+<Canvas of={FormModuleStories.TitleOnly} />
+
+## Behaviour
+
+### Optional module
+
+If the module doesn't have inputs and it's optional, we mark the module itself
+as an optional one — `titleCondition="optional"` adds **(optional)** after the
+title. (The body in this example is a ghost
+<a href="/?path=/story/components-button--playground" target="_top">Button</a>.
+Body children stretch to the full width by default — a hugging child like this
+button opts out with `alignSelf: "flex-start"`.)
+
+<Canvas of={FormModuleStories.OptionalModule} />
+
+Conditional caption supports custom values — pass the copy as
+`titleCondition`, with its parentheses (e.g. `titleCondition="(if applicable)"`).
+
+<Canvas of={FormModuleStories.CustomCondition} />
+
+### Text wraps
+
+Both title and caption wrap. The condition caption and the hint trigger do
+not — the title row is top-aligned, so they stay on the first title line.
+
+<Canvas of={FormModuleStories.TextWraps} />
+
+### Validation
+
+The form module itself is not validated — it is just a container for other
+inputs. The inputs are validated, though (here, a
+<a href="/?path=/docs/components-fields-selectfield-selectfield--docs" target="_top">SelectField</a>
+with `isValid={false}`). In the example below the module title and caption
+stay the same in the error state.
+
+<Canvas of={FormModuleStories.Validation} />
+
+### Banner
+
+If we need to add more context to the form section and focus the user's
+attention, we use
+<a href="/?path=/story/components-alertbanner--playground" target="_top">AlertBanner</a>.
+By default the AlertBanner is dismissible. It can also be non-dismissible.
+
+<Canvas of={FormModuleStories.WithBanner} />
+
+If the AlertBanner is dismissed, we show a **HintTrigger** next to the title.
+It opens a
+<a href="/?path=/story/components-hint-hoverhint--playground" target="_top">HoverHint</a>
+on hover — the copy from the AlertBanner goes there.
+
+**FormModule does not do this swap by itself** — it is your wiring: handle the
+AlertBanner's `onDismiss`, stop passing `banner`, and pass the banner's copy
+as `titleHintContent` instead. The example below is live — dismiss the banner
+with its × and hover the info icon that appears (press **Show code** for the
+exact wiring):
+
+<Canvas of={FormModuleStories.BannerDismissal} />
+
+## Props
+
+<ArgTypes of={FormModuleStories} />

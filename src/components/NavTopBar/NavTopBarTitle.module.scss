@@ -1,0 +1,80 @@
+@use "../../styles/mixins/font" as *;
+
+// NavTopBarTitle — values from Figma "#️⃣ NavTopBar_LeftElements_Title".
+
+.root {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Subpages: the title is a button opening the subpage select list.
+.wrap {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Interaction states are opacity-based: 75% on hover, 50% on press.
+.trigger {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+  transition: opacity 120ms ease;
+}
+
+@media (hover: hover) {
+  .trigger:hover {
+    opacity: 0.75;
+  }
+}
+
+.trigger:active {
+  opacity: 0.5;
+}
+
+// The subpage list sits 4px below the title, left-aligned with it.
+.listAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1));
+  left: 0;
+  z-index: var(--z-menu);
+}
+
+.title {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.slotLeft {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: var(--gray-12); // the icon variant's color; avatars bring their own
+}
+
+// The title gap depends on the slot content (per Figma).
+.slotIcon {
+  padding-right: var(--size-2); // 8px
+}
+
+.slotAvatar {
+  padding-right: var(--size-2_5); // 10px
+}
+
+.dropdown {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-left: var(--size-2); // 8px
+  color: var(--gray-a9);
+}

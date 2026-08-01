@@ -1,0 +1,9 @@
+/* Kitchen UI — overlay layers.
+   One scale for everything that floats, so new overlays can't accidentally
+   render under older ones. Local structural z-index (1 / -1 inside a
+   component) stays local — these tokens are for page-level layers only. */
+:root {
+  --z-modal: 1000; /* Dialog / Prompt scrims and drawers */
+  --z-menu: 1100; /* Menu sub-cards — above modals */
+  --z-tooltip: 9999; /* tooltips — above everything */
+}

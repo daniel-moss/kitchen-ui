@@ -1,0 +1,64 @@
+@use "../../styles/mixins/font" as *;
+
+// A centered, vertical block for when there's no content: optional top slot
+// (icon / avatar), title + caption, optional actions. Fills its container and
+// centers. See Figma "EmptyState".
+.emptyState {
+  --es-icon: var(--gray-12);
+  --es-title: var(--text-strong);
+
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: var(--size-8); // 32
+  text-align: center;
+}
+
+// error: icon + title turn red; caption stays subtle.
+.error {
+  --es-icon: var(--text-error);
+  --es-title: var(--text-error);
+}
+
+.slotTop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: var(--size-4); // 16
+}
+
+.icon {
+  display: inline-flex;
+  color: var(--es-icon);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-1); // 4
+  width: 100%;
+}
+
+.title {
+  color: var(--es-title);
+
+  @include font("heading-h4"); // Inter SemiBold 14/20
+}
+
+.caption {
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--size-4); // 16
+  padding-top: var(--size-5); // 20
+}

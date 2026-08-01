@@ -1,0 +1,188 @@
+.base {
+  position: relative;
+
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+// The maskable avatar surface: background + content live here (never the dot),
+// so the statusDot mask cuts only the avatar, not the addOn.
+.surface {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: var(--gray-a3);
+}
+
+.content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// placeholder (user only): no fill, just the dashed ring + user icon.
+.placeholder {
+  background: transparent;
+}
+
+// dashed placeholder ring: fills the box, stroke color drives the dashes.
+.ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--gray-a9);
+}
+
+// loading: the gray surface pulses (same 800ms skeleton pulse as elsewhere).
+.loading {
+  animation: ku-avatar-skeleton 800ms ease-in-out infinite alternate;
+}
+
+@keyframes ku-avatar-skeleton {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+// icon content. Object icon = gray-a8; user icon (locked) = gray-a9.
+.iconContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-a8);
+}
+
+.iconUser {
+  color: var(--gray-a9);
+}
+
+// image content: fills the shape. Inherits the surface radius so the corners
+// round; the mask (if any addOn) cuts the notch out of it too.
+.image {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+
+  pointer-events: none;
+}
+
+// letter and counter content. Font is hardcoded on purpose (no typography
+// variables): avatar text has its own size scale. font-size is set inline per
+// size.
+.letter,
+.counter {
+  font-family: "InterVariable", sans-serif;
+  font-weight: 400;
+  line-height: normal;
+  text-align: center;
+  color: var(--gray-a11);
+}
+
+.letter {
+  text-transform: uppercase;
+}
+
+// statusDot: circle sitting in the mask notch. Position and size are set inline
+// (from the notch center). Default color gray-12.
+.dot {
+  position: absolute;
+  border-radius: var(--border-radius-full);
+  background: var(--gray-12);
+}
+
+// icon addOn: icon in a box, sits in the mask notch. Position and box size are
+// set inline (from the notch center). Default color gray-12.
+.addOnIcon {
+  position: absolute;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  color: var(--gray-12);
+}
+
+// ---- type ----
+.objectType {
+  // square; the corner radius is set per size bucket below.
+}
+
+// ---- sizes (square) ----
+.xxsSize {
+  width: var(--size-4); /* 16px */
+  height: var(--size-4);
+}
+
+.xsSize {
+  width: var(--size-5); /* 20px */
+  height: var(--size-5);
+}
+
+.smSize {
+  width: var(--size-6); /* 24px */
+  height: var(--size-6);
+}
+
+.mdSize {
+  width: var(--size-7); /* 28px */
+  height: var(--size-7);
+}
+
+.lgSize {
+  width: var(--size-8); /* 32px */
+  height: var(--size-8);
+}
+
+.xlSize {
+  width: var(--size-9); /* 36px */
+  height: var(--size-9);
+}
+
+// ---- object radius: --border-radius-1 (xxs–sm), --border-radius-1_5 (md–xl) ----
+.objectType.xxsSize .surface,
+.objectType.xsSize .surface,
+.objectType.smSize .surface {
+  border-radius: var(--border-radius-1);
+}
+
+.objectType.mdSize .surface,
+.objectType.lgSize .surface,
+.objectType.xlSize .surface {
+  border-radius: var(--border-radius-1_5);
+}
+
+// ---- user radius: full circle at every size ----
+.userType .surface {
+  border-radius: var(--border-radius-full);
+}
+
+// ---- live: circle with a collaboration ring ----
+// Outer = the size value (border-box); 2px ring + 2px gap → inner circle size−8.
+.liveType {
+  box-sizing: border-box;
+  padding: var(--size-0_5); /* 2px gap between ring and avatar */
+  border: 2px solid var(--avatar-ring, var(--live-collaboration-crimson));
+  border-radius: var(--border-radius-full);
+}
+
+// The inner avatar sits in the content box (size−8), not the padding box, so it
+// flows normally instead of being absolutely positioned.
+.liveType .surface {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--border-radius-full);
+}

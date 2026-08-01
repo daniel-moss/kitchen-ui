@@ -1,0 +1,96 @@
+// The 16px radio visual — a circle, filled gray-12 with a white center dot when
+// selected. Prop-driven; hover/press/focus are driven by an interactive ancestor
+// carrying `.control`. Mirrors CheckboxBox. See Figma "Radio".
+.box {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+
+  border: 1px solid var(--gray-a7); // unselected resting border
+  border-radius: var(--border-radius-full);
+
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+
+// Center dot — a 6px circle that scales in when selected.
+.box::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--size-1_5); // 6px
+  height: var(--size-1_5);
+  border-radius: var(--border-radius-full);
+  background: var(--gray-1);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 120ms ease;
+}
+
+// ---- selected: dark fill + shown dot ----
+.filled {
+  background: var(--gray-12);
+  border-color: transparent;
+}
+.filled::after {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+// ---- interaction (unselected only), driven by the parent control ----
+@media (hover: hover) {
+.control:hover .interactive:not(.filled) {
+  background: var(--gray-a3);
+  border-color: var(--gray-a8);
+}
+}
+.control:has(input:focus-visible) .interactive:not(.filled) {
+  background: var(--gray-a3);
+  border-color: var(--gray-a8);
+}
+.control:active .interactive:not(.filled) {
+  background: var(--gray-a4);
+  border-color: var(--gray-a8);
+}
+
+// Focus ring — 2px gray-12, follows the circular radius (inline uses this; the
+// card variant draws the ring on the card).
+.ringOnBox:has(input:focus-visible) .box {
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
+}
+
+// ---- error (tomato) ----
+.error:not(.filled) {
+  border-color: var(--tomato-9);
+}
+.error.filled {
+  background: var(--tomato-9);
+  border-color: transparent;
+}
+
+// ---- dimmed (disabled / read-only) ----
+.dimmed {
+  opacity: 0.3;
+}
+
+// ---- loading: pulsing gray-a3 fill, no dot ----
+.loading {
+  background: var(--gray-a3);
+  border-color: transparent;
+  animation: ku-radiodot-loading 800ms ease-in-out infinite alternate;
+}
+.loading::after {
+  display: none;
+}
+
+@keyframes ku-radiodot-loading {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

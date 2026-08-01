@@ -1,0 +1,118 @@
+@use "../../../styles/mixins/font" as *;
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// ===== the field row (icon + input + clear) — the background lives here =====
+.row {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: var(--gray-a2);
+  cursor: text;
+
+  transition: box-shadow 120ms ease;
+}
+
+// field — bordered box (border drawn as an inset shadow, no size change).
+.field {
+  height: var(--size-8); // 32px
+  padding: 0 var(--size-2_5); // 10px
+  border-radius: var(--border-radius-1_5); // 6px
+  box-shadow: inset 0 0 0 1px var(--gray-a7);
+}
+
+@media (hover: hover) {
+.field:hover {
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+}
+}
+.field:focus-within {
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+}
+// The clear button sits closer to the edge (4px) than the resting padding.
+.field.filled {
+  padding-right: var(--size-1); // 4px
+}
+
+// bar — 36px filled row; the 1px Divider below makes it 37px total. The clear
+// button keeps the full 16px edge inset (no tighter padding when filled).
+.bar {
+  height: var(--size-9); // 36px
+  padding: 0 var(--size-4); // 16px
+}
+
+// ===== search icon — darkens on hover / focus =====
+.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+  padding-right: var(--size-2); // 8px gap to the input
+  box-sizing: content-box;
+  color: var(--gray-a9);
+
+  transition: color 120ms ease;
+}
+
+@media (hover: hover) {
+.row:hover .icon {
+  color: var(--gray-12);
+}
+}
+.row:focus-within .icon {
+  color: var(--gray-12);
+}
+
+// ===== input =====
+.input {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-strong);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+.input::placeholder {
+  color: var(--text-placeholder);
+  opacity: 1;
+}
+// Hide the native search cancel button — we render our own clear button.
+.input::-webkit-search-cancel-button,
+.input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+// ===== clear button =====
+// Minimum gap between the value text and the button = the row's own
+// horizontal padding (10px field / 16px bar).
+.field .clearWrap {
+  margin-left: var(--size-2_5); // 10px
+}
+.bar .clearWrap {
+  margin-left: var(--size-4); // 16px
+}
+.clearIcon {
+  color: var(--gray-12); // gray-12 at rest (not the muted default)
+}
+
+// ===== disabled — the DS-wide 30% dim; the clear button is not rendered =====
+.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.disabled .input {
+  cursor: not-allowed;
+}

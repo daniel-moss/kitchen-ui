@@ -1,0 +1,70 @@
+@use "../../styles/mixins/font" as *;
+
+// StrengthIndicator — state word + 56×4 progress bar (Figma "StrengthIndicator").
+.indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — text ↔ bar
+}
+
+.text {
+  @include font("body-400-compact"); // Inter Regular 14/20
+
+  white-space: nowrap;
+}
+
+.bar {
+  position: relative;
+  flex: none;
+  width: var(--size-14); // 56px
+  height: var(--size-1); // 4px
+  overflow: hidden;
+  border-radius: var(--border-radius-full);
+  background: var(--gray-a4); // the track
+}
+
+.fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: var(--border-radius-full);
+}
+
+// State ladder: color (text + fill) and how much of the bar is filled.
+.weak {
+  .text {
+    color: var(--text-error);
+  }
+  .fill {
+    width: 25%;
+    background: var(--text-error);
+  }
+}
+.average {
+  .text {
+    color: var(--text-warning);
+  }
+  .fill {
+    width: 50%;
+    background: var(--text-warning);
+  }
+}
+.strong {
+  .text {
+    color: var(--text-info);
+  }
+  .fill {
+    width: 75%;
+    background: var(--text-info);
+  }
+}
+.excellent {
+  .text {
+    color: var(--text-success);
+  }
+  .fill {
+    width: 100%;
+    background: var(--text-success);
+  }
+}

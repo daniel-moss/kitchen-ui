@@ -1,0 +1,118 @@
+@use "../../styles/mixins/font" as *;
+
+// A single step in a Stepper: a 2px status line on top, then an icon + truncated
+// label. min-width 104px, stretches to fill (its status line forms the Stepper's
+// continuous progress bar). Colors come from the progress via the --si-* vars.
+.step {
+  position: relative;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+
+  min-width: 104px;
+  width: 100%;
+  padding: var(--size-4) var(--size-4) var(--size-4) 0; // 16 / 16 / 16 / 0
+  // No overflow:hidden here — it would clip the label's truncation tooltip
+  // (which pops above the step). The ellipsis lives on the inner text element.
+
+  // button reset (used when interactive)
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+  width: 100%;
+  min-width: 0;
+}
+
+.icon {
+  flex: none;
+  display: inline-flex;
+  color: var(--si-icon);
+}
+
+// Passed to TruncatingText (styles its text span): font + progress label color.
+.label {
+  color: var(--si-label);
+
+  @include font("caption-medium-500"); // Inter Medium 13/20
+}
+
+// Loading label bar wrapper (fills the space next to the icon).
+.skeleton {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// The 2px status line across the top.
+.line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--si-line);
+}
+
+@media (hover: hover) {
+// ---- interactive states (only when the step is a button) ----
+.interactive.isHovered,
+.interactive:hover {
+  background: var(--gray-a3);
+}
+}
+.interactive.isPressed,
+.interactive:active {
+  background: var(--gray-a4);
+}
+// focus: gray-a3 fill + a 2px gray-12 ring drawn inset (no layout shift; the
+// status line sits flush on the top edge over it).
+.interactive.isFocused,
+.interactive:focus-visible {
+  outline: none;
+  background: var(--gray-a3);
+  box-shadow: inset 0 0 0 2px var(--gray-12);
+}
+
+.isDisabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+// ---- progress → colors ----
+.incompleted {
+  --si-icon: var(--gray-a10);
+  --si-label: var(--text-subtle);
+}
+.current {
+  --si-icon: var(--gray-12);
+  --si-label: var(--text-strong);
+  --si-line: var(--gray-12);
+}
+.completed {
+  --si-icon: var(--jade-9);
+  --si-label: var(--text-strong);
+  --si-line: var(--jade-9);
+}
+.warning {
+  --si-icon: var(--amber-9);
+  --si-label: var(--text-strong);
+  --si-line: var(--amber-9);
+}
+.error {
+  --si-icon: var(--tomato-9);
+  --si-label: var(--text-strong);
+  --si-line: var(--tomato-9);
+}

@@ -1,0 +1,150 @@
+@use "../../styles/mixins/font" as *;
+
+// An inline, underlined text link styled as a button. No padding; only the
+// icon/label gap. Color comes from the scheme; icons inherit it. States are
+// opacity-based. See Kitchen UI/components/link-button.md.
+.base {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0;
+  border: none;
+  background: none;
+
+  cursor: pointer;
+
+  color: var(--text-strong); // black (default scheme)
+  text-decoration: none; // reset for the <a> element
+
+  transition: opacity 120ms ease;
+}
+
+// Increased touch/hit area: extends 8px beyond the visual bounds on all sides
+// without affecting layout. A pseudo-element counts as part of the element for
+// hit-testing, so the whole enlarged area is clickable.
+.base::before {
+  content: "";
+
+  position: absolute;
+  inset: -8px;
+}
+
+// The label is always underlined (skip-ink off, lowered offset, bolder line).
+// It truncates with an ellipsis when a container constrains the button (e.g. a
+// ValueDisplay value) — no effect when unconstrained.
+.label {
+  text-decoration: underline;
+  text-decoration-skip-ink: none;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1.5px;
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  transition: opacity 120ms ease;
+}
+
+// Icon wrapper — inherits the link color; targetable for the focus dim.
+.icon {
+  display: inline-flex;
+  transition: opacity 120ms ease;
+}
+
+// ---- sizes ----
+.mdSize {
+  gap: var(--size-2); // 8px
+
+  @include font("body-400-compact"); // 14/20
+}
+.smSize {
+  gap: var(--size-1_5); // 6px
+
+  @include font("caption-medium-400"); // 13/20
+}
+
+// ---- color schemes (text + icon color) — use the semantic --text-* aliases ----
+.blackScheme {
+  color: var(--text-strong);
+}
+.grayScheme {
+  color: var(--text-subtle);
+}
+.blueScheme {
+  color: var(--text-info);
+}
+.jadeScheme {
+  color: var(--text-success);
+}
+.amberScheme {
+  color: var(--text-warning);
+}
+.tomatoScheme {
+  color: var(--text-error);
+}
+
+@media (hover: hover) {
+// ---- states ----
+// hover / press dim the whole link (no ring present here).
+.base:hover,
+.base.isHovered {
+  opacity: 0.75;
+}
+}
+.base:active,
+.base.isPressed {
+  opacity: 0.6;
+}
+
+// The underline disappears while interacting.
+@media (hover: hover) {
+.base:hover .label,
+.base.isHovered .label {
+  text-decoration: none;
+}
+}
+.base:active .label,
+.base:focus-visible .label,
+.base.isPressed .label,
+.base.isFocused .label {
+  text-decoration: none;
+}
+
+// focus: a 2px ring in the link's own color; the content (label + icons) dims to
+// 75% but the ring stays full (so the dim is applied to the content, not root).
+.base:focus-visible,
+.base.isFocused {
+  outline: none;
+}
+.base:focus-visible .label,
+.base:focus-visible .icon,
+.base.isFocused .label,
+.base.isFocused .icon {
+  opacity: 0.75;
+}
+.base:focus-visible::after,
+.base.isFocused::after {
+  content: "";
+
+  position: absolute;
+  inset: -2px;
+
+  border: 2px solid currentColor;
+  border-radius: var(--border-radius-1_5); // 6px
+}
+
+// disabled: dim to 30%, no interaction (covers both <a> and <button>).
+.base.isDisabled,
+.base:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+// loading: label → SkeletonTypography bar, icons → faded circle glyphs (handled
+// by the Icon component's isLoading). No pointer events while loading.
+.base.isLoading {
+  pointer-events: none;
+}

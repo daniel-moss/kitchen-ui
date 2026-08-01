@@ -1,0 +1,189 @@
+// Toaster — sonner's animation model (v1.5.0, what production uses), on our
+// tokens. Toasts are absolutely positioned AT the screen edge; measured
+// offsets are CSS vars; transform/opacity/height move via 400ms ease
+// transitions. Desktop: bottom-right, 24px (--size-6) from the edges, lift
+// direction UP. Mobile: on top, 8px below the status bar, full width with
+// 8px edge gaps, lift direction DOWN. Collapsed stack by default (peek +
+// scale), hover expands (desktop only). Keep 400ms in sync with
+// EXIT_DURATION in Toaster.tsx.
+
+.stack {
+  position: absolute;
+  z-index: 2000; // above modals (1000) — system feedback tops everything
+  pointer-events: none; // only the toasts themselves are interactive
+}
+
+// No [data-drawer-root] ancestor (portaled to <body>): pin to the viewport.
+.fixed {
+  position: fixed;
+}
+
+.desktop {
+  right: var(--size-6);
+  bottom: var(--size-6);
+  width: var(--size-96);
+}
+
+.mobile {
+  // env() pre-resolved into a custom property — Safari mishandles env()
+  // inside var() fallbacks when used in calc().
+  --stack-top-inset: var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px));
+
+  top: calc(var(--stack-top-inset) + var(--size-2));
+  right: var(--size-2);
+  left: var(--size-2);
+}
+
+// ---- items -------------------------------------------------------------------
+
+// The ENTER uses @starting-style: the browser transitions from the starting
+// state on DOM insertion — no JS timing at all. NOT a keyframe animation on
+// purpose: WebKit refuses to run later TRANSITIONS on properties a finished
+// ancestor animation touched (the exit vanished with no animation on the
+// phone) and it also stalled DESCENDANT animations (the processing spinner
+// froze). Off-screen distances are fixed calcs — Safari also drops transform
+// declarations with env()-in-var() chains.
+.item {
+  --offset: 0px;
+
+  position: absolute;
+  opacity: 1;
+  pointer-events: auto;
+  transition:
+    transform 400ms ease,
+    opacity 400ms ease,
+    height 400ms ease;
+}
+
+.desktop .item {
+  right: 0;
+  bottom: 0;
+  transform: translateY(calc(-1 * var(--offset)));
+}
+
+.mobile .item {
+  right: 0;
+  left: 0;
+  transform: translateY(var(--offset));
+}
+
+// Top-level form on purpose — some Safari 18 builds ignore the NESTED
+// @starting-style variant.
+@starting-style {
+  .desktop .item {
+    opacity: 0;
+    transform: translateY(calc(100% + 24px));
+  }
+
+  // Small overshoot only: the status bar sits OUTSIDE the page on the phone
+  // (both Safari tabs and standalone), so the page's top edge IS the visual
+  // edge — a long fall distance read as a different animation than desktop.
+  .mobile .item {
+    opacity: 0;
+    transform: translateY(calc(-100% - 12px));
+  }
+}
+
+// The hover bridge (sonner's :after): an invisible strip covering the gap
+// toward the NEXT card, so moving the pointer between two expanded cards
+// never leaves the stack (leaving would collapse it). 15px = GAP + 1.
+.item::after {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 15px;
+  content: "";
+}
+
+.desktop .item::after {
+  bottom: 100%;
+}
+
+.mobile .item::after {
+  top: 100%;
+}
+
+// The chip fills its slot: full width on mobile, forced height while
+// collapsed-behind (its own overflow: hidden crops the content cleanly).
+.mobile .item > * {
+  width: 100%;
+}
+
+.behind > * {
+  height: 100%;
+}
+
+// The chip's content cross-fades when the stack collapses/expands (sonner
+// hides the content of behind-toasts — only the front one reads).
+.item > * > * {
+  transition: opacity 400ms ease;
+}
+
+.behind > * > * {
+  opacity: 0;
+}
+
+// Collapsed stack (default): behind-toasts peek out GAP per step and scale
+// down 5% per step behind the front toast.
+.desktop .item.behind {
+  transform: translateY(calc(-1 * var(--peek))) scale(var(--scale));
+}
+
+.mobile .item.behind {
+  transform: translateY(var(--peek)) scale(var(--scale));
+}
+
+// Beyond visibleToasts (3) while collapsed: kept mounted but faded away.
+.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+// ---- exit --------------------------------------------------------------------
+
+.closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+// The front toast leaves past the screen edge it came from.
+.desktop .closingFront {
+  transform: translateY(100%);
+}
+
+.mobile .closingFront {
+  transform: translateY(-100%);
+}
+
+// An expanded non-front toast sinks by its own height from its position.
+.desktop .closingSpread {
+  transform: translateY(calc(-1 * var(--offset) + 100%));
+}
+
+.mobile .closingSpread {
+  transform: translateY(calc(var(--offset) - 100%));
+}
+
+// A collapsed behind-toast just drops slightly while fading (sonner's
+// timing: slow move, quick fade — it is mostly covered anyway).
+.desktop .closingBehind {
+  transform: translateY(40%);
+  transition:
+    transform 500ms ease,
+    opacity 200ms ease;
+}
+
+.mobile .closingBehind {
+  transform: translateY(-40%);
+  transition:
+    transform 500ms ease,
+    opacity 200ms ease;
+}
+
+@media (prefers-reduced-motion) {
+  .item,
+  .item > * > * {
+    transition: none;
+    animation: none;
+  }
+}

@@ -1,0 +1,8 @@
+/* Kitchen UI — breakpoints */
+/* Two layouts only: <1024px = mobile, >=1024px = desktop.
+   Note: CSS custom properties can't be used inside @media conditions,
+   so media queries hardcode the value: @media (min-width: 64rem) { … } */
+
+:root {
+  --breakpoint-desktop-up: 64rem; /* 1024px */
+}

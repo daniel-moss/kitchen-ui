@@ -1,0 +1,41 @@
+// ScrollArea — overlay-scrollbar scroll container. The wrapper is the layout
+// participant; the scroller fills it; the thumb overlays the content.
+
+.wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.scroller {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none; // Firefox
+
+  &::-webkit-scrollbar {
+    display: none; // Chrome / Safari
+  }
+}
+
+// 6px thumb, 2px off the right edge — ON TOP of the content, never pushing
+// it. Rendered only while the content overflows.
+.thumb {
+  position: absolute;
+  right: 2px;
+  z-index: 2;
+  width: 6px;
+  border-radius: 3px;
+  background: var(--gray-a6);
+
+  &:hover {
+    background: var(--gray-a8);
+  }
+}
+
+.thumbDragging,
+.thumbDragging:hover {
+  background: var(--gray-a9);
+}

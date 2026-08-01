@@ -1,0 +1,22 @@
+// "HVAC PM" questionnaire (Figma 24273-69208): the dialog body — a 16px-padded
+// column of FormModules (same shape as jobForm's .form).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+}
+
+// Figma spaces modules 24px around the divider (the .form gap gives 16) —
+// the extra 4px each side comes from the divider's own margin.
+.moduleDivider {
+  margin: var(--size-1) 0; // 4px
+}
+
+// One question: the radio row + (v2) its revealed "[question] – Issue" field.
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}

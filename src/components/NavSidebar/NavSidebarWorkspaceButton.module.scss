@@ -1,0 +1,84 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// NavSidebarWorkspaceButton — avatar + workspace name + angles icon.
+// All values from Figma "NavSidebarWorkspaceButton".
+
+.wrap {
+  width: fit-content;
+  max-width: 100%;
+}
+
+// Desktop only: anchors the select list card (see the profile button — a
+// positioned wrapper would trap the mobile drawer's scrim).
+.wrapDesktop {
+  position: relative;
+}
+
+// The row: 28px avatar + name + angles, 4/8 padding = a 36px row that hugs
+// its content. The single-workspace version renders this without states.
+.button {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  max-width: 100%;
+  padding: var(--size-1) var(--size-2) var(--size-1) var(--size-1); // 4 / 8 / 4 / 4
+  border: none;
+  border-radius: var(--border-radius-1_5);
+  background: none;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.interactive {
+  cursor: pointer;
+}
+
+.name {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+}
+
+.angles {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: var(--gray-a10);
+}
+
+@media (hover: hover) {
+  // While the list is open the pressed fill wins over hover.
+  .interactive:hover:not(:disabled):not(.open) {
+    background: var(--gray-a3);
+
+    .angles {
+      color: var(--gray-12);
+    }
+  }
+}
+
+.interactive:active:not(:disabled),
+.open {
+  background: var(--gray-a4); // pressed — and held while the list is open
+
+  .angles {
+    color: var(--gray-12);
+  }
+}
+
+.interactive:focus-visible {
+  @include row-focus-ring;
+}
+
+.disabled {
+  @include row-disabled;
+}
+
+// The select list sits 4px below the button, left-aligned with it.
+.listAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1));
+  left: 0;
+  z-index: var(--z-menu);
+}

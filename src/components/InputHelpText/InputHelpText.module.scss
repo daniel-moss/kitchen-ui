@@ -1,0 +1,40 @@
+@use "../../styles/mixins/font" as *;
+
+// A help-text line — the status class sets the color, which both the icon and
+// text inherit. See Figma "InputHelpText".
+.help {
+  display: flex;
+  align-items: flex-start;
+}
+
+.neutral {
+  color: var(--text-subtle);
+}
+.info {
+  color: var(--text-info);
+}
+.success {
+  color: var(--text-success);
+}
+.warning {
+  color: var(--text-warning);
+}
+.error {
+  color: var(--text-error);
+}
+
+// Left icon — a 14px glyph in a 20px-tall box, 8px gap to the text.
+.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding-right: var(--size-2); // 8px
+}
+
+.text {
+  flex: 1 1 0;
+  min-width: 0;
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}

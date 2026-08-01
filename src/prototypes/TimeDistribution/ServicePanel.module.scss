@@ -1,0 +1,24 @@
+// The Service tab (Figma "Service" frame): a 16px-padded column of
+// DisplayModules, 16px apart — same shell as the Details panel.
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 100%;
+  padding: var(--size-4);
+}
+
+// List-item module bodies use 4px margins around the rows (Figma), not the
+// module's default 16px content padding — pull the padding back locally.
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// A row's context-menu card, anchored under its ellipsis (fixed, above content).
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}

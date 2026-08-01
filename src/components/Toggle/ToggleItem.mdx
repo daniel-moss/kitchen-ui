@@ -1,0 +1,78 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ToggleItemStories from "./ToggleItem.stories";
+
+<Meta of={ToggleItemStories} />
+
+# ToggleItem
+
+We use **ToggleItem** to give an immediate response to a true/false action.
+The whole item is one control — clicking anywhere on it flips the toggle.
+
+<Canvas of={ToggleItemStories.Interactive} />
+
+```tsx
+<ToggleItem
+  label="Send invoice reminders"
+  caption="E-mail the client when an invoice is overdue"
+  checked={reminders}
+  onChange={(e) => setReminders(e.target.checked)}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains
+<a href="/?path=/docs/components-toggle-toggle--docs" target="_top">Toggle</a>
+and text — a label and an optional caption. Elements are **top-aligned**, so
+the toggle stays level with the first label line when the text wraps. The gap
+between the toggle and the text is `--size-2` (8px); the text block is nudged
+down `1px` (`--size-0_25`) so the first line centers against the 22px toggle.
+The label is the
+<a href="/?path=/docs/components-label--docs" target="_top">Label</a>
+component (Medium, `--text-strong`).
+
+<Canvas of={ToggleItemStories.Interactive} />
+
+Supports a caption — Regular `--text-subtle`, `--size-0_5` (2px) below the
+label.
+
+<Canvas of={ToggleItemStories.AnatomyCaption} />
+
+## Behaviour
+
+### Text wraps
+
+Both the label and the caption wrap when they do not fit one line.
+
+<Canvas of={ToggleItemStories.TextWraps} />
+
+### States
+
+The entire item is interactive. Every value (off / on) has 7 states: default,
+focused (keyboard only), hovered, pressed, error, disabled and read-only.
+**Disabled** dims the whole item to 30%. **Read only** dims only the toggle —
+the label stays full color. Both use the not-allowed cursor.
+
+Inactive (off)
+
+<Canvas of={ToggleItemStories.Inactive} />
+
+Active (on)
+
+<Canvas of={ToggleItemStories.Active} />
+
+### Loading
+
+The loading state depends on the caption: one skeleton line without a caption,
+two with it. The toggle pulses and the cursor is busy.
+
+<Canvas of={ToggleItemStories.Loading} />
+
+## Props
+
+<ArgTypes of={ToggleItemStories} />

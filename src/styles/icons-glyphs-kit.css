@@ -1,0 +1,21 @@
+/* Kitchen UI — glyph codepoints for the Font Awesome KIT packs (custom + custom-duotone).
+ * These icons are NOT part of the auto-generated icons-glyphs.css (that file only
+ * covers the full FA 7 classic + brand sets). The kit icons live in private-use
+ * codepoints inside fa-kit-custom.woff2 / fa-kit-duotone.woff2 (kit ca85bd147f,
+ * web download — codepoints verified against its css/custom-icons*.css).
+ * Same mechanism: .g-<name> sets --glyph; the pack class (.custom / .customDuotone on
+ * the Icon) picks the matching font-family. Render by codepoint, never by name text. */
+
+/* Custom pack (font-family: "FA Custom") */
+.g-microsoft { --glyph: "\e002"; }
+.g-regular-calendar-circle-xmark { --glyph: "\e007"; }
+.g-regular-collapse { --glyph: "\e003"; }
+.g-regular-timeline-view { --glyph: "\e004"; }
+.g-solid-priority-high { --glyph: "\e005"; }
+.g-solid-timeline-view { --glyph: "\e006"; }
+
+/* Custom-duotone pack (font-family: "FA Custom Duotone").
+ * Two-layer render: base codepoint = primary layer, same codepoint + ss01 =
+ * secondary layer (Icon.module.scss .customDuotone). */
+.g-duotone-solid-priority-low { --glyph: "\e000"; }
+.g-duotone-solid-priority-medium { --glyph: "\e001"; }

@@ -1,0 +1,57 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ToggleStories from "./Toggle.stories";
+
+<Meta of={ToggleStories} />
+
+# Toggle
+
+We use **Toggle** as a switch control — an instant on/off. It is the bare
+switch; a labelled row is
+<a href="/?path=/docs/components-toggle-toggleitem--docs" target="_top">ToggleItem</a>.
+It can also be used inside toggle-like local components in designs.
+
+<Canvas of={ToggleStories.Interactive} />
+
+```tsx
+<Toggle checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Toggle is a **track** with a sliding **knob**. The track is `34×22` with
+`--border-radius-full` (stadium) ends; the knob is a `--size-4` (16px)
+`--gray-1` circle, `3px` from the edge. Turning it on slides the knob `12px`
+to the right and fills the track — off is `--gray-a8`, on is `--gray-12`.
+
+<Canvas of={ToggleStories.Anatomy} />
+
+## Behaviour
+
+Every value has 6 states: default, focused (keyboard only), hovered, pressed,
+error and disabled — plus a loading state. The **off** track darkens on hover
+and press (`--gray-a9` / `--gray-a10`). The **on** track keeps one look on
+hover and press — only the focus ring is added. **Error** is a `--tomato-9`
+track on both values. **Disabled** dims the track to 30% and shows the
+not-allowed cursor. **Loading** is a plain `--gray-a3` track with no knob and
+the busy cursor.
+
+Inactive (off)
+
+<Canvas of={ToggleStories.Inactive} />
+
+Active (on)
+
+<Canvas of={ToggleStories.Active} />
+
+Loading
+
+<Canvas of={ToggleStories.Loading} />
+
+## Props
+
+<ArgTypes of={ToggleStories} />

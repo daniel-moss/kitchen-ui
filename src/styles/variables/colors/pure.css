@@ -1,0 +1,67 @@
+/* Kitchen UI — "pure" color tokens */
+/* Renames Radix alpha variables to align with design tokens.
+   --pure-a* adapts to theme: white alphas in light mode, black alphas in dark mode. */
+
+:root {
+  --pure-white: hsl(0, 0%, 100%);
+  --pure-black: hsl(0, 0%, 0%);
+
+  --pure-black-a1: var(--black-a1);
+  --pure-black-a2: var(--black-a2);
+  --pure-black-a3: var(--black-a3);
+  --pure-black-a4: var(--black-a4);
+  --pure-black-a5: var(--black-a5);
+  --pure-black-a6: var(--black-a6);
+  --pure-black-a7: var(--black-a7);
+  --pure-black-a8: var(--black-a8);
+  --pure-black-a9: var(--black-a9);
+  --pure-black-a10: var(--black-a10);
+  --pure-black-a11: var(--black-a11);
+  --pure-black-a12: var(--black-a12);
+
+  --pure-white-a1: var(--white-a1);
+  --pure-white-a2: var(--white-a2);
+  --pure-white-a3: var(--white-a3);
+  --pure-white-a4: var(--white-a4);
+  --pure-white-a5: var(--white-a5);
+  --pure-white-a6: var(--white-a6);
+  --pure-white-a7: var(--white-a7);
+  --pure-white-a8: var(--white-a8);
+  --pure-white-a9: var(--white-a9);
+  --pure-white-a10: var(--white-a10);
+  --pure-white-a11: var(--white-a11);
+  --pure-white-a12: var(--white-a12);
+}
+
+:root,
+.light,
+.light-theme {
+  --pure-a1: var(--pure-white-a1);
+  --pure-a2: var(--pure-white-a2);
+  --pure-a3: var(--pure-white-a3);
+  --pure-a4: var(--pure-white-a4);
+  --pure-a5: var(--pure-white-a5);
+  --pure-a6: var(--pure-white-a6);
+  --pure-a7: var(--pure-white-a7);
+  --pure-a8: var(--pure-white-a8);
+  --pure-a9: var(--pure-white-a9);
+  --pure-a10: var(--pure-white-a10);
+  --pure-a11: var(--pure-white-a11);
+  --pure-a12: var(--pure-white-a12);
+}
+
+.dark,
+.dark-theme {
+  --pure-a1: var(--pure-black-a1);
+  --pure-a2: var(--pure-black-a2);
+  --pure-a3: var(--pure-black-a3);
+  --pure-a4: var(--pure-black-a4);
+  --pure-a5: var(--pure-black-a5);
+  --pure-a6: var(--pure-black-a6);
+  --pure-a7: var(--pure-black-a7);
+  --pure-a8: var(--pure-black-a8);
+  --pure-a9: var(--pure-black-a9);
+  --pure-a10: var(--pure-black-a10);
+  --pure-a11: var(--pure-black-a11);
+  --pure-a12: var(--pure-black-a12);
+}

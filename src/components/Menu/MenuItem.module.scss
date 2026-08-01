@@ -1,0 +1,126 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// MenuItem — an action row. Top-aligned (slots nudge to line 1), like
+// SelectListItem. Danger = destructive: error copy/icon + tomato state tints.
+.item {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--size-1_5) var(--size-3); // 6px 12px
+  border-radius: var(--border-radius-1_5); // 6px
+  cursor: pointer;
+
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+// ---- row states (focus = same tint as hover, no ring — matches SelectListItem) ----
+.item:hover {
+  @include row-hover-fill;
+}
+}
+.item:active {
+  @include row-press-fill;
+}
+.item:focus-visible {
+  @include row-focus-fill;
+}
+
+@media (hover: hover) {
+.danger:hover {
+  @include row-hover-fill(var(--tomato-a3));
+}
+}
+.danger:active {
+  @include row-press-fill(var(--tomato-a4));
+}
+.danger:focus-visible {
+  @include row-focus-fill(var(--tomato-a3));
+}
+.disabled {
+  @include row-disabled;
+}
+// A sub-menu trigger stays highlighted while its sub-menu is open.
+.subOpen {
+  background: var(--gray-a3);
+}
+
+// ---- slots ----
+// min-height 24px = the content line box (2px padding + 20px line + 2px);
+// centering in it puts a 16px icon box at Figma's pt-4px and a 20px xs
+// avatar / Toggle at 2px — no per-type padding (the SelectListItemContent trick).
+.slotLeft {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-6); // 24px
+  padding-right: var(--size-2); // 8px
+  color: var(--gray-12);
+}
+.danger .slotLeft {
+  color: var(--text-error);
+}
+
+.slotRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: var(--size-6); // 24px
+  padding-left: var(--size-4); // 16px
+  color: var(--gray-a9); // chevron / icon tint; a Toggle brings its own colors
+}
+
+// ---- copy ----
+// KNOWN LIMIT: the desktop Menu card's `width: fit-content` does not see a
+// growing title's real size next to a `tag` — the title's intrinsic
+// contribution measures 0, so a long tag (e.g. "Prep for work") squeezes the
+// title unless the menu gets an explicit width from its consumer (the session
+// menus set the Figma card width). Found 2026-07-27.
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--size-0_5) 0; // 2px vertical
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px — title ↔ tag
+  width: 100%;
+}
+.title {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-strong);
+
+  // Truncates to one line (Figma "Title — truncates"). A tag next to it keeps
+  // its full width and the title ellipsizes to fit (tag takes priority); the
+  // caption on the row below still wraps.
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+.tag {
+  flex: none;
+  text-align: right;
+  color: var(--text-subtle);
+
+  @include font("body-400-compact");
+}
+.caption {
+  width: 100%; // wraps — no truncation (per Figma part)
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}
+.danger .title,
+.danger .tag,
+.danger .caption {
+  color: var(--text-error);
+}

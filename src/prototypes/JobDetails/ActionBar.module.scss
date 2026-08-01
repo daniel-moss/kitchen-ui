@@ -1,0 +1,22 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  // The bar is pinned over scrolling content — it needs the app background
+  // color so content disappears behind it (same trick as NavTopBar's sticky
+  // bar; not a new surface fill).
+  background: var(--surface-level-first);
+}
+
+.buttons {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — ellipsis + full-width primary button (grows via .grow)
+  width: 100%;
+  padding: var(--size-4);
+
+  &.bottom {
+    padding: var(--size-3) var(--size-4);
+  }
+}

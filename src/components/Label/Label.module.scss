@@ -1,0 +1,41 @@
+@use "../../styles/mixins/font" as *;
+
+// Field label — text plus an optional condition and hint trigger, on one row.
+// Top-aligned (Daniel 2026-07-27): when the label text wraps, the condition
+// and the hint trigger stay on the FIRST line instead of floating mid-height.
+.root {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--size-1); // 4px (only shows when a condition / hint is present)
+}
+
+// The hint trigger sits in a 20×20 box, centered (Daniel 2026-07-27) — the
+// box matches the label's 20px line height, so the icon rides the first text
+// line. (The trigger's 32px hit area is an absolute pseudo — unaffected.)
+.hintBox {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+// ---- variants (drive the label text only) ----
+.subtle .text {
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+.default .text {
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+
+// ---- condition ("(optional)") — always subtle ----
+.condition {
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}

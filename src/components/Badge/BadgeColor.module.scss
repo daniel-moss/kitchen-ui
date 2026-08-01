@@ -1,0 +1,22 @@
+// Per-scheme color variables consumed by the shared Badge rules. All alpha
+// scales, so colored badges tint correctly on any surface and flip in dark mode.
+$schemes: gray, brown, amber, orange, tomato, crimson, violet, blue, cyan, jade;
+
+@each $c in $schemes {
+  .#{$c} {
+    --badge-bg: var(--#{$c}-a2);
+    --badge-border: var(--#{$c}-a6);
+    --badge-fg: var(--#{$c}-a11);
+    --badge-icon: var(--#{$c}-a11);
+    --badge-dismiss: var(--#{$c}-a9);
+    --badge-dismiss-strong: var(--#{$c}-a11);
+    --badge-dismiss-hover-bg: var(--#{$c}-a3);
+    --badge-dismiss-active-bg: var(--#{$c}-a4);
+    --badge-focus-ring: var(--#{$c}-a8);
+  }
+}
+
+// amber's a9 is too light for the dismiss glyph — use a10.
+.amber {
+  --badge-dismiss: var(--amber-a10);
+}

@@ -1,0 +1,113 @@
+/* Kitchen UI — typography tokens */
+/* Font: Inter variable (loaded via assets/fonts.css, registers "InterVariable") */
+/* --font-* composite tokens use CSS font shorthand: weight size/line-height family.
+   Each text style has three paired tokens: --font-*, --letter-spacing-*, --feature-settings-*.
+   Apply all three together. */
+
+:root {
+  --font-family-base: "InterVariable", sans-serif;
+  --font-family-headings: "InterVariable", sans-serif;
+}
+
+:root {
+  --font-size-xxs: 0.625rem; /* 10px */
+  --font-size-xs: 0.75rem; /* 12px */
+  --font-size-sm: 0.875rem; /* 14px */
+  --font-size-base: 1rem; /* 16px */
+  --font-size-lg: 1.125rem; /* 18px */
+  --font-size-xl: 1.25rem; /* 20px */
+  --font-size-2xl: 1.5rem; /* 24px */
+  --font-size-3xl: 1.875rem; /* 30px */
+  --font-size-4xl: 2.25rem; /* 36px */
+  --font-size-5xl: 3rem; /* 48px */
+  --font-size-6xl: 3.75rem; /* 60px */
+  --font-size-7xl: 4.5rem; /* 72px */
+  --font-size-8xl: 6rem; /* 96px */
+  --font-size-9xl: 8rem; /* 128px */
+  --font-size-space-character-width: 0.45ch;
+}
+
+:root {
+  --font-weight-thin: 100;
+  --font-weight-extralight: 200;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-extrabold: 800;
+  --font-weight-black: 900;
+}
+
+:root {
+  /* ----- GLOBAL ----- */
+  /* body */
+
+  --font-body-400-compact: var(--font-weight-normal) 0.875rem/1.25rem var(--font-family-base);
+  --letter-spacing-body-400-compact: normal;
+  --feature-settings-body-400-compact: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-body-400-compact-tabular: var(--font-weight-normal) 0.875rem/1.25rem var(--font-family-base);
+  --letter-spacing-body-400-compact-tabular: normal;
+  --feature-settings-body-400-compact-tabular: "kern" on, "case" on, "liga" on, "calt" on, "tnum" on, "ss01" on, "cv08" on;
+
+  --font-body-400-spacious: var(--font-weight-normal) 0.875rem/1.375rem var(--font-family-base);
+  --letter-spacing-body-400-spacious: normal;
+  --feature-settings-body-400-spacious: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-body-500-compact: var(--font-weight-medium) 0.875rem/1.25rem var(--font-family-base);
+  --letter-spacing-body-500-compact: normal;
+  --feature-settings-body-500-compact: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-body-500-compact-tabular: var(--font-weight-medium) 0.875rem/1.25rem var(--font-family-base);
+  --letter-spacing-body-500-compact-tabular: normal;
+  --feature-settings-body-500-compact-tabular: "kern" on, "case" on, "liga" on, "calt" on, "tnum" on, "ss01" on, "cv08" on;
+
+  --font-body-500-spacious: var(--font-weight-medium) 0.875rem/1.375rem var(--font-family-base);
+  --letter-spacing-body-500-spacious: normal;
+  --feature-settings-body-500-spacious: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  /* caption */
+
+  --font-caption-small-400: var(--font-weight-normal) 0.75rem/1rem var(--font-family-base);
+  --letter-spacing-caption-small-400: normal;
+  --feature-settings-caption-small-400: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-caption-small-500: var(--font-weight-medium) 0.75rem/1rem var(--font-family-base);
+  --letter-spacing-caption-small-500: normal;
+  --feature-settings-caption-small-500: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-caption-medium-400: var(--font-weight-normal) 0.8125rem/1.25rem var(--font-family-base);
+  --letter-spacing-caption-medium-400: normal;
+  --feature-settings-caption-medium-400: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-caption-medium-500: var(--font-weight-medium) 0.8125rem/1.25rem var(--font-family-base);
+  --letter-spacing-caption-medium-500: normal;
+  --feature-settings-caption-medium-500: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  /* heading */
+
+  --font-heading-h1: var(--font-weight-semibold) 1.5rem/2rem var(--font-family-base);
+  --letter-spacing-heading-h1: normal;
+  --feature-settings-heading-h1: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-heading-h2: var(--font-weight-semibold) 1.125rem/1.75rem var(--font-family-base);
+  --letter-spacing-heading-h2: normal;
+  --feature-settings-heading-h2: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-heading-h3: var(--font-weight-semibold) 0.9375rem/1.5rem var(--font-family-base);
+  --letter-spacing-heading-h3: normal;
+  --feature-settings-heading-h3: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-heading-h4: var(--font-weight-semibold) 0.875rem/1.25rem var(--font-family-base);
+  --letter-spacing-heading-h4: normal;
+  --feature-settings-heading-h4: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-heading-h5: var(--font-weight-semibold) 0.8125rem/1.25rem var(--font-family-base);
+  --letter-spacing-heading-h5: normal;
+  --feature-settings-heading-h5: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+
+  --font-heading-h6: var(--font-weight-semibold) 0.75rem/1rem var(--font-family-base);
+  --letter-spacing-heading-h6: normal;
+  --feature-settings-heading-h6: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
+}

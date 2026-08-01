@@ -1,0 +1,28 @@
+/* Design tokens — separated by category (like the codebase's styles/variables).
+   Each file below defines CSS custom properties for one category. */
+
+/* colors */
+@import "./styles/variables/colors/radix.css";
+@import "./styles/variables/colors/pure.css";
+@import "./styles/variables/colors/alias.css";
+
+/* typography */
+@import "./styles/variables/typography.css";
+
+/* spacing */
+@import "./styles/variables/spacing.css";
+
+/* border radius */
+@import "./styles/variables/border-radius.css";
+
+/* shadows */
+@import "./styles/variables/shadows.css";
+
+/* z-index layers */
+@import "./styles/variables/z-index.css";
+
+/* breakpoints */
+@import "./styles/variables/breakpoints.css";
+
+/* semantic icon names */
+@import "./styles/variables/icons-semantic.css";

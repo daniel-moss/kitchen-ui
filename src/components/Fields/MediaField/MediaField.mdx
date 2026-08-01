@@ -1,0 +1,94 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as MediaFieldStories from "./MediaField.stories";
+
+<Meta of={MediaFieldStories} />
+
+# MediaField
+
+We use **MediaField** for uploading files within forms. The field is bare —
+its label and help text come from the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper (Figma `field=media`, or `field=textAreaMedia` for a TextArea +
+MediaField pair).
+
+<Canvas of={MediaFieldStories.Playground} />
+
+```tsx
+<Input label="Photos">
+  <MediaField isValid={photosValid} onFilesSelected={addPhotos}>
+    {photos.map((photo) => (
+      <CardFile
+        key={photo.id}
+        name={photo.name}
+        fileType="image"
+        previewSrc={photo.url}
+        onClick={() => openPhoto(photo)}
+        onMenuClick={() => openPhotoMenu(photo)}
+      />
+    ))}
+  </MediaField>
+</Input>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Upload area](#upload-area)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Supports 2 sizes, **mobile** and **desktop**. The size applies automatically
+based on the breakpoint (the `breakpoint` prop forces one for stories and
+tests). The error help text sits `--size-1_5` (6px) below the upload area;
+the cards keep `--size-3` (12px) between each other.
+
+### Mobile
+
+Empty: fixed height (**151px**), fills the width. Filled: the container fills
+the width; the cards are fixed size (**106px** wide).
+
+<Canvas of={MediaFieldStories.Mobile} />
+
+### Desktop
+
+Empty: fixed height (**180px**), fills the width. Filled: fixed **135px**
+cards.
+
+<Canvas of={MediaFieldStories.Desktop} />
+
+## Behaviour
+
+The field fills the width on the empty state. On **mobile**, clicking the
+upload area triggers the native menu with options: browse files, take a shot.
+On **desktop**, it opens the native file browser. (The playground above is
+live — picking files really adds them.)
+
+Uploaded files are previewed with the
+<a href="/?path=/story/components-card-cardfile--playground" target="_top">CardFile</a>
+component. The upload area shrinks to match a card's width, and the cards wrap
+when they do not fit one row.
+
+<Canvas of={MediaFieldStories.Desktop} />
+
+If the field is required, we show the error message when the user tries to
+submit the form or go to the next step. The message format is
+**“Add [label_name]”** — derived automatically from the Input label.
+
+<Canvas of={MediaFieldStories.Invalid} />
+
+## Upload area
+
+The valid trigger’s states: a dashed border at rest, a solid border on hover
+and press, a 2px border on keyboard focus, and a dimmed look when disabled.
+
+<Canvas of={MediaFieldStories.TriggerValid} />
+
+Invalid keeps **one** look for every state — and a **disabled field can not
+be invalid**.
+
+<Canvas of={MediaFieldStories.TriggerInvalid} />
+
+## Props
+
+<ArgTypes of={MediaFieldStories} />

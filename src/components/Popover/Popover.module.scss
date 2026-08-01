@@ -1,0 +1,129 @@
+// Shared shell: a flex column with a sticky header + footer and a scrolling
+// body. No padding of its own; overflow:hidden clips content to the rounded
+// corners. Width/height are content-driven (set per use), not fixed here.
+.popover {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// Desktop: floating rounded card. Fades + lifts into place on open.
+.card {
+  max-height: 80vh;
+  background: var(--surface-level-third);
+  border-radius: var(--border-radius-2_5); // 10px, all corners
+  box-shadow: 0 4px 10px 0 var(--box-shadow-shadow-default);
+
+  opacity: 0;
+  transform: translateY(8px) scale(0.98);
+  transition:
+    opacity 160ms ease,
+    transform 160ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.cardOpen {
+  opacity: 1;
+  transform: none;
+}
+
+// Mobile: bottom sheet — full width, rounded top corners only, upward shadow.
+// The sheet hugs its content and grows upward, but never covers the system
+// status bar: its max height is the screen (the scrim) minus a top inset. The
+// inset defaults to the iOS top safe area (env), and can be overridden with
+// --popover-drawer-top-inset (e.g. a mock status-bar height in Storybook).
+.drawer {
+  // Pinned to the scrim's bottom edge with absolute positioning (not flex
+  // justify-end): Safari resolves percentage max-height on flex items
+  // unreliably and could stretch the sheet taller than its content.
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
+  background: var(--surface-level-first);
+  border-radius: var(--border-radius-2_5) var(--border-radius-2_5) 0 0; // top only
+  box-shadow: 0 -4px 8px 0 var(--box-shadow-shadow-default);
+  // On touch devices the browser must not turn the swipe-down into a native
+  // scroll/rubber-band — the sheet handles the gesture itself (drag-to-dismiss).
+  // The body below re-enables vertical panning for its own scrolling.
+  touch-action: none;
+}
+
+// The keyboard LIFT itself is handled by the viewport: with
+// interactive-widget=resizes-content the layout viewport shrinks, the fixed
+// scrim ends at the keyboard top, and the sheet's bottom:0 rides up on it.
+// Here we only collapse the bottom inset while a real TEXT-ENTRY field is
+// focused: the keyboard then covers the home-indicator zone, so the sheet must
+// not also reserve it (the homeIndicator strip and .safeBottom padding read
+// this var). It must be `:has(input/textarea:focus)`, NOT `:focus-within` —
+// focusable TRIGGERS that do NOT raise the keyboard (SelectField is a
+// role=button div; DateField is a readOnly input that opens the calendar) would
+// otherwise collapse the strip on focus and drop the whole footer to the screen
+// edge, behind the indicator. Excluding [readonly] keeps those triggers out.
+.drawer:has(input:not([readonly]):focus, textarea:not([readonly]):focus) {
+  --popover-drawer-bottom-inset: 0px;
+}
+
+// Sticky header / footer; the body (a ScrollArea) is the only scrolling
+// region — .body is its wrapper (flex sizing), .bodyScroll the scroller.
+.header {
+  flex: 0 0 auto;
+}
+.body {
+  flex: 1 1 auto;
+}
+.bodyScroll {
+  touch-action: pan-y; // the body scrolls natively
+  overscroll-behavior: contain; // no scroll chaining / page rubber-band
+}
+
+// Footerless drawer: the home-indicator safe area lives INSIDE the scrolling
+// body as padding — scrolled content passes behind the indicator zone and
+// stays visible; at the end of the scroll it rests above the indicator. With
+// a footer, the strip below the footer handles it.
+.drawer .safeBottom {
+  padding-bottom: var(--popover-drawer-bottom-inset, env(safe-area-inset-bottom, 0px));
+}
+.footer {
+  flex: 0 0 auto;
+}
+
+// iOS home-indicator safe area at the drawer bottom. No background of its own —
+// it shows the drawer surface, keeping the content above the indicator. On a
+// real device the height comes from env(safe-area-inset-bottom) (0 in a plain
+// browser); Storybook device frames force the 34px mock via the CSS variable.
+.homeIndicator {
+  flex: 0 0 auto;
+  height: var(--popover-drawer-bottom-inset, env(safe-area-inset-bottom, 0px));
+}
+
+// The scrim behind the drawer. Fills its nearest positioned ancestor and pins
+// the sheet to the bottom edge. In production, wrap in a position:fixed inset:0
+// container; in Storybook the device frame is the positioned ancestor.
+.scrim {
+  position: absolute;
+  inset: 0;
+  // Above ALL in-page chrome (NavTopBar's sticky bar is 10); still below the
+  // modal portals (1000) — a drawer opened from inside a modal goes through
+  // the body/fixed path instead.
+  z-index: 100;
+
+  background: var(--pure-black-a7);
+
+  opacity: 0;
+  // The transition on the element AFTER the class flip governs: this one runs
+  // while CLOSING — start slow, accelerate away (the scrim dominates the
+  // perceived exit). Keep the duration in sync with DURATION in Popover.tsx.
+  transition: opacity 160ms cubic-bezier(0.5, 0, 0.85, 0.3);
+}
+.scrimOpen {
+  opacity: 1;
+  transition: opacity 160ms ease-out; // opening — fast in, settle gently
+}
+
+// No [data-drawer-root] ancestor (portaled to <body>): fill the viewport.
+// Same layer as the modal portals (Dialog/Prompt wrappers at 1000).
+.scrimFixed {
+  position: fixed;
+  z-index: 1000;
+}

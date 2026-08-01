@@ -1,0 +1,107 @@
+@use "../../styles/mixins/collapse" as *;
+
+// ItemGroup — 4px padding around the items, no gap between them; the
+// header and the truncation button carry their own margins.
+.root {
+  position: relative; // the drag overlay (drop line + lifted copy) anchors here
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.header {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--size-3) var(--size-3) 0; // 12px top/sides; the items' 4px padding makes the gap below
+  transition: padding-bottom 200ms ease; // follows the accordion collapse
+}
+
+// Closed accordion — the header keeps its 12px bottom margin.
+.headerClosed {
+  padding-bottom: var(--size-3);
+}
+
+.items {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--size-1);
+}
+
+// Cards view — a wrap grid of Cards. 16px padding, 12px gaps; each cell flexes
+// between 106 and 184px (the CardFile width range), left/top aligned.
+.cardItems {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--size-3); // 12px
+  width: 100%;
+  padding: var(--size-4); // 16px
+}
+.cardCell {
+  flex: 1 0 0;
+  min-width: 106px;
+  max-width: 184px;
+}
+.itemsDragging .cardCell {
+  pointer-events: none;
+}
+
+// "Show N more" / "Show less" — 16px side, 10px bottom margins (the gap above
+// comes from the items' 4px bottom padding). Matches the Figma Button Margins.
+.showMore {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 var(--size-4) var(--size-2_5);
+}
+
+// Drag reorder — each reorderable row sits in a group-owned wrapper. During a
+// drag the dragged wrapper turns invisible (its space = the empty drop slot)
+// and the others translate one row-height so the slot follows the target.
+.row {
+  width: 100%;
+}
+
+// Transforms animate only during a drag — on drop the new order must snap in
+// place instantly, without a leftover transition.
+.rowAnimated {
+  transition: transform 160ms ease;
+}
+
+// While dragging, the rows ignore the pointer — otherwise moving the copy
+// over a row would light up its hover state. Drag tracking is unaffected
+// (it listens on window with raw coordinates).
+.itemsDragging .row {
+  pointer-events: none;
+}
+
+// A reorderable list is not for selecting text — starting a row drag was
+// sometimes selecting the row labels (mainly iOS long-press). The callout
+// (copy/look-up bubble) must not appear either: a long-press starts a drag.
+.reorderable {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+// The lifted copy follows the pointer in a document.body portal — fixed
+// positioning + top z-index, so no scroll/overflow ancestor clips it.
+.dragCopy {
+  position: fixed;
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+.collapse {
+  @include collapse;
+}
+
+.collapseOpen {
+  @include collapse-open;
+}
+
+.collapseInner {
+  @include collapse-inner;
+}

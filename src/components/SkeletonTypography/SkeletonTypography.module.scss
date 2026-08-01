@@ -1,0 +1,74 @@
+.container {
+  display: flex;
+  align-items: center;
+  height: var(--ku-skel-container);
+}
+
+.bar {
+  width: 100%;
+  height: var(--ku-skel-bar);
+  // Fill is overridable so it can adapt to dark surfaces (e.g. solid buttons).
+  background: var(--ku-skeleton-fill, var(--gray-a3));
+  animation: ku-skeleton-typography 800ms ease-in-out infinite alternate;
+}
+
+/* Per variant: container = text line box height, bar = visible placeholder. */
+
+.captionSM {
+  --ku-skel-container: var(--size-4); /* 16px */
+  --ku-skel-bar: 9px;
+}
+
+.captionMD {
+  --ku-skel-container: var(--size-5); /* 20px */
+  --ku-skel-bar: var(--size-2_5); /* 10px */
+}
+
+.bodyCompact {
+  --ku-skel-container: var(--size-5); /* 20px */
+  --ku-skel-bar: var(--size-2_5); /* 10px */
+}
+
+.bodySpacious {
+  --ku-skel-container: var(--size-5_5); /* 22px */
+  --ku-skel-bar: var(--size-2_5); /* 10px */
+}
+
+.h6 {
+  --ku-skel-container: var(--size-4); /* 16px */
+  --ku-skel-bar: 9px;
+}
+
+.h5 {
+  --ku-skel-container: var(--size-5); /* 20px */
+  --ku-skel-bar: var(--size-2_5); /* 10px */
+}
+
+.h4 {
+  --ku-skel-container: var(--size-5_5); /* 22px */
+  --ku-skel-bar: var(--size-2_5); /* 10px */
+}
+
+.h3 {
+  --ku-skel-container: var(--size-6); /* 24px */
+  --ku-skel-bar: 11px;
+}
+
+.h2 {
+  --ku-skel-container: var(--size-7); /* 28px */
+  --ku-skel-bar: 13px;
+}
+
+.h1 {
+  --ku-skel-container: var(--size-8); /* 32px */
+  --ku-skel-bar: 17px;
+}
+
+@keyframes ku-skeleton-typography {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

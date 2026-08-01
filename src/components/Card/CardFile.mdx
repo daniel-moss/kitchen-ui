@@ -1,0 +1,103 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as CardFileStories from "./CardFile.stories";
+
+<Meta of={CardFileStories} />
+
+# CardFile
+
+We use **CardFile** for providing a preview to the uploaded files.
+
+<Canvas of={CardFileStories.Hero} />
+
+```tsx
+<CardFile
+  name="Kitchen.jpg"
+  fileType="image"
+  previewSrc={thumbnailUrl}
+  onClick={openFilePreview}
+  onMenuClick={openFileMenu}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)
+
+## Anatomy
+
+CardFile is built on
+<a href="/?path=/docs/components-card-card--docs" target="_top">Card</a>
+(with `padding` 0). It contains the **preview tile** and the **footer** with the
+file name and the action button. The preview tile ratio is fixed to **1:1**. The
+footer fills the width and its height is fixed to `--size-11` (44px). A
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+sits between the tile and the footer. The title is the file name
+(`caption-medium-500`, Medium 13/20). The footer padding is `--size-4` (16px)
+left, `--size-2` (8px) right, with a `--size-3` (12px) gap; the action button is
+an
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
+`sm` (28px), `ghost`.
+
+<Canvas of={CardFileStories.Hero} />
+
+Preview tiles of video files include a dark overlay and a centre-aligned play
+icon.
+
+<Canvas of={CardFileStories.AnatomyVideo} />
+
+Preview tiles of the files where the preview is unsupported show the file name
+and a file-type icon (see [Unsupported preview](#unsupported-preview)).
+
+<Canvas of={CardFileStories.AnatomyNoPreview} />
+
+## Behaviour
+
+### Responsiveness
+
+CardFile fills its container, so it supports a **min and max width** — `106px`
+to `184px` (default 150px). The preview tile keeps its 1:1 ratio, an image or
+video preview fills the tile, and the file name truncates. When the file name is
+truncated, hovering the title shows a **tooltip** with the full name.
+
+<Canvas of={CardFileStories.Responsiveness} />
+
+### Actions
+
+Clicking the card opens the file preview side panel (wire `onClick`). The footer
+action button (`onMenuClick`) can run different actions — a context menu, a
+delete, etc. Set its icon with `actionIcon`, its label with `actionLabel`, and
+`actionDanger` for the red delete style. When `onMenuClick` is unset, the button
+is hidden.
+
+<Canvas of={CardFileStories.Actions} />
+
+The DS has no danger `IconButton` variant (destructive actions with a label use
+<a href="/?path=/story/components-button--playground" target="_top">Button</a>);
+the delete button here is a `ghost` IconButton recolored red inside CardFile.
+
+### Unsupported preview
+
+When the preview is not supported, we show a placeholder — the file name and a
+file-type icon. The file name wraps until it fills the tile, then truncates.
+
+<Canvas of={CardFileStories.Wrapping} />
+
+Each file type has its own placeholder — icon + color (the tile is `<color>-a2`,
+the icon and name `<color>-a11`).
+
+<Canvas of={CardFileStories.FileTypes} />
+
+All formats are described in detail in the
+<a href="/?path=/story/components-avatar-avatarfile--playground" target="_top">AvatarFile</a>
+documentation.
+
+### Loading
+
+The card is non-interactive while it loads. There is no action button, and
+skeletons replace the text — two lines in the tile and one in the footer.
+
+<Canvas of={CardFileStories.Loading} />
+
+## Props
+
+<ArgTypes of={CardFileStories} />

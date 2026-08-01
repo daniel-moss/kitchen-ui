@@ -1,0 +1,16 @@
+// SelectListFooter — the menuItem variant: divider + padded MenuItem stack.
+// (The actionBar variant is a PopoverFooter and brings its own styles.)
+.footer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.items {
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: var(--size-1); // 4px around the action rows (like MenuItemGroup)
+  overflow: hidden;
+}

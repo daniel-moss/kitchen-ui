@@ -1,0 +1,60 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as LabelStories from "./Label.stories";
+
+<Meta of={LabelStories} />
+
+# Label
+
+We use **Label** as the label for input components (usually through the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper's `label` prop, which renders it for you).
+
+<Canvas of={LabelStories.Basic} />
+
+```tsx
+<Label variant="subtle" condition="optional" hintContent="More about this field">
+  Name
+</Label>
+```
+
+↳&nbsp;&nbsp;[Variants](#variants)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Variants
+
+Consists of text + optional caption and hint trigger, `--size-1` (4px) apart.
+The trigger sits in a 20×20 box matching the label's 20px line. Pass
+`hintContent` to open a **HoverHint** with that copy on hover (`hintTrigger`
+alone shows the static icon).
+
+<Canvas of={LabelStories.Parts} />
+
+Supports 2 variants: `subtle` is used for input fields; `default` is used for
+checkboxes, toggles, radio items. (`default` is also the prop's default
+value.)
+
+<Canvas of={LabelStories.Variants} />
+
+There are 3 variants of the conditional caption:
+
+- **(optional)** is appended when the input is optional — `condition="optional"`
+- **(read-only)** is appended when the input is read-only —
+  `condition="readOnly"`; inside the Input wrapper it appears automatically
+  when the wrapped field is `readOnly`
+- **custom** — any custom copy, passed with its parentheses (e.g.
+  `condition="(if applicable)"`)
+
+<Canvas of={LabelStories.Conditions} />
+
+## Behaviour
+
+Wraps if it doesn't fit 1 line. Elements are top-aligned — the caption and
+the hint trigger stay on the first line.
+
+<Canvas of={LabelStories.Wrapping} />
+
+## Props
+
+<ArgTypes of={LabelStories} />

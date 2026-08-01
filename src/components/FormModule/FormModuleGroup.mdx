@@ -1,0 +1,41 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as FormModuleGroupStories from "./FormModuleGroup.stories";
+
+<Meta of={FormModuleGroupStories} />
+
+# FormModuleGroup
+
+We use **FormModuleGroup** to define the layout for several
+<a href="/?path=/docs/components-formmodule-formmodule--docs" target="_top">FormModule</a>
+components stacked one under another.
+
+<Canvas of={FormModuleGroupStories.Playground} />
+
+```tsx
+<FormModuleGroup>
+  <FormModule title="Scheduling" caption="When the work happens.">
+    <SelectField value={date} onClick={openDateList} />
+  </FormModule>
+  <FormModule title="Assignees">
+    <SelectField onClick={openAssigneeList} />
+  </FormModule>
+</FormModuleGroup>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+FormModule components are separated by a
+<a href="/?path=/story/components-divider--playground" target="_top">Divider</a>
+(`contrast="low"`). You only pass the modules as children — the group inserts
+the dividers between each consecutive pair by itself. Everything is
+`--size-8` (32px) apart: module ↔ divider ↔ module.
+
+<Canvas of={FormModuleGroupStories.ThreeModules} />
+
+## Props
+
+<ArgTypes of={FormModuleGroupStories} />

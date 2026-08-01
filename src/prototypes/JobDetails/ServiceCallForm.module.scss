@@ -1,0 +1,48 @@
+// "Service call" form (Figma 24277-27279) — the dialog body: a column of
+// FormModules (the HvacPmForm shape) + the chip quick-pick rows.
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+}
+
+// Figma spaces modules 24px around the divider (the .form gap gives 16) —
+// the extra 4px each side comes from the divider's own margin.
+.moduleDivider {
+  margin: var(--size-1) 0; // 4px
+}
+
+// Field ↔ its chips row (8px, the design's frames).
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+}
+
+// Chips + their error line as ONE Input field child (6px, the field gap).
+.chipsField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px
+  width: 100%;
+}
+
+// A quick-pick chip row: equipment + duration presets HUG their content.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+}
+
+// The techs row fills the width, chips sharing it equally (Daniel).
+.fillChips > * {
+  flex: 1 1 0;
+}
+
+// Techs chips: min 40px wide, label centered (Daniel).
+.techChip {
+  min-width: 40px;
+  justify-content: center;
+}

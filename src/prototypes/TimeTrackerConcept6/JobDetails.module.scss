@@ -1,0 +1,232 @@
+// ---- desktop ---------------------------------------------------------------
+
+.desktop {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-level-first);
+}
+
+.workArea {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+.contentRow {
+  display: flex;
+  align-items: stretch;
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+}
+
+// The flexible middle: a ScrollArea that centers the content column.
+.mainArea {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.mainAreaScroll {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: clip;
+}
+
+// Content never stretches edge to edge (Figma annotation).
+.mainContent {
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 640px;
+}
+
+// The right details sidebar: fixed width, its own ScrollArea; the ActionBar
+// stays pinned on top while it scrolls.
+.sidebar {
+  flex: none;
+  width: 400px;
+}
+
+.sidebarScroll {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+// The action bar + active-session bar, pinned together at the top of the sidebar
+// (an extension of the action bar). The app-background fill occludes the content
+// scrolling underneath.
+.sidebarHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-level-first);
+}
+
+.details {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+// ---- mobile ----------------------------------------------------------------
+
+.mobile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-level-first);
+  // Native status bar / home indicator space. The vars come from the device
+  // container (PhoneViewport measures the EFFECTIVE bottom overlap — plain
+  // env() would double-reserve in standalone; DeviceFrame sets them only
+  // while its mock chrome is shown). env() is the real-phone fallback.
+  // Pre-resolve the env() fallbacks into plain custom properties — Safari
+  // mishandles env() inside var() fallbacks when the value is used in calc().
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+  --shell-safe-bottom: var(--phone-safe-bottom, env(safe-area-inset-bottom, 0px));
+
+  padding-top: var(--shell-safe-top);
+  padding-bottom: var(--shell-safe-bottom);
+}
+
+// The scroll container the NavTopBar sticks to (hideOnScroll).
+.mobileScroll {
+  flex: 1 1 0;
+}
+
+.mobileScrollInner {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  overscroll-behavior: none; // no iOS rubber-band bounce at the ends
+}
+
+// Taller than the viewport ON PURPOSE for now — so the hide-on-scroll top
+// bar can be tried before real content exists.
+.mobileContent {
+  flex: 1 0 auto;
+  min-height: calc(100% + 240px);
+}
+
+// The job context menu card wrapper — anchored under the title's ellipsis
+// button (position set inline from its rect). Same layer as modals.
+.contextMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// ---- shared ----------------------------------------------------------------
+
+// The stretched main action in the ActionBar (Figma: Button fills the row).
+.grow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Marks an empty content area (Figma's violet placeholder fill).
+.placeholder {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-4);
+  overflow: hidden;
+  background: var(--violet-a2);
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 24px;
+    color: var(--violet-a9);
+  }
+}
+
+// The check-in Timer Bar — the mobile second bottom bar (above the action bar),
+// shown only while checked in. Prototype-local; no DS timer bar yet. Divider on
+// top, running clock left, "Check out" right. (Ported from Time Tracker.)
+.timerBar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--surface-level-first);
+}
+.timerRow {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-3);
+  width: 100%;
+  padding: var(--size-2_5) var(--size-4); // 10px / 16px (Figma 24058-15482)
+}
+.timerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px — avatar ↔ text
+  min-width: 0;
+}
+// The active-session avatar: a 36px tomato box holding a red "recording" dot,
+// pulsing while the session runs (Figma 24058-15482).
+.timerAvatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--tomato-a3);
+  color: var(--tomato-9);
+}
+.timerAvatar > * {
+  animation: timerPulse 1.4s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.timerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.timerClock {
+  font: var(--font-body-500-compact); // Inter Medium 14/20
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+.timerLabel {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+}
+
+// The active-session "Stop" button icon (TimerBar): red circle-stop.
+.stopIcon {
+  color: var(--tomato-9);
+}
+
+// "Stop time session" menu item (active job with a running session): red
+// content + icon (Figma 24058-15520), matching the recording tomato.
+.stopSession {
+  color: var(--tomato-11);
+}
+
+// The live timer in the "Stop time session" menu item (slotRight has no font of
+// its own, so set Inter explicitly — tabular so digits don%s jump).
+.stopTimer {
+  font: var(--font-body-400-compact);
+  font-variant-numeric: tabular-nums;
+  color: var(--tomato-11);
+}

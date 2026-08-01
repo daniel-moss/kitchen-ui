@@ -1,0 +1,22 @@
+// Body — content (flex-1) + optional right slot, top-aligned.
+.body {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+}
+
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Up to 3 instances, vertically centered on the 40px first row.
+.slotRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px between instances
+  height: var(--size-10); // 40px
+  padding-left: var(--size-3); // 12px — content ↔ slot
+}

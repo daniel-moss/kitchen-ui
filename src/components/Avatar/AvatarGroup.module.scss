@@ -1,0 +1,42 @@
+@use "../../styles/mixins/font" as *;
+
+// ---- inline (overlapping cluster) ----
+.inline {
+  position: relative;
+}
+
+.slot {
+  position: absolute;
+  top: 0;
+  display: inline-flex;
+}
+
+// ---- stack (rows of avatar + name) ----
+.stack {
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  min-width: 0;
+}
+
+.name {
+  @include font("body-400-compact");
+  color: var(--text-strong);
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// The counter line's tooltip wrapper must shrink like the name it contains,
+// or the joined hidden names would push the row wider instead of truncating.
+.counterLine {
+  min-width: 0;
+}

@@ -1,0 +1,68 @@
+// The divider is a (optionally padded) box; the line sits inside it.
+.divider {
+  --divider-color: var(--gray-a3); // low, solid
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+}
+
+// ---- contrast (solid) ----
+.medium {
+  --divider-color: var(--gray-a4);
+}
+
+.high {
+  --divider-color: var(--gray-a5);
+}
+
+// ---- dashed is two steps darker per contrast ----
+.dashed {
+  --divider-color: var(--gray-a5);
+}
+
+.dashed.medium {
+  --divider-color: var(--gray-a6);
+}
+
+.dashed.high {
+  --divider-color: var(--gray-a7);
+}
+
+// ---- box sizing / direction per orientation ----
+.horizontal {
+  flex-direction: row;
+  width: 100%;
+}
+
+.vertical {
+  flex-direction: column;
+  height: 100%;
+  align-self: stretch;
+}
+
+// The line fills the padded content box along the main axis.
+.line {
+  flex: 1 0 0;
+}
+
+// ---- solid geometry ----
+.horizontal .line {
+  height: 1px;
+  background: var(--divider-color);
+}
+
+.vertical .line {
+  width: 1px;
+  background: var(--divider-color);
+}
+
+// ---- dashed geometry: 2px round dots, 6px gap (8px period), 2px thick ----
+.horizontal.dashed .line {
+  height: 2px;
+  background: radial-gradient(circle, var(--divider-color) 1px, transparent 1px) 0 0 / 8px 2px repeat-x;
+}
+
+.vertical.dashed .line {
+  width: 2px;
+  background: radial-gradient(circle, var(--divider-color) 1px, transparent 1px) 0 0 / 2px 8px repeat-y;
+}

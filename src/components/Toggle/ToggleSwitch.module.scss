@@ -1,0 +1,82 @@
+// The 34×22 switch visual. Prop-driven fill/error/loading; hover/press/focus are
+// driven by an interactive ancestor carrying `.control` (so the whole ToggleItem
+// row can drive it). See Figma "Toggle".
+.track {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 34px; // no --size token for 34
+  height: 22px; // no --size token for 22
+
+  border-radius: var(--border-radius-full); // stadium ends
+  background: var(--gray-a8); // off, resting
+
+  transition: background-color 120ms ease;
+}
+
+// ---- knob (white circle), slides right when on ----
+.knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+  border-radius: var(--border-radius-full); // square → circle
+  background: var(--gray-1);
+
+  transition: transform 160ms ease;
+}
+
+// ---- on (active): dark track + knob to the right ----
+.checked {
+  background: var(--gray-12);
+}
+.checked .knob {
+  transform: translateX(12px); // 34 − 16 − 3 − 3
+}
+
+// ---- interaction (off only), driven by the parent control ----
+// The on-state track does not change on hover/press (only the off track darkens).
+@media (hover: hover) {
+.control:hover .interactive:not(.checked):not(.error) {
+  background: var(--gray-a9);
+}
+}
+.control:has(input:focus-visible) .interactive:not(.checked):not(.error) {
+  background: var(--gray-a9);
+}
+.control:active .interactive:not(.checked):not(.error) {
+  background: var(--gray-a10);
+}
+
+// Focus ring on the track — 2px gray-12 + 2px gap (same as Checkbox / Radio).
+.control:has(input:focus-visible) .track {
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
+}
+
+// ---- error (tomato), on and off ----
+.error,
+.error.checked {
+  background: var(--tomato-9);
+}
+
+// ---- dimmed (disabled toggle / read-only) ----
+.dimmed {
+  opacity: 0.3;
+}
+
+// ---- loading: pulsing gray track, no knob ----
+.loading {
+  background: var(--gray-a3);
+  animation: ku-toggleswitch-loading 800ms ease-in-out infinite alternate;
+}
+
+@keyframes ku-toggleswitch-loading {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

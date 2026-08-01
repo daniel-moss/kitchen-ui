@@ -1,0 +1,76 @@
+// "Forms" module (Figma 21816-30805) — prototype-local bits.
+
+// Module body holding the Public / Private ItemGroups: pull back the
+// module's 16px padding so the groups' own 4px is the only padding (the
+// same listBody rule the Files module uses).
+.listBody {
+  margin: calc(-1 * var(--size-4));
+}
+
+// The 36px square form avatar; the state drives fill + icon color.
+.avatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+}
+
+.avatarDefault {
+  background: var(--gray-a3);
+  color: var(--gray-a8);
+}
+
+// In progress / progress saved (amber timer).
+.avatarActive {
+  background: var(--amber-a3);
+  color: var(--amber-a8);
+}
+
+.avatarCompleted {
+  background: var(--jade-a3);
+  color: var(--jade-a8);
+}
+
+// Right slot: live editor avatar + the ellipsis button.
+.rowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+// Desktop context-menu card anchored to the row's ellipsis.
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// Add-forms list rows are ACTION rows (tap = add a copy), not single-select
+// options — reclaim the 40px right padding the DS row reserves for the
+// check-circle (double class outweighs the DS .single rule).
+.poolRow.poolRow {
+  padding-right: var(--size-3); // 12px
+}
+
+// The row tag: [minus][copy count]. xxxs (20px) minus matches the row's 20px
+// line height, so tagged rows stay the same 36px as plain rows. Block-level
+// flex on purpose — an inline box would sit on the text BASELINE and push the
+// line box 1px taller.
+.poolTag {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1); // 4px
+}
+
+.minusGuard {
+  display: inline-flex;
+}
+
+// Rename dialog body (the Dialog adds no padding of its own).
+.renameBody {
+  box-sizing: border-box;
+  width: 100%;
+}

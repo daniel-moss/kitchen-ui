@@ -1,0 +1,115 @@
+@use "../../../styles/mixins/font" as *;
+@use "../../../styles/mixins/input-chrome" as *;
+
+// ===== root (field + optional error help text) =====
+.root {
+  @include input-root;
+
+  width: 100%;
+}
+
+.disabled {
+  @include input-disabled;
+}
+
+// ===== field ================================================================
+// Shared chrome; active = the input has focus.
+.field {
+  @include input-field;
+  @include input-field-grouped; // fused-border chrome inside an InputGroup
+
+  gap: var(--size-2); // 8px — value ↔ calendar icon
+  width: 100%;
+  cursor: text;
+}
+
+// Inside an InputGroup: the field becomes an equal flex segment.
+.groupedRoot {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
+}
+
+@media (hover: hover) {
+.field:hover {
+  @include input-field-hover;
+}
+}
+
+.field:focus-within {
+  @include input-field-active;
+}
+
+.field.invalid,
+.field.invalid:hover,
+.field.invalid:focus-within {
+  @include input-field-invalid;
+}
+
+// Read-only (last — same specificity, wins): blocked cursor, no caret, no
+// active border. The calendar icon is not rendered (Figma).
+.field.readOnly {
+  @include input-field-readonly;
+
+  .input {
+    cursor: not-allowed;
+    caret-color: transparent;
+  }
+}
+
+// ===== content ==============================================================
+
+.input {
+  @include font("body-400-compact"); // Inter Regular 14/20
+
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--text-strong);
+
+  &:disabled {
+    color: var(--text-strong);
+    -webkit-text-fill-color: var(--text-strong);
+    opacity: 1;
+  }
+}
+
+// The calendar icon — 14px regular. Subtle (gray-a9) while the field is empty
+// at rest; full strength (gray-12) when filled, hovered, or active (Figma).
+// Dims with the root when disabled.
+.calendar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: var(--gray-a9);
+  transition: color 120ms ease;
+}
+.calendarFilled,
+.field:focus-within .calendar {
+  color: var(--gray-12);
+}
+@media (hover: hover) {
+.field:hover .calendar {
+  color: var(--gray-12);
+}
+}
+
+// ===== DatePicker wiring ====================================================
+// The desktop card is portaled to <body> and pinned below the field (fixed,
+// 4px gap). Above modals (1000), below tooltips (9999).
+.pickerAnchor {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// The mobile drawer footer's labelled field (grows; the Apply button is fixed).
+.footerField {
+  display: flex;
+  flex: 1 0 0;
+  flex-direction: column;
+  gap: var(--size-1); // 4 — label ↔ field
+  min-width: 0;
+}

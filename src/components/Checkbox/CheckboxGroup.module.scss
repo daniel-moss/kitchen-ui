@@ -1,0 +1,23 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--size-1_5); // 6px between items / error
+  width: 100%;
+}
+
+// ===== items =====
+.items {
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: stretch;
+  width: 100%;
+}
+.vertical {
+  flex-direction: column;
+}
+// horizontal — equal-width columns
+.horizontal > * {
+  flex: 1 1 0;
+  min-width: 0;
+}

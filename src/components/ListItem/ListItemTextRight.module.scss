@@ -1,0 +1,35 @@
+@use "../../styles/mixins/font" as *;
+
+// Right text block — right-aligned column; the lines hug their content.
+.text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-end;
+}
+// Single-line variants (title, tag) keep the two-line row height.
+.singleLine {
+  min-height: var(--size-10); // 40px
+}
+
+.title {
+  white-space: nowrap;
+  text-align: right;
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.caption {
+  white-space: nowrap;
+  text-align: right;
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}
+.tag {
+  white-space: nowrap;
+  text-align: right;
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}

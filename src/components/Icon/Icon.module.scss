@@ -1,0 +1,110 @@
+.base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: "FA Classic";
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1;
+  white-space: nowrap;
+  user-select: none;
+  // Inter's text styles set font-feature-settings ("ss01" etc.) and the property
+  // INHERITS — inside any text-styled container the icon would get ss01, which
+  // in the duotone font swaps the primary glyph to the secondary layer (both
+  // layers then draw the secondary shape). Icons must start from no features;
+  // .customDuotone::after re-enables ss01 for the secondary layer only.
+  font-feature-settings: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  // the glyph itself comes from the global `.g-<name>` class, which sets --glyph
+  &::before {
+    content: var(--glyph, "");
+  }
+}
+
+// Container: width/height are set inline from `size`. These classes carry intent
+// and a hook for future per-container tweaks.
+.fixedHeight {
+  // height = icon size, width adapts to the glyph (default)
+}
+
+.square {
+  // fixed width AND height (both set inline)
+}
+
+// Pack / style
+.solid {
+  font-weight: 900;
+}
+
+.brand {
+  font-family: "FA Brands";
+  font-weight: 400;
+}
+
+.custom {
+  font-family: "FA Custom";
+  font-weight: 400;
+}
+
+// Duotone is two glyphs stacked: the base codepoint is the primary layer
+// (::before), and the same codepoint with the `ss01` feature is the secondary
+// layer (::after), shown at lower opacity. Both glyphs have a 1em advance and are
+// designed to overlay at the same origin, so each layer is absolutely positioned
+// and centered in the box; together they form the full icon. width:1em sets the
+// fixedHeight box to the icon width (the square container overrides it inline).
+.customDuotone {
+  position: relative;
+  font-family: "FA Custom Duotone";
+  font-weight: 400;
+  width: 1em;
+
+  &::before,
+  &::after {
+    content: var(--glyph, "");
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  // primary layer
+  &::before {
+    opacity: var(--fa-primary-opacity, 1);
+  }
+
+  // secondary layer (ss01 swaps the base glyph to its secondary shape)
+  &::after {
+    font-feature-settings: "ss01";
+    opacity: var(--fa-secondary-opacity, 0.4);
+  }
+}
+
+.spin {
+  animation: ku-icon-spin 0.8s linear infinite;
+}
+
+@keyframes ku-icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Loading: filled circle placeholder, pulsing in sync with SkeletonTypography.
+.loading {
+  // Fill is overridable so it can adapt to dark surfaces (e.g. solid buttons).
+  color: var(--ku-skeleton-fill, var(--gray-a3));
+  animation: ku-icon-loading 800ms ease-in-out infinite alternate;
+}
+
+@keyframes ku-icon-loading {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 1;
+  }
+}

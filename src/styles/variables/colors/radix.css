@@ -1,0 +1,92 @@
+/* Radix Colors, imported live from the @radix-ui/colors package (v3.0.0).
+   Same set and approach as the codebase's colors/_radix.scss (pink, plum and
+   indigo intentionally have no alpha file), plus brown, which this design
+   system uses. Resolved and inlined at build time. */
+
+/* pure white / black alpha overlays */
+@import "@radix-ui/colors/white-alpha.css";
+@import "@radix-ui/colors/black-alpha.css";
+
+/* gray */
+@import "@radix-ui/colors/gray.css";
+@import "@radix-ui/colors/gray-alpha.css";
+@import "@radix-ui/colors/gray-dark.css";
+@import "@radix-ui/colors/gray-dark-alpha.css";
+
+/* tomato */
+@import "@radix-ui/colors/tomato.css";
+@import "@radix-ui/colors/tomato-alpha.css";
+@import "@radix-ui/colors/tomato-dark.css";
+@import "@radix-ui/colors/tomato-dark-alpha.css";
+
+/* crimson */
+@import "@radix-ui/colors/crimson.css";
+@import "@radix-ui/colors/crimson-alpha.css";
+@import "@radix-ui/colors/crimson-dark.css";
+@import "@radix-ui/colors/crimson-dark-alpha.css";
+
+/* pink */
+@import "@radix-ui/colors/pink.css";
+@import "@radix-ui/colors/pink-alpha.css";
+@import "@radix-ui/colors/pink-dark.css";
+@import "@radix-ui/colors/pink-dark-alpha.css";
+
+/* plum */
+@import "@radix-ui/colors/plum.css";
+@import "@radix-ui/colors/plum-alpha.css";
+@import "@radix-ui/colors/plum-dark.css";
+@import "@radix-ui/colors/plum-dark-alpha.css";
+
+/* violet */
+@import "@radix-ui/colors/violet.css";
+@import "@radix-ui/colors/violet-alpha.css";
+@import "@radix-ui/colors/violet-dark.css";
+@import "@radix-ui/colors/violet-dark-alpha.css";
+
+/* indigo */
+@import "@radix-ui/colors/indigo.css";
+@import "@radix-ui/colors/indigo-alpha.css";
+@import "@radix-ui/colors/indigo-dark.css";
+@import "@radix-ui/colors/indigo-dark-alpha.css";
+
+/* blue */
+@import "@radix-ui/colors/blue.css";
+@import "@radix-ui/colors/blue-alpha.css";
+@import "@radix-ui/colors/blue-dark.css";
+@import "@radix-ui/colors/blue-dark-alpha.css";
+
+/* cyan */
+@import "@radix-ui/colors/cyan.css";
+@import "@radix-ui/colors/cyan-alpha.css";
+@import "@radix-ui/colors/cyan-dark.css";
+@import "@radix-ui/colors/cyan-dark-alpha.css";
+
+/* jade */
+@import "@radix-ui/colors/jade.css";
+@import "@radix-ui/colors/jade-alpha.css";
+@import "@radix-ui/colors/jade-dark.css";
+@import "@radix-ui/colors/jade-dark-alpha.css";
+
+/* teal */
+@import "@radix-ui/colors/teal.css";
+@import "@radix-ui/colors/teal-alpha.css";
+@import "@radix-ui/colors/teal-dark.css";
+@import "@radix-ui/colors/teal-dark-alpha.css";
+
+/* orange */
+@import "@radix-ui/colors/orange.css";
+@import "@radix-ui/colors/orange-alpha.css";
+@import "@radix-ui/colors/orange-dark.css";
+@import "@radix-ui/colors/orange-dark-alpha.css";
+
+/* amber */
+@import "@radix-ui/colors/amber.css";
+@import "@radix-ui/colors/amber-alpha.css";
+@import "@radix-ui/colors/amber-dark.css";
+@import "@radix-ui/colors/amber-dark-alpha.css";
+
+/* brown */
+@import "@radix-ui/colors/brown.css";
+@import "@radix-ui/colors/brown-alpha.css";
+@import "@radix-ui/colors/brown-dark.css";
+@import "@radix-ui/colors/brown-dark-alpha.css";

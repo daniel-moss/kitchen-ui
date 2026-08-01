@@ -1,0 +1,94 @@
+// The shared input FIELD chrome — Figma "#️⃣ Input", used by SelectField
+// and TextField (one source of truth, extracted 2026-07-14; the values
+// are identical in both Figma part sets).
+//
+// The border is an inset box-shadow, NOT a real border: no size change when
+// it goes 1px → 2px on error. Each component applies the state mixins to its
+// own selectors (SelectField activates on :focus-visible/.open, TextField on
+// :focus-within).
+
+@mixin input-root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px — space before the error help text
+}
+
+@mixin input-disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+@mixin input-field {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: var(--size-9); // 36px
+  padding: 0 var(--size-3); // 12px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-a7); // resting border
+  transition:
+    box-shadow 120ms ease,
+    background-color 120ms ease;
+}
+
+@mixin input-field-hover {
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+}
+
+@mixin input-field-active {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+}
+
+// Error — 2px tomato border + tint; stays on hover / active.
+@mixin input-field-invalid {
+  background: var(--tomato-a2);
+  box-shadow: inset 0 0 0 2px var(--tomato-9);
+}
+
+// Read-only — no fill, softer border, the blocked cursor (Daniel).
+@mixin input-field-readonly {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--gray-a6);
+  cursor: not-allowed;
+}
+
+// Grouped fields (InputGroup): fuse two+ fields into one bordered box. Only the
+// OUTER corners round, and each segment after the first pulls 1px left so it
+// overlaps its neighbour's seam. Non-first segments DROP their left border at
+// rest (directional box-shadow: top + bottom + right only), so the seam is a
+// SINGLE 1px line — the previous segment's right border — instead of two
+// translucent gray-a7 borders overlapping into a darker line. Hover / focus /
+// open / invalid restore the full border (their inset shadow overrides this and
+// covers the seam via the overlap), and raise the segment above its neighbours.
+// Include on the `.field` element; the field adds `.grouped` + a position class.
+@mixin input-field-grouped {
+  &.groupFirst {
+    border-radius: var(--border-radius-1_5) 0 0 var(--border-radius-1_5);
+  }
+  &.groupMiddle {
+    border-radius: 0;
+    margin-left: -1px;
+  }
+  &.groupLast {
+    border-radius: 0 var(--border-radius-1_5) var(--border-radius-1_5) 0;
+    margin-left: -1px;
+  }
+  &.groupMiddle,
+  &.groupLast {
+    box-shadow:
+      inset 0 1px 0 0 var(--gray-a7),
+      inset 0 -1px 0 0 var(--gray-a7),
+      inset -1px 0 0 0 var(--gray-a7);
+  }
+
+  &.grouped:hover,
+  &.grouped:focus-within,
+  &.grouped:focus-visible,
+  &.grouped.open,
+  &.grouped.invalid {
+    z-index: 1;
+  }
+}

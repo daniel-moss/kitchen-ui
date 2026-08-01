@@ -1,0 +1,55 @@
+@use "../../styles/mixins/font" as *;
+
+// ActivityLogSubItem — one changed field inside an expanded log. A 20px icon
+// box + a two-line text block (field name over the value change).
+.root {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-2); // 8px — icon ↔ text
+  width: 100%;
+}
+
+.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-5); // 20px
+  height: var(--size-5);
+  color: var(--gray-12);
+}
+
+.text {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title {
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+
+.caption {
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+// The replaced value — struck through, one step lighter than the caption.
+.oldValue {
+  color: var(--gray-a9);
+  text-decoration: line-through;
+  text-decoration-skip-ink: none;
+}
+
+// The new value carries the meaning, so it is emphasised. A CLEARED field has
+// no new value: "No value" then stays in the plain caption style.
+.newValue {
+  color: var(--gray-12);
+
+  @include font("body-500-compact");
+}

@@ -1,0 +1,135 @@
+@use "../../styles/mixins/font" as *;
+
+// Hint — a floating explanation bubble (inline) or a mobile bottom sheet
+// (drawer). The tongue is a rotated square tucked under the body; the shadow
+// is a drop-shadow FILTER on the root, so it wraps the body + tongue outline.
+.hint {
+  position: relative;
+  filter: drop-shadow(0 4px 5px var(--box-shadow-shadow-default));
+}
+
+.body {
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1; // above the tongue
+  border-radius: var(--border-radius-1_5);
+  background: var(--surface-level-third);
+}
+
+// text content (desktop bubble): 12px sides, 10px vertical
+.text {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3);
+  padding: var(--size-2_5) var(--size-3);
+}
+
+// the drawer body uses the mobile paddings
+.textMobile {
+  padding: var(--size-4);
+}
+
+.indicator {
+  flex: none;
+  align-self: stretch;
+  width: 4px;
+  margin: var(--size-1) 0;
+  border-radius: var(--border-radius-0_5); // 2px (Daniel's spec)
+}
+
+.info {
+  background: var(--blue-9);
+}
+
+.success {
+  background: var(--jade-9);
+}
+
+.warning {
+  background: var(--amber-10);
+}
+
+.error {
+  background: var(--tomato-9);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--size-0_5);
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  color: var(--text-strong);
+
+  @include font("body-500-compact");
+}
+
+.caption {
+  color: var(--text-subtle);
+
+  @include font("body-400-spacious");
+}
+
+// ---- tongue ----
+// An 8×8 rotated square: ~11px wide at the body edge, tip ~6px out — matches
+// the 12×6 Figma tongue. Inset 12px from the corner for start/end alignment.
+.tongue {
+  position: absolute;
+  z-index: 0;
+  width: 8px;
+  height: 8px;
+  background: var(--surface-level-third);
+  transform: rotate(45deg);
+}
+
+.tongueTop {
+  top: -4px;
+}
+
+.tongueBottom {
+  bottom: -4px;
+}
+
+.tongueLeft {
+  left: -4px;
+}
+
+.tongueRight {
+  right: -4px;
+}
+
+// alignment along a horizontal side (tongue on top/bottom)
+.tongueTop,
+.tongueBottom {
+  &.alignStart {
+    left: var(--size-3);
+  }
+
+  &.alignCenter {
+    left: calc(50% - 4px);
+  }
+
+  &.alignEnd {
+    right: var(--size-3);
+  }
+}
+
+// alignment along a vertical side (tongue on left/right)
+.tongueLeft,
+.tongueRight {
+  &.alignStart {
+    top: var(--size-3);
+  }
+
+  &.alignCenter {
+    top: calc(50% - 4px);
+  }
+
+  &.alignEnd {
+    bottom: var(--size-3);
+  }
+}

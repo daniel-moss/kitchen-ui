@@ -1,0 +1,123 @@
+@use "../../styles/mixins/font" as *;
+
+// Chip — a compact filter / selection control. The 1px border is an inset
+// box-shadow so it never adds size; hover and press drop the border + shadow
+// and only keep the fill. See Figma "Chip".
+.chip {
+  box-sizing: border-box;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  border: none;
+  cursor: pointer;
+  color: var(--text-strong);
+  border-radius: var(--border-radius-1_5);
+  background: var(--surface-interactive-default);
+  box-shadow:
+    inset 0 0 0 1px var(--gray-a2),
+    var(--box-shadow-xs-down);
+
+@media (hover: hover) {
+&:hover:not(:disabled):not(.loading) {
+    background: var(--surface-interactive-hover);
+    box-shadow: none;
+  }
+}
+
+  &:active:not(:disabled):not(.loading) {
+    background: var(--surface-interactive-press);
+    box-shadow: none;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &.loading {
+    cursor: progress;
+  }
+
+  // focus: 2px ring + 2px gap + inner background block (radius 2) — the
+  // Button technique: a real 2px border (padding compensates) + a ::before
+  // block inset 2px behind the content.
+  &:focus-visible {
+    isolation: isolate;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    border: 2px solid var(--gray-a12);
+  }
+
+  &:focus-visible::before {
+    content: "";
+
+    position: absolute;
+    inset: 2px;
+    z-index: -1;
+
+    border-radius: var(--border-radius-0_5);
+
+    background: var(--surface-interactive-hover);
+  }
+}
+
+// ---- active (selected) ----
+.active {
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+
+@media (hover: hover) {
+&:hover:not(:disabled):not(.loading) {
+    background: var(--gray-a3);
+    box-shadow: inset 0 0 0 1px var(--gray-12);
+  }
+}
+
+  &:active:not(:disabled):not(.loading) {
+    background: var(--gray-a4);
+    box-shadow: inset 0 0 0 1px var(--gray-12);
+  }
+
+  // the inner block keeps the active look: hover fill + the 1px border
+  &:focus-visible::before {
+    background: var(--gray-a3);
+    box-shadow: inset 0 0 0 1px var(--gray-12);
+  }
+}
+
+// ---- sizes ----
+.md {
+  height: var(--size-7); // 28px
+  padding: 0 var(--size-2); // 8px
+  gap: var(--size-1_5); // 6px
+
+  @include font("caption-medium-400");
+
+  &:focus-visible {
+    padding: 0 calc(var(--size-2) - 2px);
+  }
+}
+
+.lg {
+  height: var(--size-8); // 32px
+  padding: 0 var(--size-2_5); // 10px
+  gap: var(--size-2); // 8px
+
+  @include font("body-400-compact");
+
+  &:focus-visible {
+    padding: 0 calc(var(--size-2_5) - 2px);
+  }
+}
+
+.slotLeft {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+}
+
+.label {
+  white-space: nowrap;
+}

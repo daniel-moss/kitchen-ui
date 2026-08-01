@@ -1,0 +1,123 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as InputGroupStories from "./InputGroup.stories";
+
+<Meta of={InputGroupStories} />
+
+# InputGroup
+
+We use **InputGroup** for combining fields that are considered **one piece of
+data** and share the same error message. The group is bare — its label and
+help text come from the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper.
+
+<Canvas of={InputGroupStories.Playground} />
+
+```tsx
+<Input label="Date & time">
+  <InputGroup isValid={isValid}>
+    <DateField defaultValue={date} />
+    <SelectField value={repeat} onClick={openRepeatList} />
+  </InputGroup>
+</Input>
+```
+
+↳&nbsp;&nbsp;[DateField + SelectField](#datefield--selectfield)<br />
+↳&nbsp;&nbsp;[TextField + SelectField](#textfield--selectfield)<br />
+↳&nbsp;&nbsp;[DateField + TextField + SelectField](#datefield--textfield--selectfield)<br />
+↳&nbsp;&nbsp;[“Missing value” message](#missing-value-message)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## DateField + SelectField
+
+Contains
+<a href="/?path=/docs/components-fields-datefield--docs" target="_top">DateField</a>
+and
+<a href="/?path=/docs/components-fields-selectfield-selectfield--docs" target="_top">SelectField</a>.
+
+<Canvas of={InputGroupStories.DateSelect} />
+
+Empty + Valid
+
+<Canvas of={InputGroupStories.DateSelectEmpty} />
+
+Empty + Invalid
+
+<Canvas of={InputGroupStories.DateSelectEmptyInvalid} />
+
+Filled + Valid
+
+<Canvas of={InputGroupStories.DateSelectFilled} />
+
+Filled + Invalid
+
+<Canvas of={InputGroupStories.DateSelectFilledInvalid} />
+
+## TextField + SelectField
+
+Contains
+<a href="/?path=/docs/components-fields-textfield--docs" target="_top">TextField</a>
+and
+<a href="/?path=/docs/components-fields-selectfield-selectfield--docs" target="_top">SelectField</a>.
+
+<Canvas of={InputGroupStories.TextSelect} />
+
+Empty + Valid
+
+<Canvas of={InputGroupStories.TextSelectEmpty} />
+
+Empty + Invalid
+
+<Canvas of={InputGroupStories.TextSelectEmptyInvalid} />
+
+Filled + Valid
+
+<Canvas of={InputGroupStories.TextSelectFilled} />
+
+Filled + Invalid
+
+<Canvas of={InputGroupStories.TextSelectFilledInvalid} />
+
+## DateField + TextField + SelectField
+
+Contains
+<a href="/?path=/docs/components-fields-datefield--docs" target="_top">DateField</a>,
+<a href="/?path=/docs/components-fields-textfield--docs" target="_top">TextField</a>
+and
+<a href="/?path=/docs/components-fields-selectfield-selectfield--docs" target="_top">SelectField</a>
+— the date + time + AM/PM shape. The time TextField is fixed at `--size-16`
+(64px); the AM/PM SelectField hugs its content.
+
+<Canvas of={InputGroupStories.DateTextSelect} />
+
+Empty + Valid
+
+<Canvas of={InputGroupStories.DateTextSelectEmpty} />
+
+Empty + Invalid
+
+<Canvas of={InputGroupStories.DateTextSelectEmptyInvalid} />
+
+Filled + Valid
+
+<Canvas of={InputGroupStories.DateTextSelectFilled} />
+
+Filled + Invalid
+
+<Canvas of={InputGroupStories.DateTextSelectFilledInvalid} />
+
+## “Missing value” message
+
+The message starts with the verb **“Provide”**, followed by the input label,
+which starts with an uppercase letter. No period in the end. When the group is
+**empty**, the message is derived automatically from the Input label — below,
+the label “Amount” becomes “Provide Amount”. A **filled** group with a wrong
+value gets its own message through `errorMessage` (the “Error message”
+examples above).
+
+<Canvas of={InputGroupStories.MissingValue} />
+
+## Props
+
+<ArgTypes of={InputGroupStories} />

@@ -1,0 +1,197 @@
+@use "../../styles/mixins/font" as *;
+
+.base {
+  position: relative;
+
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--size-0);
+  align-items: center;
+  justify-content: center;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  border: none;
+  border-radius: var(--border-radius-1_5);
+
+  color: var(--btn-fg);
+  background: var(--btn-bg);
+  box-shadow: var(--btn-shadow, none);
+
+  transition: background 120ms ease;
+
+@media (hover: hover) {
+&:hover,
+  &.isHovered {
+    background: var(--btn-bg-hover);
+    box-shadow: none;
+  }
+}
+
+  &:active,
+  &.isPressed {
+    background: var(--btn-bg-press);
+    box-shadow: none;
+  }
+
+  // Only the truly-disabled state is dimmed. Processing and loading also set the
+  // `disabled` attribute (to block clicks), so exclude them here.
+  &:disabled:not(.isProcessing):not(.isLoading) {
+    cursor: not-allowed;
+    opacity: 0.3;
+  }
+
+  &.isProcessing {
+    cursor: wait;
+  }
+
+  &.isLoading {
+    cursor: progress;
+  }
+
+  // focus: 2px ring + 2px gap + inner background block (Kitchen UI)
+  &:focus-visible,
+  &.isFocused {
+    isolation: isolate;
+    outline: none;
+    background: transparent;
+    box-shadow: none;
+    border: 2px solid var(--btn-ring);
+    color: var(--btn-fg);
+  }
+
+  &:focus-visible::before,
+  &.isFocused::before {
+    content: "";
+
+    position: absolute;
+    inset: 2px;
+    z-index: -1;
+
+    border-radius: var(--border-radius-0_5);
+
+    background: var(--btn-focus-bg);
+  }
+}
+
+// ---- variants ----
+.solidVariant {
+  --btn-fg: var(--gray-1);
+  --btn-bg: var(--gray-a12);
+  --btn-bg-hover: var(--gray-a11);
+  --btn-bg-press: var(--gray-a10);
+  --btn-shadow: 0 1px 3px 0 var(--box-shadow-shadow-contrast);
+  --btn-ring: var(--gray-12);
+  --btn-focus-bg: var(--gray-a11);
+
+  // Dark background: use the adaptive pure alpha so the skeleton/loading fill
+  // stays visible (light in light theme, dark in dark theme).
+  --ku-skeleton-fill: var(--pure-a3);
+}
+
+.subtleVariant {
+  --btn-fg: var(--gray-12);
+  --btn-bg: var(--surface-interactive-default);
+  --btn-bg-hover: var(--surface-interactive-hover);
+  --btn-bg-press: var(--surface-interactive-press);
+  // The 1px border is drawn as an inset ring (not a real `border`) so it stays
+  // inside the button box — like an "inside" stroke in Figma — and does not add
+  // 2px to the width/height. It sits alongside the drop shadow; hover/press
+  // clear the whole box-shadow, so the ring disappears with them.
+  --btn-shadow: inset 0 0 0 1px var(--gray-a2), 0 1px 1.5px var(--box-shadow-shadow-default);
+  --btn-ring: var(--gray-12);
+  --btn-focus-bg: var(--surface-interactive-hover);
+}
+
+.dangerVariant {
+  --btn-fg: var(--tomato-1);
+  --btn-bg: var(--tomato-a9);
+  --btn-bg-hover: var(--tomato-a10);
+  --btn-bg-press: var(--tomato-a11);
+  --btn-shadow: 0 1px 3px 0 var(--box-shadow-shadow-contrast);
+  --btn-ring: var(--tomato-a9);
+  --btn-focus-bg: var(--tomato-a10);
+
+  // Dark background: use the adaptive pure alpha so the skeleton/loading fill
+  // stays visible (light in light theme, dark in dark theme).
+  --ku-skeleton-fill: var(--pure-a3);
+}
+
+.ghostVariant {
+  --btn-fg: var(--gray-12);
+  --btn-bg: transparent;
+  --btn-bg-hover: var(--gray-a3);
+  --btn-bg-press: var(--gray-a4);
+  --btn-ring: var(--gray-12);
+  --btn-focus-bg: var(--gray-a3);
+}
+
+// ---- sizes ----
+.smSize {
+  height: var(--size-7);
+  padding: 0 var(--size-2);
+  gap: var(--size-1_5);
+
+  @include font("caption-medium-500");
+
+  &:focus-visible,
+  &.isFocused {
+    padding: 0 calc(var(--size-2) - 2px);
+  }
+}
+
+.mdSize {
+  height: var(--size-8);
+  padding: 0 var(--size-2_5);
+  gap: var(--size-2);
+
+  @include font("body-500-compact");
+
+  &:focus-visible,
+  &.isFocused {
+    padding: 0 calc(var(--size-2_5) - 2px);
+  }
+}
+
+.lgSize {
+  height: var(--size-9);
+  padding: 0 var(--size-3);
+  gap: var(--size-2);
+
+  @include font("body-500-compact");
+
+  &:focus-visible,
+  &.isFocused {
+    padding: 0 calc(var(--size-3) - 2px);
+  }
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+// ---- processing / loading helpers ----
+.spinnerWrapper {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.childrenHidden {
+  color: transparent;
+}
+
+// Keep the icon in the layout (so the button keeps its default width while
+// processing) but invisible; the spinner is overlaid on top.
+.iconHidden {
+  visibility: hidden;
+}
+
+.contentSkeleton {
+  display: inline-flex;
+}

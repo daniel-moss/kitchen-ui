@@ -1,0 +1,71 @@
+/* Kitchen UI — semantic icon-name tokens */
+/* String variables holding icon names: change the name in one place, updates everywhere.
+   Consume via the .icon ::before pattern (see assets/icons.css):
+     <i class="icon icon--14" style="--glyph: var(--bill)"></i>
+   NOTE: values marked [custom pack] exist only in the kit custom font — use with `icon--custom`. */
+
+:root {
+  /* navigation & app chrome */
+  --menu: "bars";
+  --dropdown: "angles-up-down";
+  --context-menu: "ellipsis";
+  --contact-support: "headset";
+  --settings: "gear";
+  --help-center: "circle-question";
+  --what-is-new: "bullhorn";
+  --request-feature: "circle-info";
+  --log-out: "arrow-right-from-bracket";
+  --home: "house";
+
+  /* files */
+  --file-private: "lock";
+  --file-public: "globe";
+
+  /* statuses */
+  --active: "circle-minus";
+  --review: "clock";
+  --inactive: "ban";
+
+  /* entities */
+  --estimate: "clock";
+  --job-request: "wrench-simple";
+  --job: "wrench-simple";
+  --job-series: "layer-group";
+  --invoice: "circle-dollar";
+  --credit-note: "circle-dollar";
+  --purchase-order: "basket-shopping";
+  --bill: "file-invoice-dollar";
+  --vendor: "store";
+  --client: "building-user";
+  --client-business: "building";
+  --client-individual: "user";
+  --pricebook: "tag";
+  --labor: "tag";
+  --product: "box-taped";
+  --other: "tag";
+  --discount: "tag";
+  --tax-rate: "tag";
+  --equipment: "cube";
+  --location: "location-dot";
+  --user: "user";
+  --reports: "chart-mixed";
+  --warranty: "shield-halved";
+  --visit: "calendar";
+  --label: "tag";
+
+  /* views */
+  --table-view: "table";
+  --cards-view: "grid-2";
+  --timeline-view: "solid-timeline-view"; /* [custom pack] */
+
+  /* priority */
+  --priority-none: "hyphen";
+  --priority-high: "solid-priority-high"; /* [custom pack] */
+  --priority-urgent: "fire";
+
+  /* progress */
+  --progress-0: "circle-dashed";
+  --progress-25: "circle-quarter-stroke";
+  --progress-50: "circle-half-stroke";
+  --progress-75: "circle-three-quarters-stroke";
+}

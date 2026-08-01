@@ -1,0 +1,54 @@
+@use "../../styles/mixins/font" as *;
+
+// Text block: [title (+ tag)] over an optional caption.
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+}
+
+// Title row — the label, plus a right-aligned tag (16px gap; only shows with a tag).
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px
+  width: 100%;
+  min-width: 0;
+}
+
+.title {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-strong);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+// Tag keeps its width (the title truncates first).
+.tag {
+  flex: none;
+  white-space: nowrap;
+  text-align: right;
+
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+.caption {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}

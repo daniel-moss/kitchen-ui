@@ -1,0 +1,235 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+@use "../../styles/mixins/collapse" as *;
+
+// ActivityLogItem — one event on the timeline. A 20px symbol in a connector
+// column, the log sentence, and the relative timestamp. With children it is an
+// accordion that reveals the event details. See Figma "Log" / "Accordion".
+.root {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.body {
+  width: 100%;
+  border-radius: var(--border-radius-2); // 8px
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  padding: 0 var(--size-2); // 8px
+}
+
+// ---- connector column: [4px line] symbol [line down] --------------------
+// The three parts always occupy the same box — the lines are only made
+// INVISIBLE at the ends of the stack, so every symbol sits 8px from the row
+// top whatever the position.
+.connector {
+  box-sizing: border-box;
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-1); // 4px
+  width: var(--size-7); // 28px — 20px symbol + 8px gap to the text
+  padding-right: var(--size-2);
+}
+
+.lineTop,
+.lineBottom {
+  width: 1px;
+  background: var(--gray-a4);
+}
+.lineTop {
+  flex: none;
+  height: var(--size-1); // 4px
+}
+.lineBottom {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.symbol {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-5); // 20px
+  height: var(--size-5);
+  color: var(--gray-12);
+}
+
+// ---- text + timestamp ---------------------------------------------------
+.main {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+.textRow {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-4); // 16px — text ↔ timestamp
+  padding: var(--size-2) 0; // 8px
+}
+
+// The sentence is subtle; ActivityLogEmphasis lifts the meaningful runs.
+.text {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+.timestampWrap {
+  flex: none;
+}
+.timestamp {
+  white-space: nowrap;
+  color: var(--text-subtle);
+
+  @include font("body-400-compact");
+}
+
+// ---- caret --------------------------------------------------------------
+.caret {
+  flex: none;
+  display: flex;
+  align-items: center;
+  height: var(--size-9); // 36px — one text line + its padding
+  padding-left: var(--size-3); // 12px
+  padding-right: var(--size-1); // 4px
+  color: var(--gray-a9);
+  transition: color 120ms ease;
+}
+// Closed points left, open points down.
+.caretIcon {
+  transform: rotate(90deg);
+  transition: transform 160ms ease;
+}
+.caretOpen {
+  transform: rotate(0deg);
+}
+
+// ---- details ------------------------------------------------------------
+.collapse {
+  @include collapse;
+}
+.collapseOpen {
+  @include collapse-open;
+}
+.collapseInner {
+  @include collapse-inner;
+}
+
+.subStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+  // 36px left aligns the details under the log text, past the connector.
+  padding: 0 var(--size-2) var(--size-2) var(--size-9);
+}
+
+// ---- the 8px timeline segment between two logs --------------------------
+.spacer {
+  display: flex;
+  height: var(--size-2); // 8px
+  padding-left: var(--size-2);
+}
+.spacerInner {
+  display: flex;
+  justify-content: center;
+  width: var(--size-5); // 20px — centers the line under the symbol
+}
+.spacerLine {
+  width: 1px;
+  height: 100%;
+  background: var(--gray-a4);
+}
+
+// ---- stack position -----------------------------------------------------
+// `posAuto` = no explicit position prop: first/last child in the stack decide.
+.posAuto:first-child .lineTop,
+.posTop .lineTop,
+.posSingle .lineTop,
+.posAuto:last-child .lineBottom,
+.posBottom .lineBottom,
+.posSingle .lineBottom {
+  visibility: hidden;
+}
+
+.posAuto:last-child .spacer,
+.posBottom .spacer,
+.posSingle .spacer {
+  display: none;
+}
+
+// A center log draws everything. Spelled out so `position="center"` produces a
+// real class — an empty rule set would compile away and leave the prop silent.
+.posCenter .lineTop,
+.posCenter .lineBottom {
+  visibility: visible;
+}
+.posCenter .spacer {
+  display: flex;
+}
+
+// An EXPANDED log drops its connectors — the details block breaks the line
+// anyway, so keeping it would point at nothing (Figma, "Accordion" isOpen).
+.open .lineTop,
+.open .lineBottom {
+  visibility: hidden;
+}
+
+// ---- interaction (a log without an accordion is static) -----------------
+.interactive {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+  .interactive:hover {
+    @include row-hover-fill;
+  }
+}
+.interactive:active {
+  @include row-press-fill;
+}
+.interactive:focus-visible {
+  @include row-focus-ring;
+}
+
+// An OPEN accordion rests filled, so each state steps one further up the scale.
+.interactive.open {
+  background: var(--gray-a3);
+}
+@media (hover: hover) {
+  .interactive.open:hover {
+    @include row-hover-fill(var(--gray-a4));
+  }
+}
+.interactive.open:active {
+  @include row-press-fill(var(--gray-a5));
+}
+.interactive.open:focus-visible {
+  @include row-focus-ring($fill: var(--gray-a4));
+}
+
+@media (hover: hover) {
+  .interactive:hover .caret {
+    color: var(--gray-12);
+  }
+}
+.interactive:active .caret,
+.interactive:focus-visible .caret {
+  color: var(--gray-12);
+}

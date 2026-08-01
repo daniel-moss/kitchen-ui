@@ -1,0 +1,106 @@
+// Mobile-only shell for the Time Tracker prototypes. Mirrors the JobDetails
+// mobile shell (flex column + safe-area padding), and adds the check-in
+// Timer Bar — the SECOND bottom bar that appears once the tech checks in.
+.mobile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface-level-first);
+  // Native status bar / home indicator space (see JobDetails.module.scss).
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+  --shell-safe-bottom: var(--phone-safe-bottom, env(safe-area-inset-bottom, 0px));
+  padding-top: var(--shell-safe-top);
+  padding-bottom: var(--shell-safe-bottom);
+}
+.scroll {
+  flex: 1 1 0;
+}
+.scrollInner {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+  overscroll-behavior: none;
+}
+.grow {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// A marked empty tab (Summary / Activity are placeholders for now).
+.placeholder {
+  flex: 1 0 auto;
+  min-height: calc(100% + 240px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-placeholder);
+  font: var(--font-body-400-compact);
+}
+
+// ---- Timer Bar (the second bottom bar) -------------------------------------
+// Sits ABOVE the action bar, shown only while checked in. Divider on top, then
+// a row: running clock on the left, "Check out" on the right. NOTE: this is a
+// prototype-local component — there is no DS timer bar yet (flagged to Daniel).
+.timerBar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: var(--surface-level-first);
+}
+.timerRow {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-3);
+  width: 100%;
+  padding: var(--size-2_5) var(--size-4); // 10px / 16px (Figma 24058-15482)
+}
+.timerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px — avatar ↔ text
+  min-width: 0;
+}
+// The active-session avatar: a 36px tomato box holding a red "recording" dot
+// (Figma 24058-15482), the dot pulsing while the session runs.
+.timerAvatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--tomato-a3);
+  color: var(--tomato-9);
+}
+.timerAvatar > * {
+  animation: timerPulse 1.4s ease-in-out infinite;
+}
+@keyframes timerPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.timerText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.timerClock {
+  font: var(--font-body-500-compact); // Inter Medium 14/20
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+.timerLabel {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+}

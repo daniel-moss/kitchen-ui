@@ -1,0 +1,107 @@
+// MediaField — the file-upload field (Figma "MediaField"): an upload trigger
+// that opens the native file picker, plus the uploaded files as CardFile
+// tiles in a wrapping grid. Bare — label and help text live on the Input
+// wrapper; the default error message ("Add [Label]") derives from the Input's
+// label. Two sizes (mobile / desktop), applied automatically by breakpoint.
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px — space before the error help text
+  width: 100%;
+}
+
+// ===== trigger (the upload area) ===========================================
+// A REAL border, not the input-chrome inset shadow — the resting state is
+// DASHED, which box-shadow can not draw. The trigger is fixed-size
+// (border-box), so the 1px → 2px state change never resizes it.
+.trigger {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-8); // 32
+  border: 1px dashed var(--gray-a7);
+  border-radius: var(--border-radius-2); // 8
+  background: var(--gray-a2);
+  color: var(--gray-a8); // the circle-plus icon
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+// Empty: fills the width at a fixed height. Filled (.tile): shrinks to one
+// card's footprint at the end of the grid.
+.empty {
+  width: 100%;
+}
+.mobile .trigger {
+  height: 151px;
+}
+.desktop .trigger {
+  height: 180px;
+}
+.mobile .tile {
+  width: 106px;
+}
+.desktop .tile {
+  width: 135px;
+}
+
+@media (hover: hover) {
+  .trigger:not(:disabled):hover {
+    border: 1px solid var(--gray-a8);
+    color: var(--gray-12);
+  }
+}
+.trigger:not(:disabled):active {
+  border: 1px solid var(--gray-a9);
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}
+// Keyboard focus only (Daniel) — a mouse click immediately opens the picker.
+.trigger:focus-visible {
+  outline: none;
+  border: 2px solid var(--gray-12);
+  color: var(--gray-12);
+}
+// Invalid — ONE look for every state (the node: no hover/press/focus change).
+.trigger.invalid,
+.trigger.invalid:hover,
+.trigger.invalid:active,
+.trigger.invalid:focus-visible {
+  border: 2px solid var(--tomato-9);
+  background: var(--tomato-a2);
+  color: var(--tomato-9);
+}
+.trigger:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+// ===== filled grid ==========================================================
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--size-3); // 12
+  width: 100%;
+}
+// Fixed card size (the docs); the CardFile fills its cell.
+.cell {
+  flex: none;
+}
+.mobile .cell {
+  width: 106px;
+}
+.desktop .cell {
+  width: 135px;
+}
+
+// The native file input — never displayed (the trigger proxies clicks to it).
+.fileInput {
+  display: none;
+}

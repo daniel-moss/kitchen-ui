@@ -1,0 +1,37 @@
+// HVAC - PM (the stepper variant) — local layout for the Quote step's chip
+// quick-picks (Figma 24337-41981).
+
+// Field ↔ its chips row (the design's Duration frame: 8px).
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+}
+
+// Chips + their error line as ONE Input field child (6px, the field gap).
+.chipsField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5); // 6px
+  width: 100%;
+}
+
+// A quick-pick chip row. The chips HUG their content (duration presets) and
+// wrap on narrow screens.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+}
+
+// The techs row: its chips FILL the width, sharing it equally (Daniel
+// 2026-07-27 round 3 — duration presets keep hugging).
+.fillChips > * {
+  flex: 1 1 0;
+}
+
+// Techs chips: min 40px wide, label centered (Daniel 2026-07-27).
+.techChip {
+  min-width: 40px;
+  justify-content: center;
+}

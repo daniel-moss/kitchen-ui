@@ -1,0 +1,63 @@
+// "Forms" module (Figma 21816-30805) — prototype-local bits.
+
+// Module body holding the Public / Private ItemGroups: pull back the
+// module's 16px padding so the groups' own 4px is the only padding (the
+// same listBody rule the Files module uses).
+.listBody {
+  margin: calc(-1 * var(--size-4));
+}
+
+// The 36px square form avatar; the state drives fill + icon color.
+.avatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+}
+
+.avatarDefault {
+  background: var(--gray-a3);
+  color: var(--gray-a8);
+}
+
+// In progress / progress saved (amber half circle).
+.avatarActive {
+  background: var(--amber-a3);
+  color: var(--amber-a9);
+}
+
+// The design rotates circle-half-stroke 180° — the filled half sits RIGHT.
+.halfIcon {
+  transform: rotate(180deg);
+}
+
+.avatarCompleted {
+  background: var(--jade-a3);
+  color: var(--jade-a9);
+}
+
+// Right slot: live editor avatar + the ellipsis button.
+.rowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+// Desktop context-menu card anchored to the row's ellipsis.
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// (The Add-list counter rows are the DS SelectListItem select="counter" now —
+// the old local poolRow/poolTag/minus styles moved into the DS component.)
+
+// Rename dialog body (the Dialog adds no padding of its own).
+.renameBody {
+  box-sizing: border-box;
+  width: 100%;
+}

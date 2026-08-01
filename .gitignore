@@ -1,0 +1,20 @@
+# Installed packages — rebuilt from package-lock.json with `npm install`.
+node_modules/
+
+# Build output — GitHub Actions builds this on every push, so it is never
+# committed. `npm run build-storybook` writes it locally for testing.
+storybook-static/
+storybook-share/
+
+# Visual-regression captures from `npm run screenshot`. Generated on demand,
+# ~500 PNGs, and they change with the system theme — not source.
+screenshots/
+
+# Local hand-off zips.
+*.zip
+
+# Personal Claude Code settings — machine-specific paths and permissions.
+.claude/settings.local.json
+
+# macOS
+.DS_Store

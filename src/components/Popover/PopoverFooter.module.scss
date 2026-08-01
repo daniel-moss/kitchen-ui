@@ -1,0 +1,38 @@
+// Divider on top + Body (action bar) beneath. No background of its own — sits
+// on whatever popover surface contains it. (Mirror of PopoverHeader, whose
+// divider is at the bottom.)
+.footer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.body {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+  padding: var(--size-3) var(--size-4); // 12 / 16
+}
+
+// Trailing group: flex:1 + justify-end pushes the high-priority buttons right.
+// A leading Cancel is rendered before this group; native buttons don't grow, so
+// it keeps its natural size and stays far left.
+.buttons {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--size-2); // 8px
+}
+
+// Navigation / mobile: every button fills the row equally.
+.stretch {
+  // the leading button (any direct child of body that isn't the trailing group)
+  > :not(.buttons) {
+    flex: 1 1 0;
+  }
+  .buttons > * {
+    flex: 1 1 0;
+  }
+}

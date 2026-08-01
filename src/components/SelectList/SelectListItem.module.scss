@@ -1,0 +1,162 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// A selectable option row. Left checkbox (multi) or right check-circle (single).
+.item {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-3); // 12px
+  width: 100%;
+  padding: var(--size-2) var(--size-3); // 8px 12px
+  border-radius: var(--border-radius-1_5); // 6px
+  cursor: pointer;
+
+  transition: background-color 120ms ease;
+}
+
+// default = compact text row, top-aligned. object = taller row with an avatar,
+// vertically centered.
+.default {
+  align-items: flex-start;
+}
+.object {
+  align-items: center;
+  min-height: 60px;
+}
+
+// Single-select reserves the right space for the check-circle; when selected the
+// check-circle occupies it (padding shrinks back to 12px).
+.single {
+  padding-right: var(--size-10); // 40px
+}
+.single.selected {
+  padding-right: var(--size-3); // 12px
+}
+
+// Counter mode reserves nothing: unselected rows are plain full-width rows;
+// while count > 0 the count renders in the tag position and the circle-minus
+// button appears (Figma "select=counter").
+.counter {
+  padding-right: var(--size-3); // 12px
+}
+
+// The 24px (xs) circle-minus decrement button. Figma structures the counter
+// row as 6px row + 2px body vertical padding so the button fits the 36px row;
+// we keep the standard 8px row padding and pull the button 2px instead — the
+// same visual result without touching the single/multi geometry.
+.minusGuard {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  margin: -2px 0;
+}
+
+@media (hover: hover) {
+// ---- row states ----
+.item:hover {
+  @include row-hover-fill;
+}
+}
+.item:active {
+  @include row-press-fill;
+}
+.item:focus-visible {
+  @include row-focus-fill;
+}
+// Search "highlight first result": while typing, the first match is pre-lit like
+// a hover so Enter selects it (SelectList sets data-highlight — item 1).
+.item[data-highlight="true"] {
+  @include row-hover-fill;
+}
+.item.disabled {
+  @include row-disabled(0.4);
+}
+
+// ---- parts ----
+.checkbox {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.check {
+  flex: none;
+  display: flex;
+  align-items: center;
+  color: var(--gray-12);
+}
+// In the default (top-aligned) variant, the checkbox / check-circle nudge down
+// 2px to line up with the first text line. The object variant is centered.
+.default .checkbox,
+.default .check {
+  padding-top: var(--size-0_5); // 2px
+}
+
+// ---- object variant ----
+.avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+// The object copy row: Slot Left (title/caption, flex-1) + optional Slot Right
+// (right-aligned block or the tag/count), 16px gap (Figma "Copy").
+.objectCopy {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px
+}
+.objectLeft {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.objectRight {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: right;
+}
+.objectRightTitle {
+  white-space: nowrap;
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.objectRightCaption {
+  white-space: nowrap;
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}
+// The object tag / counter count (Regular 14, subtle — same as the default tag).
+.objectTag {
+  white-space: nowrap;
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+.objectTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20 (heavier than default)
+}
+.objectCaption {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}

@@ -1,0 +1,240 @@
+import { Meta, Canvas } from "@storybook/blocks";
+
+import * as TabGroupStories from "./TabGroup.stories";
+
+<Meta of={TabGroupStories} />
+
+# TabGroup
+
+We use TabGroup for navigation between sections of content.
+
+<Canvas of={TabGroupStories.GroupContained} />
+
+↳&nbsp;&nbsp;[Default](#default)<br />
+↳&nbsp;&nbsp;[Contained](#contained)<br />
+↳&nbsp;&nbsp;[Underlined](#underlined)
+
+## Default
+
+The group of "default" style tabs. Supports minimum 2 tabs. Container parameters are the same for all sizes.
+
+- Tabs sit `--size-0_5` (2px) apart.
+- Selected tab: `--gray-a3` fill, radius `--border-radius-1_5` (6px). Pressed → `--gray-a4`.
+
+<Canvas of={TabGroupStories.GroupDefault} />
+
+### Tab
+
+Supports 3 sizes. The width is adaptive. The height is fixed.
+
+- **Height:** Small `--size-7` (28px), Medium `--size-8` (32px), Large `--size-9` (36px).
+- **Horizontal padding:** Small `--size-2` (8px), Medium `--size-2_5` (10px), Large `--size-3` (12px).
+- **Copy:** Small `caption-medium-500` (Medium 13/20), Medium & Large `body-500-compact` (Medium 14/20).
+
+Small tab:
+
+<Canvas of={TabGroupStories.DefaultSmall} />
+
+Medium tab
+
+<Canvas of={TabGroupStories.DefaultMedium} />
+
+Large tab
+
+<Canvas of={TabGroupStories.DefaultLarge} />
+
+### Left slot
+
+Supports left slot – an icon or an avatar.
+
+Icon: any parameter is editable
+
+- **Icon:** 12px glyph in a `--size-3_5` (14px) box at Small; 14px glyph in a `--size-4` (16px) box at Medium & Large. Rendered Regular, and **Solid** when the tab is active.
+- **Icon gap** (to the label): `--size-1_5` (6px) at Small, `--size-2` (8px) at Medium & Large.
+
+<Canvas of={TabGroupStories.DefaultIcon} />
+
+Avatar: size is fixed, any avatar is supported
+
+- **Avatar:** `xxs` (16px) at Small, `xs` (20px) at Medium & Large.
+- **Avatar gap** (to the label): `--size-1_5` (6px) at Small, `--size-2` (8px) at Medium & Large.
+
+<Canvas of={TabGroupStories.DefaultAvatar} />
+
+### Right slot
+
+Supports right slot – a counter
+
+- **Counter:** plain text in the label's font (tabular numbers).
+- **Counter gap** (from the label): `--size-1_5` (6px), all sizes.
+
+<Canvas of={TabGroupStories.DefaultCounter} />
+
+### Icon only
+
+Supports a variant with icon only. The same parameters but without text.
+
+- Same icon box as the left slot; the label is dropped. Pass an `aria-label` so the tab keeps an accessible name.
+
+<Canvas of={TabGroupStories.DefaultIconOnly} />
+
+Supports right slot – a counter
+
+<Canvas of={TabGroupStories.DefaultIconOnlyCounter} />
+
+### States
+
+States pattern is the same for all sizes.
+
+Inactive:
+
+- **Rest:** text & icon `--text-subtle` (gray-a11); icon Regular.
+- **Hover:** `--text-strong`, no fill. **Press:** `--gray-a3` fill.
+- **Focus:** `--size-0_5` (2px) `--gray-12` ring, inset. **Disabled:** 30% opacity.
+
+<Canvas of={TabGroupStories.DefaultStatesInactive} />
+
+Active. Icon changes weight to "solid".
+
+- **Active:** text `--text-strong`; icon `--gray-a12`, Solid; `--gray-a3` fill (pressed `--gray-a4`).
+
+<Canvas of={TabGroupStories.DefaultStatesActive} />
+
+## Contained
+
+The group of "contained" style tabs. Supports minimum 2 tabs. Container parameters are the same for all sizes.
+
+- **Track:** `--gray-a3` fill, `--size-0_5` (2px) padding, radius `--border-radius-1_5` (6px); tabs `--size-0_5` (2px) apart.
+- **Selected tab:** `--surface-interactive-default` (white) + `xs/down` drop shadow, radius 5px.
+
+<Canvas of={TabGroupStories.GroupContained} />
+
+### Tab
+
+Supports 3 sizes. The width is adaptive. The height is fixed.
+
+- **Height** is 4px shorter than the default tab — Small `--size-6` (24px), Medium `--size-7` (28px), Large `--size-8` (32px) — since the tab sits inside the group's `--size-0_5` (2px) track. Padding and copy match the default tab.
+
+Small tab:
+
+<Canvas of={TabGroupStories.ContainedSmall} />
+
+Medium tab
+
+<Canvas of={TabGroupStories.ContainedMedium} />
+
+Large tab
+
+<Canvas of={TabGroupStories.ContainedLarge} />
+
+### Left slot
+
+Supports left slot – an icon or an avatar. It's the same parameters as for "default" tab. It's the same sub-component under the hood.
+
+Icon: any parameter is editable
+
+<Canvas of={TabGroupStories.ContainedIcon} />
+
+Avatar: size is fixed, any avatar is supported
+
+<Canvas of={TabGroupStories.ContainedAvatar} />
+
+### Right slot
+
+Supports right slot – a counter. The same parameters as for "default" tab. It's the same sub-component under the hood.
+
+<Canvas of={TabGroupStories.ContainedCounter} />
+
+### Icon only
+
+Supports a variant with icon only. The same parameters but without text.
+
+<Canvas of={TabGroupStories.ContainedIconOnly} />
+
+Supports right slot – a counter
+
+<Canvas of={TabGroupStories.ContainedIconOnlyCounter} />
+
+### Vertical
+
+Supports a variant with vertical layout. Only lg size. Container hugs the width and height. Supports an icon and an avatar.
+
+- **Padding:** `--size-2_5` `--size-3` `--size-1_5` (10px 12px 6px — top / sides / bottom).
+- **Icon or avatar → label gap:** `--size-0_5` (2px). The label sits below the icon/avatar.
+
+<Canvas of={TabGroupStories.ContainedVertical} />
+
+### States
+
+States pattern is the same for all sizes.
+
+Inactive:
+
+<Canvas of={TabGroupStories.ContainedStatesInactive} />
+
+Active. Icon changes weight to "solid".
+
+<Canvas of={TabGroupStories.ContainedStatesActive} />
+
+## Underlined
+
+The group of "underlined" style tabs. Supports minimum 2 tabs. Container parameters are the same for all sizes. There is no fixed height. This group fills the height of the parent container.
+
+- Tabs sit `--size-5` (20px) apart.
+- **Selected tab:** a 1px `--gray-12` bottom line (no fill).
+
+<Canvas of={TabGroupStories.GroupUnderlined} />
+
+### Tab
+
+Supports 2 sizes. The width is adaptive. The height fills the parent container.
+
+- **No fixed height** — the tab fills the parent's height. Padding and copy match the default tab (Small / Medium only).
+
+Small tab:
+
+<Canvas of={TabGroupStories.UnderlinedSmall} />
+
+Medium tab
+
+<Canvas of={TabGroupStories.UnderlinedMedium} />
+
+### Left slot
+
+Supports left slot – an icon or an avatar. It's the same parameters as for "default" tab. It's the same sub-component under the hood.
+
+Icon: any parameter is editable
+
+<Canvas of={TabGroupStories.UnderlinedIcon} />
+
+Avatar: size is fixed, any avatar is supported
+
+<Canvas of={TabGroupStories.UnderlinedAvatar} />
+
+### Right slot
+
+Supports right slot – a counter. The same parameters as for "default" tab. It's the same sub-component under the hood.
+
+<Canvas of={TabGroupStories.UnderlinedCounter} />
+
+### Icon only
+
+Supports a variant with icon only. The same parameters but without text.
+
+<Canvas of={TabGroupStories.UnderlinedIconOnly} />
+
+Supports right slot – a counter
+
+<Canvas of={TabGroupStories.UnderlinedIconOnlyCounter} />
+
+### States
+
+States pattern is the same for all sizes.
+
+Inactive:
+
+<Canvas of={TabGroupStories.UnderlinedStatesInactive} />
+
+Active. Icon changes weight to "solid".
+
+<Canvas of={TabGroupStories.UnderlinedStatesActive} />

@@ -1,0 +1,30 @@
+// The Service edit-form body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6);
+  width: 100%;
+}
+
+// Recall to: the select then the recalled-job preview card, 8px apart (Daniel
+// reverted the brief 16px, 2026-07-22).
+.recall {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+
+// The Priority value: the duotone bars icon + label.
+.priority {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+// The icon keeps its own tint (e.g. Urgent's orange, No-priority's gray-a9)
+// while the label inherits the value color.
+.priorityIcon {
+  display: inline-flex;
+  color: var(--gray-12);
+}

@@ -1,0 +1,33 @@
+<!-- Injected into every story page (iframe.html). Lets an iOS "Add to Home
+     Screen" bookmark open full-screen (standalone) for real-device testing. -->
+<!-- Relative (no leading slash) so it resolves under a subpath too — GitHub
+     Pages serves the static build at /<repo>/, where /manifest… would 404. -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<!-- black-translucent = the page draws BEHIND the status bar, so a drawer scrim
+     covers the status-bar area too. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Kitchen UI" />
+<script>
+  // ROOT-CAUSE FIX (2026-07-18): Storybook's iframe.html hardcodes its OWN
+  // `<meta name=viewport content="width=device-width, initial-scale=1">` (no
+  // viewport-fit=cover) before this file. TWO viewport metas make iOS ignore
+  // `viewport-fit=cover` → no safe area, content can't reach behind the home
+  // indicator. This is why the drawers never went behind it (and why MOBILE.md's
+  // "confirmed unfixable" was wrong). Remove EVERY viewport meta and install a
+  // single one (with cover + interactive-widget for the keyboard). Runs
+  // synchronously during head parse; re-adding forces iOS to recompute.
+  //   maximum-scale=1: stops iOS auto-zoom when an input focuses.
+  //   interactive-widget=resizes-content: the keyboard shrinks the LAYOUT
+  //   viewport so the fixed drawer scrim ends at the keyboard top (iOS 17.4+;
+  //   falls back to resizes-visual + the Popover rAF footer-lift on older).
+  (function () {
+    var metas = document.querySelectorAll('meta[name="viewport"]');
+    for (var i = 0; i < metas.length; i++) metas[i].parentNode.removeChild(metas[i]);
+    var m = document.createElement("meta");
+    m.name = "viewport";
+    m.content = "width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, interactive-widget=resizes-content";
+    document.head.appendChild(m);
+  })();
+</script>

@@ -1,0 +1,6 @@
+// A select popover pinned under its trigger (desktop) — portaled to <body>,
+// above the Dialog (z 1000) and below the Toaster (z 2000).
+.selectAnchor {
+  position: fixed;
+  z-index: 1500;
+}

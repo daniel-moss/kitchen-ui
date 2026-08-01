@@ -1,0 +1,8 @@
+// Column, vertically centered, no gap (title 24px + caption 20px line boxes sit
+// directly stacked). Children stretch to full width so they truncate.
+.text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}

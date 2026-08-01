@@ -1,0 +1,245 @@
+@use "../../styles/mixins/font" as *;
+
+// ValueDisplay — a label–value pair. All values from Figma "ValueDisplay".
+
+// ---- horizontal: [label 120px] 4px [value fills] ---------------------------
+.horizontal {
+  display: flex;
+  gap: var(--size-1); // 4px
+  align-items: flex-start;
+  width: 100%;
+}
+
+// The label never truncates — it wraps. 8px vertical padding lines its first
+// line up with the value's (the value content has the same 8px).
+.labelHorizontal {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+
+  flex: none;
+  box-sizing: border-box;
+  width: 120px;
+  padding: var(--size-2) 0;
+  word-break: break-word;
+}
+
+.valueArea {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+// The value content box. 12px sides / 8px vertical = a 36px one-line row,
+// top-aligned with the label. (The Figma frame also carries a 6px radius —
+// dropped on purpose, Daniel: leftover, no states planned.)
+.content {
+  @include font("body-400-compact");
+  color: var(--text-strong);
+
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  padding: var(--size-2) var(--size-3);
+}
+
+// One-line rows (LinkButton, loading): fixed 36px, no vertical padding.
+.contentOneLine {
+  height: var(--size-9);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+// Badge rows: the badge brings its own bulk — side padding drops to 4px.
+.contentBadge {
+  height: var(--size-9);
+  padding: 0 var(--size-1);
+}
+
+// Warning: amber text (set inline), top-aligned so a wrapping message grows
+// downward past the icon. The text fills the width, pushing the icon to the
+// right edge of the value.
+.contentWarning {
+  gap: var(--size-1_5); // 6px
+  align-items: flex-start;
+
+  > :not(.warningIcon):not(.slotLeft) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+// Centers the 14px icon on the first 20px text line.
+.warningIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  height: 20px;
+  color: var(--amber-a9);
+}
+
+.slotLeft {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: var(--size-2); // 8px to the text
+}
+
+.text {
+  min-width: 0;
+  color: inherit;
+  word-break: break-word;
+}
+
+.placeholder {
+  @include font("body-400-compact");
+  color: var(--text-placeholder);
+
+  min-width: 0;
+  word-break: break-word;
+}
+
+.slotRight {
+  display: flex;
+  flex: none;
+}
+
+// A squeezed badge/LinkButton shrinks (its own label ellipsizes) instead of
+// overflowing; the wrapper is the overflow-tooltip trigger.
+.overflowWrap {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+
+  // The badge/button itself must be allowed to shrink (flex min-width:auto
+  // would otherwise keep it at its full content width).
+  > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+// Loading badge: the badge shell (md: 28px, border, radius) with a skeleton
+// line inside, 64px wide like the Figma.
+.badgeSkeleton {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  width: 64px;
+  height: var(--size-7); // 28px
+  padding: 0 var(--size-2);
+  border: 1px solid var(--gray-a6);
+  border-radius: var(--border-radius-1_5);
+}
+
+// The cursor-following tooltip overlay (same pattern as TruncatingText).
+.tooltipOverlay {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  width: max-content;
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+// ---- vertical: label above, 4px gap ----------------------------------------
+.vertical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px
+  align-items: flex-start;
+  width: 100%;
+}
+
+.labelVertical {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+
+  width: 100%;
+  word-break: break-word;
+}
+
+// Vertical text is the SPACIOUS body style (14/22) — horizontal is compact.
+.textVertical {
+  @include font("body-400-spacious");
+  color: var(--text-strong);
+
+  width: 100%;
+  margin: 0;
+  word-break: break-word;
+}
+
+.placeholderColor {
+  color: var(--text-placeholder);
+}
+
+// Clamp after N lines (the count comes inline via -webkit-line-clamp).
+.textClamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+// Clamped text and its Show more/less button, 4px apart.
+.textBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+  align-items: flex-start;
+  width: 100%;
+}
+
+.textLines {
+  width: 100%;
+}
+
+// The avatar stack sits 8px below the label (on top of the root's 4px gap).
+.avatars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px stack ↔ Show more
+  align-items: flex-start;
+  width: 100%;
+  padding-top: var(--size-2);
+}
+
+.avatarsLoading {
+  gap: var(--size-3); // 12px between skeleton rows
+}
+
+// AvatarGroup's stack is inline-flex (content-sized); inside a value it must
+// take the value width so its name lines can truncate.
+.stackFill {
+  width: 100%;
+  max-width: 100%;
+}
+
+// The Show more/less height-animation target around the stack.
+.stackWrap {
+  width: 100%;
+}
+
+.avatarLoadingRow {
+  display: flex;
+  gap: var(--size-2); // 8px avatar ↔ line
+  align-items: center;
+  width: 100%;
+}
+
+.avatarEmptyRow {
+  display: flex;
+  gap: var(--size-2);
+  align-items: center;
+  min-width: 0;
+}
+
+.placeholderCompact {
+  @include font("body-400-compact");
+  color: var(--text-placeholder);
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

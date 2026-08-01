@@ -1,0 +1,7 @@
+// Same pattern as the codebase: apply a named composite text style from the
+// design tokens (font shorthand + letter-spacing + feature-settings).
+@mixin font($name) {
+  font: var(--font-#{$name});
+  letter-spacing: var(--letter-spacing-#{$name});
+  font-feature-settings: var(--feature-settings-#{$name});
+}

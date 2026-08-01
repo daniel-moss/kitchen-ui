@@ -1,0 +1,29 @@
+@use "../../styles/mixins/font" as *;
+
+// Left text block — left-aligned column. Truncation (with the full-text
+// tooltip) is handled by TruncatingText; "wrap" lines just wrap.
+.text {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+// A lone title keeps the two-line row height (20px line centered in 40px).
+.singleLine {
+  min-height: var(--size-10); // 40px
+}
+
+.wrapLine {
+  width: 100%;
+}
+
+.title {
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.caption {
+  color: var(--text-subtle);
+
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}

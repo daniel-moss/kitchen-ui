@@ -1,0 +1,32 @@
+// A 34×22 toggle: a visually hidden native input overlays the shared ToggleSwitch
+// visual. The track's look comes from ToggleSwitch; this file only handles the
+// input hit area and cursors. See Figma "Toggle".
+.root {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  width: 34px;
+  height: 22px;
+  vertical-align: middle;
+}
+
+// The real control — invisible, on top, so it takes the click/focus and stays
+// keyboard/AT accessible.
+.input {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.disabled,
+.disabled .input {
+  cursor: not-allowed;
+}
+
+.loading,
+.loading .input {
+  cursor: progress;
+}

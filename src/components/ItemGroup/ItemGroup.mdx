@@ -1,0 +1,113 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ItemGroupStories from "./ItemGroup.stories";
+
+<Meta of={ItemGroupStories} />
+
+# ItemGroup
+
+We use **ItemGroup** to collect related rows into one block. It holds either a
+vertical list of **ListItem**s (`view="list"`, the default) or a wrap grid of
+**Card**s (`view="cards"`). On top of the layout it adds an optional header, a
+bottom divider for stacking, an accordion, truncation, and drag-and-drop reorder.
+
+<Canvas of={ItemGroupStories.WithHeader} />
+
+```tsx
+<ItemGroup label={<GroupLabel label="Locations" />}>
+  {locations.map((loc) => (
+    <ListItem
+      key={loc.id}
+      variant="titleCaption"
+      title={loc.address}
+      caption={loc.name}
+      avatar={<AvatarLocation size="xl" />}
+      isClickable
+      onClick={() => openLocation(loc)}
+      slotRight={<ListItemSlotIcon icon="angle-right" />}
+    />
+  ))}
+</ItemGroup>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+An ItemGroup is a **header** — an optional `GroupLabel` with 12px margins — above
+an **items area**. In the list view the items area pads its rows by 4px (so their
+hover / press fills sit inside the block); in the cards view it pads 16px with
+12px gaps. Every variation below builds on these two parts.
+
+<Canvas of={ItemGroupStories.WithHeader} />
+
+## Behaviour
+
+### List view
+
+The default (`view="list"`). Children are `ListItem`s, stacked with no gap
+between them.
+
+<Canvas of={ItemGroupStories.DefaultGroup} />
+
+### Cards view
+
+`view="cards"` lays the children out as a wrap grid of `Card`s (here, `CardFile`).
+Each card flexes between **106 and 184px** wide and the grid wraps as needed.
+
+<Canvas of={ItemGroupStories.Cards} />
+
+### Header
+
+Pass a `GroupLabel` element as `label` to add a header above the items. When more
+than one group shares a screen, every group should carry a header so they read as
+separate sections.
+
+<Canvas of={ItemGroupStories.WithHeader} />
+
+### Stacked groups
+
+When groups stack directly on top of each other the gap between them is **0** —
+the upper group sets `divider` to draw a full-width 1px line at its bottom edge,
+which does the separating.
+
+<Canvas of={ItemGroupStories.StackedGroups} />
+
+### Accordion
+
+With `accordion`, the `GroupLabel` header becomes a toggle that expands and
+collapses the items. Closed, the header keeps its bottom margin. It is
+controllable (`open` / `onOpenChange`) or uncontrolled (`defaultOpen`).
+
+<Canvas of={ItemGroupStories.Accordion} />
+
+### Truncation
+
+`truncateAfter={n}` shows only the first *n* items plus a full-width **"Show N
+more"** button. Expanding is one-way — the button disappears and the group stays
+open.
+
+<Canvas of={ItemGroupStories.Truncation} />
+
+### Separated
+
+`separated` puts a divider between every two items. It is **list-only**, and a
+separated group can not be truncated.
+
+<Canvas of={ItemGroupStories.SeparatedItems} />
+
+### Dragging
+
+Pass `onReorder` to make the items reorderable. In a **list**, drag a row's grip
+handle — or long-press anywhere on the row — then drop; the group calls
+`onReorder(from, to)` and you reorder your own array. In the **cards** grid there
+is no handle, so a **long-press** on a card starts the drag and the grid reflows
+in 2D to open the drop slot.
+
+<Canvas of={ItemGroupStories.Dragging} />
+
+## Props
+
+<ArgTypes of={ItemGroupStories} />

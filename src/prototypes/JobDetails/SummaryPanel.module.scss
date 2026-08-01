@@ -1,0 +1,44 @@
+// The "Summary" tab (Figma 23824-25409): a 16px-padded column — a segmented
+// Tech work / Charges / Signature control on top, then the Tech-work modules.
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 100%;
+  padding: var(--size-4);
+}
+
+// List-item module bodies use 4px margins around the rows (Figma), not the
+// module's default 16px content padding — pull the padding back locally.
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// A form row's context-menu card, anchored under its ellipsis.
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}
+
+// Charges / Signature — not designed yet (Figma's violet placeholder fill).
+.placeholder {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--size-4);
+  border-radius: var(--border-radius-2_5);
+  background: var(--violet-a2);
+
+  span {
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 24px;
+    color: var(--violet-a9);
+  }
+}

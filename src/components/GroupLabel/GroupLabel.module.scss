@@ -1,0 +1,201 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// GroupLabel — a group header row. primary = 40px filled row; secondary = 28px
+// transparent row. Accordion adds a caret + hover/press/focus/disabled states.
+.root {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--border-radius-1_5); // 6px
+}
+
+.primary {
+  min-height: var(--size-10); // 40px
+  padding-left: var(--size-3); // 12px
+  gap: var(--size-3); // 12px — accordion caret ↔ body
+  background: var(--gray-a2);
+}
+.secondary {
+  min-height: var(--size-7); // 28px
+  padding-left: var(--size-2); // 8px
+}
+
+// ---- body: content + right slot ----
+.body {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px — content ↔ slotRight
+}
+.primary .body {
+  padding-right: var(--size-3); // 12px
+}
+.primary .bodySlotRight {
+  padding-right: var(--size-1); // 4px — the 32px IconButton hugs the edge
+}
+.secondary .body {
+  padding-right: var(--size-2); // 8px
+}
+.secondary .bodySlotRight {
+  padding-right: var(--size-0_5); // 2px — the 24px IconButton hugs the edge
+}
+
+// ---- content: label · counter · caption (primary) / label + caret (secondary) ----
+.content {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px between label / bullets / counter / caption / caret
+}
+.slotLeft {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.label {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-strong);
+
+  @include font("caption-medium-500"); // Inter Medium 13/20
+}
+// Without counter/caption the label owns the row width.
+.labelFill {
+  flex: 1 1 0;
+}
+.secondary .label {
+  color: var(--text-subtle);
+}
+
+// Bullet separator between label / counter / caption.
+.dot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-3_5); // 14px
+  height: var(--size-3_5);
+  color: var(--gray-a9);
+}
+
+.counter {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — icon ↔ number
+  color: var(--text-subtle);
+
+  @include font("caption-medium-500");
+}
+.counterIcon {
+  display: flex;
+  align-items: center;
+  color: var(--gray-a11);
+}
+
+.caption {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-subtle);
+
+  @include font("caption-medium-500");
+}
+
+.slotRight {
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+
+// ---- carets (caret-down glyph, rotated -90° when closed) ----
+.caret {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-4); // 16px
+  height: var(--size-4);
+  color: var(--gray-12);
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+}
+.caretSecondary {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-3_5); // 14px
+  height: var(--size-3_5);
+  color: var(--gray-a11);
+  transform: rotate(-90deg);
+  transition:
+    transform 160ms ease,
+    color 120ms ease;
+}
+.caretOpen {
+  transform: rotate(0deg);
+}
+
+// ---- accordion interaction (the non-accordion rows are static) ----
+.accordion {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 120ms ease;
+}
+
+@media (hover: hover) {
+// Exclude the right-slot: hovering / pressing an action there should style only
+// that element, not the whole row (like the DisplayModule accordion header).
+.accordion:hover:not(:has(.slotRight:hover)) {
+  @include row-hover-fill;
+}
+}
+.accordion:active:not(:has(.slotRight:active)) {
+  @include row-press-fill;
+}
+
+// Focus (primary) — the DS focus ring: 2px stroke, 2px gap, gray-a3 fill.
+.primary.accordion:focus-visible {
+  @include row-focus-ring;
+}
+// Focus (secondary) — gray-a3 fill + a 2px gray-12 ring drawn OUTSIDE the row.
+.secondary.accordion:focus-visible {
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
+  background: var(--gray-a3);
+}
+
+// Secondary copy strengthens (subtle → strong) while the row is interacted.
+@media (hover: hover) {
+.secondary.accordion:hover:not(:has(.slotRight:hover)) .label {
+  color: var(--text-strong);
+}
+}
+.secondary.accordion:active:not(:has(.slotRight:active)) .label,
+.secondary.accordion:focus-visible .label {
+  color: var(--text-strong);
+}
+
+@media (hover: hover) {
+.secondary.accordion:hover:not(:has(.slotRight:hover)) .caretSecondary {
+  color: var(--gray-12);
+}
+}
+.secondary.accordion:active:not(:has(.slotRight:active)) .caretSecondary,
+.secondary.accordion:focus-visible .caretSecondary {
+  color: var(--gray-12);
+}
+
+.disabled {
+  @include row-disabled;
+}

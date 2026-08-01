@@ -1,0 +1,106 @@
+@use "../../../styles/mixins/font" as *;
+@use "../../../styles/mixins/input-chrome" as *;
+
+// ===== root (field + optional error help text) =====
+.root {
+  @include input-root;
+
+  width: 100%;
+}
+
+.disabled {
+  @include input-disabled;
+}
+
+// ===== field ================================================================
+// Shared chrome; the fixed 36px height is overridden — a TextArea is min 4
+// rows and grows with its content (no inner scroll, no max height).
+.field {
+  @include input-field;
+
+  align-items: flex-start;
+  height: auto;
+  padding: 0; // the inner areas carry the paddings (Figma "Value Container")
+  width: 100%;
+  cursor: text;
+}
+
+@media (hover: hover) {
+.field:hover {
+  @include input-field-hover;
+}
+}
+
+.field:focus-within {
+  @include input-field-active;
+}
+
+.field.invalid,
+.field.invalid:hover,
+.field.invalid:focus-within {
+  @include input-field-invalid;
+}
+
+// Read-only (last — same specificity, wins): blocked cursor, no caret, no
+// active border.
+.field.readOnly {
+  @include input-field-readonly;
+
+  .textarea {
+    cursor: not-allowed;
+    caret-color: transparent;
+  }
+}
+
+// ===== auto-grow ============================================================
+// The invisible replica mirrors the text in the same grid cell and drives
+// the height; the textarea just fills the cell. No resize listeners, works
+// everywhere (field-sizing: content is not in Safari yet).
+.grow {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 7px var(--size-3); // Figma: px-12, py-7 (102px total at 4 rows)
+
+  // While the clear button is rendered, the text runs up to it (pr-0).
+  &:not(:last-child) {
+    padding-right: 0;
+  }
+}
+
+.replica,
+.textarea {
+  @include font("body-400-spacious"); // Inter Regular 14/22 — multi-line
+
+  grid-area: 1 / 1 / 2 / 2;
+  word-break: break-word;
+}
+
+.replica {
+  min-height: 88px; // 4 rows × 22px — the doc's minimum
+  visibility: hidden;
+  white-space: pre-wrap;
+}
+
+.textarea {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  outline: none;
+  resize: none; // the replica grows the field instead
+  overflow: hidden;
+  color: var(--text-strong);
+}
+
+// ===== clear button =========================================================
+// Shown whenever the field HAS a value (Daniel, 2026-07-22 — not only on
+// focus); it sits inside the field, so pressing it keeps :focus-within until
+// the Prompt takes over. An empty field renders no button (the `filled` guard
+// in TextArea.tsx).
+.clear {
+  display: flex;
+  flex: none;
+  padding: var(--size-0_5) var(--size-0_5) 0 0; // 2px top/right
+}

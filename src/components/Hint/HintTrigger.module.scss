@@ -1,0 +1,43 @@
+.trigger {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  color: var(--gray-a8);
+  transition: color 120ms ease;
+
+&:focus-visible {
+    color: var(--gray-a12);
+    outline: none;
+  }
+
+  @media (hover: hover) {
+  &:hover {
+    color: var(--gray-a12);
+    outline: none;
+  }
+}
+
+  // Active state — works on touch too (unlike :hover): `_isHovered`, or an open
+  // tooltip whose wrapper carries data-tooltip-open (tapping a HintTrigger shows
+  // the tooltip AND lights up the icon).
+  &.hovered,
+  :global([data-tooltip-open]) & {
+    color: var(--gray-a12);
+    outline: none;
+  }
+
+  // Invisible 32×32 hit area centered on the 14px icon (doesn't affect layout).
+  &::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 32px;
+  }
+}

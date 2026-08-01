@@ -1,0 +1,96 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as IconButtonStories from "./IconButton.stories";
+
+<Meta of={IconButtonStories} />
+
+# IconButton
+
+We use **IconButton** for icon-only actions — a square button with no visible
+label, for compact spots like toolbars, list rows and headers. For an action
+that needs a text label use
+<a href="/?path=/docs/components-button--docs" target="_top">Button</a>.
+
+<Canvas of={IconButtonStories.Hero} />
+
+```tsx
+<IconButton icon="pen" aria-label="Edit" onClick={editItem} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+An IconButton is a **square** with a single centered icon (14px), on a
+`--border-radius-1_5` (6px) rounded fill. It has six square sizes; the icon stays
+14px at every size:
+
+- **xxxs** `--size-5` (20px) · **xxs** `--size-5_5` (22px) · **xs** `--size-6`
+  (24px) · **sm** `--size-7` (28px) · **md** `--size-8` (32px) · **lg**
+  `--size-9` (36px).
+
+Because there is no visible text, **`aria-label` is required** — see
+[Accessible label](#accessible-label).
+
+<Canvas of={IconButtonStories.Sizes} />
+
+## Behaviour
+
+### Variants
+
+Four styles: **solid** (primary), **subtle** (secondary, a 1px border that clears
+on hover/press), **ghost** (low-emphasis), and **muted** — a dimmed icon that
+strengthens to full contrast on hover, press and focus, for low-priority controls
+like a ⋯ menu trigger. There is **no danger variant**: for a destructive action,
+use a labelled <a href="/?path=/docs/components-button--docs" target="_top">Button</a>.
+
+<Canvas of={IconButtonStories.Variants} />
+
+### Sizes
+
+Six square sizes from 20 to 36px. The icon is a constant 14px, so smaller sizes
+simply tighten the padding around it.
+
+<Canvas of={IconButtonStories.Sizes} />
+
+### States
+
+Every variant has 7 states: **default**, **hovered**, **pressed**, **focused**
+(a 2px ring with a 2px gap), **processing** (a spinner replaces the icon and
+blocks clicks), **disabled** (dimmed to 30% with the not-allowed cursor), and
+**loading** (a placeholder while content loads). Each style is shown across all
+seven below.
+
+**Solid**
+
+<Canvas of={IconButtonStories.StatesSolid} />
+
+**Subtle**
+
+<Canvas of={IconButtonStories.StatesSubtle} />
+
+**Ghost**
+
+<Canvas of={IconButtonStories.StatesGhost} />
+
+**Muted**
+
+<Canvas of={IconButtonStories.StatesMuted} />
+
+### Accessible label
+
+`aria-label` is **required**. The button shows only an icon, so assistive
+technology has no text to read — the label names the action (e.g. `"Edit"`,
+`"Delete"`, `"More"`).
+
+### Debounced click
+
+`onClick` is debounced on the leading edge — it fires immediately, then ignores
+repeat clicks for a short window, so a fast double-tap can not trigger twice. It
+is built in; pass `noDebounce` to opt out.
+
+## Props
+
+<ArgTypes of={IconButtonStories} />
