@@ -134,9 +134,10 @@ always `Month YYYY`.
 
 Hovering the timestamp shows a
 <a href="/?path=/story/components-tooltip--playground" target="_top">Tooltip</a>
-with the exact moment — `Mon, Jan 1 ・ 12:00 PM`. The year is added only when
-the event did not happen this year (`Mon, Jan 1, 2025 ・ 12:00 PM`). `label`
-and `tooltipLabel` override the two strings when a caller needs something else.
+with the exact moment — `Mon, Jan 1, 2026 ・ 12:00 PM`. The tooltip **always**
+writes the year: it is the one place that says exactly when an event happened,
+so it never leaves the year to be worked out. `label` and `tooltipLabel`
+override the two strings when a caller needs something else.
 
 ### Accordion
 

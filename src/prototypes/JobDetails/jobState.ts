@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import { isPastDue, Scheduling } from "./SchedulingForm";
 
@@ -27,6 +29,74 @@ export interface JobState {
 }
 
 export const defaultJob: JobState = { status: "upcoming", everStarted: false };
+
+// ---- time spent in the "Active" status --------------------------------------
+// The Activity tab's two widgets measure the JOB's own active time — not the
+// technicians' tracked time (that is the Timesheet tab). A job can go active →
+// paused → active many times, so the total is the sum of every stretch.
+
+/** One stretch the job spent in "active". `end` is null while it still runs. */
+export interface ActivePeriod {
+  start: number;
+  end: number | null;
+}
+
+const DAY_LABEL = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+
+/**
+ * Accumulates the job's time in the "active" status across every
+ * start / pause / resume cycle. While the job is active the total ticks once a
+ * second, so the widgets update in real time.
+ *
+ * Returns the running total in seconds and the distinct calendar days any
+ * active stretch touched (e.g. ["Jan 1", "Jan 3"]).
+ */
+export function useJobActiveTime(job: JobState) {
+  const [periods, setPeriods] = useState<ActivePeriod[]>([]);
+  const [now, setNow] = useState(() => Date.now());
+
+  // Open a stretch when the job becomes active; close it when it leaves.
+  // The guard makes this safe against React's double-invoked effects.
+  useEffect(() => {
+    setPeriods((p) => {
+      const open = p.length > 0 && p[p.length - 1].end === null;
+      if (job.status === "active") return open ? p : [...p, { start: Date.now(), end: null }];
+      return open ? [...p.slice(0, -1), { ...p[p.length - 1], end: Date.now() }] : p;
+    });
+  }, [job.status]);
+
+  // A job reset back to "never started" starts its history over.
+  useEffect(() => {
+    if (!job.everStarted) setPeriods([]);
+  }, [job.everStarted]);
+
+  // Tick while active. `now` is refreshed immediately so the open stretch never
+  // measures against a stale clock in the second before the first tick.
+  useEffect(() => {
+    if (job.status !== "active") return undefined;
+    setNow(Date.now());
+    const t = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(t);
+  }, [job.status]);
+
+  const totalSec = periods.reduce((acc, p) => acc + Math.max(0, (p.end ?? now) - p.start), 0) / 1000;
+
+  // Every calendar day a stretch touched, in order. A stretch that crosses
+  // midnight counts both days.
+  const days: string[] = [];
+  for (const p of periods) {
+    const d = new Date(p.start);
+    d.setHours(0, 0, 0, 0);
+    const last = p.end ?? now;
+    while (d.getTime() <= last) {
+      const label = DAY_LABEL.format(d);
+      if (!days.includes(label)) days.push(label);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
+  return { totalSec, days };
+}
 
 // The upcoming job's fixed demo scheduled time ("Scheduled on"). The transition
 // timestamps (Started/Active/Cancelled/Unscheduled on) are REAL — captured with

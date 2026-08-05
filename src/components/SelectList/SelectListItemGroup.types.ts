@@ -9,6 +9,12 @@ export interface SelectListItemGroupProps extends HTMLAttributes<HTMLDivElement>
    * SelectListItems; a SECONDARY GroupLabel goes with "default" ones.
    */
   label?: ReactNode;
+  /**
+   * Shown in place of the items when the group has none — a caption-only
+   * EmptyState, e.g. "No contacts here yet" (Figma 23819-13139). Without it
+   * an empty group renders just its header.
+   */
+  emptyCaption?: string;
   /** Bottom divider separating this group from the next. Default true. */
   divider?: boolean;
   className?: string;

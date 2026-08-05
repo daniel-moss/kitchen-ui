@@ -80,6 +80,15 @@ export default function TextField(props: TextFieldProps) {
           )}
         >
           <input
+            // Keep browser autofill and password managers off the field: they
+            // otherwise pop a "save/fill password" prompt on any input they
+            // guess is a user name (Daniel hit this on "Received by",
+            // 2026-08-03). Listed BEFORE the spread, so a consumer that really
+            // wants autofill (a real address/name field) can opt back in.
+            autoComplete="off"
+            data-1p-ignore="true"
+            data-lpignore="true"
+            data-form-type="other"
             {...inputProps}
             value={value}
             defaultValue={defaultValue}

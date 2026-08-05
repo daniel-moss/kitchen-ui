@@ -24,8 +24,6 @@ interface ChangePauseStatusFormProps {
   initialType: string;
   /** The current pause sub-status, pre-selected on open. */
   initialSubStatus?: string;
-  /** The current status message, pre-filled into the reason field. */
-  initialReason?: string;
   /** Commits the chosen pause Type, sub-status and reason (may be ""). */
   onSubmit: (type: string, subStatus: string, reason: string) => void;
   mobile?: boolean;
@@ -41,13 +39,14 @@ export default function ChangePauseStatusForm({
   onClose,
   initialType,
   initialSubStatus = "",
-  initialReason = "",
   onSubmit,
   mobile = false,
 }: ChangePauseStatusFormProps) {
   const [type, setType] = useState(initialType);
   const [subStatus, setSubStatus] = useState(initialSubStatus);
-  const [reason, setReason] = useState(initialReason);
+  // The Pause reason always starts EMPTY (Daniel, 2026-08-05): it is a NEW
+  // reason for this status change, not an edit of the one given when pausing.
+  const [reason, setReason] = useState("");
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
 
@@ -59,12 +58,12 @@ export default function ChangePauseStatusForm({
     }
     setType(initialType);
     setSubStatus(initialSubStatus);
-    setReason(initialReason);
+    setReason("");
     setShowError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const dirty = type !== initialType || subStatus !== initialSubStatus || reason !== initialReason;
+  const dirty = type !== initialType || subStatus !== initialSubStatus || reason !== "";
 
   // Sub-status is required (Type is always set — pre-selected).
   const submit = () => {
@@ -93,7 +92,7 @@ export default function ChangePauseStatusForm({
     <Dialog
       open={open}
       onClose={onClose}
-      title="Change pause status"
+      title="Change job pause status"
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
@@ -105,13 +104,13 @@ export default function ChangePauseStatusForm({
           }
         >
           <Button size="lg" variant="solid" onClick={submit}>
-            Change status
+            Change job status
           </Button>
         </PopoverFooter>
       }
     >
       <div className={styles.form}>
-        <Input label="Type">
+        <Input label="Pause type">
         <RadioGroup
           value={type}
           onChange={(v) => {

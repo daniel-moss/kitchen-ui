@@ -57,6 +57,18 @@ const CLIENTS: Client[] = [
 // the designs).
 export const SERVICE_CLIENT = { name: "McDonald's", caption: "Business · Commercial" };
 
+/** The radio labels — reused by the activity log so it reads like the form. */
+export const BILLING_INTENTION_LABELS: Record<BillingIntention, string> = {
+  inheritLocation: "Inherit from location",
+  location: "Bill to location",
+  client: "Bill to client",
+  differentClient: "Bill to different client",
+};
+
+/** The picked client's name ("Bill to different client" only). */
+export const billingClientName = (clientId: number | null) =>
+  clientId == null ? "" : (CLIENTS.find((c) => c.id === clientId)?.name ?? "");
+
 // What the "Inherit from location" option resolves to (the location's own
 // billing setting). Fixed for the demo.
 const INHERIT_RESOLVED = "Bill to location";
@@ -142,7 +154,7 @@ export default function BillingForm({ open, onClose, initial, onSave, mobile = f
       return;
     }
     onSave({ intention, clientId: intention === "differentClient" ? clientId : null });
-    toast({ type: "success", title: '"Billing intention" updated' });
+    toast({ type: "success", title: '"Billing intention" module updated' });
     onClose();
   };
 

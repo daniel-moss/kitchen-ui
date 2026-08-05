@@ -1,6 +1,7 @@
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, ReactNode, useEffect, useState } from "react";
 
 import Button from "../../components/Button/Button";
+import Chip from "../../components/Chip/Chip";
 import Dialog from "../../components/Dialog/Dialog";
 import DateField from "../../components/Fields/DateField/DateField";
 import InputGroup from "../../components/Fields/InputGroup/InputGroup";
@@ -9,10 +10,12 @@ import TextField from "../../components/Fields/TextField/TextField";
 import { Icon } from "../../components/Icon/Icon";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
+import RadioGroup from "../../components/Radio/RadioGroup";
+import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
-import { categoryIcon, Session, StatusItems } from "./TimesheetPanel";
+import { Session, TECH_STATUSES } from "./TimesheetPanel";
 
 import styles from "./SessionForm.module.scss";
 
@@ -47,27 +50,70 @@ interface TimeParts {
   meridiem: Meridiem;
 }
 
-// "9:00" → "09:00" — the input always shows a 2-digit hour ("00:00" format).
-const padClock = (c: string) => {
-  const [h, m] = c.split(":");
-  return h != null && m != null ? `${h.padStart(2, "0")}:${m}` : c;
-};
-
 // "11:30 AM" → { clock: "11:30", meridiem: "AM" }; "January 1, 2026" → a Date.
+// The clock is taken exactly as the label writes it — "9:00" stays "9:00",
+// because hours 2–9 use the one-digit "0:00" mask (see maskClock).
 const parseParts = (dateLabel?: string, timeLabel?: string): TimeParts => ({
   date: dateLabel != null ? new Date(dateLabel) : null,
-  clock: timeLabel != null ? padClock(timeLabel.replace(/\s*(AM|PM)\s*/i, "").trim()) : "",
+  clock: timeLabel != null ? timeLabel.replace(/\s*(AM|PM)\s*/i, "").trim() : "",
   meridiem: timeLabel != null && /PM/i.test(timeLabel) ? "PM" : "AM",
 });
 
-// Mask any input to a "HH:MM" clock: keep ≤ 4 digits, drop a colon in after 2.
-const maskClock = (raw: string) => {
-  const d = raw.replace(/\D/g, "").slice(0, 4);
-  return d.length <= 2 ? d : `${d.slice(0, 2)}:${d.slice(2)}`;
+// Mask the typed digits to a clock. NOTHING is ever added but the COLON, and
+// the FIRST digit picks the pattern (Daniel, 2026-08-05):
+//   0 or 1 → a two-digit hour is still possible (10, 11, 12), so the mask is
+//            "00:00" and the colon appears after the SECOND digit.
+//   2–9    → only a one-digit hour is possible, so the mask is "0:00" and the
+//            colon appears immediately ("3" → "3:", "345" → "3:45").
+// The colon shows up as soon as the hour is complete, so it is clear it is
+// already typed. It can never be deleted ON ITS OWN (Daniel, 2026-08-05): a
+// Delete that lands on the colon takes the digit before it too, so "5:" goes
+// straight back to "" — while a Delete that only removed a MINUTE digit leaves
+// the colon in place ("5:4" → "5:").
+const maskClock = (raw: string, deleting = false) => {
+  const digits = raw.replace(/\D/g, "");
+  const hourLen = /^[01]/.test(digits) ? 2 : 1;
+  const d = digits.slice(0, hourLen + 2);
+  if (d.length < hourLen) return d;
+  if (d.length === hourLen) {
+    if (!deleting) return `${d}:`;
+    // The colon is still there → a minute digit went; it is gone → the delete
+    // hit the colon, so the hour's last digit goes with it.
+    return raw.endsWith(":") ? `${d}:` : d.slice(0, -1);
+  }
+  return `${d.slice(0, hourLen)}:${d.slice(hourLen)}`;
 };
 
-// A 12-hour clock is valid: hour 01–12, minute 00–59.
-const isValidClock = (clock: string) => /^(0[1-9]|1[0-2]):[0-5]\d$/.test(clock);
+// A 12-hour clock is valid: hour 1–12 (a written leading zero is allowed),
+// minute 00–59.
+const isValidClock = (clock: string) => /^(0?[1-9]|1[0-2]):[0-5]\d$/.test(clock);
+
+// A full Date → the three parts an InputGroup holds (the inverse of `combine`).
+const splitParts = (d: Date): TimeParts => {
+  const h24 = d.getHours();
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return {
+    date: new Date(d.getFullYear(), d.getMonth(), d.getDate()),
+    clock: `${h12}:${String(d.getMinutes()).padStart(2, "0")}`,
+    meridiem: h24 >= 12 ? "PM" : "AM",
+  };
+};
+
+// The End-time shortcuts under the field (Figma 24105-15788): each sets End to
+// Start plus that much, so a session can be logged without typing a clock.
+// Five per row on both breakpoints, stretched to equal widths.
+const END_OFFSETS: { label: string; minutes: number }[] = [
+  { label: "+15m", minutes: 15 },
+  { label: "+30m", minutes: 30 },
+  { label: "+45m", minutes: 45 },
+  { label: "+1h", minutes: 60 },
+  { label: "+1.5h", minutes: 90 },
+  { label: "+2h", minutes: 120 },
+  { label: "+2.5h", minutes: 150 },
+  { label: "+3h", minutes: 180 },
+  { label: "+3.5h", minutes: 210 },
+  { label: "+4h", minutes: 240 },
+];
 
 // One labelled InputGroup fusing three segments — Date + masked Time (fixed
 // width) + AM/PM select (hugs). The group shows its error only once focus has
@@ -85,6 +131,7 @@ const TimeGroup = ({
   onMeridiem,
   onFocusTime,
   onBlurTime,
+  below,
 }: {
   label: string;
   value: TimeParts;
@@ -93,6 +140,8 @@ const TimeGroup = ({
   showError: boolean;
   errorMessage: string;
   minDate?: Date;
+  /** Extra content under the field, inside the labelled Input (the End-time chips). */
+  below?: ReactNode;
   onDate: (date: Date | null) => void;
   onClock: (clock: string) => void;
   onMeridiem: (m: Meridiem) => void;
@@ -115,11 +164,10 @@ const TimeGroup = ({
           <TextField
             className={styles.time}
             value={value.clock}
-            onChange={(e) => onClock(maskClock(e.target.value))}
+            onChange={(e) => onClock(maskClock(e.target.value, ((e.nativeEvent as InputEvent).inputType ?? "").startsWith("delete")))}
             onFocus={onFocusTime}
             onBlur={onBlurTime}
             keyboard="numeric"
-            placeholder="00:00"
           />
           <SelectField
             className={styles.ampm}
@@ -128,6 +176,7 @@ const TimeGroup = ({
             onClick={(e: MouseEvent<HTMLDivElement>) => mpop.toggle(e.currentTarget)}
           />
         </InputGroup>
+        {below}
       </Input>
 
       <SelectPopoverList pop={mpop} mobile={mobile}>
@@ -159,10 +208,9 @@ interface SessionFormProps {
   mobile?: boolean;
 }
 
-// The "Time session" form (Figma 24105-15773 mobile / 24105-15788 desktop,
-// 2026-07-27 update). A required Status SELECT (the four tech statuses —
-// empty error "Choose Status", Daniel's copy over the node's "Choose What is
-// this time for?") over two labelled InputGroups — Start time / End time —
+// The "Time session" form (Figma 24105-15772, 2026-08-04 update). A required
+// "Your status" RadioGroup — the four tech statuses as VERTICAL card radios,
+// empty error "Choose your status" — over two labelled InputGroups — Start time / End time —
 // each fusing Date + masked Time + AM/PM (the DS dateTextSelect shape).
 // Adding prefills Start date with today (Daniel: keep) and mirrors it into
 // End date; End is disabled until Start time is a valid clock; the End date
@@ -172,7 +220,6 @@ interface SessionFormProps {
 // — Figma toast 24105-15803.
 export default function SessionForm({ open, onClose, session, onSave, mobile = false }: SessionFormProps) {
   const [category, setCategory] = useState("");
-  const statusPop = useSelectPopover(mobile);
   const [start, setStart] = useState<TimeParts>({ date: null, clock: "", meridiem: "AM" });
   const [end, setEnd] = useState<TimeParts>({ date: null, clock: "", meridiem: "AM" });
   const [startTouched, setStartTouched] = useState(false);
@@ -238,6 +285,22 @@ export default function SessionForm({ open, onClose, session, onSave, mobile = f
   // is prefilled; Figma annotation "Disabled until start time provided").
   const endDisabled = !isValidClock(start.clock);
 
+  // The offset chips share that gate — without a Start there is nothing to add
+  // to. Picking one fills End outright and counts as editing it, so the date
+  // mirroring stops and the field can show its own errors.
+  const startAt = start.date != null && !endDisabled ? combine(start.date, start.clock, start.meridiem) : null;
+  const applyOffset = (minutes: number) => {
+    if (startAt == null) return;
+    setEnd(splitParts(new Date(startAt.getTime() + minutes * 60_000)));
+    setEndEdited(true);
+    setEndTouched(true);
+  };
+  // A chip reads as active when End is exactly that far after Start.
+  const offsetActive = (minutes: number) => {
+    if (startAt == null || end.date == null || !isValidClock(end.clock)) return false;
+    return combine(end.date, end.clock, end.meridiem).getTime() - startAt.getTime() === minutes * 60_000;
+  };
+
   const startClockBad = !isValidClock(start.clock);
   const endClockBad = !isValidClock(end.clock);
   // End must be strictly after Start (date + time) — no negative sessions.
@@ -302,17 +365,19 @@ export default function SessionForm({ open, onClose, session, onSave, mobile = f
       }
     >
       <div className={styles.form}>
-        {/* Status — a select over the four tech statuses (Figma 24105-15788;
-            the picked status shows its icon in the field, like the drawer's). */}
-        <Input label="Status">
-          <SelectField
-            value={category !== "" ? category : undefined}
-            slotLeft={category !== "" ? <Icon icon={categoryIcon(category)} size={14} container="square" /> : undefined}
+        {/* Status — a VERTICAL stack of card radios over the four tech
+            statuses (Figma 24105-15772, error copy from 24114-16327). */}
+        <Input label="Your status">
+          <RadioGroup
+            value={category}
+            onChange={setCategory}
             isValid={!(submitted && category === "")}
-            errorMessage="Choose Status"
-            open={statusPop.open}
-            onClick={(e: MouseEvent<HTMLDivElement>) => statusPop.toggle(e.currentTarget)}
-          />
+            errorMessage="Choose your status"
+          >
+            {TECH_STATUSES.map((s) => (
+              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
+            ))}
+          </RadioGroup>
         </Input>
 
         <TimeGroup
@@ -349,20 +414,24 @@ export default function SessionForm({ open, onClose, session, onSave, mobile = f
             setEndFocused(false);
             setEndTouched(true);
           }}
+          below={
+            <div className={styles.offsets}>
+              {END_OFFSETS.map((o) => (
+                <Chip
+                  key={o.label}
+                  size="lg"
+                  active={offsetActive(o.minutes)}
+                  isDisabled={endDisabled}
+                  onClick={() => applyOffset(o.minutes)}
+                >
+                  {o.label}
+                </Chip>
+              ))}
+            </div>
+          }
         />
       </div>
 
-      {/* Status picker — desktop inline card / mobile drawer titled "Status"
-          (Figma 24353-26471 / 24353-26484). */}
-      <SelectPopoverList pop={statusPop} mobile={mobile} title="Status">
-        <StatusItems
-          current={category !== "" ? category : undefined}
-          onPick={(status) => {
-            setCategory(status);
-            statusPop.close();
-          }}
-        />
-      </SelectPopoverList>
     </Dialog>
   );
 }

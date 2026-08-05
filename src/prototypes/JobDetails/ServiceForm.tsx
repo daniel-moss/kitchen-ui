@@ -294,7 +294,7 @@ export default function ServiceForm({ open, onClose, initial, onSave, mobile = f
       return;
     }
     onSave({ reason: reason.trim(), type, recallTo: type === "recall" ? recallTo : null, service, priority, tech });
-    toast({ type: "success", title: '"Service" updated' });
+    toast({ type: "success", title: '"Service" module updated' });
     onClose();
   };
 

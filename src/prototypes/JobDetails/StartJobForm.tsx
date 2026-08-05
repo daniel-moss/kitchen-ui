@@ -3,6 +3,8 @@ import { MouseEvent, useEffect, useState } from "react";
 import Button from "../../components/Button/Button";
 import CheckboxItem from "../../components/Checkbox/CheckboxItem";
 import Dialog from "../../components/Dialog/Dialog";
+import RadioGroup from "../../components/Radio/RadioGroup";
+import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import { Icon } from "../../components/Icon/Icon";
@@ -13,7 +15,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 import { JOB_ID } from "./jobData";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
-import { categoryIcon, StatusItems } from "./TimesheetPanel";
+import { TECH_STATUSES } from "./TimesheetPanel";
 
 import styles from "./jobForm.module.scss";
 
@@ -42,8 +44,8 @@ interface StartJobFormProps {
 
 // The "Start job" form (Figma 24048-13283, 2026-07-27 update): Job sub-status
 // select + optional reason + a "Check in" CheckboxItem card (selected by
-// default) whose content is an empty "Status" SELECT over the four tech
-// statuses (error "Choose Status"). The SAME form serves "Resume job"
+// default) whose content is a VERTICAL stack of card radios over the four
+// tech statuses (error "Choose your status"). The SAME form serves "Resume job"
 // (Figma 24096-19684) via the copy props — resume has NO banner.
 export default function StartJobForm({
   open,
@@ -61,7 +63,6 @@ export default function StartJobForm({
   const [status, setStatus] = useState("");
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
-  const statusPop = useSelectPopover(mobile);
 
   // A fresh open resets the draft; closing also forces the nested selects shut.
   useEffect(() => {
@@ -72,7 +73,6 @@ export default function StartJobForm({
     setStatus("");
     setShowError(false);
     subStatusPop.close();
-    statusPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -140,15 +140,22 @@ export default function StartJobForm({
             setShowError(false);
           }}
           content={
-            <Input label="Status">
-              <SelectField
-                value={status !== "" ? status : undefined}
-                slotLeft={status !== "" ? <Icon icon={categoryIcon(status)} size={14} container="square" /> : undefined}
+            // Figma 24048-13283: the status is a VERTICAL stack of card
+            // radios, one per tech status — not a select + popover.
+            <Input label="Your status">
+              <RadioGroup
+                value={status}
+                onChange={(v) => {
+                  setStatus(v);
+                  setShowError(false);
+                }}
                 isValid={!(showError && checkIn && status === "")}
-                errorMessage="Choose Status"
-                open={statusPop.open}
-                onClick={(e: MouseEvent<HTMLDivElement>) => statusPop.toggle(e.currentTarget)}
-              />
+                errorMessage="Choose your status"
+              >
+                {TECH_STATUSES.map((s) => (
+                  <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
+                ))}
+              </RadioGroup>
             </Input>
           }
         />
@@ -178,18 +185,6 @@ export default function StartJobForm({
         </SelectListItemGroup>
       </SelectPopoverList>
 
-      {/* Check-in status picker — desktop inline card / mobile drawer titled
-          "Status" (Figma 24353-26471 / 24353-26484). */}
-      <SelectPopoverList pop={statusPop} mobile={mobile} title="Status">
-        <StatusItems
-          current={status !== "" ? status : undefined}
-          onPick={(s) => {
-            setStatus(s);
-            setShowError(false);
-            statusPop.close();
-          }}
-        />
-      </SelectPopoverList>
     </Dialog>
   );
 }

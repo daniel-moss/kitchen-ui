@@ -1,0 +1,40 @@
+// The navigation block: one row per level, stacked.
+.nav {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// One navigation row — 52px tall, 16px sides, divider along the bottom edge.
+// The divider is drawn as a border with border-box sizing, so the row stays
+// exactly 52px tall.
+.row {
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  align-items: center;
+
+  height: var(--size-13); // 52px
+  padding-inline: var(--size-4); // 16px
+  border-bottom: 1px solid var(--gray-a3);
+}
+
+// Top level: the segmented track fills the row width.
+.topGroup {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Object tabs: scroll sideways when they do not fit. Scrollbar hidden, and no
+// edge fade (unlike NavTopBar's details tabs) — Daniel, 2026-08-05.
+.scroller {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

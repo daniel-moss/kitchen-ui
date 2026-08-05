@@ -1,4 +1,4 @@
-import { KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, useRef } from "react";
+import { Children, KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactNode, isValidElement, useEffect, useRef } from "react";
 import clsx from "clsx";
 
 import useControllableState from "../../hooks/useControllableState";
@@ -21,6 +21,26 @@ const INTERACTIVE = 'button, a, input, select, textarea, [role="button"], [role=
 const stopIfInteractive = (e: MouseEvent) => {
   const hit = (e.target as Element).closest(INTERACTIVE);
   if (hit != null && (e.currentTarget as Element).contains(hit)) e.stopPropagation();
+};
+
+// Figma's ListItem doc: a TabGroup or an input in the right slot OWNS the
+// interaction, so the row itself must stay non-clickable. TypeScript cannot
+// look inside a ReactNode, so the rule is checked at runtime and reported in
+// the console — the slot's element name is matched against this list.
+const CONTROLS_BLOCKING_CLICK = ["TabGroup", "TextField", "TextArea", "SelectField", "DateField", "SearchField", "PasswordField", "OTPField"];
+
+const elementName = (node: ReactNode): string | null => {
+  if (!isValidElement(node)) return null;
+  const type = node.type as string | { displayName?: string; name?: string };
+  return typeof type === "string" ? null : (type.displayName ?? type.name ?? null);
+};
+
+const blockingControlIn = (slotRight: ReactNode): string | null => {
+  for (const child of Children.toArray(slotRight)) {
+    const name = elementName(child);
+    if (name != null && CONTROLS_BLOCKING_CLICK.includes(name)) return name;
+  }
+  return null;
 };
 
 // Touch taps activate rows from the POINTER event, not the click: iOS groups
@@ -67,6 +87,14 @@ export default function ListItem({
 }: ListItemProps) {
   const [isChecked, setChecked] = useControllableState(checked, defaultChecked, onCheckedChange);
   const [isOpen, setOpen] = useControllableState(open, defaultOpen, onOpenChange);
+
+  // See CONTROLS_BLOCKING_CLICK above — the one rule the types cannot carry.
+  const blocking = isClickable === true ? blockingControlIn(slotRight) : null;
+  useEffect(() => {
+    if (blocking != null) {
+      console.warn(`ListItem: a row with a ${blocking} in slotRight must not be clickable — the control owns the interaction. Drop \`isClickable\`.`);
+    }
+  }, [blocking]);
 
   const handleActivate = (e: MouseEvent<HTMLDivElement>) => {
     if (isAccordion) {

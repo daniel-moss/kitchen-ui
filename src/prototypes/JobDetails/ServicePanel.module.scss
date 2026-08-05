@@ -17,8 +17,8 @@
   margin: calc(-1 * var(--size-4));
 }
 
-// A row's context-menu card, anchored under its ellipsis (fixed, above content).
-.anchoredMenu {
-  position: fixed;
-  z-index: 1000;
+// A module whose body is ONLY an EmptyState: the design gives that body no
+// padding of its own, so EmptyState's 32px is the whole padding.
+.emptyBody {
+  margin: calc(-1 * var(--size-4)); // -16px
 }

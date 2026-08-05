@@ -1,7 +1,7 @@
 import { MouseEvent, useEffect, useState } from "react";
 
-import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import Button from "../../components/Button/Button";
+import CheckboxItem from "../../components/Checkbox/CheckboxItem";
 import Dialog from "../../components/Dialog/Dialog";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
@@ -26,19 +26,27 @@ export const PAUSE_SUB_STATUSES: Record<string, string[]> = {
 interface PauseJobFormProps {
   open: boolean;
   onClose: () => void;
-  /** Pauses with the chosen Type (quick-pause | on-hold), sub-status and reason. */
-  onPause: (type: string, subStatus: string, reason: string) => void;
+  /**
+   * Pauses with the chosen Type (quick-pause | on-hold), sub-status and reason.
+   * `checkOut` = the tech's time stops with the job; unticked, the running
+   * session keeps going.
+   */
+  onPause: (type: string, subStatus: string, reason: string, checkOut: boolean) => void;
   mobile?: boolean;
 }
 
-// "Pause job" form (Figma node 24058-15840): a required Type choice — Quick-pause
-// (amber circle-pause) / On hold (crimson circle-stop), card radios with a
-// description — that reveals a required Sub-status select, then an optional
-// Pause reason. No read-only job-identity group.
+// "Pause job" form (Figma node 24058-15840): a required Pause-type choice —
+// Quick-pause (amber circle-pause) / On hold (crimson circle-stop), card radios
+// with a description — that reveals a required Sub-status select, then an
+// optional Pause reason, then the "Check out" checkbox. No read-only
+// job-identity group.
 export default function PauseJobForm({ open, onClose, onPause, mobile = false }: PauseJobFormProps) {
   const [type, setType] = useState("");
   const [subStatus, setSubStatus] = useState("");
   const [reason, setReason] = useState("");
+  // Checked by default (node annotation on 24512-62825) — pausing usually means
+  // the tech stops working, but they can now keep their time running.
+  const [checkOut, setCheckOut] = useState(true);
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
 
@@ -47,6 +55,7 @@ export default function PauseJobForm({ open, onClose, onPause, mobile = false }:
     setType("");
     setSubStatus("");
     setReason("");
+    setCheckOut(true);
     setShowError(false);
     subStatusPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +69,7 @@ export default function PauseJobForm({ open, onClose, onPause, mobile = false }:
       setShowError(true);
       return;
     }
-    onPause(type, subStatus, reason);
+    onPause(type, subStatus, reason, checkOut);
     toast({ type: "success", title: `"${JOB_ID}" paused` });
     onClose();
   };
@@ -99,10 +108,7 @@ export default function PauseJobForm({ open, onClose, onPause, mobile = false }:
       }
     >
       <div className={styles.form}>
-        {/* Info alert (Figma 24058-15849): pausing = time tracking stops. */}
-        <AlertBanner orientation="vertical">Pausing a job stops tracking your time</AlertBanner>
-
-        <Input label="Type">
+        <Input label="Pause type">
         <RadioGroup
           value={type}
           onChange={(v) => {
@@ -138,6 +144,17 @@ export default function PauseJobForm({ open, onClose, onPause, mobile = false }:
         <Input label="Pause reason" labelCondition="optional" helpText="Why do you need to pause this job?">
           <TextArea value={reason} onChange={(e) => setReason(e.target.value)} />
         </Input>
+
+        {/* Pausing no longer checks the tech out by itself (Figma 24512-62825):
+            this card decides it, and it is ticked by default. */}
+        <CheckboxItem
+          variant="card"
+          icon="arrow-left-from-arc"
+          label="Check out"
+          caption="Stop tracking your time"
+          checked={checkOut}
+          onChange={(e) => setCheckOut(e.target.checked)}
+        />
       </div>
 
       <SelectPopoverList

@@ -15,9 +15,18 @@ import { Icon } from "../../components/Icon/Icon";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
+import { HOT_SIDE_REPAIR_SCHEMA } from "../../forms/formSchema/hotSideRepairSchema";
+import { fieldMap } from "../../forms/formSchema/options";
 import { useAnchoredMenu } from "./shared";
 
 import styles from "./HotSideRepairForm.module.scss";
+
+// Labels, help texts, "(optional)" flags, radio options and `accept` come from
+// the SCHEMA (src/forms/formSchema/hotSideRepairSchema.ts) — the same data the
+// read-only preview is built from, so the two cannot drift apart.
+const F = fieldMap(HOT_SIDE_REPAIR_SCHEMA);
+const labelOf = (key: string) => F[key].label ?? "";
+const isOptional = (key: string) => F[key].optional === true;
 
 type YesNo = "" | "Yes" | "No";
 
@@ -219,28 +228,27 @@ export default function HotSideRepairForm({
 
   // ---- field builders --------------------------------------------------------
 
-  const textField = (
-    key: "checkIn" | "equipmentName" | "reportedIssue" | "temperature" | "checkOut",
-    label: string,
-    opts: { helpText?: string; optional?: boolean } = {},
-  ) => (
-    <div {...field(key)} key={key}>
-      <Input label={label} labelCondition={opts.optional ? "optional" : undefined} helpText={opts.helpText}>
-        <TextField
-          value={draft[key]}
-          onChange={(e) => set(key, e.target.value)}
-          isValid={!(showErrors && bad[key])}
-          // Question-style labels break the derived "Enter [Label]" copy —
-          // explicit fallback (the "Equipment name" derived copy reads fine).
-          errorMessage={label.endsWith("?") ? "Provide an answer" : undefined}
-        />
-      </Input>
-    </div>
-  );
+  const textField = (key: "checkIn" | "equipmentName" | "reportedIssue" | "temperature" | "checkOut") => {
+    const label = labelOf(key);
+    return (
+      <div {...field(key)} key={key}>
+        <Input label={label} labelCondition={isOptional(key) ? "optional" : undefined} helpText={F[key].helpText}>
+          <TextField
+            value={draft[key]}
+            onChange={(e) => set(key, e.target.value)}
+            isValid={!(showErrors && bad[key])}
+            // Question-style labels break the derived "Enter [Label]" copy —
+            // explicit fallback (the "Equipment name" derived copy reads fine).
+            errorMessage={label.endsWith("?") ? "Provide an answer" : undefined}
+          />
+        </Input>
+      </div>
+    );
+  };
 
-  const textAreaField = (key: "actionsTaken" | "safetyConcerns", label: string, optional = false) => (
+  const textAreaField = (key: "actionsTaken" | "safetyConcerns") => (
     <div {...field(key)} key={key}>
-      <Input label={label} labelCondition={optional ? "optional" : undefined}>
+      <Input label={labelOf(key)} labelCondition={isOptional(key) ? "optional" : undefined}>
         <TextArea
           value={draft[key]}
           onChange={(e) => set(key, e.target.value)}
@@ -253,23 +261,27 @@ export default function HotSideRepairForm({
 
   const yesNo = (
     key: "operatingOnArrival" | "functioningOnDeparture" | "needReturn" | "partsPicture" | "standaloneQuote",
-    label: string,
-  ) => (
-    <div {...field(key)} key={key}>
-      <Input label={label}>
-        <RadioGroup
-          orientation="horizontal"
-          value={draft[key]}
-          onChange={(v) => set(key, v as YesNo)}
-          isValid={!(showErrors && bad[key])}
-          errorMessage="Choose an option"
-        >
-          <RadioItem value="Yes" variant="card" label="Yes" />
-          <RadioItem value="No" variant="card" label="No" />
-        </RadioGroup>
-      </Input>
-    </div>
-  );
+  ) => {
+    const schemaField = F[key];
+    const options = schemaField.type === "radio" ? schemaField.options : [];
+    return (
+      <div {...field(key)} key={key}>
+        <Input label={labelOf(key)}>
+          <RadioGroup
+            orientation={schemaField.type === "radio" ? schemaField.orientation : undefined}
+            value={draft[key]}
+            onChange={(v) => set(key, v as YesNo)}
+            isValid={!(showErrors && bad[key])}
+            errorMessage="Choose an option"
+          >
+            {options.map((o) => (
+              <RadioItem key={o.value} value={o.value} variant="card" label={o.label ?? o.value} />
+            ))}
+          </RadioGroup>
+        </Input>
+      </div>
+    );
+  };
 
   const mediaCards = (key: string) =>
     filesOf(key).map((f, i) => (
@@ -286,19 +298,16 @@ export default function HotSideRepairForm({
       />
     ));
 
-  const media = (
-    key: string,
-    label: string,
-    opts: { optional?: boolean; accept?: string; validKey?: string } = {},
-  ) => {
-    const vk = opts.validKey ?? key;
+  const media = (key: string) => {
+    const schemaField = F[key];
+    const optional = isOptional(key);
     return (
-      <div {...field(vk)} key={key}>
-        <Input label={label} labelCondition={opts.optional ? "optional" : undefined}>
+      <div {...field(key)} key={key}>
+        <Input label={labelOf(key)} labelCondition={optional ? "optional" : undefined}>
           <MediaField
             breakpoint={mobile ? "mobile" : "desktop"}
-            accept={opts.accept}
-            isValid={!(showErrors && !opts.optional && filesOf(key).length === 0)}
+            accept={schemaField.type === "media" ? schemaField.accept : undefined}
+            isValid={!(showErrors && !optional && filesOf(key).length === 0)}
             onFilesSelected={(picked) => addMedia(key, picked)}
           >
             {mediaCards(key)}
@@ -346,25 +355,25 @@ export default function HotSideRepairForm({
       }
     >
       <div className={styles.form} ref={bodyRef}>
-        {textField("checkIn", "Who did you check-in with?", { helpText: "Name and title" })}
-        {textField("equipmentName", "Equipment name", { helpText: "Customer, equipment ID" })}
-        {textField("reportedIssue", "What was the reported issue?")}
-        {yesNo("operatingOnArrival", "Was the unit operating properly on arrival?")}
-        {media("dateTag", "Date tag", { accept: "image/*" })}
-        {media("wideShot", "Take a wide-shot of the unit and surrounding area", { accept: "image/*" })}
-        {media("controlPanel", "Control panel status and error codes", { optional: true, accept: "image/*" })}
-        {textField("temperature", "What was the temperature upon arrival?", { optional: true })}
-        {media("amperage", "Amperage - voltage for heating elements or controls", { optional: true, accept: "image/*" })}
-        {media("gasSupply", "Gas supply connection", { optional: true, accept: "image/*" })}
-        {media("burnerFlame", "Burner flame quality", { optional: true, accept: "image/*" })}
+        {textField("checkIn")}
+        {textField("equipmentName")}
+        {textField("reportedIssue")}
+        {yesNo("operatingOnArrival")}
+        {media("dateTag")}
+        {media("wideShot")}
+        {media("controlPanel")}
+        {textField("temperature")}
+        {media("amperage")}
+        {media("gasSupply")}
+        {media("burnerFlame")}
         {/* Design typo "Thermostate" fixed per Daniel. */}
-        {media("thermostatVsActual", "Thermostat vs actual temp", { optional: true, accept: "image/*" })}
-        {media("gasPressure", "Gas pressure readings for inlet and manifold", { optional: true, accept: "image/*" })}
-        {media("solenoid", "Thermostat, pilot, ignitor and-or solenoid operation status", { optional: true, accept: "image/*" })}
+        {media("thermostatVsActual")}
+        {media("gasPressure")}
+        {media("solenoid")}
 
         {/* "Issues found" — the textAreaMedia pair; BOTH parts required. */}
         <div {...field("issues")}>
-          <Input label="Issues found">
+          <Input label={labelOf("issuesText")}>
             <TextArea
               value={draft.issuesText}
               onChange={(e) => set("issuesText", e.target.value)}
@@ -380,16 +389,16 @@ export default function HotSideRepairForm({
           </Input>
         </div>
 
-        {textAreaField("actionsTaken", "What actions were taken to address the issue?")}
-        {media("postFlame", "Document post-service flame, ignition, temperature holding performance", { optional: true, accept: "image/*" })}
-        {media("postElectrical", "Document post-service electrical reading (voltage or amperage) taken", { optional: true, accept: "image/*" })}
-        {yesNo("functioningOnDeparture", "Was the equipment functioning upon departure?")}
-        {yesNo("needReturn", "Do you need to return to complete the repair?")}
-        {yesNo("partsPicture", "Do you take picture of parts needed?")}
-        {textAreaField("safetyConcerns", "Note any safety or operational concerns with the equipment", true)}
-        {media("finalVideo", "Final video recap", { accept: "video/*" })}
-        {textField("checkOut", "Who did you check-out with?", { helpText: "Name and title" })}
-        {yesNo("standaloneQuote", "Will a STAND ALONE quote be submitted for a separate issue?")}
+        {textAreaField("actionsTaken")}
+        {media("postFlame")}
+        {media("postElectrical")}
+        {yesNo("functioningOnDeparture")}
+        {yesNo("needReturn")}
+        {yesNo("partsPicture")}
+        {textAreaField("safetyConcerns")}
+        {media("finalVideo")}
+        {textField("checkOut")}
+        {yesNo("standaloneQuote")}
       </div>
 
       {/* The file-card ⋯ menu — desktop anchored card / mobile drawer. */}

@@ -1,0 +1,160 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidePanelStories from "./SidePanel.stories";
+
+<Meta of={SidePanelStories} />
+
+# SidePanel
+
+We use **SidePanel** for data preview.
+
+<Canvas of={SidePanelStories.Hero} />
+
+```tsx
+<SidePanel
+  open={open}
+  onClose={close}
+  title="Walk-in cooler"
+  nav={
+    <SidePanelNavigation value={tab} onChange={setTab}>
+      <TabItem value="details">Details</TabItem>
+      <TabItem value="jobs">Jobs</TabItem>
+    </SidePanelNavigation>
+  }
+  footer={
+    <PopoverFooter>
+      <Button size="lg" variant="solid" onClick={save}>Primary</Button>
+    </PopoverFooter>
+  }
+>
+  {content}
+</SidePanel>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+SidePanel is a popover-like component. It behaves similarly to
+<a href="/?path=/story/components-dialog--playground" target="_top">Dialog</a>
+but is styled a bit different. SidePanel always shows up on the right. Fills
+screen height and has margins. It utilizes
+<a href="/?path=/story/components-popover-popoverheader--playground" target="_top">PopoverHeader</a>
+as a header. It is fixed on top while scrolling. SidePanel is fixed width.
+
+The panel is `400px` wide with a `--size-3` (12px) margin on every side, a
+`--border-radius-2_5` (10px) radius and the `--surface-level-first` surface. The
+scrim behind it is `--pure-black-a5`.
+
+The header carries everything PopoverHeader can: an `avatar` (xl), the title
+with its `titleLeftSlot` / `titleRightSlot`, a `caption` with its own slots, and
+`headerActions` for up to two ghost IconButtons. `titleVariant` switches the
+text layout, `close={false}` drops the close button and
+`headerDivider={false}` drops the line under it.
+
+<Canvas of={SidePanelStories.HeaderOptions} />
+
+Any type of content can be placed within SidePanel. Exactly as for Dialog or
+<a href="/?path=/story/components-popover-popover--playground" target="_top">Popover</a>
+components. Default content container paddings are `--size-4` (16px), and
+content items stack `--size-4` (16px) apart. Both are only defaults —
+`bodyPadded={false}` hands the spacing back to your content.
+
+<Canvas of={SidePanelStories.Anatomy} />
+
+Supports an optional
+<a href="/?path=/story/components-popover-popoverfooter--playground" target="_top">PopoverFooter</a>
+at the bottom. It is fixed at the bottom while scrolling.
+
+<Canvas of={SidePanelStories.WithFooter} />
+
+Supports optional navigation controls. Navigation is fixed on top while
+scrolling. Each navigation row is `--size-13` (52px) tall with `--size-4` (16px)
+sides and a divider along its bottom edge. The object tabs are a
+<a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
+`variant="default" size="md"`; they scroll sideways when they do not fit, with
+no edge fade.
+
+<Canvas of={SidePanelStories.WithNavigation} />
+
+In rare cases, SidePanel supports 2 levels of navigation. Each top section has
+its own set of sub-sections. We currently use this pattern in "Location" side
+panel. The top level is a TabGroup `variant="contained" size="lg"` that fills
+the row width.
+
+<Canvas of={SidePanelStories.MultilevelNavigation} />
+
+Mobile version follows the same patterns. The only difference is that it does
+not have margins and fills the screen entirely. The same pattern as for "focus"
+Dialog.
+
+<Canvas of={SidePanelStories.Mobile} />
+
+## Behaviour
+
+### Navigation
+
+If there is a link within a side panel which triggers another side panel, we
+don't open another side panel on top of the previous one. We change the content
+only. We also show back button on top, which lets the user go back to the
+previous object data.
+
+Close button on top allows the user close the side panel itself.
+
+In the example below, clicking on "Equipment" card within "Location" side panel,
+**does not open a new side panel.** It only changes data within the same side
+panel. Clicking the "Back" button on "Equipment" side panel changes the data
+back to "Location" one. Clicking the "Close" button on "Equipment" side panel
+closes the side panel itself.
+
+SidePanel supports an infinite number of navigation levels. It means that the user
+can open "Location" side panel, then go to "Equipment" from it, then go to
+"Client", "Estimate", "Tax rate", and so on.
+
+**SidePanel does not hold that history by itself** — it is your wiring: keep the
+stack in your own state, swap `title` and the children, and pass `onBack` while
+there is something to go back to. The example below is live (press **Show code**
+for the exact wiring):
+
+<Canvas of={SidePanelStories.NavigationLevels} />
+
+### Warning
+
+Nav tab signals if there is something that needs user attention on that tab.
+For example, if important data is missing on "Details" tab, the tab is
+highlighted to catch user's attention. The tab's icon and label turn
+`--text-warning`, and they keep that colour in every state — selected,
+unselected, hover and pressed.
+
+<Canvas of={SidePanelStories.WarningTabs} />
+
+If there are 2 levels of navigation, tabs on both levels point to where the
+issue is, so the user can see that there is something that needs their
+attention, even if the tab is inactive.
+
+<Canvas of={SidePanelStories.WarningTabsTopLevel} />
+
+In this example, you can see warning state caused by missing important data on
+"Details" tab.
+
+<Canvas of={SidePanelStories.WarningInPanel} />
+
+### No fetching data
+
+If the content couldn't be loaded for some reason, the component shows that.
+The navigation and the footer are hidden with the content — the object itself
+failed to load — and the action retries via `onRetry`.
+
+<Canvas of={SidePanelStories.ErrorState} />
+
+### No internet connection
+
+We show this state when the user's connection is lost.
+
+<Canvas of={SidePanelStories.OfflineState} />
+
+## Props
+
+<ArgTypes of={SidePanelStories} />

@@ -116,6 +116,8 @@ export default function SelectList({
   state = "default",
   emptyState,
   noResultsCaption,
+  noResultsAction,
+  autoFocusSearch = false,
   createFromSearch,
   breakpoint = "auto",
   className,
@@ -175,8 +177,11 @@ export default function SelectList({
   const hasHeader = searchHeader != null;
   const isDrawer = !isDesktop || variant === "drawer";
   useLayoutEffect(() => {
-    if (!open || !hasHeader || isDrawer) return;
-    if (!window.matchMedia("(hover: hover)").matches) return; // touch device
+    if (!open || !hasHeader) return;
+    // `autoFocusSearch` opts out of both exclusions — the consumer states that
+    // typing is the whole point of the list (address autocomplete).
+    if (!autoFocusSearch && isDrawer) return;
+    if (!autoFocusSearch && !window.matchMedia("(hover: hover)").matches) return; // touch device
     // Succeeds only once the search input is actually FOCUSED — not merely
     // present. When the list opens from a control that grabs focus back a tick
     // later (e.g. a SelectField revealed inside a RadioItem card — the pause
@@ -195,7 +200,7 @@ export default function SelectList({
       if (ensureFocus() || ++tries > 40) clearInterval(timer);
     }, 16);
     return () => clearInterval(timer);
-  }, [open, hasHeader, isDrawer]);
+  }, [open, hasHeader, isDrawer, autoFocusSearch]);
 
   // Escape closes the list; focus returns to the trigger. The dialog variant
   // gets both from Dialog itself, so it is excluded here.
@@ -263,7 +268,9 @@ export default function SelectList({
     effectiveState === "empty" ? (
       <EmptyState
         icon={emptyState?.icon}
-        title={emptyState?.title ?? "Nothing here yet"}
+        // Caption-only is a real state (the address drawer before typing), so
+        // the default title only fills in when there is no copy at all.
+        title={emptyState?.title ?? (emptyState?.caption == null ? "Nothing here yet" : undefined)}
         caption={emptyState?.caption}
         primaryAction={
           emptyState?.actionLabel != null
@@ -287,7 +294,16 @@ export default function SelectList({
           />
         </div>
       ) : (
-        <EmptyState icon="ban" title="No results found" caption={noResultsCaption ?? "Try a different search"} />
+        <EmptyState
+          icon="ban"
+          title="No results found"
+          caption={noResultsCaption ?? "Try a different search"}
+          primaryAction={
+            noResultsAction != null
+              ? { label: noResultsAction.label, leftIcon: noResultsAction.icon, onClick: noResultsAction.onClick }
+              : undefined
+          }
+        />
       )
     ) : (
       <div role="listbox" ref={listRef} onKeyDown={handleListKeyDown}>

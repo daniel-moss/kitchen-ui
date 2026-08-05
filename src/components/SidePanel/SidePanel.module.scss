@@ -1,0 +1,59 @@
+// The layer the panel lives in. It fills its portal root — a mock container
+// (device frame / docs preview) when there is one, else the viewport.
+// `overflow: hidden` matters: the panel starts translated past the right edge,
+// and without the clip that off-screen position would add a horizontal
+// scrollbar mid-animation.
+.layer {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-modal);
+  overflow: hidden;
+
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+// Portaled to <body>: cover the whole viewport.
+.layerFixed {
+  position: fixed;
+}
+
+// Desktop: the panel hangs on the right edge with a 12px margin all around,
+// over a scrim that fades with it.
+.scrim {
+  padding: var(--size-3); // 12px
+  background: var(--pure-black-a5);
+
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+// Mobile: the panel fills the screen, so there is no scrim to show and no
+// margin. Same pattern as the focus Dialog.
+.fullScreen {
+  padding: 0;
+}
+
+.layerOpen {
+  opacity: 1;
+}
+
+// The content slot — 16px on every side, 16px between items (Figma; both are
+// defaults the consumer can replace with bodyPadded={false}).
+.body {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px between items
+  padding: var(--size-4); // 16px on every side
+  width: 100%;
+}
+
+// error / offline: the EmptyState centers inside the body region, keeping the
+// body's own 16px inset.
+.stateView {
+  box-sizing: border-box;
+  height: 100%;
+  padding: var(--size-4); // 16px
+}

@@ -6,8 +6,8 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 export interface SelectListEmptyState {
   /** Icon name for the top slot (e.g. the object's icon). */
   icon?: string;
-  /** e.g. "No clients here yet". */
-  title: string;
+  /** e.g. "No clients here yet". Omit for a caption-only state. */
+  title?: string;
   /** e.g. "Add a client to see it here". */
   caption?: string;
   /** Optional "Add …" action — a subtle button with a plus icon. */
@@ -59,6 +59,19 @@ interface SelectListBaseProps {
   emptyState?: SelectListEmptyState;
   /** Caption override for the "noResults" state. Default "Try a different search". */
   noResultsCaption?: string;
+  /**
+   * An action button on the "noResults" state — the way out of a dead end
+   * (e.g. the address autocomplete's "Enter manually"). Rendered as the
+   * EmptyState's subtle primary button.
+   */
+  noResultsAction?: { label: string; icon?: string; onClick: () => void };
+  /**
+   * Force the search header to take focus when the list opens, even on a touch
+   * device or in a drawer (both are excluded by default — see the auto-focus
+   * comment in SelectList). Use it only where typing IS the task, like an
+   * address autocomplete opened from its field.
+   */
+  autoFocusSearch?: boolean;
   /**
    * Turn the searchable "no results" state into a create action — a MenuItem
    * `<label> "query"` with a plus icon (Figma "Create new label"). Clicking

@@ -1,0 +1,10 @@
+// The "Activity" tab (Figma 24433-52732): a 16px-padded column — the two stat
+// widgets on top, then the activity log. Same 16px rhythm on both breakpoints.
+.panel {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 100%;
+  padding: var(--size-4);
+}

@@ -30,11 +30,6 @@ export function shortTimestamp(date: Date, now: Date = new Date()): string {
   return SHORT_DATE.format(date);
 }
 
-const DATE_FORMAT = new Intl.DateTimeFormat("en-US", {
-  weekday: "short",
-  month: "short",
-  day: "numeric",
-});
 const DATE_FORMAT_WITH_YEAR = new Intl.DateTimeFormat("en-US", {
   weekday: "short",
   month: "short",
@@ -48,11 +43,13 @@ const TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
 });
 
 /**
- * The exact date + time shown in the timestamp tooltip, e.g.
- * `Mon, Jan 1 ・ 12:00 PM`. The year is added only when the event did NOT
- * happen this year (`Mon, Jan 1, 2025 ・ 12:00 PM`) — the app-wide date rule.
+ * The exact date + time shown in the timestamp tooltip:
+ * `Mon, Jan 1, 2026 ・ 12:00 PM`. The year is ALWAYS written (Figma
+ * 24230-50534, Daniel 2026-08-05) — this tooltip is the one place that says
+ * exactly when an event happened, so it never leaves the year to be inferred.
+ * That is a deliberate exception to the app-wide "year only when not current"
+ * rule, which the LABEL next to the log still follows.
  */
-export function exactTimestamp(date: Date, now: Date = new Date()): string {
-  const format = date.getFullYear() === now.getFullYear() ? DATE_FORMAT : DATE_FORMAT_WITH_YEAR;
-  return `${format.format(date)} ・ ${TIME_FORMAT.format(date)}`;
+export function exactTimestamp(date: Date): string {
+  return `${DATE_FORMAT_WITH_YEAR.format(date)} ・ ${TIME_FORMAT.format(date)}`;
 }

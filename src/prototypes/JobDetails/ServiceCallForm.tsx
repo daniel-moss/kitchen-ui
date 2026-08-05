@@ -2,7 +2,6 @@ import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import clsx from "clsx";
 
-import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
 import Button from "../../components/Button/Button";
 import Chip from "../../components/Chip/Chip";
 import Dialog from "../../components/Dialog/Dialog";
@@ -23,19 +22,37 @@ import SelectList from "../../components/SelectList/SelectList";
 import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { TECHS_OPTIONS } from "./HvacPmStepForm";
 import { DURATION_PRESETS, MINUTE_OPTIONS } from "./SchedulingForm";
-import { Equipment, equipmentCaption, equipmentLabel } from "./ServicePanel";
+import {
+  Equipment,
+  EquipmentAvatar,
+  equipmentCaption,
+  equipmentCaptionText,
+  equipmentLabel,
+  equipmentTitle,
+} from "./equipment";
+import { fieldMap, optionValues } from "../../forms/formSchema/options";
+import { FormOption } from "../../forms/formSchema/schema.types";
+import {
+  GAS_OPTIONS,
+  PHASE_OPTIONS,
+  SERVICE_CALL_SCHEMA,
+  TECH_COUNT_OPTIONS,
+  VOLTAGE_OPTIONS,
+} from "../../forms/formSchema/serviceCallSchema";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
 import { noop } from "./shared";
 
 import styles from "./ServiceCallForm.module.scss";
 
-// The Voltage / Phase / Gas type option sets are NOT in the design (no list
-// nodes) — invented, flagged to Daniel 2026-07-27.
-const VOLTAGE_OPTIONS = ["115V", "208V", "230V", "460V"];
-const PHASE_OPTIONS = ["Single phase", "Three phase"];
-const GAS_OPTIONS = ["Natural gas", "Propane"];
+// Labels and option sets come from the SCHEMA
+// (src/forms/formSchema/serviceCallSchema.ts) — the same data the read-only
+// preview is built from, so the form and its preview cannot drift apart.
+const F = fieldMap(SERVICE_CALL_SCHEMA);
+const labelOf = (key: string) => F[key].label ?? "";
+const moduleOf = (id: string) => SERVICE_CALL_SCHEMA.modules.find((m) => m.id === id);
+const moduleTitle = (id: string) => moduleOf(id)?.title ?? "";
+const TECHS_OPTIONS = optionValues(TECH_COUNT_OPTIONS);
 
 type YesNo = "" | "Yes" | "No";
 
@@ -249,26 +266,32 @@ export default function ServiceCallForm({
     ...(showErrors && bad[key] ? { onFocus: clearErrors, onPointerDown: clearErrors } : {}),
   });
 
-  const yesNo = (key: keyof ServiceCallDraft & keyof typeof bad, label: string) => (
-    <div {...field(key)}>
-      <Input label={label}>
-        <RadioGroup
-          orientation="horizontal"
-          value={draft[key] as string}
-          onChange={(v) => set(key, v as never)}
-          isValid={!(showErrors && bad[key])}
-          errorMessage="Choose an option"
-        >
-          <RadioItem value="Yes" variant="card" label="Yes" />
-          <RadioItem value="No" variant="card" label="No" />
-        </RadioGroup>
-      </Input>
-    </div>
-  );
+  // A radio field straight from the schema — label, options and orientation.
+  const radioField = (key: keyof ServiceCallDraft & keyof typeof bad) => {
+    const schemaField = F[key];
+    const options = schemaField.type === "radio" ? schemaField.options : [];
+    return (
+      <div {...field(key)}>
+        <Input label={labelOf(key)}>
+          <RadioGroup
+            orientation={schemaField.type === "radio" ? schemaField.orientation : undefined}
+            value={draft[key] as string}
+            onChange={(v) => set(key, v as never)}
+            isValid={!(showErrors && bad[key])}
+            errorMessage="Choose an option"
+          >
+            {options.map((o) => (
+              <RadioItem key={o.value} value={o.value} variant="card" label={o.label ?? o.value} />
+            ))}
+          </RadioGroup>
+        </Input>
+      </div>
+    );
+  };
 
-  const textAreaField = (key: keyof ServiceCallDraft & keyof typeof bad, label: string) => (
+  const textAreaField = (key: keyof ServiceCallDraft & keyof typeof bad) => (
     <div {...field(key)}>
-      <Input label={label}>
+      <Input label={labelOf(key)}>
         <TextArea
           value={draft[key] as string}
           onChange={(e) => set(key, e.target.value as never)}
@@ -279,13 +302,9 @@ export default function ServiceCallForm({
     </div>
   );
 
-  const specSelect = (
-    key: "voltage" | "phase" | "gas",
-    label: string,
-    pop: ReturnType<typeof useSelectPopover>,
-  ) => (
+  const specSelect = (key: "voltage" | "phase" | "gas", pop: ReturnType<typeof useSelectPopover>) => (
     <div {...field(key)}>
-      <Input label={label}>
+      <Input label={labelOf(key)}>
         <SelectField
           value={draft[key] || undefined}
           isValid={!(showErrors && bad[key])}
@@ -298,13 +317,12 @@ export default function ServiceCallForm({
 
   const specPicker = (
     key: "voltage" | "phase" | "gas",
-    title2: string,
-    options: string[],
+    options: FormOption[],
     pop: ReturnType<typeof useSelectPopover>,
   ) => (
-    <SelectPopoverList pop={pop} mobile={mobile} title={title2}>
+    <SelectPopoverList pop={pop} mobile={mobile} title={labelOf(key)}>
       <SelectListItemGroup>
-        {options.map((o) => (
+        {optionValues(options).map((o) => (
           <SelectListItem
             key={o}
             label={o}
@@ -344,12 +362,12 @@ export default function ServiceCallForm({
       }
     >
       <div className={styles.form} ref={bodyRef}>
-        <FormModule title="Equipment / Warranty">
+        <FormModule title={moduleTitle("equipment-warranty")}>
           {/* Equipment — the picker select + quick-pick chips from the job's
               Equipment module (only when the job has equipment). */}
           <div {...field("equipment")}>
             <div className={styles.stack}>
-              <Input label="Equipment">
+              <Input label={labelOf("equipment")}>
                 <SelectField
                   value={selectedEquipment != null ? equipmentLabel(selectedEquipment) : undefined}
                   isValid={!(showErrors && bad.equipment)}
@@ -375,13 +393,13 @@ export default function ServiceCallForm({
             </div>
           </div>
 
-          {specSelect("voltage", "Voltage", voltagePop)}
-          {specSelect("phase", "Phase", phasePop)}
-          {specSelect("gas", "Gas type", gasPop)}
+          {specSelect("voltage", voltagePop)}
+          {specSelect("phase", phasePop)}
+          {specSelect("gas", gasPop)}
 
           {/* Warranty — vertical Yes/No; Yes reveals the in-card textarea. */}
           <div {...field("warranty")}>
-            <Input label="Is this unit under warranty?">
+            <Input label={labelOf("warranty")}>
               <RadioGroup
                 value={draft.warranty}
                 onChange={(v) => set("warranty", v as YesNo)}
@@ -394,7 +412,7 @@ export default function ServiceCallForm({
                   label="Yes"
                   content={
                     <div {...field("warrantyCovered")}>
-                      <Input label="What is covered?">
+                      <Input label={labelOf("warrantyCovered")}>
                         <TextArea
                           value={draft.warrantyCovered}
                           onChange={(e) => set("warrantyCovered", e.target.value)}
@@ -410,42 +428,42 @@ export default function ServiceCallForm({
             </Input>
           </div>
 
-          {yesNo("verifiedMfg", "Have you verified w/ MFG?")}
-          {yesNo("csiSticker", "Is this unit tagged w/ CSI sticker?")}
+          {radioField("verifiedMfg")}
+          {radioField("csiSticker")}
         </FormModule>
 
         <Divider className={styles.moduleDivider} />
-        <FormModule title="Diagnosis / Issues">
-          {yesNo("operationalOnArrival", "Unit operational on arrival?")}
-          {textAreaField("diagnosisSteps", "Explain steps to diagnosis")}
-          {textAreaField("confirmedIssue", "Did you confirm the issue?")}
+        <FormModule title={moduleTitle("diagnosis")}>
+          {radioField("operationalOnArrival")}
+          {textAreaField("diagnosisSteps")}
+          {textAreaField("confirmedIssue")}
         </FormModule>
 
         <Divider className={styles.moduleDivider} />
-        <FormModule title="Resolution">
-          {yesNo("repairCompleted", "Was the repair completed on this visit?")}
+        <FormModule title={moduleTitle("resolution")}>
+          {radioField("repairCompleted")}
           {/* Yes reveals the rest of the module; No reveals nothing. */}
           {showRepair && (
             <>
-              {textAreaField("repairsCompleted", "What repairs were completed?")}
-              {textAreaField("partsInstalled", "What parts were installed?")}
-              {textAreaField("maintenanced", "Unit maintenanced / clean?")}
+              {textAreaField("repairsCompleted")}
+              {textAreaField("partsInstalled")}
+              {textAreaField("maintenanced")}
             </>
           )}
         </FormModule>
 
         <Divider className={styles.moduleDivider} />
-        <FormModule title="Quote details">
-          {yesNo("fullyOperational", "Is the unit fully operational?")}
+        <FormModule title={moduleTitle("quote-details")}>
+          {radioField("fullyOperational")}
           {/* No reveals the rest of the module; Yes reveals nothing. */}
           {showQuote && (
             <>
-              {textAreaField("repairsRequired", "What repairs are required?")}
-              {textAreaField("partsNeeded", "What parts will be needed?")}
+              {textAreaField("repairsRequired")}
+              {textAreaField("partsNeeded")}
 
               {/* Techs — the chip row (fills the width, 1–5 + "5+"). */}
               <div {...field("techs")}>
-                <Input label="How many techs are required?">
+                <Input label={labelOf("techs")}>
                   <div className={styles.chipsField}>
                     <div className={clsx(styles.chips, styles.fillChips)}>
                       {TECHS_OPTIONS.map((t) => (
@@ -471,7 +489,7 @@ export default function ServiceCallForm({
 
               {/* Duration — the Scheduling shape: hr + min group, preset chips. */}
               <div className={styles.stack} {...field("time")}>
-                <Input label="Estimated time to complete">
+                <Input label={labelOf("time")}>
                   <InputGroup isValid={!(showErrors && bad.time)}>
                     <TextField
                       value={draft.hours}
@@ -506,27 +524,12 @@ export default function ServiceCallForm({
         </FormModule>
 
         <Divider className={styles.moduleDivider} />
-        <FormModule title="COD">
-          <div {...field("payment")}>
-            <Input label="How are you collecting payment?">
-              <RadioGroup
-                orientation="horizontal"
-                value={draft.payment}
-                onChange={(v) => set("payment", v as ServiceCallDraft["payment"])}
-                isValid={!(showErrors && bad.payment)}
-                errorMessage="Choose an option"
-              >
-                <RadioItem value="Check" variant="card" label="Check" />
-                <RadioItem value="Cash" variant="card" label="Cash" />
-                <RadioItem value="CC" variant="card" label="CC" />
-              </RadioGroup>
-            </Input>
-          </div>
-        </FormModule>
+        <FormModule title={moduleTitle("cod")}>{radioField("payment")}</FormModule>
 
         <Divider className={styles.moduleDivider} />
-        <FormModule title="Additional / Daily notes" titleCondition="optional">
-          <TextArea value={draft.notes} onChange={(e) => set("notes", e.target.value)} clearPromptLabel="Additional / Daily notes" />
+        {/* The notes module has no field label — its title labels the answer. */}
+        <FormModule title={moduleTitle("notes")} titleCondition={moduleOf("notes")?.optional ? "optional" : undefined}>
+          <TextArea value={draft.notes} onChange={(e) => set("notes", e.target.value)} clearPromptLabel={moduleTitle("notes")} />
         </FormModule>
       </div>
 
@@ -537,7 +540,7 @@ export default function ServiceCallForm({
       <SelectList
         variant={mobile ? "drawer" : "dialog"}
         breakpoint={mobile ? "mobile" : "desktop"}
-        title="Equipment"
+        title={labelOf("equipment")}
         open={equipmentListOpen}
         onClose={() => setEquipmentListOpen(false)}
         searchable
@@ -562,9 +565,10 @@ export default function ServiceCallForm({
             <SelectListItem
               key={e.id}
               variant="object"
-              label={equipmentLabel(e)}
-              caption={equipmentCaption(e)}
-              avatar={<AvatarEquipment size="xl" />}
+              label={equipmentTitle(e)}
+              searchText={`${equipmentLabel(e)} ${equipmentCaption(e)}`}
+              caption={equipmentCaptionText(e)}
+              avatar={<EquipmentAvatar equipment={e} />}
               selected={e.id === draft.equipmentId}
               onClick={() => {
                 set("equipmentId", e.id);
@@ -575,9 +579,9 @@ export default function ServiceCallForm({
         </SelectListItemGroup>
       </SelectList>
 
-      {specPicker("voltage", "Voltage", VOLTAGE_OPTIONS, voltagePop)}
-      {specPicker("phase", "Phase", PHASE_OPTIONS, phasePop)}
-      {specPicker("gas", "Gas type", GAS_OPTIONS, gasPop)}
+      {specPicker("voltage", VOLTAGE_OPTIONS, voltagePop)}
+      {specPicker("phase", PHASE_OPTIONS, phasePop)}
+      {specPicker("gas", GAS_OPTIONS, gasPop)}
 
       {/* Minutes picker */}
       <SelectPopoverList pop={minutePop} mobile={mobile} title="Minutes">

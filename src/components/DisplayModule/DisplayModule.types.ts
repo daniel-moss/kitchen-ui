@@ -28,6 +28,12 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
 
   /** Body content slot — any content (required). In the accordion it shows when open. */
   content: ReactNode;
+  /**
+   * Whether the body adds its default `--size-4` (16px) padding around
+   * `content`. Set false when the content brings its own — the body then adds
+   * none, so any padding the content needs is possible. Default true.
+   */
+  bodyPadded?: boolean;
 
   // ---- error ("no fetching data") ----
   /**

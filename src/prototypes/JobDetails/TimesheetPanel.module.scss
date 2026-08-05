@@ -16,60 +16,7 @@
   margin: calc(-1 * var(--size-4));
 }
 
-// ---- widgets ----------------------------------------------------------------
-.widgets {
-  display: flex;
-  gap: var(--size-4);
-}
-// Mobile: the two widgets stack vertically. Reset the row's `flex: 1 1 0` (a 0
-// basis collapses the height in a column) — each widget sizes to its content
-// and stretches full-width.
-.widgetsMobile {
-  flex-direction: column;
-}
-.widgetsMobile .widget {
-  flex: none;
-}
-// The widget IS a bodyOnly DisplayModule (bg / radius / shadow come from it).
-.widget {
-  flex: 1 1 0;
-  min-width: 0;
-}
-// Figma body: px-16 py-12, gap-16 — pull back DisplayModule's default 16px and
-// re-apply px-16 py-12.
-.widgetBody {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-4); // 16px — label ↔ value block
-  margin: calc(-1 * var(--size-4));
-  padding: var(--size-3) var(--size-4); // 12px / 16px
-}
-.widgetLabel {
-  font: var(--font-body-400-compact); // Inter Regular 14/20
-  color: var(--text-subtle);
-}
-.widgetValueBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-0_5); // 2px
-  min-width: 0;
-}
-.widgetValue {
-  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
-  color: var(--text-strong);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.widgetSub {
-  font: var(--font-caption-medium-400); // Inter Regular 13/20
-  color: var(--text-subtle);
-}
-// Empty state → the value + caption both read placeholder.
-.widgetValueBlockEmpty .widgetValue,
-.widgetValueBlockEmpty .widgetSub {
-  color: var(--text-placeholder);
-}
+// The widgets row lives in StatWidget.module.scss — shared with the Activity tab.
 
 // ---- date chip (the "JAN 1" mini badge on a log / timeline) ------------------
 .dateChip {
@@ -146,8 +93,23 @@
   font: var(--font-weight-semibold) 0.75rem / 1 var(--font-family-base); // SemiBold 12
   color: var(--gray-a9);
 }
-// Warning-session avatar: an amber box with a warning triangle (≥ 8 h or
-// cross-day session). Figma 21803-49361 / 49414.
+// ENDED-session avatar: a gray box with the session's status icon (Figma
+// 24107-17050 — the finished-session menu header shows the same box).
+.statusGlyph {
+  box-sizing: border-box;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a3);
+  color: var(--gray-a8);
+}
+
+// Warning-session avatar: an amber box with a warning triangle (≥ 10 h,
+// cross-day, or overlapping session). Figma 21803-49361 / 49414, 24508-61972.
 .warnGlyph {
   box-sizing: border-box;
   flex: none;
@@ -165,6 +127,13 @@
 // declared later at equal specificity and would otherwise win the color).
 .warnText.warnText {
   color: var(--text-warning);
+}
+// The overlap range is a ReactNode title, so ListItem's TruncatingText does not
+// wrap it — it keeps the same one-line ellipsis itself.
+.rangeLine {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 // Active-session avatar: a red "recording" dot.
@@ -230,10 +199,17 @@
 // The active row's context menu card. Explicit width — the Menu's fit-content
 // sizing can't measure a growing title next to a long tag (see the MenuItem
 // "KNOWN LIMIT" note). The Figma card is 234 but was drawn with the short
-// "Travelling" tag; 272 keeps "My status" one-line with the longest status
+// "Travelling" tag; 272 keeps "Your status" one-line with the longest status
 // ("Gathering parts") — flagged to Daniel.
 .sessionMenuCard {
-  width: 272px;
+  // EXPLICIT width on purpose. The DS Menu is `fit-content`, but a MenuItem's
+  // title is a flex child with `min-width: 0`, so it contributes NOTHING to the
+  // intrinsic width — the menu cannot grow itself to fit a title sitting next
+  // to a long tag (the MenuItem "KNOWN LIMIT" note).
+  // Measured at 272: "Your status" needed 74px and got 41 next to the
+  // "Prepping for work" tag. 312 clears it with room to spare
+  // (Daniel, 2026-08-04: the tag must not truncate the label).
+  width: 312px;
 }
 
 // ---- summary + charts -------------------------------------------------------

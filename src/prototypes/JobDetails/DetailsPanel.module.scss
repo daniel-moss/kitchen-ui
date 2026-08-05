@@ -24,6 +24,12 @@
   padding: var(--size-1) var(--size-3) var(--size-3);
 }
 
+// A module whose body is ONLY an EmptyState: the design gives that body no
+// padding of its own, so EmptyState's 32px is the whole padding.
+.emptyBody {
+  margin: calc(-1 * var(--size-4)); // -16px
+}
+
 // Labels: chips wrap, 8px apart.
 .chips {
   display: flex;
@@ -97,4 +103,19 @@
 
 .inactiveDot {
   color: var(--gray-a9);
+}
+
+// ---- Assignees module (Figma 24522-63729) ----------------------------------
+// The empty row and a zero total both read as placeholders.
+.placeholderText.placeholderText {
+  color: var(--text-placeholder);
+}
+// The right block's VALUE at zero (the caption keeps its own subtle colour).
+.zeroTracked :last-child {
+  color: var(--text-placeholder);
+}
+// The checked-in status under the name — red, and so is the icon the DS
+// caption slot places before it.
+.assigneeStatus.assigneeStatus {
+  color: var(--text-error);
 }

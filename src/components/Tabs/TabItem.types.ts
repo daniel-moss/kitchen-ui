@@ -59,6 +59,18 @@ export interface TabItemProps extends Omit<ButtonHTMLAttributes<HTMLButtonElemen
    */
   selectedSurface?: boolean;
 
+  /**
+   * Attention state: the tab's icon and label turn amber (`--text-warning`) to
+   * signal that something on that tab needs the user's attention (e.g. required
+   * data is missing). The colour holds in every state — selected, unselected,
+   * hover and pressed — so an INACTIVE tab still points at the problem.
+   *
+   * Built for SidePanel's navigation (Daniel, 2026-08-05), so it is specced for
+   * the `default` and `container` variants only. Pair it with
+   * `icon="warning" iconPack="solid"` — the icon is the caller's, not built in.
+   */
+  warning?: boolean;
+
   /** Dimmed, non-interactive. */
   disabled?: boolean;
   /** Skeleton placeholder in place of the content. */

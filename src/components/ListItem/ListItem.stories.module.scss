@@ -1,0 +1,6 @@
+// Story-only helper: the Figma caption-slot example paints BOTH the caption
+// text and its icon in the error color, to show that the slot's icon size,
+// style and color are the caller's choice.
+.errorText {
+  color: var(--text-error);
+}

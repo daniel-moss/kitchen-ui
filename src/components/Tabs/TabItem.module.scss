@@ -197,6 +197,20 @@
   background: transparent;
 }
 
+// ===== warning (attention) =====
+// The tab points at something that needs the user's attention. Only the COLOUR
+// changes — the selected fill (default: gray-a3 / container: the raised white
+// surface) is untouched, so an inactive warning tab still reads as inactive.
+// Last in the file on purpose: it must win over every variant's colour rule
+// above (same specificity, later wins), in rest, selected, hover and press.
+.tab.warning,
+.tab.warning:hover,
+.tab.warning:active,
+.tab.warning.selected,
+.tab.warning.selected:active {
+  color: var(--text-warning);
+}
+
 // ===== loading skeleton =====
 .skeleton {
   width: 40px;

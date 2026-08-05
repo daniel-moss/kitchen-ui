@@ -107,7 +107,9 @@ export default function ActivityLogItem({
           <div className={clsx(styles.collapse, isOpen && styles.collapseOpen)}>
             <div className={styles.collapseInner}>
               <div className={styles.subStack}>
-                <Divider />
+                {/* 8px more on the right than the stack's own 8 → the line
+                    stops 16px from the card edge (Daniel, 2026-08-04). */}
+                <Divider padding="0 var(--size-2) 0 0" />
                 {children}
               </div>
             </div>

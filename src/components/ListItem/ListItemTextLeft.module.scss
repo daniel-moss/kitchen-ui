@@ -27,3 +27,24 @@
 
   @include font("caption-medium-400"); // Inter Regular 13/20
 }
+
+// The caption's optional LEFT SLOT — an Icon for now (Figma 28927-35531). The
+// slot box is one caption line tall, so the glyph is top-aligned with the
+// caption's first line however many lines the caption wraps to. The text keeps
+// its own truncation, so it takes the remaining width.
+.captionRow {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+}
+.captionSlot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 20px; // = the caption's line-height
+  padding-right: var(--size-2); // 8px — slot → caption
+}
+.captionRow > :last-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}

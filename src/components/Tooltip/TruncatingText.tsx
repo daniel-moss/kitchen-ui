@@ -1,4 +1,4 @@
-import { CSSProperties, MouseEvent, useRef, useState } from "react";
+import { CSSProperties, MouseEvent, ReactNode, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import clsx from "clsx";
@@ -6,21 +6,31 @@ import clsx from "clsx";
 import Tooltip from "./Tooltip";
 import styles from "./TruncatingText.module.scss";
 
-interface TruncatingTextProps {
-  /** The full text. Shown truncated; the tooltip reveals it in full. */
-  text: string;
+interface TruncatingTextBaseProps {
   /** Max lines before the ellipsis. Default 1 (single line); 2/3 clamp. */
   lines?: 1 | 2 | 3;
   /** Class applied to the text (font + color). */
   className?: string;
 }
 
+/**
+ * Either plain `text`, or `children` (rich content — e.g. a line with
+ * differently colored parts) plus the `tooltipText` the tooltip should show,
+ * since rich content has no readable text of its own.
+ */
+export type TruncatingTextProps = TruncatingTextBaseProps &
+  (
+    | { text: string; children?: never; tooltipText?: never }
+    | { children: ReactNode; tooltipText: string; text?: never }
+  );
+
 // Text with an ellipsis after `lines` lines (default one). When it actually
 // overflows, hovering shows a Tooltip with the full text — placed on top,
 // left-aligned, and following the cursor's horizontal position. The tooltip
 // renders in a body-level portal so it is never clipped by an ancestor that
 // scrolls or hides overflow (e.g. StepItemGroup's horizontally scrolling stack).
-export default function TruncatingText({ text, lines = 1, className }: TruncatingTextProps) {
+export default function TruncatingText({ text, children, tooltipText, lines = 1, className }: TruncatingTextProps) {
+  const full = tooltipText ?? text ?? "";
   const textRef = useRef<HTMLSpanElement>(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -55,13 +65,13 @@ export default function TruncatingText({ text, lines = 1, className }: Truncatin
         onMouseMove={handleMove}
         onMouseLeave={() => setOpen(false)}
       >
-        {text}
+        {children ?? text}
       </span>
 
       {open &&
         createPortal(
           <span className={styles.overlay} style={{ left: pos.x, top: pos.y }}>
-            <Tooltip placement="top" align="center" textAlign="left" text={text} />
+            <Tooltip placement="top" align="center" textAlign="left" text={full} />
           </span>,
           document.body,
         )}

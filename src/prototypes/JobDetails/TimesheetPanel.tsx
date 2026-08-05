@@ -12,6 +12,7 @@ import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import HintTrigger from "../../components/Hint/HintTrigger";
+import HoverHint from "../../components/Hint/HoverHint";
 import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
 import ListItem from "../../components/ListItem/ListItem";
@@ -27,6 +28,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { users } from "../../data/users";
 import { noop, slot, useAnchoredMenu } from "./shared";
+import { StatWidget, StatWidgetRow } from "./StatWidget";
 
 import styles from "./TimesheetPanel.module.scss";
 
@@ -108,25 +110,6 @@ const WORK_TIMELINE_LEGEND: LegendItem[] = [
 
 // ---- small building blocks --------------------------------------------------
 
-// A stat widget = a bodyOnly DisplayModule (Figma names it "DisplayModule"):
-// label (Regular 14/20 subtle) + value (Medium 32/40) + sub (Regular 13/20).
-// Empty → value + sub read placeholder.
-const StatWidget = ({ label, value, sub, empty = false }: { label: string; value: string; sub: string; empty?: boolean }) => (
-  <DisplayModule
-    variant="bodyOnly"
-    className={styles.widget}
-    content={
-      <div className={styles.widgetBody}>
-        <span className={styles.widgetLabel}>{label}</span>
-        <div className={clsx(styles.widgetValueBlock, empty && styles.widgetValueBlockEmpty)}>
-          <span className={styles.widgetValue}>{value}</span>
-          <span className={styles.widgetSub}>{sub}</span>
-        </div>
-      </div>
-    }
-  />
-);
-
 function DateChip({ month, day }: { month: string; day: string }) {
   return (
     <div className={styles.dateChip}>
@@ -191,6 +174,12 @@ export interface Session {
 // 10 hours (matches the Figma annotation on node 21803-49361).
 const LONG_SESSION_SEC = 10 * 3600;
 
+/** Which end of a session's range is drawn in the overlap warning color. */
+export interface SessionOverlap {
+  start: boolean;
+  end: boolean;
+}
+
 // Seconds → "3 hr" / "1 hr 30 min" / "30 min" / "0 hr".
 export const formatHrMin = (sec: number) => {
   const totalMin = Math.round(sec / 60);
@@ -218,6 +207,49 @@ export const fmtClockMin = (min: number): string => {
   const mer = h24 < 12 ? "AM" : "PM";
   const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
   return `${h12}:${String(mm % 60).padStart(2, "0")} ${mer}`;
+};
+
+// ---- overlap warning (Figma 24508-61972) -----------------------------------
+// A tech cannot be in two sessions at the same time, so two of their ENDED
+// sessions that intersect get the warning state: the warning avatar on both
+// rows, plus the amber time — the EARLIER session's END and the LATER
+// session's START (Daniel's rule, 2026-08-05). Touching edges (one session
+// ends exactly when the next begins) are NOT an overlap, active (running)
+// sessions are not checked, and the overlap never blocks saving.
+
+// A session's absolute start/end in ms. The start date label carries the day,
+// so a cross-day session (end = start + duration) compares correctly too.
+const sessionSpan = (s: Session): { start: number; end: number } | null => {
+  const startMin = parseClockMin(s.startLabel);
+  const day = new Date(s.dateLabel).getTime();
+  if (startMin == null || Number.isNaN(day)) return null;
+  const start = day + startMin * 60_000;
+  return { start, end: start + s.durationSec * 1000 };
+};
+
+// One tech's sessions → the overlap flags per session id (absent = no warning).
+export const overlapFlags = (sessions: Session[]): Map<number, SessionOverlap> => {
+  const flags = new Map<number, SessionOverlap>();
+  const spans = sessions
+    .filter((s) => !s.active)
+    .map((s) => ({ id: s.id, span: sessionSpan(s) }))
+    .filter((x): x is { id: number; span: { start: number; end: number } } => x.span != null)
+    .sort((a, b) => a.span.start - b.span.start || a.span.end - b.span.end);
+  const mark = (id: number, edge: keyof SessionOverlap) => {
+    const f = flags.get(id) ?? { start: false, end: false };
+    f[edge] = true;
+    flags.set(id, f);
+  };
+  for (let i = 0; i < spans.length; i++) {
+    for (let j = i + 1; j < spans.length; j++) {
+      // Sorted by start: once one session begins at or after `a` ends, every
+      // later one does too — nothing else can overlap `a`.
+      if (spans[j].span.start >= spans[i].span.end) break;
+      mark(spans[i].id, "end");
+      mark(spans[j].id, "start");
+    }
+  }
+  return flags;
 };
 
 // Decimal-hours label for a chart bar — up to 2 decimals, trailing zero dropped
@@ -252,6 +284,14 @@ function deriveSummary(perTech: { user: User; sessions: Session[] }[]) {
   const count = logged.length;
   const hasTime = count > 0 && totalSec > 0;
 
+  // The WIDGETS count the running session too, so their numbers tick in real
+  // time (Daniel, 2026-08-01) — a running session's `durationSec` is already
+  // the live elapsed value. The charts below stay on ended sessions: a running
+  // session has no final duration to distribute.
+  const all = perTech.flatMap((t) => t.sessions);
+  const liveTotalSec = all.reduce((acc, s) => acc + s.durationSec, 0);
+  const liveCount = all.length;
+
   // Time distribution — one segment per tech who logged time.
   const distSegments: Segment[] = hasTime
     ? techTotals.map((t, i) => ({ weight: t.sec, color: liveVar(TECH_COLORS[i % TECH_COLORS.length]), top: liveAvatar(t.user, TECH_COLORS[i % TECH_COLORS.length]), value: formatHours(t.sec) }))
@@ -274,7 +314,7 @@ function deriveSummary(perTech: { user: User; sessions: Session[] }[]) {
     ? days.map((d, i) => ({ color: liveVar(DAY_COLORS[i % DAY_COLORS.length]), name: d.key, value: formatDuration(d.sec), pct: `${Math.round((d.sec / totalSec) * 100)}%` }))
     : [];
 
-  return { totalSec, count, dayCount: days.length, distSegments, distLegend, timeSegments, timeLegend };
+  return { totalSec, count, liveTotalSec, liveCount, dayCount: days.length, distSegments, distLegend, timeSegments, timeLegend };
 }
 
 // "1 entry" / "3 entries" / "0 days" — count with a pluralized unit.
@@ -297,7 +337,7 @@ export function CalendarGlyph({ month, day }: { month: string; day: string }) {
 // One vocabulary for every session surface: the Time-session / Check-in /
 // Start / Resume selects, the pill, the bar, the rows and the My-status menus.
 export const TECH_STATUSES = [
-  { value: "Prep for work", icon: "clipboard-list-check" },
+  { value: "Prepping for work", icon: "clipboard-list-check" },
   { value: "Travelling", icon: "van" },
   { value: "Working", icon: "wrench-simple" },
   { value: "Gathering parts", icon: "cart-flatbed-boxes" },
@@ -333,9 +373,22 @@ function ActiveAvatar({ category }: { category?: string }) {
   );
 }
 
-// The ENDED-session avatar when the session is in a warning state (≥ 8 hours, or
-// spread across two days): an amber box with a warning triangle (Figma
-// 21803-49361 / 49414).
+// The ENDED-session avatar: a gray box holding the session's STATUS icon
+// (Daniel, 2026-08-04 — a logged session shows what the time was spent on).
+// The finished-session menu header uses the very same box (Figma 24107-17050).
+// It REPLACED the CalendarGlyph date tile, which is now unused by the sessions
+// (the Complete-job review still renders its own DateChip).
+export function StatusGlyph({ category }: { category?: string }) {
+  return (
+    <span className={styles.statusGlyph}>
+      <Icon icon={categoryIcon(category)} pack="solid" size={16} />
+    </span>
+  );
+}
+
+// The ENDED-session avatar when the session is in a warning state (≥ 10 hours,
+// spread across two days, or overlapping another session): an amber box with a
+// warning triangle (Figma 21803-49361 / 49414, 24508-61972).
 function WarningGlyph() {
   return (
     <span className={styles.warnGlyph}>
@@ -346,7 +399,7 @@ function WarningGlyph() {
 
 // Active session (Figma 24196-75349 Travelling / 75378 Working): status avatar,
 // open-ended rounded range + weekday caption on the left, the live red timer +
-// status caption on the right, and an ellipsis context menu (My status /
+// status caption on the right, and an ellipsis context menu (Your status /
 // Check out — the Time Session Context Menu, like the desktop session bar).
 const ActiveSessionRow = ({
   session,
@@ -366,7 +419,7 @@ const ActiveSessionRow = ({
       {onSwitchStatus != null && (
         <MenuItemGroup>
           <MenuItem
-            label="My status"
+            label="Your status"
             slotLeft={slot(categoryIcon(session.category))}
             tag={session.category}
             // The sub-menu is SelectList rows (Figma 24358-37641 / 24196-76038)
@@ -380,7 +433,7 @@ const ActiveSessionRow = ({
                 }}
               />
             }
-            subMenuTitle="My status"
+            subMenuTitle="Your status"
           />
         </MenuItemGroup>
       )}
@@ -456,17 +509,32 @@ const ActiveSessionRow = ({
 
 // Ended session (Figma 21803-49132): start → end, calendar avatar, total logged,
 // and a context-menu button (Edit / Delete) — desktop card / mobile drawer.
-const EndedSessionRow = ({ session, mobile, editable, onEdit, onDelete }: { session: Session; mobile: boolean; editable: boolean; onEdit: () => void; onDelete: () => void }) => {
+const EndedSessionRow = ({ session, mobile, editable, overlap, onEdit, onDelete }: { session: Session; mobile: boolean; editable: boolean; overlap?: SessionOverlap; onEdit: () => void; onDelete: () => void }) => {
   const menu = useAnchoredMenu(!mobile, "end");
   // Concept 7: NO 15-min rounding — the row shows the ACTUAL recorded range
   // and duration (Daniel removed the rounding for this prototype).
-  const range = `${session.startLabel} → ${session.endLabel}`;
+  const rangeText = `${session.startLabel} → ${session.endLabel}`;
   const durLabel = formatHrMin(session.durationSec);
   // Warning states (Figma 21803-49361 / 49414): a long session (≥ 10 h) turns the
   // DURATION amber; a cross-day session shows both dates in the caption, amber.
   // Either one swaps the calendar avatar for the warning glyph.
   const longSession = session.durationSec >= LONG_SESSION_SEC;
   const crossDay = session.endDateLabel != null && session.endDateLabel !== session.dateLabel;
+  // Overlap warning (Figma 24508-61972): only the overlapping END of the range
+  // turns amber — everything else in the row (arrow, caption, duration) keeps
+  // its normal color. A styled range is a ReactNode, so it carries the one-line
+  // ellipsis itself (ListItem only truncates a plain string title).
+  const overlapping = overlap != null && (overlap.start || overlap.end);
+  const range = overlapping ? (
+    <>
+      <span className={clsx(overlap.start && styles.warnText)}>{session.startLabel}</span>
+      {" → "}
+      <span className={clsx(overlap.end && styles.warnText)}>{session.endLabel}</span>
+    </>
+  ) : (
+    rangeText
+  );
+  const warned = longSession || crossDay || overlapping;
   // Caption = the WEEKDAY start date (node 21803-49132: "Monday, January 1");
   // a cross-day session shows both WEEKDAY dates in amber instead (node
   // 21803-49414: "Monday, January 1 → Tuesday, January 2" — year only when
@@ -504,9 +572,10 @@ const EndedSessionRow = ({ session, mobile, editable, onEdit, onDelete }: { sess
       <ListItem
         variant="titleCaption"
         title={range}
+        titleClassName={overlapping ? styles.rangeLine : undefined}
         caption={caption}
         captionClassName={crossDay ? styles.warnText : undefined}
-        avatar={longSession || crossDay ? <WarningGlyph /> : <CalendarGlyph month={session.month} day={session.day} />}
+        avatar={warned ? <WarningGlyph /> : <StatusGlyph category={session.category} />}
         right={
           <span className={styles.activeRight}>
             <span className={clsx(styles.sessionValue, longSession && styles.warnText)}>{durLabel}</span>
@@ -536,10 +605,10 @@ const EndedSessionRow = ({ session, mobile, editable, onEdit, onDelete }: { sess
           onClose={menu.close}
           header={
             <DrawerHeader>
-              <PopoverHeaderContent
-                avatar={longSession || crossDay ? <WarningGlyph /> : <CalendarGlyph month={session.month} day={session.day} />}
-              >
-                <PopoverHeaderText variant="titleCaption" title={range} caption={caption} />
+              <PopoverHeaderContent avatar={warned ? <WarningGlyph /> : <StatusGlyph category={session.category} />}>
+                {/* The amber overlap highlight is for the LIST ROWS only
+                    (Daniel) — the menu header keeps the plain range. */}
+                <PopoverHeaderText variant="titleCaption" title={rangeText} caption={caption} />
               </PopoverHeaderContent>
             </DrawerHeader>
           }
@@ -564,6 +633,7 @@ const SessionRow = ({
   session,
   mobile,
   editable,
+  overlap,
   onStop,
   onSwitchStatus,
   onEdit,
@@ -572,6 +642,8 @@ const SessionRow = ({
   session: Session;
   mobile: boolean;
   editable: boolean;
+  /** This session's overlap flags, from `overlapFlags` over the tech's sessions. */
+  overlap?: SessionOverlap;
   onStop: () => void;
   onSwitchStatus?: (status: string) => void;
   onEdit: () => void;
@@ -580,7 +652,7 @@ const SessionRow = ({
   session.active ? (
     <ActiveSessionRow session={session} mobile={mobile} onStop={onStop} onSwitchStatus={onSwitchStatus} />
   ) : (
-    <EndedSessionRow session={session} mobile={mobile} editable={editable} onEdit={onEdit} onDelete={onDelete} />
+    <EndedSessionRow session={session} mobile={mobile} editable={editable} overlap={overlap} onEdit={onEdit} onDelete={onDelete} />
   );
 
 // A tech's timesheet group: header (avatar + name + total + add), then either
@@ -635,15 +707,18 @@ export function SessionGroup({
   /** Shows each row's edit/delete menu — only the viewer can edit their own time. */
   editable?: boolean;
   onStop: () => void;
-  /** Status switch from the active row's My status submenu. */
+  /** Status switch from the active row's Your-status submenu. */
   onSwitchStatus?: (status: string) => void;
   onEdit: (session: Session) => void;
   onDelete: (session: Session) => void;
   onAdd: () => void;
 }) {
   const totalSec = sessions.reduce((acc, s) => acc + s.durationSec, 0);
+  // Overlaps are checked inside ONE tech's sessions — two techs working at the
+  // same time is normal.
+  const overlaps = overlapFlags(sessions);
   const rows = sessions.map((s) => (
-    <SessionRow key={s.id} session={s} mobile={mobile} editable={editable} onStop={onStop} onSwitchStatus={onSwitchStatus} onEdit={() => onEdit(s)} onDelete={() => onDelete(s)} />
+    <SessionRow key={s.id} session={s} mobile={mobile} editable={editable} overlap={overlaps.get(s.id)} onStop={onStop} onSwitchStatus={onSwitchStatus} onEdit={() => onEdit(s)} onDelete={() => onDelete(s)} />
   ));
   return <TechGroup user={user} total={sessions.length > 0 ? formatHrMin(totalSec) : undefined} rows={rows} divider={false} canAdd={canAdd} onAdd={onAdd} />;
 }
@@ -690,13 +765,37 @@ const Legend = ({ items }: { items: LegendItem[] }) => (
   </div>
 );
 
-// A summary chart subsection: title + info, then either the chart or the empty
-// "No time logged" state.
-const ChartSection = ({ title, segments, legend }: { title: string; segments?: Segment[]; legend?: LegendItem[] }) => (
+// The two Summary charts' hints (Figma 24537-92783 / 24537-92844): info
+// indicator, caption only (no title), bubble above the trigger and 375 wide.
+// Both close with the same sentence on purpose — each hint has to stand on its
+// own, and the caveat matters in both: the STAT WIDGETS above count a running
+// session, these charts do not.
+const TIME_DIST_HINT =
+  "Shows how much of the job’s logged time each technician contributed. Time is counted after the tech checks out, so a running session is not included yet.";
+const WORK_TIMELINE_HINT =
+  "Shows which days the work happened on and how much time went into each. Time is counted after the tech checks out, so a running session is not included yet.";
+
+// A summary chart subsection: title + its hint, then either the chart or the
+// empty "No time logged" state.
+const ChartSection = ({
+  title,
+  hint,
+  mobile = false,
+  segments,
+  legend,
+}: {
+  title: string;
+  hint: string;
+  mobile?: boolean;
+  segments?: Segment[];
+  legend?: LegendItem[];
+}) => (
   <div className={styles.chartSection}>
     <div className={styles.chartTitle}>
       {title}
-      <HintTrigger />
+      <HoverHint caption={hint} width={375} breakpoint={mobile ? "mobile" : "desktop"}>
+        <HintTrigger />
+      </HoverHint>
     </div>
     {segments != null && legend != null ? (
       <>
@@ -721,7 +820,7 @@ interface TimesheetPanelProps {
   sessionsByUser?: Record<number, Session[]>;
   /** Ends the running session (the active session's "Stop session" button). */
   onStopSession?: () => void;
-  /** Status switch for the active session row's My status submenu. */
+  /** Status switch for the active session row's Your-status submenu. */
   onSwitchStatus?: (status: string) => void;
   /** Opens the session form to edit an ended session. */
   onEditSession?: (session: Session) => void;
@@ -760,6 +859,8 @@ export default function TimesheetPanel({
         // Only the viewing tech can edit their own logged time.
         const editable = viewerId == null || user.id === viewerId;
         const totalSec = s.reduce((acc, x) => acc + x.durationSec, 0);
+        // Overlaps are checked inside ONE tech's sessions (Figma 24508-61972).
+        const overlaps = overlapFlags(s);
         return {
           user,
           // No logged sessions → no time caption next to the name (item 6).
@@ -770,6 +871,7 @@ export default function TimesheetPanel({
               session={sess}
               mobile={mobile}
               editable={editable}
+              overlap={overlaps.get(sess.id)}
               onStop={onStopSession ?? noop}
               onSwitchStatus={onSwitchStatus}
               onEdit={() => onEditSession?.(sess)}
@@ -782,12 +884,12 @@ export default function TimesheetPanel({
   // Widgets + Summary derived from EVERY tech's logged sessions (Time Tracker
   // path). The `started` path keeps its hardcoded demo values.
   const m = deriveSummary(assignees.map((u) => ({ user: u, sessions: sessionsByUser?.[u.id] ?? [] })));
-  const totalEntries = m.count === 0 ? "No entries" : `Across ${m.count === 1 ? "1 entry" : `${m.count} entries`}`;
+  const totalEntries = m.liveCount === 0 ? "No entries" : `Across ${m.liveCount === 1 ? "1 entry" : `${m.liveCount} entries`}`;
 
   return (
     <div className={styles.panel}>
-      {/* Widgets */}
-      <div className={clsx(styles.widgets, mobile && styles.widgetsMobile)}>
+      {/* Widgets — live: a running session counts while it runs. */}
+      <StatWidgetRow mobile={mobile}>
         {started ? (
           <>
             <StatWidget label="Total time logged" value="48.5 hr" sub="Across 2 entries" />
@@ -795,33 +897,40 @@ export default function TimesheetPanel({
           </>
         ) : (
           <>
-            <StatWidget label="Total time logged" value={formatHrMin(m.totalSec)} sub={totalEntries} empty={m.count === 0} />
+            <StatWidget label="Total time logged" value={formatHrMin(m.liveTotalSec)} sub={totalEntries} empty={m.liveCount === 0} />
             <StatWidget
               label="Average session"
-              value={m.count === 0 ? "0 hr" : formatHrMin(m.totalSec / m.count)}
+              value={m.liveCount === 0 ? "0 hr" : formatHrMin(m.liveTotalSec / m.liveCount)}
               sub="Per session"
-              empty={m.count === 0}
+              empty={m.liveCount === 0}
             />
           </>
         )}
-      </div>
+      </StatWidgetRow>
 
-      {/* Timesheet — a group per assignee */}
+      {/* Timesheet — a group per assignee, or the empty state on an unassigned
+          job (Figma 24522-84253). The header + divider stay; only the body is
+          replaced. `.listBody`'s negative margin cancels the module's own 16px
+          padding, so the EmptyState's 32px sits against the module edge. */}
       <DisplayModule
         title="Timesheet"
         content={
           <div className={styles.listBody}>
-            {groups.map((g, gi) => (
-              <TechGroup
-                key={g.user.id}
-                user={g.user}
-                total={g.total}
-                rows={g.rows}
-                divider={gi < groups.length - 1}
-                canAdd={canAddSessions && (viewerId == null || g.user.id === viewerId)}
-                onAdd={onAddSession ?? noop}
-              />
-            ))}
+            {groups.length === 0 ? (
+              <EmptyState caption="No assignees here yet" />
+            ) : (
+              groups.map((g, gi) => (
+                <TechGroup
+                  key={g.user.id}
+                  user={g.user}
+                  total={g.total}
+                  rows={g.rows}
+                  divider={gi < groups.length - 1}
+                  canAdd={canAddSessions && (viewerId == null || g.user.id === viewerId)}
+                  onAdd={onAddSession ?? noop}
+                />
+              ))
+            )}
           </div>
         }
       />
@@ -858,20 +967,24 @@ export default function TimesheetPanel({
 
             {started ? (
               <>
-                <ChartSection title="Time distribution" segments={TIME_DIST_SEGMENTS} legend={TIME_DIST_LEGEND} />
+                <ChartSection title="Time distribution" hint={TIME_DIST_HINT} mobile={mobile} segments={TIME_DIST_SEGMENTS} legend={TIME_DIST_LEGEND} />
                 <Divider />
-                <ChartSection title="Work timeline" segments={WORK_TIMELINE_SEGMENTS} legend={WORK_TIMELINE_LEGEND} />
+                <ChartSection title="Work timeline" hint={WORK_TIMELINE_HINT} mobile={mobile} segments={WORK_TIMELINE_SEGMENTS} legend={WORK_TIMELINE_LEGEND} />
               </>
             ) : (
               <>
                 <ChartSection
                   title="Time distribution"
+                  hint={TIME_DIST_HINT}
+                  mobile={mobile}
                   segments={m.distSegments.length > 0 ? m.distSegments : undefined}
                   legend={m.distLegend.length > 0 ? m.distLegend : undefined}
                 />
                 <Divider />
                 <ChartSection
                   title="Work timeline"
+                  hint={WORK_TIMELINE_HINT}
+                  mobile={mobile}
                   segments={m.timeSegments.length > 0 ? m.timeSegments : undefined}
                   legend={m.timeLegend.length > 0 ? m.timeLegend : undefined}
                 />

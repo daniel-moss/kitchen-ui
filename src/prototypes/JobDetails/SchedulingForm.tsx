@@ -1,28 +1,21 @@
 import { MouseEvent, useEffect, useState } from "react";
 
-import AlertBanner from "../../components/AlertBanner/AlertBanner";
-import AvatarUser from "../../components/Avatar/AvatarUser";
 import Button from "../../components/Button/Button";
 import Chip from "../../components/Chip/Chip";
 import DateField from "../../components/Fields/DateField/DateField";
 import Dialog from "../../components/Dialog/Dialog";
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
-import FormModule from "../../components/FormModule/FormModule";
-import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
-import IconButton from "../../components/IconButton/IconButton";
 import Input from "../../components/Input/Input";
 import InputGroup from "../../components/Fields/InputGroup/InputGroup";
-import ListItem from "../../components/ListItem/ListItem";
-import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
+import RadioGroup from "../../components/Radio/RadioGroup";
+import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import TextField from "../../components/Fields/TextField/TextField";
 import { toast } from "../../components/Toast/Toaster";
-import HoverTooltip from "../../components/Tooltip/HoverTooltip";
-import { users } from "../../data/users";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { JOB_ID } from "./jobData";
 
 import styles from "./SchedulingForm.module.scss";
 
@@ -33,7 +26,6 @@ export interface Scheduling {
   time: string; // "12:00 PM"
   hours: string; // typed, e.g. "1"
   minutes: string; // "00" | "15" | "30" | "45"
-  assignees: number[]; // user ids
 }
 
 // All 24 hours in 15-minute steps, starting 6:00 AM and wrapping to 5:45 AM.
@@ -60,15 +52,19 @@ export const DURATION_PRESETS: { label: string; hours: string; minutes: string }
   { label: "2 hr", hours: "2", minutes: "00" },
   { label: "2 hr 30 min", hours: "2", minutes: "30" },
 ];
-// The searchable people pool (the first 10 demo users, shown alphabetically).
-const ASSIGNEE_POOL = [...users.slice(0, 10)].sort((a, b) => a.name.localeCompare(b.name));
-
 // "Mon, Jan 1" (+ ", YYYY" only when the year is not the current one — the
 // app-wide year rule).
 const SHORT_DATE = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
 const SHORT_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 const shortDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? SHORT_DATE : SHORT_DATE_YEAR).format(d);
 export const formatEditDate = shortDate;
+
+// "Monday, January 1" — the Schedule-job toast's caption format (Figma
+// 24049-13916), with the year added only when it is not the current one (the
+// app-wide date rule).
+const LONG_DATE = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+const LONG_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+const longDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? LONG_DATE : LONG_DATE_YEAR).format(d);
 
 /** "Mon, Jan 1 at 12:00 PM" — the value shown in the Details panel's Scheduling module. */
 export const scheduledForLabel = (s: Scheduling) =>
@@ -98,7 +94,7 @@ export function defaultScheduling(): Scheduling {
   const d = new Date();
   d.setDate(d.getDate() + 5);
   d.setHours(12, 0, 0, 0);
-  return { date: d, time: "12:00 PM", hours: "1", minutes: "30", assignees: [1, 2, 5] };
+  return { date: d, time: "12:00 PM", hours: "1", minutes: "30" };
 }
 
 /** "1 hr 30 min" (drops a zero part). */
@@ -113,31 +109,32 @@ export const durationLabel = (hours: string, minutes: string) => {
 
 // ---- the form ---------------------------------------------------------------
 
+/** Which half of the "Date & time" choice is picked. */
+type ScheduleMode = "unschedule" | "schedule";
+
 interface SchedulingFormProps {
   open: boolean;
   onClose: () => void;
   initial: Scheduling;
   onSave: (next: Scheduling) => void;
   mobile?: boolean;
-  /** Dialog title. Default "Scheduling" (the edit form). */
+  /** Dialog title. Default "Scheduling". */
   title?: string;
-  /** Primary button copy. Default "Save". */
-  submitLabel?: string;
-  /** Success toast title. Default '"Scheduling" updated'. */
-  toastTitle?: string;
   /**
-   * Validation mode. "edit" (the Scheduling module's Edit): every field is
-   * OPTIONAL, but a provided Date & time requires a Duration (a Duration alone
-   * is fine). "schedule" (the Schedule job dialog): the Details module is
-   * required, Assignees stay optional.
+   * Forces which half of the "Date & time" choice opens selected — the
+   * "Schedule job" / "Unschedule job" actions each pre-pick their own (Daniel,
+   * 2026-08-05). Left out (the module's pen), the form opens on the job's
+   * current state.
    */
-  mode?: "edit" | "schedule";
+  initialMode?: ScheduleMode;
 }
 
-// The Scheduling edit dialog (node 21717-54899: Details + Assignees modules
-// both "(optional)"). The SAME form also serves as the "Schedule job" dialog
-// (Figma 24222-20585) — identical content; title / primary button / toast /
-// validation mode change via props.
+// The Scheduling dialog (Figma 24522-84503). ONE form for all four entry
+// points — the module's pen, "Schedule job", "Reschedule job" and "Unschedule
+// job" (Daniel, 2026-08-05). "Date & time" is a radio: Unschedule clears the
+// slot, Schedule reveals the date + time pair. Duration always shows, with its
+// five presets. Assignees left this form on 2026-08-05 — they are their own
+// module now.
 export default function SchedulingForm({
   open,
   onClose,
@@ -145,15 +142,15 @@ export default function SchedulingForm({
   onSave,
   mobile = false,
   title = "Scheduling",
-  submitLabel = "Save",
-  toastTitle = '"Scheduling" updated',
-  mode = "edit",
+  initialMode,
 }: SchedulingFormProps) {
   const [date, setDate] = useState<Date | null>(initial.date);
   const [time, setTime] = useState(initial.time);
   const [hours, setHours] = useState(initial.hours);
   const [minutes, setMinutes] = useState(initial.minutes);
-  const [assignees, setAssignees] = useState<number[]>(initial.assignees);
+  // The form opens on the job's real state: a scheduled job on "Schedule", an
+  // unscheduled one on "Unschedule".
+  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>(initialMode ?? (initial.date != null ? "schedule" : "unschedule"));
   const [showErrors, setShowErrors] = useState(false);
 
   // A fresh open resets the draft to the saved values.
@@ -163,14 +160,13 @@ export default function SchedulingForm({
     setTime(initial.time);
     setHours(initial.hours);
     setMinutes(initial.minutes);
-    setAssignees(initial.assignees);
+    setScheduleMode(initialMode ?? (initial.date != null ? "schedule" : "unschedule"));
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const timePop = useSelectPopover(mobile);
   const minutePop = useSelectPopover(mobile);
-  const assigneePop = useSelectPopover(mobile);
 
   // When the form itself closes, force every nested select popover shut — else a
   // popover left open (e.g. dismissed together with the form) would still be
@@ -179,42 +175,45 @@ export default function SchedulingForm({
     if (open) return;
     timePop.close();
     minutePop.close();
-    assigneePop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const toggleAssignee = (id: number) =>
-    setAssignees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  const assigneeUsers = assignees.map((id) => users.find((u) => u.id === id)).filter((u): u is (typeof users)[number] => u != null);
-
-  // Exactly one selected → show that person's name; more → the summary copy
-  // (the multi-select SelectField rule).
-  const assigneeValue = assignees.length === 1 ? assigneeUsers[0]?.name : "Assignees selected";
-
   // "Dirty" = any value differs from the saved scheduling. When dirty, the
   // Dialog warns before discarding (close X / scrim).
-  const sameAssignees =
-    assignees.length === initial.assignees.length && assignees.every((id) => initial.assignees.includes(id));
-  const sameDate = (date?.getTime() ?? null) === (initial.date?.getTime() ?? null);
-  const dirty = !sameDate || time !== initial.time || hours !== initial.hours || minutes !== initial.minutes || !sameAssignees;
+  const unscheduling = scheduleMode === "unschedule";
+  const sameDate = (unscheduling ? null : date?.getTime() ?? null) === (initial.date?.getTime() ?? null);
+  const dirty = !sameDate || (!unscheduling && time !== initial.time) || hours !== initial.hours || minutes !== initial.minutes;
 
-  // Validation (Daniel, 2026-07-22 + node 21717-54899): edit mode — all fields
-  // optional, but a (fully or partly) provided Date & time requires a Duration;
-  // schedule mode — Date & time and Duration required, Assignees optional.
-  const dateTimeStarted = date != null || time !== "";
-  const dateTimeComplete = date != null && time !== "";
-  const durationSet = (parseInt(hours, 10) || 0) > 0 || (parseInt(minutes, 10) || 0) > 0;
-  const dateTimeBad = mode === "schedule" ? !dateTimeComplete : dateTimeStarted && !dateTimeComplete;
-  const durationBad = mode === "schedule" ? !durationSet : dateTimeComplete && !durationSet;
+  // The primary button names what saving will DO (Figma 24522-88085 / 88541 /
+  // 88893): Unschedule, or Schedule / Reschedule depending on whether the job
+  // already had a slot.
+  const submitLabel = unscheduling ? "Unschedule" : initial.date != null ? "Reschedule" : "Schedule";
+
+  // Scheduling requires the whole slot AND a duration; unscheduling requires
+  // nothing (the duration stays as it is).
+  const dateTimeBad = !unscheduling && (date == null || time === "");
+  const durationBad = !unscheduling && (parseInt(hours, 10) || 0) === 0 && (parseInt(minutes, 10) || 0) === 0;
 
   const save = () => {
     if (dateTimeBad || durationBad) {
       setShowErrors(true);
       return;
     }
-    onSave({ date, time, hours, minutes, assignees });
-    toast({ type: "success", title: toastTitle });
+    // Unscheduling clears the slot and keeps everything else.
+    const next: Scheduling = unscheduling
+      ? { ...initial, date: null, time: "", hours, minutes }
+      : { ...initial, date, time, hours, minutes };
+    onSave(next);
+    // The toasts name the JOB (Figma 24531-90433 / 24532-90489 / 24531-90463),
+    // in the double quotes every other id toast here uses. Scheduling and
+    // rescheduling are DETAILED — the caption is the slot the job landed on
+    // plus its duration; unscheduling has no slot left, so it stays title-only.
+    const title = `"${JOB_ID}" ${unscheduling ? "unscheduled" : initial.date != null ? "rescheduled" : "scheduled"}`;
+    toast(
+      unscheduling || date == null
+        ? { type: "success", title }
+        : { type: "success", variant: "detailed", title, caption: `${longDate(date)} at ${time} for ${durationLabel(hours, minutes)}` },
+    );
     onClose();
   };
 
@@ -242,39 +241,36 @@ export default function SchedulingForm({
       }
     >
       <div className={styles.form}>
-        <FormModuleGroup>
-          {/* TEMP (Daniel, 2026-07-29): the "Location" module from the
-              FormModule doc, dropped in to compare the look in a real form.
-              Remove after the comparison. */}
-          {mode === "edit" && (
-            <FormModule
-              title="Location"
-              caption="Select the location where the equipment needing service is installed."
-              banner={
-                <AlertBanner orientation="vertical" status="info" onDismiss={() => {}}>
-                  Always pick the end-client location, no matter who called or is footing the bill for this work.
-                  Don&apos;t worry — you&apos;ll get to add those third-party billers and whoever called it in later on!
-                </AlertBanner>
+        {/* Date & time — a choice, not a plain field (Figma 24522-88085).
+            "Schedule" reveals the date + time pair inside its own card. */}
+        <Input label="Date & time">
+          <RadioGroup value={scheduleMode} onChange={(v) => setScheduleMode(v as ScheduleMode)}>
+            <RadioItem value="unschedule" variant="card" icon="calendar-xmark" iconPack="regular" label="Unschedule" />
+            <RadioItem
+              value="schedule"
+              variant="card"
+              icon="calendar-check"
+              iconPack="regular"
+              label="Schedule"
+              error={showErrors && dateTimeBad}
+              content={
+                <Input label="Date & time">
+                  <InputGroup isValid={!(showErrors && dateTimeBad)}>
+                    <DateField value={date} onDateChange={setDate} formatValue={formatEditDate} breakpoint={mobile ? "mobile" : "desktop"} />
+                    <SelectField
+                      value={time}
+                      open={timePop.open}
+                      onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
+                    />
+                  </InputGroup>
+                </Input>
               }
-            >
-              <SelectField onClick={() => {}} />
-            </FormModule>
-          )}
-          <FormModule title="Details" titleCondition={mode === "edit" ? "optional" : undefined}>
-          {/* Date & time */}
-          <Input label="Date & time">
-            <InputGroup isValid={!(showErrors && dateTimeBad)}>
-              <DateField value={date} onDateChange={setDate} formatValue={formatEditDate} breakpoint={mobile ? "mobile" : "desktop"} />
-              <SelectField
-                value={time}
-                open={timePop.open}
-                onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
-              />
-            </InputGroup>
-          </Input>
+            />
+          </RadioGroup>
+        </Input>
 
-          {/* Duration */}
-          <div className={styles.duration}>
+        {/* Duration */}
+        <div className={styles.duration}>
             <Input label="Duration">
               <InputGroup isValid={!(showErrors && durationBad)}>
                 <TextField
@@ -307,50 +303,6 @@ export default function SchedulingForm({
               ))}
             </div>
           </div>
-          </FormModule>
-
-          <FormModule title="Assignees" titleCondition="optional">
-            <SelectField
-              multiSelect
-              count={assignees.length}
-              value={assignees.length > 0 ? assigneeValue : undefined}
-              multiSelectLabel="Assignees selected"
-            onClearSelection={() => setAssignees([])}
-            open={assigneePop.open}
-            onClick={(e: MouseEvent<HTMLDivElement>) => assigneePop.toggle(e.currentTarget)}
-          />
-          {assigneeUsers.length > 0 && (
-            <DisplayModule
-              variant="bodyOnly"
-              content={
-                <div className={styles.listBody}>
-                  <ItemGroup>
-                    {assigneeUsers.map((u) => (
-                      <ListItem
-                        key={u.id}
-                        variant="title"
-                        title={u.name}
-                        avatar={<AvatarUser size="xl" imageSrc={u.avatar} />}
-                        slotRight={
-                          <HoverTooltip text="Remove">
-                            <IconButton
-                              icon="xmark"
-                              variant="ghost"
-                              size="md"
-                              aria-label={`Remove ${u.name}`}
-                              onClick={() => toggleAssignee(u.id)}
-                            />
-                          </HoverTooltip>
-                        }
-                      />
-                    ))}
-                  </ItemGroup>
-                </div>
-              }
-            />
-          )}
-          </FormModule>
-        </FormModuleGroup>
       </div>
 
       {/* Time picker */}
@@ -387,31 +339,6 @@ export default function SchedulingForm({
         </SelectListItemGroup>
       </SelectPopoverList>
 
-      {/* Assignees picker */}
-      <SelectPopoverList
-        pop={assigneePop}
-        mobile={mobile}
-        title="Assignees"
-        multiSelect
-        searchable
-        // NOT "…user name…": WebKit reads "user name" as a username field and
-        // pops the iOS password-autofill bar over the keyboard. "assignees"
-        // avoids the heuristic (the client/time searches never hit it).
-        searchPlaceholder="Search assignees..."
-      >
-        <SelectListItemGroup>
-          {ASSIGNEE_POOL.map((u) => (
-            <SelectListItem
-              key={u.id}
-              multiSelect
-              selected={assignees.includes(u.id)}
-              slotLeft={<AvatarUser size="xs" imageSrc={u.avatar} />}
-              label={u.name}
-              onClick={() => toggleAssignee(u.id)}
-            />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
     </Dialog>
   );
 }

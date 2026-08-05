@@ -33,7 +33,7 @@ import { users } from "../../data/users";
 import HotSideRepairForm, { HotSideDraft, hotSideDraftHasContent } from "./HotSideRepairForm";
 import HvacPmStepForm, { HvacPmStepDraft, hvacStepDraftHasContent } from "./HvacPmStepForm";
 import ServiceCallForm, { ServiceCallDraft, serviceCallDraftHasContent } from "./ServiceCallForm";
-import { Equipment } from "./ServicePanel";
+import { Equipment } from "./equipment";
 import { formatStatusTimestamp, STATUS_TS } from "./jobState";
 import { noop, useAnchoredMenu } from "./shared";
 

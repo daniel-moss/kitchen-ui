@@ -267,6 +267,10 @@ Roughly, as of this handoff:
   buttons carry tooltips ("Object search" / createLabel).
 - **Steppers:** `StepItem`, `StepGroup`. **Tabs (`Tabs/`):** `TabItem`, `TabGroup`
   (contained tabs are 4px shorter; `isFullWidth` stretches tabs equally).
+  TabItem `warning` (2026-08-05) turns the icon + label `--text-warning` and
+  HOLDS that colour in every state (selected, hover, press) — built for
+  SidePanel's navigation, so it is scoped to the `default` + `container`
+  variants; the amber `warning` icon is the caller's, not built in.
 - **Form controls:** `Checkbox/` (Checkbox, CheckboxBox, CheckboxItem,
   CheckboxGroup), `Radio/` (same shape, single-select), `Toggle/` (ToggleSwitch,
   Toggle, ToggleItem), `SelectInput/` (assembly + Field + Body + Counter;
@@ -304,6 +308,25 @@ Roughly, as of this handoff:
   `SelectListHeader` (search), `SelectListItem` (+ Content/Copy; default/object),
   `SelectListItemGroup` (pairs with GroupLabel: primary ↔ object items,
   secondary ↔ default items), `SelectListFooter` (menuItem/actionBar).
+- **SidePanel (`SidePanel/`, 2026-08-05):** the data-preview overlay, built on
+  Popover. Desktop = a FIXED 400px panel on the right that slides in from the
+  edge, `--size-3` (12px) margin all round, full screen height, radius 10,
+  `--surface-level-first`, over a `--pure-black-a5` scrim. Mobile = the same
+  panel filling the screen (no scrim/margin/radius, safe-area padding) — the
+  focus-Dialog pattern. Header = PopoverHeader (its `back`/`close`), optional
+  footer = PopoverFooter, optional `nav` = `SidePanelNavigation` (52px rows,
+  16px sides, bottom divider: object tabs = TabGroup default/md scrolling
+  sideways with NO edge fade; `topLevel` adds a second row above = TabGroup
+  contained/**lg** full-width). Body defaults: 16px padding + 16px gap
+  (`bodyPadded={false}` opts out). `state="error" | "offline"` swaps the body
+  for the same EmptyState Dialog uses and hides nav + footer. **A link inside a
+  panel never stacks a second panel** — the CONSUMER keeps the stack, swaps
+  `title` + children and passes `onBack` (unlimited levels). SidePanel portals
+  to the nearest DrawerRootContext / `[data-drawer-root]`, else `<body>` — that
+  is what lets a device frame or a docs preview box contain it.
+  `SidePanelNavigation` unwraps a fragment before handing tabs to TabGroup:
+  `Children.toArray` does NOT look inside `<>…</>`, so the tabs would silently
+  lose value/selection/click.
 - **Menus (`MenuItem/`, `Menu/`):** `MenuItem` (danger, whole-row toggle,
   `subMenu` hover cards / drawer push), `MenuItemGroup`, `Menu` (desktop card,
   content-adaptive width 160–384; mobile drawer with sub-menu stack).
@@ -329,6 +352,17 @@ Roughly, as of this handoff:
   non-passive `touchmove` preventDefault while dragging (rows allow panning,
   so the first move would otherwise start a native scroll → pointercancel)
   and `suppressListItemTaps(350)` on finish for the trailing click).
+  **Docs page + Figma alignment (2026-08-05):** `ListItem.mdx` follows the
+  Figma Documentation page section-for-section. The caption's left slot
+  (`captionSlotLeft`, 20px box / centred / 8px before the text; the icon's
+  size, style and color are the caller's) is wired through
+  ListItemText → ListItemTextLeft. Two doc rules are now ENFORCED, not just
+  written: (1) `slotBottom` is type-restricted to the STATIC row — clickable /
+  draggable / accordion + a bottom slot no longer compiles; (2) a clickable row
+  whose `slotRight` holds a TabGroup or a field logs a console warning
+  (`CONTROLS_BLOCKING_CLICK` in ListItem.tsx) — TypeScript cannot look inside a
+  `ReactNode`, so this one is a runtime check that matches on the element's
+  function name (it does not see through a wrapper element).
 
 **Tooling:** `npm run screenshot [filter]` captures every story to
 `screenshots/` via headless Chrome for visual-regression comparisons (capture
@@ -372,6 +406,14 @@ is why raw `.tsx` uploads there did nothing).
   guards for `wait` ms. Trailing debounce delayed every click by 250ms.
 - **Tooltips never clip:** render in a `document.body` portal (see `TruncatingText`,
   `HoverTooltip`) — any `overflow`/scroll ancestor would otherwise cut them off.
+- **Every `<input>` opts OUT of autofill / password managers** (Daniel hit a
+  native password popup on a "Received by" picker, 2026-08-03): `autoComplete="off"`
+  + `data-1p-ignore` + `data-lpignore` + `data-form-type="other"`, listed BEFORE
+  the `{...rest}` spread so a consumer can opt back in for a real name/address
+  field. `SearchField` also sets a neutral `name="search"` — Chrome and Safari
+  classify a field as a user name from its `name`/`id` AND its placeholder, and
+  once they have, they IGNORE `autocomplete="off"`. So avoid the words "user
+  name" / "password" in a placeholder unless you want the browser's UI.
 - **Modals** (`Dialog`, `Prompt`) share `src/hooks/useMountTransition` +
   `useIsDesktop` and portal to `document.body` at z-index 1000 (tooltips 9999).
 - **Design values come from Figma only** (see the `figma-only-design-source`
@@ -407,7 +449,19 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   `## Behaviour` — never "States" or another synonym (Daniel, 2026-07-30).
   A component with two mount modes may instead split into named sections
   (e.g. CheckboxItem/RadioItem `## Inline` / `## Card`); that is the one
-  sanctioned deviation.
+  sanctioned deviation. **Second sanctioned deviation (Daniel, 2026-08-05):**
+  when the component's Figma Documentation page is itself split into several
+  top-level sections, FOLLOW THE FIGMA SECTION NAMES instead of folding them
+  into one `## Behaviour` — ListItem.mdx does this (`Anatomy` / `Content` /
+  `Right elements` / `Bottom elements` / `Dragging` / `Interactivity` /
+  `Accordion` / `Props`), and the TOC links mirror them.
+- **Props-table gotcha:** `<ArgTypes>` is fed by react-docgen, which CANNOT
+  read JSDoc off a **union** props type — it renders an empty table (no
+  descriptions, no types). When `<Name>Props` is a union (ListItem's variant
+  axes exclude each other), declare the whole table by hand in the stories
+  meta's `argTypes` (`description` + `table.type.summary` +
+  `table.defaultValue.summary`) and keep it in step with the `.types.ts`
+  JSDoc. See `ListItem.stories.tsx`.
 - Measurements in docs prose (and in the JSDoc the props table shows) are
   written as **the token with the px value**: `` `--size-1_5` (6px) `` —
   but ONLY where the code truly uses that token; untokenized values stay
@@ -444,6 +498,15 @@ components; stories under the **"Forms"** Storybook section. Rules:
   re-measures.
   JobDetails imports it; the other prototypes still carry local copies
   (consolidation pending).
+- **LAYOUT-FREEZE RULE — `pop.freeze(value)` (Daniel, 2026-08-03).** Because the
+  card is fixed once open, anything the picks GROW below the trigger (a badge
+  row, the picked items' list) would push the trigger down and the card would
+  drift away from its field. So wrap that content in `pop.freeze(...)`: it
+  returns the value as it was when the list OPENED and re-syncs on close, and
+  the frozen content sits behind the open list where nobody sees it lag. Use it
+  for EVERY multi-select whose picks render below the field — do not hand-roll a
+  snapshot. Do NOT freeze the field's own value/counter: the field does not
+  change size, so it must keep updating live as you tick.
 - Built so far: **NewLocationForm** (Figma 23805-13764: header caption =
   client, Service address module with the mock-Google address autocomplete +
   "Enter manually", Labels = chips row ending with a plus IconButton that

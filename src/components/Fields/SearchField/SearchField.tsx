@@ -58,7 +58,10 @@ const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function Sear
         disabled={disabled}
         // Keep autofill + password managers off a search field (they otherwise
         // pop a "save/fill password" prompt that sticks). Consumers can override
-        // via {...rest}.
+        // via {...rest}. The neutral `name` matters as much as the attributes:
+        // Chrome/Safari classify a field as a user name from its name/id AND
+        // its placeholder, and they ignore autocomplete="off" once they have.
+        name="search"
         autoComplete="off"
         autoCorrect="off"
         autoCapitalize="off"

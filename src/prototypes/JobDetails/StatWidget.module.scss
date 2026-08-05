@@ -1,0 +1,59 @@
+// ---- stat widgets -----------------------------------------------------------
+// Shared by the Timesheet and Activity tabs (Figma 24435-55807 "Widgets").
+.widgets {
+  display: flex;
+  gap: var(--size-4);
+}
+// Mobile: the two widgets stack vertically. Reset the row's `flex: 1 1 0` (a 0
+// basis collapses the height in a column) — each widget sizes to its content
+// and stretches full-width.
+.widgetsMobile {
+  flex-direction: column;
+}
+.widgetsMobile .widget {
+  flex: none;
+}
+// The widget IS a bodyOnly DisplayModule (bg / radius / shadow come from it).
+.widget {
+  flex: 1 1 0;
+  min-width: 0;
+}
+// Figma body: px-16 py-12, gap-16. The module is mounted with
+// `bodyPadded={false}`, so the body owns its padding outright.
+.widgetBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px — label ↔ value block
+  padding: var(--size-3) var(--size-4); // 12px / 16px
+}
+.widgetLabel {
+  font: var(--font-body-400-compact); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+.widgetValueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  min-width: 0;
+}
+// 32/40 Medium is NOT in the DS type scale (the largest is heading-h1, 24/32) —
+// hardcoded here on purpose until a token exists (Daniel, 2026-08-01).
+.widgetValue {
+  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
+  color: var(--text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.widgetSub {
+  font: var(--font-caption-medium-400); // Inter Regular 13/20
+  color: var(--text-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+// Empty state → the value + caption both read placeholder.
+.widgetValueBlockEmpty .widgetValue,
+.widgetValueBlockEmpty .widgetSub {
+  color: var(--text-placeholder);
+}

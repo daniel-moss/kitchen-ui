@@ -15,7 +15,7 @@ import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ChargesTab from "./ChargesTab";
-import { Equipment } from "./ServicePanel";
+import { Equipment } from "./equipment";
 import { noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./SummaryPanel.module.scss";

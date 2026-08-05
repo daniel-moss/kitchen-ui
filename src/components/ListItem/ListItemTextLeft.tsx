@@ -32,10 +32,22 @@ export default function ListItemTextLeft({
   captionLines = 1,
   titleClassName,
   captionClassName,
+  captionSlotLeft,
   className,
 }: ListItemTextLeftProps) {
   const titleLine = line(title, titleLines, clsx(styles.title, titleClassName));
-  const captionLine = variant !== "title" && caption != null ? line(caption, captionLines, clsx(styles.caption, captionClassName)) : null;
+  const caption_ = variant !== "title" && caption != null ? line(caption, captionLines, clsx(styles.caption, captionClassName)) : null;
+  // With a left slot the caption becomes a row: the glyph, 8px, then the text
+  // (Figma 28927-35531). The text still owns the truncation.
+  const captionLine =
+    caption_ != null && captionSlotLeft != null ? (
+      <span className={styles.captionRow}>
+        <span className={styles.captionSlot}>{captionSlotLeft}</span>
+        {caption_}
+      </span>
+    ) : (
+      caption_
+    );
 
   return (
     <div className={clsx(styles.text, variant === "title" && styles.singleLine, className)}>

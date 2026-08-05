@@ -8,7 +8,7 @@ import { ListItemTextProps } from "./ListItemText.types";
 // ListItemText — the text region of a ListItem: the left text block (flex-1,
 // truncates) and an optional right block (hugs), 16px apart. Without a right
 // block it is just the left text at full width. See Figma "ListItem › Content Text".
-export default function ListItemText({ variant, title, caption, titleLines, captionLines, titleClassName, captionClassName, right, className }: ListItemTextProps) {
+export default function ListItemText({ variant, title, caption, titleLines, captionLines, titleClassName, captionClassName, captionSlotLeft, right, className }: ListItemTextProps) {
   const left = (
     <ListItemTextLeft
       variant={variant}
@@ -18,6 +18,7 @@ export default function ListItemText({ variant, title, caption, titleLines, capt
       captionLines={captionLines}
       titleClassName={titleClassName}
       captionClassName={captionClassName}
+      captionSlotLeft={captionSlotLeft}
       className={styles.left}
     />
   );

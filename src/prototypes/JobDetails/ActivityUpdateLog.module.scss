@@ -1,0 +1,155 @@
+@use "../../styles/mixins/font" as *;
+
+// Update logs for the Activity tab — PROTOTYPE-LOCAL (Daniel, 2026-08-02: we
+// are exploring the idea, so nothing here changes the DS ActivityLog).
+
+// The DS `.subStack` is gap 8 / padding 0 8 8 36. Passing ONE wrapper child
+// re-spaces the body without touching the DS: it adds the difference on top of
+// the DS values and owns the gap between sub-logs.
+// Daniel, 2026-08-04: gap, top and bottom padding are all 8 now (were 12) —
+// which is the DS's own spacing, so only the gap and the right padding are
+// still set here.
+.subStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px between sub-logs and their dividers
+  padding-right: var(--size-2); // 8 (DS) + 8 = 16
+}
+
+// A replaced value inside the log SENTENCE — regular weight, struck through in
+// gray-a8 so it reads as the value that is gone (Figma 24487-43383). The
+// counterpart to the DS `Em`.
+// The value's glyph is an inline-FLEX box, so the line never crosses the icon.
+.muted {
+  color: var(--gray-a8);
+  text-decoration: line-through;
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+
+// ---- sub-log (one changed field) -------------------------------------------
+.subItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-2); // 8px — icon ↔ text
+  width: 100%;
+}
+.subIcon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-5); // 20px
+  height: var(--size-5);
+  color: var(--gray-12);
+}
+.subText {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.subTitle {
+  color: var(--text-strong);
+
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+
+// ---- the value change ------------------------------------------------------
+// Both sides are REGULAR here. Only the colour separates them — unlike the row
+// sentence, where the new value is medium.
+.shortValue {
+  @include font("body-400-compact");
+}
+
+// A TextArea value is a paragraph, and the log shows ONE merged version of it
+// with the edit marked inside (Figma 24489-50029). It reads as prose, so it
+// gets the SPACIOUS line height (14/22) the design uses, and keeps the
+// author's own line breaks.
+.stackedValue {
+  display: block;
+  white-space: pre-wrap;
+  color: var(--text-strong);
+
+  @include font("body-400-spacious");
+}
+
+// Words that were taken out — the same struck gray-a8 as every other old value.
+.diffRemoved {
+  color: var(--gray-a8);
+  text-decoration: line-through;
+}
+
+// Words that were put in. The highlight is a background on the run itself, so
+// a run that wraps paints one box per line, exactly like the design's stack of
+// rectangles.
+.diffAdded {
+  background: var(--amber-a4);
+}
+
+// A replacement with no space between the two sides ("it" → "that" before a
+// comma) would run the struck word straight into the highlighted one. Only
+// fires when they truly touch — a space between them is its own `equal` run.
+.diffRemoved + .diffAdded {
+  margin-left: 2px;
+}
+.old {
+  color: var(--gray-a8);
+}
+
+// The replaced value is struck through (Daniel, 2026-08-03). Long TextArea
+// values never reach here — they render as the merged diff above, where only
+// the words that actually went are struck.
+.shortValue > .old {
+  text-decoration: line-through;
+}
+
+// A glyph and its value are one unit — a line break between them would strand
+// the icon at the end of a line.
+.valuePair {
+  white-space: nowrap;
+}
+
+// A value's glyph sits inline with its text, 8px before it. It inherits the
+// value's colour unless it carries its own tint (the NEW side only — the old
+// side is muted, so it always inherits the placeholder grey).
+//
+// ALIGNMENT: the icon is a `fixedHeight` box (14px tall, width follows the
+// glyph) while the text line is 20px, so on its own it would read as
+// top-aligned. This wrapper is exactly one line tall and centres the icon
+// inside it, then sits flush with the top of the line box — the glyph lands on
+// the line's optical centre by construction, with no magic offset, and stays
+// right on whichever line it wraps onto.
+.valueIcon {
+  display: inline-flex;
+  align-items: center;
+  height: 20px; // = body-400-compact line-height
+  vertical-align: top;
+  margin-right: var(--size-1_5); // 6px — icon → value
+  margin-left: var(--size-1_5); // 6px — text → icon
+}
+
+// A contact's avatar sits inline with the name, exactly like a value's glyph:
+// same one-line-tall box, so the 16px (xxs) avatar lands on the line's optical
+// centre with no magic offset. inline-FLEX also keeps the OLD value's
+// strikethrough from crossing the photo.
+.valueAvatar {
+  display: inline-flex;
+  align-items: center;
+  height: 20px; // = body-400-compact line-height
+  vertical-align: top;
+  margin-right: var(--size-1_5); // 6px — avatar → name
+  margin-left: var(--size-1_5); // 6px — sentence → avatar
+}
+
+// The old value OPENS the sub-log line, so its glyph — or the FIRST person's
+// avatar — has nothing before it; a leading gap there would push the value out
+// of line with the field name above it.
+.shortValue > .old:first-child > .valuePair > .valueIcon,
+.shortValue > .old:first-child > .valuePair:first-child > .valueAvatar {
+  margin-left: 0;
+}
+.new,
+.arrow {
+  color: var(--gray-12);
+}

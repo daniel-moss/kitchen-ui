@@ -23,6 +23,7 @@ export default function DisplayModule({
   slotLeft,
   slotRight,
   content,
+  bodyPadded = true,
   error = false,
   onRetry,
   status = "none",
@@ -102,8 +103,9 @@ export default function DisplayModule({
 
   // An EmptyState body (the error state's, or one passed as `content`) brings
   // its own 32px padding — don't add the default content padding around it.
+  // `bodyPadded={false}` says the same thing for any other content.
   const isEmptyStateContent = isValidElement(content) && content.type === EmptyState;
-  const bodyClass = clsx(styles.body, (error || isEmptyStateContent) && styles.bodyError);
+  const bodyClass = clsx(styles.body, (error || isEmptyStateContent || !bodyPadded) && styles.bodyFlush);
 
   let body;
   if (variant === "bodyOnly") {

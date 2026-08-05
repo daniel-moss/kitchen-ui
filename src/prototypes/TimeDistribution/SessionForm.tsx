@@ -44,27 +44,43 @@ interface TimeParts {
   meridiem: Meridiem;
 }
 
-// "9:00" → "09:00" — the input always shows a 2-digit hour ("00:00" format).
-const padClock = (c: string) => {
-  const [h, m] = c.split(":");
-  return h != null && m != null ? `${h.padStart(2, "0")}:${m}` : c;
-};
-
 // "11:30 AM" → { clock: "11:30", meridiem: "AM" }; "January 1, 2026" → a Date.
+// The clock is taken exactly as the label writes it — "9:00" stays "9:00",
+// because hours 2–9 use the one-digit "0:00" mask (see maskClock).
 const parseParts = (dateLabel?: string, timeLabel?: string): TimeParts => ({
   date: dateLabel != null ? new Date(dateLabel) : null,
-  clock: timeLabel != null ? padClock(timeLabel.replace(/\s*(AM|PM)\s*/i, "").trim()) : "",
+  clock: timeLabel != null ? timeLabel.replace(/\s*(AM|PM)\s*/i, "").trim() : "",
   meridiem: timeLabel != null && /PM/i.test(timeLabel) ? "PM" : "AM",
 });
 
-// Mask any input to a "HH:MM" clock: keep ≤ 4 digits, drop a colon in after 2.
-const maskClock = (raw: string) => {
-  const d = raw.replace(/\D/g, "").slice(0, 4);
-  return d.length <= 2 ? d : `${d.slice(0, 2)}:${d.slice(2)}`;
+// Mask the typed digits to a clock. NOTHING is ever added but the COLON, and
+// the FIRST digit picks the pattern (Daniel, 2026-08-05):
+//   0 or 1 → a two-digit hour is still possible (10, 11, 12), so the mask is
+//            "00:00" and the colon appears after the SECOND digit.
+//   2–9    → only a one-digit hour is possible, so the mask is "0:00" and the
+//            colon appears immediately ("3" → "3:", "345" → "3:45").
+// The colon shows up as soon as the hour is complete, so it is clear it is
+// already typed. It can never be deleted ON ITS OWN (Daniel, 2026-08-05): a
+// Delete that lands on the colon takes the digit before it too, so "5:" goes
+// straight back to "" — while a Delete that only removed a MINUTE digit leaves
+// the colon in place ("5:4" → "5:").
+const maskClock = (raw: string, deleting = false) => {
+  const digits = raw.replace(/\D/g, "");
+  const hourLen = /^[01]/.test(digits) ? 2 : 1;
+  const d = digits.slice(0, hourLen + 2);
+  if (d.length < hourLen) return d;
+  if (d.length === hourLen) {
+    if (!deleting) return `${d}:`;
+    // The colon is still there → a minute digit went; it is gone → the delete
+    // hit the colon, so the hour's last digit goes with it.
+    return raw.endsWith(":") ? `${d}:` : d.slice(0, -1);
+  }
+  return `${d.slice(0, hourLen)}:${d.slice(hourLen)}`;
 };
 
-// A 12-hour clock is valid: hour 01–12, minute 00–59.
-const isValidClock = (clock: string) => /^(0[1-9]|1[0-2]):[0-5]\d$/.test(clock);
+// A 12-hour clock is valid: hour 1–12 (a written leading zero is allowed),
+// minute 00–59.
+const isValidClock = (clock: string) => /^(0?[1-9]|1[0-2]):[0-5]\d$/.test(clock);
 
 // One labelled InputGroup fusing three segments — Date + masked Time (fixed
 // width) + AM/PM select (hugs). The group shows its error only once focus has
@@ -112,11 +128,10 @@ const TimeGroup = ({
           <TextField
             className={styles.time}
             value={value.clock}
-            onChange={(e) => onClock(maskClock(e.target.value))}
+            onChange={(e) => onClock(maskClock(e.target.value, ((e.nativeEvent as InputEvent).inputType ?? "").startsWith("delete")))}
             onFocus={onFocusTime}
             onBlur={onBlurTime}
             keyboard="numeric"
-            placeholder="00:00"
           />
           <SelectField
             className={styles.ampm}

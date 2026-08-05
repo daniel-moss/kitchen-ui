@@ -4,6 +4,17 @@
 // they live here as the job's real demo values.
 
 export const JOB_ID = "JOB-10001";
+
+// The tech we are signed in as in this prototype — Lorne Riddle (user 1).
+export const VIEWER_ID = 1;
+
+/**
+ * A person's name for a STAFF select list: the viewer is marked "(You)", so it
+ * is obvious who we are (Daniel, 2026-08-05). Only for lists of OUR people —
+ * the client-contact lists happen to reuse the same demo person as a McDonald's
+ * contact, which is a different role and must NOT be marked.
+ */
+export const staffSelectLabel = (user: { id: number; name: string }) => (user.id === VIEWER_ID ? `${user.name} (You)` : user.name);
 export const JOB_SOURCE_ID = "123456789";
 // The job this one recalls to — shown as the Service module's "Recall to" link
 // AND the "Recall to" row in the Details panel's Related module (same object).

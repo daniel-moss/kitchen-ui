@@ -4,13 +4,15 @@ import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import TextArea from "../../components/Fields/TextArea/TextArea";
+import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextField from "../../components/Fields/TextField/TextField";
 import FormModule from "../../components/FormModule/FormModule";
 import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
 import { Icon } from "../../components/Icon/Icon";
-import IconButton from "../../components/IconButton/IconButton";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
+import SelectList from "../../components/SelectList/SelectList";
+import SelectListHeader from "../../components/SelectList/SelectListHeader";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
@@ -28,14 +30,16 @@ const NOTES_HINT =
 // NewLocationForm — the reusable "New location" form (Figma 23805-13764):
 // a Dialog titled "New location" with the owning client in the header caption,
 // three FormModules (Service address / Labels / Notes) and a Create footer.
-// The address flow follows the "Fill-in Address" doc: typing in Street address
-// suggests (mock) Google addresses in an anchored list; picking one — or
-// "Enter manually" when nothing matches — reveals the remaining fields.
-// Labels are a chips row: empty = a ghost "Add labels" Button; with badges =
-// a plus IconButton at the row START, then the badges. The trigger opens a
-// multi-select list to its LEFT (mobile: drawer) with create-from-search;
-// while the list is open the chips row is FROZEN (badges sync on close), and
-// the list itself is FIXED where it opened — the form never moves under it.
+// The address flow follows the "Fill-in Address" doc (updated 2026-08-03):
+// the Street address field suggests (mock) Google addresses on EVERY focus —
+// desktop in a list anchored under it, mobile in a drawer whose search is the
+// field itself. Picking one — or "Enter manually" in the list's no-results
+// state — reveals the remaining fields.
+// Labels are a multi-select SelectField with the selected labels as
+// dismissible badges below it — the New-equipment form's pattern, chosen over
+// the chips-row trigger and over a list dialog (Daniel, 2026-08-03). The field
+// opens the labels list anchored under it (mobile: drawer), picks apply live,
+// and the chips row is frozen while the list is open (see below).
 export default function NewLocationForm({
   open,
   onClose,
@@ -76,13 +80,18 @@ export default function NewLocationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // The street suggestions are an AUTOCOMPLETE — anchored under the field on
-  // BOTH breakpoints (a drawer would cover the field being typed in).
+  // The street suggestions (Figma "Fill-in Address", updated 2026-08-03):
+  // DESKTOP = a list anchored under the field; MOBILE = a drawer titled
+  // "Street address" whose SEARCH is the street input (the field itself only
+  // opens the drawer, so the keyboard belongs to one input at a time).
   const addressPop = useSelectPopover(false);
-  const labelsPop = useSelectPopover(!isDesktop, "left");
+  const [addressDrawerOpen, setAddressDrawerOpen] = useState(false);
+  // The labels list is anchored UNDER the field (desktop) / a drawer (mobile).
+  const labelsPop = useSelectPopover(!isDesktop);
   useEffect(() => {
     if (open) return;
     addressPop.close();
+    setAddressDrawerOpen(false);
     labelsPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -93,15 +102,30 @@ export default function NewLocationForm({
     street.trim() === ""
       ? []
       : ADDRESS_SUGGESTIONS.filter((s) => suggestionLabel(s).toLowerCase().includes(street.trim().toLowerCase()));
+  // With text but nothing matching, the list shows the "no results" state with
+  // its "Enter manually" way out (the button used to sit under the field).
+  const addressNoResults = street.trim() !== "" && matches.length === 0;
+
+  // Suggestions come back on EVERY focus, also after the address was expanded
+  // (Daniel, 2026-08-03) — the street may still be edited.
+  const openAddressList = () => {
+    if (!isDesktop) {
+      setAddressDrawerOpen(true);
+      return;
+    }
+    if (street.trim() !== "" && streetRef.current != null) addressPop.openAt(streetRef.current);
+  };
 
   const onStreetChange = (e: ChangeEvent<HTMLInputElement>) => {
     setStreet(e.target.value);
-    if (expanded) return; // expanded = plain text field, no suggestions
-    const q = e.target.value.trim();
-    const hasMatches =
-      q !== "" && ADDRESS_SUGGESTIONS.some((s) => suggestionLabel(s).toLowerCase().includes(q.toLowerCase()));
-    if (hasMatches && streetRef.current != null) addressPop.openAt(streetRef.current);
+    if (!isDesktop) return; // mobile types in the drawer's search
+    if (e.target.value.trim() !== "" && streetRef.current != null) addressPop.openAt(streetRef.current);
     else addressPop.close();
+  };
+
+  const closeAddressList = () => {
+    addressPop.close();
+    setAddressDrawerOpen(false);
   };
 
   const pickSuggestion = (s: AddressSuggestion) => {
@@ -110,21 +134,21 @@ export default function NewLocationForm({
     setStateProv(s.state);
     setPostal(s.postal);
     setExpanded(true);
-    addressPop.close();
+    closeAddressList();
   };
 
-  // The layout-freeze rule (Daniel, 2026-07-29): while the labels list is
-  // open, the chips row shows the selection AS IT WAS ON OPEN — the list's
-  // checkmarks are the live feedback, and the form's layout does not move
-  // under the open list (including the trigger's Button↔IconButton form).
-  // The badges sync when the list closes.
-  const [chipsSnapshot, setChipsSnapshot] = useState<string[]>([]);
-  const shownLabels = labelsPop.open ? chipsSnapshot : labels;
-
-  const openLabels = (e: MouseEvent<HTMLButtonElement>) => {
-    if (!labelsPop.open) setChipsSnapshot(labels);
-    labelsPop.toggle(e.currentTarget);
+  /** The "no results" way out: reveal the manual fields, keep what was typed. */
+  const enterManually = () => {
+    setExpanded(true);
+    closeAddressList();
   };
+
+  // Picks apply LIVE (the field's counter updates as you tick), but the CHIPS
+  // row follows the shared layout-freeze rule — it syncs when the list closes,
+  // so the growing dialog never moves the field out from under the open card.
+  const shownLabels = labelsPop.freeze(labels);
+
+  const openLabels = (e: MouseEvent<HTMLDivElement>) => labelsPop.toggle(e.currentTarget);
 
   const toggleLabel = (label: string) =>
     setLabels((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
@@ -199,14 +223,31 @@ export default function NewLocationForm({
           </Input>
           <div className={styles.streetBlock} ref={streetRef}>
             <Input label="Street address">
-              <TextField value={street} onChange={onStreetChange} isValid={!(showErrors && missingStreet)} />
+              {/* Mobile: the field only OPENS the drawer — the drawer's search
+                  is the input, so the keyboard never serves two inputs. */}
+              <TextField
+                value={street}
+                onChange={onStreetChange}
+                isValid={!(showErrors && missingStreet)}
+                onFocus={(e) => {
+                  if (!isDesktop) e.currentTarget.blur();
+                  openAddressList();
+                }}
+                // Desktop: the list belongs to the focused field — leaving it
+                // closes the list (Daniel, 2026-08-03). Focus moving INTO the
+                // card (an option, or "Enter manually") is not leaving: the
+                // options carry tabIndex, so they are the blur's relatedTarget.
+                onBlur={(e) => {
+                  if (!isDesktop) return;
+                  const next = e.relatedTarget as Node | null;
+                  if (next != null && addressPop.cardRef.current?.contains(next)) return;
+                  addressPop.close();
+                }}
+                onClick={() => {
+                  if (!isDesktop && !addressDrawerOpen) setAddressDrawerOpen(true);
+                }}
+              />
             </Input>
-            {/* No matching addresses → manual entry (Figma 11804:2346). */}
-            {!expanded && street.trim() !== "" && matches.length === 0 && (
-              <Button size="lg" variant="ghost" isFullWidth leftIcon="pen" onClick={() => setExpanded(true)}>
-                Enter manually
-              </Button>
-            )}
           </div>
           {expanded && (
             <>
@@ -237,32 +278,26 @@ export default function NewLocationForm({
         </FormModule>
 
         <FormModule title="Labels" titleCondition="optional">
-          {/* Chips row (Daniel, 2026-07-29): empty = a ghost "Add labels"
-              Button; with badges = a plus IconButton FIRST, then the badges.
-              Rendered from the frozen snapshot while the list is open, synced
-              on close (see above). */}
-          <div className={styles.chips}>
-            {shownLabels.length === 0 ? (
-              <Button size="md" variant="ghost" leftIcon="plus" isPressed={labelsPop.open} onClick={openLabels}>
-                Add labels
-              </Button>
-            ) : (
-              <>
-                <IconButton
-                  icon="plus"
-                  variant="ghost"
-                  size="md"
-                  aria-label="Add labels"
-                  isPressed={labelsPop.open}
-                  noDebounce
-                  onClick={openLabels}
-                />
+          {/* The multi-select field with its counter, and the selected labels
+              as dismissible badges 12px below it. */}
+          <div className={styles.labelBlock}>
+            <SelectField
+              multiSelect
+              count={labels.length}
+              value={labels.length === 1 ? labels[0] : undefined}
+              multiSelectLabel="Labels selected"
+              onClearSelection={() => setLabels([])}
+              open={labelsPop.open}
+              onClick={openLabels}
+            />
+            {shownLabels.length > 0 && (
+              <div className={styles.chips}>
                 {shownLabels.map((l) => (
                   <Badge key={l} size="lg" isDismissable onDismiss={() => toggleLabel(l)}>
                     {l}
                   </Badge>
                 ))}
-              </>
+              </div>
             )}
           </div>
         </FormModule>
@@ -272,9 +307,16 @@ export default function NewLocationForm({
         </FormModule>
       </FormModuleGroup>
 
-      {/* Street-address suggestions (mock Google). Single-select: picking
-          closes and expands the address fields. */}
-      <SelectPopoverList pop={addressPop} mobile={false}>
+      {/* DESKTOP — street-address suggestions (mock Google) anchored under the
+          field. Single-select: picking closes and expands the address fields.
+          Nothing matching → the "no results" state with "Enter manually". */}
+      <SelectPopoverList
+        pop={addressPop}
+        mobile={false}
+        state={addressNoResults ? "noResults" : "default"}
+        noResultsCaption="Try a different search or enter address manually"
+        noResultsAction={{ label: "Enter manually", icon: "pen", onClick: enterManually }}
+      >
         <SelectListItemGroup>
           {matches.map((s) => (
             <SelectListItem key={suggestionLabel(s)} label={suggestionLabel(s)} onClick={() => pickSuggestion(s)} />
@@ -283,7 +325,40 @@ export default function NewLocationForm({
         </SelectListItemGroup>
       </SelectPopoverList>
 
-      {/* The Labels multi-select list — inline card / mobile drawer. */}
+      {/* MOBILE — the same suggestions in a drawer whose search IS the street
+          input (Figma 11829-421 / 11829-5435 / 11829-5647): its value is the
+          street field's, so opening it keeps what was typed and editing there
+          edits the field. Empty search = a caption-only state. */}
+      <SelectList
+        variant="drawer"
+        breakpoint="mobile"
+        title="Street address"
+        open={addressDrawerOpen}
+        onClose={() => setAddressDrawerOpen(false)}
+        autoFocusSearch
+        header={
+          <SelectListHeader
+            value={street}
+            onChange={(e) => setStreet(e.target.value)}
+            onClear={() => setStreet("")}
+            placeholder="Search by street address..."
+          />
+        }
+        state={street.trim() === "" ? "empty" : addressNoResults ? "noResults" : "default"}
+        emptyState={{ caption: "Start typing street address" }}
+        noResultsCaption="Try a different search or enter address manually"
+        noResultsAction={{ label: "Enter manually", icon: "pen", onClick: enterManually }}
+      >
+        <SelectListItemGroup>
+          {matches.map((s) => (
+            <SelectListItem key={suggestionLabel(s)} label={suggestionLabel(s)} onClick={() => pickSuggestion(s)} />
+          ))}
+          <div className={styles.googleRow}>Powered by Google</div>
+        </SelectListItemGroup>
+      </SelectList>
+
+      {/* The Labels multi-select list — anchored under the field on desktop,
+          a drawer on mobile. Picks apply live. */}
       <SelectPopoverList
         pop={labelsPop}
         mobile={!isDesktop}

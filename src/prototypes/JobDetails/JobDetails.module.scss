@@ -133,10 +133,17 @@
 // The session bar's context menu card. Explicit width — the Menu's fit-content
 // sizing can't measure a growing title next to a long tag (see the MenuItem
 // "KNOWN LIMIT" note). The Figma card (24358-37633) is 234 but was drawn with
-// the short "Travelling" tag; 272 keeps "My status" one-line with the longest
+// the short "Travelling" tag; 272 keeps "Your status" one-line with the longest
 // status ("Gathering parts") — flagged to Daniel.
 .sessionMenuCard {
-  width: 272px;
+  // EXPLICIT width on purpose. The DS Menu is `fit-content`, but a MenuItem's
+  // title is a flex child with `min-width: 0`, so it contributes NOTHING to the
+  // intrinsic width — the menu cannot grow itself to fit a title sitting next
+  // to a long tag (the MenuItem "KNOWN LIMIT" note).
+  // Measured at 272: "Your status" needed 74px and got 41 next to the
+  // "Prepping for work" tag. 312 clears it with room to spare
+  // (Daniel, 2026-08-04: the tag must not truncate the label).
+  width: 312px;
 }
 
 // ---- shared ----------------------------------------------------------------

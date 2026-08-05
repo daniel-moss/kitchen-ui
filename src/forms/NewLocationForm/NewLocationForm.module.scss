@@ -1,5 +1,5 @@
-// The street block: field + (no-match) "Enter manually" button, 8px apart
-// (Figma 11804:2346).
+// The street block — the anchor the desktop suggestions list measures against
+// ("Enter manually" now lives inside that list, Figma 11804-2346).
 .streetBlock {
   display: flex;
   flex-direction: column;
@@ -13,8 +13,15 @@
   gap: var(--size-4);
 }
 
-// The Labels chips row (Figma 25810:6532): the selected badges, then the plus
-// IconButton last, 8px apart, wrapping.
+// The Labels module: the multi-select field, then the selected badges 12px
+// below it.
+.labelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// The chips row — the selected labels, 8px apart, wrapping.
 .chips {
   display: flex;
   flex-wrap: wrap;

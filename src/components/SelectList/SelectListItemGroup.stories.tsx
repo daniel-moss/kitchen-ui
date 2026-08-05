@@ -62,6 +62,25 @@ export const Groups: Story = {
   ),
 };
 
+/**
+ * A group with no options shows `emptyCaption` — a caption-only EmptyState
+ * (Figma 23819-13139). The other groups keep their items, so the list still
+ * says what the empty one is for.
+ */
+export const EmptyGroup: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={frame}>
+      <SelectListItemGroup label={<GroupLabel label="Service client" />} emptyCaption="No contacts here yet">
+        {[]}
+      </SelectListItemGroup>
+      <SelectListItemGroup label={<GroupLabel label="Service location" />} emptyCaption="No contacts here yet" divider={false}>
+        <SelectListItem variant="object" avatar={objectAvatar} label="123 Main Street, Suite 45, San Francisco, CA 98765" caption="Headquarters" onClick={noop} />
+      </SelectListItemGroup>
+    </div>
+  ),
+};
+
 /** Without a label — just the items stack (plus divider). */
 export const NoLabel: Story = {
   parameters: { controls: { disable: true } },

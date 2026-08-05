@@ -1,176 +1,87 @@
 import { useState } from "react";
 
-import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
 import Counter from "../../components/Counter/Counter";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
-import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
 import LinkButton from "../../components/LinkButton/LinkButton";
 import ListItem from "../../components/ListItem/ListItem";
+import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
-import Menu from "../../components/Menu/Menu";
-import MenuItem from "../../components/Menu/MenuItem";
-import MenuItemGroup from "../../components/Menu/MenuItemGroup";
-import DrawerHeader from "../../components/Popover/DrawerHeader";
-import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent";
-import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
-import SelectList from "../../components/SelectList/SelectList";
-import SelectListFooter from "../../components/SelectList/SelectListFooter";
-import SelectListItem from "../../components/SelectList/SelectListItem";
-import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { JOB_REASON_FOR_CALL, JOB_RECALL_TO, JOB_SERVICE, JOB_TECH_INSTRUCTIONS, JOB_TYPE } from "./jobData";
+import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
+import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentTitle } from "./equipment";
+import EquipmentForm, { EquipmentFormValues } from "./EquipmentForm";
 import FilesModule from "./FilesModule";
 import ServiceForm, { PRIORITIES, ServiceValues } from "./ServiceForm";
-import { noop, slot, useAnchoredMenu } from "./shared";
+import { noop } from "./shared";
 
 import styles from "./ServicePanel.module.scss";
 
-// ---- demo data --------------------------------------------------------------
-
-// The location's equipment pool (Figma 21760-11304 demo values + realistic
-// kitchen items; the add list is sorted by equipment name A→Z per the design
-// annotation). The job starts with two of them added. Exported — the job's
-// equipment STATE lives in useJobShell (2026-07-27, lifted so the Service call
-// form's chips/picker read the live module equipment).
-export interface Equipment {
-  id: number;
-  name: string;
-  manufacturer: string;
-  model: string;
-  serial: string;
-}
-export const EQUIPMENT_POOL: Equipment[] = [
-  { id: 1, name: "Air Handler", manufacturer: "American Range", model: "01234", serial: "56789" },
-  { id: 2, name: "Griddle", manufacturer: "American Range", model: "GR-2436", serial: "AR55102" },
-  { id: 3, name: "Ice Machine", manufacturer: "Hoshizaki", model: "KM-660", serial: "HK43307" },
-  { id: 4, name: "Oven", manufacturer: "Bosch", model: "HBL8451", serial: "BS90781" },
-  { id: 5, name: "Walk-in Cooler", manufacturer: "True Manufacturing", model: "T-23F-2", serial: "TM88213" },
-];
-export const INITIAL_JOB_EQUIPMENT = [1, 5]; // Air Handler + Walk-in Cooler
-
-// The design's "・" separator (same char the recall rows use).
-export const equipmentLabel = (e: Equipment) => `${e.name} ・ ${e.manufacturer}`;
-export const equipmentCaption = (e: Equipment) => `Model: ${e.model} ・ Serial: ${e.serial}`;
-
-// One equipment row + its Preview / Remove context menu. Remove sits in its
-// OWN group (divider before it — Daniel's call, diverges from Figma
-// 21760-41351 which shows one group). The row itself and Preview open the
-// Equipment side panel — a later flow, noop for now. Remove takes the
-// equipment off the job and shows the detailed toast (Figma 21760-41249).
-const EquipmentRow = ({ equipment, mobile, onRemove }: { equipment: Equipment; mobile: boolean; onRemove: (e: Equipment) => void }) => {
-  const menu = useAnchoredMenu(!mobile, "end");
-
-  const body = (
-    <>
-      <MenuItemGroup>
-        <MenuItem label="Preview" slotLeft={slot("eye")} onClick={menu.close} />
-      </MenuItemGroup>
-      <MenuItemGroup>
-        <MenuItem
-          label="Remove"
-          slotLeft={slot("xmark")}
-          onClick={() => {
-            menu.close();
-            onRemove(equipment);
-          }}
-        />
-      </MenuItemGroup>
-    </>
-  );
-
-  return (
-    <>
-      <ListItem
-        variant="titleCaption"
-        title={equipmentLabel(equipment)}
-        caption={equipmentCaption(equipment)}
-        avatar={<AvatarEquipment size="xl" />}
-        isClickable
-        onClick={noop}
-        slotRight={
-          <IconButton
-            icon="ellipsis"
-            variant="ghost"
-            size="md"
-            aria-label="More actions"
-            isPressed={menu.open}
-            noDebounce
-            onClick={menu.onActions}
-          />
-        }
-      />
-      {mobile ? (
-        // The drawer's rich header (Figma 21760-41707): equipment avatar +
-        // name ・ manufacturer title + model/serial caption.
-        <Menu
-          open={menu.open}
-          onClose={menu.close}
-          header={
-            <DrawerHeader>
-              <PopoverHeaderContent avatar={<AvatarEquipment size="xl" />}>
-                <PopoverHeaderText variant="titleCaption" title={equipmentLabel(equipment)} caption={equipmentCaption(equipment)} />
-              </PopoverHeaderContent>
-            </DrawerHeader>
-          }
-          breakpoint="mobile"
-        >
-          {body}
-        </Menu>
-      ) : (
-        menu.pos != null && (
-          <div ref={menu.cardRef} className={styles.anchoredMenu} style={{ top: menu.pos.top, left: menu.pos.left, right: menu.pos.right }}>
-            <Menu open={menu.open} onClose={menu.close} breakpoint="desktop">
-              {body}
-            </Menu>
-          </div>
-        )
-      )}
-    </>
-  );
-};
+// One equipment row. The whole row opens the Equipment side panel — a later
+// flow, noop for now — and the angle icon says so (Daniel, 2026-08-03: the row
+// menu is GONE, its Preview/Remove would conflict with the edit form, which is
+// now the only place equipment is added or removed).
+const EquipmentRow = ({ equipment }: { equipment: Equipment }) => (
+  <ListItem
+    variant="titleCaption"
+    title={equipmentTitle(equipment)}
+    caption={equipmentCaptionText(equipment)}
+    avatar={<EquipmentAvatar equipment={equipment} />}
+    isClickable
+    onClick={noop}
+    slotRight={<ListItemSlotIcon icon="angle-right" />}
+  />
+);
 
 // ---- the panel --------------------------------------------------------------
 
 // The "Service" tab content (Figma node 23823-24622): Service value group (edit
-// via the pencil → ServiceForm), Equipment list (row menu), and Files (Public /
-// Private, drag-reorderable).
+// via the pencil → ServiceForm), Equipment list (edit via the pencil →
+// EquipmentForm), and Files (Public / Private, drag-reorderable).
 export default function ServicePanel({
   mobile = false,
   serviceValues,
   onServiceChange,
+  equipmentInvolved,
   equipmentIds,
-  onEquipmentIdsChange,
+  onEquipmentSave,
+  equipmentPool,
+  onCreateEquipment,
+  locationName,
   serviceLocked = false,
 }: {
   mobile?: boolean;
   serviceValues: ServiceValues;
   onServiceChange: (next: ServiceValues) => void;
+  /** The job's answer to "Is equipment involved?" — owned by useJobShell. */
+  equipmentInvolved: EquipmentFormValues["involved"];
   /** The job's equipment (ids into the pool) — owned by useJobShell. */
   equipmentIds: number[];
-  onEquipmentIdsChange: (next: number[]) => void;
+  /** Commits the Equipment form: the answer + the job's equipment ids. */
+  onEquipmentSave: (next: EquipmentFormValues) => void;
+  /** The location's equipment — owned by useJobShell (the New-equipment form
+   *  appends to it). */
+  equipmentPool: Equipment[];
+  /** Creates a piece in the location's pool and returns it; the Equipment form
+   *  ticks it in its draft. */
+  onCreateEquipment: (equipment: NewEquipment) => Equipment;
+  /** The job's service location — the New-equipment form's header caption
+   *  (equipment belongs to a location). */
+  locationName: string;
   /** Hides the Service module's edit pencil (Concept 8 tech view — only the
    *  office edits). Equipment and Files stay editable. Default false. */
   serviceLocked?: boolean;
 }) {
   const [serviceOpen, setServiceOpen] = useState(false);
-  const [equipmentListOpen, setEquipmentListOpen] = useState(false);
+  const [equipmentOpen, setEquipmentOpen] = useState(false);
   const service = serviceValues;
   const priorityMeta = PRIORITIES.find((p) => p.value === service.priority);
 
-  const jobEquipment = EQUIPMENT_POOL.filter((e) => equipmentIds.includes(e.id));
-  // Removing (row menu or unchecking in the list) shows the detailed toast
-  // (Figma 21760-41249); adding has no designed toast — it is silent.
-  const removeEquipment = (e: Equipment) => {
-    onEquipmentIdsChange(equipmentIds.filter((id) => id !== e.id));
-    toast({ type: "success", variant: "detailed", title: "Equipment removed", caption: equipmentLabel(e) });
-  };
-  const addEquipment = (e: Equipment) => onEquipmentIdsChange([...equipmentIds, e.id]);
+  const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
 
   return (
     <div className={styles.panel}>
@@ -230,14 +141,14 @@ export default function ServicePanel({
       <ServiceForm open={serviceOpen} onClose={() => setServiceOpen(false)} initial={service} onSave={onServiceChange} mobile={mobile} />
 
       {/* Equipment (Figma 21760-11304) — a row per job equipment; empty →
-          "No equipment here yet" with no Counter (21760-41170). The plus opens
-          the add list. */}
+          "Equipment is not involved" with no Counter (21760-11307). The pencil
+          opens the edit form, the only place equipment is picked. */}
       <DisplayModule
         title="Equipment"
         titleSlotRight={jobEquipment.length > 0 ? <Counter value={jobEquipment.length} /> : undefined}
         slotRight={
-          <HoverTooltip text="Add equipment">
-            <IconButton icon="plus" variant="ghost" size="md" aria-label="Add equipment" onClick={() => setEquipmentListOpen(true)} />
+          <HoverTooltip text="Edit">
+            <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit equipment" onClick={() => setEquipmentOpen(true)} />
           </HoverTooltip>
         }
         content={
@@ -245,56 +156,30 @@ export default function ServicePanel({
             <div className={styles.listBody}>
               <ItemGroup>
                 {jobEquipment.map((e) => (
-                  <EquipmentRow key={e.id} equipment={e} mobile={mobile} onRemove={removeEquipment} />
+                  <EquipmentRow key={e.id} equipment={e} />
                 ))}
               </ItemGroup>
             </div>
           ) : (
-            <EmptyState caption="No equipment here yet" />
+            // The node's module body has NO padding of its own — EmptyState's
+            // 32px is the whole padding.
+            <div className={styles.emptyBody}>
+              <EmptyState caption="Equipment is not involved" />
+            </div>
           )
         }
       />
 
-      {/* Add equipment (Figma 24244-21291): the location's equipment pool as a
-          MULTI-select — checked = on the job. Checking adds (silently),
-          unchecking removes (+ toast). The footer's "Add equipment" opens the
-          New-equipment form — a later flow, noop for now. */}
-      <SelectList
-        variant={mobile ? "drawer" : "dialog"}
-        breakpoint={mobile ? "mobile" : "desktop"}
-        title="Equipment"
-        open={equipmentListOpen}
-        onClose={() => setEquipmentListOpen(false)}
-        multiSelect
-        searchable
-        searchPlaceholder="Search by equipment name..."
-        noResultsCaption="Try a different search or add a new equipment"
-        footer={
-          <SelectListFooter>
-            <MenuItem label="Add equipment" slotLeft={slot("plus")} onClick={noop} />
-          </SelectListFooter>
-        }
-      >
-        <SelectListItemGroup>
-          {[...EQUIPMENT_POOL]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((e) => {
-              const selected = equipmentIds.includes(e.id);
-              return (
-                <SelectListItem
-                  key={e.id}
-                  variant="object"
-                  multiSelect
-                  label={equipmentLabel(e)}
-                  caption={equipmentCaption(e)}
-                  avatar={<AvatarEquipment size="xl" />}
-                  selected={selected}
-                  onClick={() => (selected ? removeEquipment(e) : addEquipment(e))}
-                />
-              );
-            })}
-        </SelectListItemGroup>
-      </SelectList>
+      <EquipmentForm
+        open={equipmentOpen}
+        onClose={() => setEquipmentOpen(false)}
+        initial={{ involved: equipmentInvolved, equipmentIds }}
+        equipmentPool={equipmentPool}
+        onSave={onEquipmentSave}
+        onCreateEquipment={onCreateEquipment}
+        locationName={locationName}
+        mobile={mobile}
+      />
 
       {/* Files — list/cards toggle, Public/Private groups, per-file menus,
           empty states, and the file-limit banner (Figma "Files" doc). */}

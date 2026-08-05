@@ -1,0 +1,15 @@
+// The Label module: the multi-select field, then the selected badges 12px
+// below it (Figma 23824-8700 — body slot 36 + 12 + 32).
+.labelBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// The chips row — the selected labels, 8px apart, wrapping.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2);
+  align-items: center;
+}

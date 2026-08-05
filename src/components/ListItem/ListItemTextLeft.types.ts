@@ -18,7 +18,9 @@ export interface ListItemTextLeftProps {
    *  tooltip; a ReactNode is rendered as-is (the caller owns any truncation). */
   title: ReactNode;
   /** Inter Regular 13/20, subtle. */
-  caption?: string;
+  /** A non-string caption is rendered as-is — the caller owns truncation
+   *  (e.g. its own TruncatingText with `children` + `tooltipText`). */
+  caption?: ReactNode;
   /** Title truncation rule. Default 1. */
   titleLines?: ListItemTextLines;
   /** Caption truncation rule. Default 1. */
@@ -27,5 +29,11 @@ export interface ListItemTextLeftProps {
   titleClassName?: string;
   /** Optional extra class for the caption line (e.g. a warning color). */
   captionClassName?: string;
+  /**
+   * Left slot on the CAPTION line — an `Icon` for now (Figma 28927-35531).
+   * Its size, weight and color are the caller's call: the slot only places the
+   * glyph, 8px before the caption and top-aligned with its first line.
+   */
+  captionSlotLeft?: ReactNode;
   className?: string;
 }

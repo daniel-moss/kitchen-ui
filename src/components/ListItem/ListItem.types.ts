@@ -3,16 +3,30 @@ import { MouseEvent, ReactNode } from "react";
 import { ListItemBodyProps } from "./ListItemBody.types";
 
 interface ListItemBaseProps extends ListItemBodyProps {
-  /**
-   * Bottom slot — exactly ONE instance, stretched to the full row width:
-   * a Button (subtle lg, isFullWidth), a TabGroup (contained, isFullWidth),
-   * or a SelectField (isFullWidth). TextField / DateField come later.
-   * On a clickable row, clicks inside the slot do not trigger the row.
-   */
-  slotBottom?: ReactNode;
   /** Dimmed, non-interactive. For the interactive variants. */
   disabled?: boolean;
 }
+
+/**
+ * Bottom-slot axis. The bottom instance is a MOBILE-ONLY layout adaptation
+ * (Figma ListItem doc, "Bottom elements"), so a row that carries one has to
+ * stay plain: it must not be clickable, draggable, or an accordion. That rule
+ * is enforced here — `slotBottom` only type-checks on the static row.
+ */
+type ListItemBottomProps =
+  | {
+      /**
+       * Bottom slot — exactly ONE instance, stretched to the full row width:
+       * a Button (subtle lg, isFullWidth), a TabGroup (contained, isFullWidth),
+       * or a SelectField (isFullWidth). TextField / DateField come later.
+       * Only allowed on a static row.
+       */
+      slotBottom?: ReactNode;
+      isClickable?: false;
+      isDraggable?: false;
+      isAccordion?: false;
+    }
+  | { slotBottom?: never };
 
 /**
  * Clickable axis. With `isClickable` the row is a button (hover / press /
@@ -85,7 +99,8 @@ type ListItemDragProps =
 export type ListItemProps =
   | (ListItemBaseProps &
       ListItemClickProps &
-      ListItemDragProps & {
+      ListItemDragProps &
+      ListItemBottomProps & {
         isAccordion?: false;
         open?: never;
         defaultOpen?: never;
@@ -94,6 +109,8 @@ export type ListItemProps =
       })
   | (ListItemBaseProps & {
       isAccordion: true;
+      /** Not available on an accordion — see `ListItemBottomProps`. */
+      slotBottom?: never;
       /** Controlled open state. */
       open?: boolean;
       /** Uncontrolled initial state. Default false. */

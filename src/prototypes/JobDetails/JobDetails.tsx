@@ -19,6 +19,8 @@ import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent"
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
 import Input from "../../components/Input/Input";
 import Prompt from "../../components/Prompt/Prompt";
+import RadioGroup from "../../components/Radio/RadioGroup";
+import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import Toaster, { toast } from "../../components/Toast/Toaster";
 import NavSidebar from "../../components/NavSidebar/NavSidebar";
@@ -38,19 +40,35 @@ import CancelJobForm from "./CancelJobForm";
 import ChangePauseStatusForm from "./ChangePauseStatusForm";
 import CompleteJobForm from "./CompleteJobForm";
 import Dialog from "../../components/Dialog/Dialog";
+import ActivityPanel from "./ActivityPanel";
+import {
+  ActivityEvent,
+  diffBilling,
+  diffEquipment,
+  diffJobProperties,
+  diffServiceValues,
+  FieldChange,
+  JobStatusLog,
+  ValueIcon,
+} from "./activityEvents";
+import { JobContact } from "./contacts";
+import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { DEFAULT_LOCATION, JOB_ID, JobLocation, LOCATIONS } from "./jobData";
-import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel } from "./jobState";
+import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel, useJobActiveTime } from "./jobState";
 import PauseJobForm from "./PauseJobForm";
-import SchedulingForm, { defaultScheduling, Scheduling } from "./SchedulingForm";
+import SchedulingForm, { defaultScheduling, durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import { defaultServiceValues, ServiceValues } from "./ServiceForm";
-import ServicePanel, { EQUIPMENT_POOL, INITIAL_JOB_EQUIPMENT } from "./ServicePanel";
+import ServicePanel from "./ServicePanel";
+import { Equipment, EQUIPMENT_POOL, INITIAL_JOB_EQUIPMENT } from "./equipment";
+import { EquipmentFormValues } from "./EquipmentForm";
+import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource } from "./JobPropertiesForm";
+import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
 import SummaryPanel from "./SummaryPanel";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import StartJobForm from "./StartJobForm";
-import UnscheduleJobForm from "./UnscheduleJobForm";
 import SubStatusForm from "./SubStatusForm";
-import TimesheetPanel, { categoryIcon, formatHrMin, Session, StatusItems } from "./TimesheetPanel";
+import TimesheetPanel, { categoryIcon, formatHrMin, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
@@ -442,6 +460,44 @@ const WEEKDAY_DATE_YEAR_FMT = new Intl.DateTimeFormat("en-US", { weekday: "long"
 // shown ONLY when it is not the current one (Daniel's rule).
 const weekdayDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? WEEKDAY_DATE_FMT : WEEKDAY_DATE_YEAR_FMT).format(d);
 
+// Session moments in the ACTIVITY LOG are short: "Mon, Jan 1 at 11:30 AM"
+// (Figma 24453-26325). Year only when it is not the current one, like every
+// other date in the app.
+const SHORT_DATE_FMT = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" }); // "Mon, Jan 1"
+const SHORT_DATE_YEAR_FMT = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const shortDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? SHORT_DATE_FMT : SHORT_DATE_YEAR_FMT).format(d);
+const sessionMoment = (d: Date) => `${shortDate(d)} at ${TIME_FMT.format(d)}`;
+// The same moment rebuilt from a stored session's labels ("January 1, 2026" +
+// "11:30 AM"), for the side of an edit that is already logged.
+const storedMoment = (dateLabel?: string, timeLabel?: string) =>
+  dateLabel == null || timeLabel == null ? "" : `${shortDate(new Date(dateLabel))} at ${timeLabel}`;
+/** A session's range in a log: "Mon, Jan 1 at 9:00 AM → Mon, Jan 1 at 2:30 PM". */
+const sessionRangeLabel = (start: string, end: string) => `${start} → ${end}`;
+
+/** "Monday, January 1 at 12:00 PM" — how a slot is written in the logs. */
+const longSlotLabel = (s: Scheduling) => (s.date != null ? `${weekdayDate(s.date)} at ${s.time}` : "");
+
+/** A tech status as a log value: its icon in regular weight (Daniel, 2026-08-05). */
+const statusValueIcon = (status: string): ValueIcon => ({ icon: categoryIcon(status), pack: "regular" });
+
+// Each job status owns its activity-log glyph — solid, in its own colour
+// (Figma 24512-62842).
+type JobGlyph = { icon: string; color: string };
+const JOB_GLYPH = {
+  scheduled: { icon: "circle-half-stroke", color: "var(--blue-9)" },
+  unscheduled: { icon: "circle-dashed", color: "var(--violet-9)" },
+  active: { icon: "circle-play", color: "var(--jade-9)" },
+  quickPaused: { icon: "circle-pause", color: "var(--amber-9)" },
+  onHold: { icon: "circle-stop", color: "var(--crimson-9)" },
+  cancelled: { icon: "circle-xmark", color: "var(--gray-a8)" },
+} satisfies Record<string, JobGlyph>;
+
+// The pause logs name the SUB-STATUS when the company has them; without any,
+// they fall back to the pause type's own name (Daniel, 2026-08-05).
+const pauseGlyph = (type: string) => (type === "quick-pause" ? JOB_GLYPH.quickPaused : JOB_GLYPH.onHold);
+const pauseStatusName = (type: string, subStatus: string) =>
+  subStatus !== "" ? subStatus : type === "quick-pause" ? "Quick-pause" : "On-hold";
+
 // "09:35" + "AM" → a Date on `date` (12-hour → 24-hour).
 const combineDateTime = (date: Date, clock: string, meridiem: Meridiem): Date => {
   const [h, m] = clock.split(":").map(Number);
@@ -559,7 +615,7 @@ const SessionBar = ({
           <Menu open={menu.open} onClose={menu.close} breakpoint="desktop" className={styles.sessionMenuCard}>
             <MenuItemGroup>
               <MenuItem
-                label="My status"
+                label="Your status"
                 slotLeft={slot(categoryIcon(category))}
                 tag={category}
                 // SelectList rows — all four statuses, check on the current one.
@@ -650,9 +706,8 @@ const SessionDrawer = ({
   onCheckOut: () => void;
   onSwitchStatus: (status: string) => void;
 }) => {
-  // The select is a DRAFT — only Update commits (Figma annotation).
+  // The pick is a DRAFT — only Update commits (Figma annotation).
   const [draft, setDraft] = useState(category ?? "");
-  const statusPop = useSelectPopover(true);
   useEffect(() => {
     if (open) setDraft(category ?? "");
   }, [open, category]);
@@ -665,19 +720,16 @@ const SessionDrawer = ({
       breakpoint="mobile"
       confirmOnDismiss={dirty}
       footer={
-        <PopoverFooter
-          leadingButton={
-            <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          }
-        >
-          <Button size="lg" variant="ghost" leftIcon="arrow-left-from-arc" onClick={onCheckOut}>
+        // Figma 24178-58902: NO Cancel — two equal-width buttons, subtle
+        // "Check out" and solid "Update", each filling half the bar.
+        <PopoverFooter stretch>
+          <Button size="lg" variant="subtle" leftIcon="arrow-left-from-arc" isFullWidth onClick={onCheckOut}>
             Check out
           </Button>
           <Button
             size="lg"
             variant="solid"
+            isFullWidth
             onClick={() => {
               if (draft !== "" && draft !== category) onSwitchStatus(draft);
               onClose();
@@ -693,34 +745,24 @@ const SessionDrawer = ({
           <span className={styles.sessionDrawerCaption}>{category ?? "Tracking your time"}</span>
           <span className={styles.sessionDrawerClock}>{formatElapsedFull(elapsed)}</span>
         </div>
-        <Input label="Status">
-          <SelectField
-            value={draft !== "" ? draft : undefined}
-            slotLeft={draft !== "" ? <Icon icon={categoryIcon(draft)} size={14} container="square" /> : undefined}
-            open={statusPop.open}
-            onClick={(e: ReactMouseEvent<HTMLDivElement>) => statusPop.toggle(e.currentTarget)}
-          />
+        {/* The status is picked from card radios now, not a select + drawer. */}
+        <Input label="Your status">
+          <RadioGroup value={draft} onChange={setDraft}>
+            {TECH_STATUSES.map((s) => (
+              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
+            ))}
+          </RadioGroup>
         </Input>
       </div>
-
-      {/* Status picker — the drawer list titled "Status" (Figma 24353-26484). */}
-      <SelectPopoverList pop={statusPop} mobile title="Status">
-        <StatusItems
-          current={draft !== "" ? draft : undefined}
-          onPick={(status) => {
-            setDraft(status);
-            statusPop.close();
-          }}
-        />
-      </SelectPopoverList>
     </Dialog>
   );
 };
 
-// The "Check in" dialog (Figma mobile 24194-74433 / desktop 24194-74815,
-// 2026-07-27 update) — opened from the idle bar's "Check in" button and the
-// idle pill. One empty "Status" SELECT over the four tech statuses (error
-// "Choose Status"); confirming starts the session ("You're checked in").
+// The "Check in" dialog (Figma desktop 24194-74815, 2026-08-04 update) —
+// opened from the idle bar's "Check in" button and the idle pill. The status
+// is picked from a VERTICAL stack of card radios now, one per tech status, not
+// from a select + popover (error "Choose Status"); confirming starts the
+// session ("You're checked in").
 const CheckInDialog = ({
   open,
   onClose,
@@ -734,7 +776,6 @@ const CheckInDialog = ({
 }) => {
   const [status, setStatus] = useState("");
   const [showError, setShowError] = useState(false);
-  const statusPop = useSelectPopover(mobile);
   useEffect(() => {
     if (!open) return;
     setStatus("");
@@ -774,34 +815,35 @@ const CheckInDialog = ({
       }
     >
       <div className={styles.sessionDrawerBody}>
-        <Input label="Status">
-          <SelectField
-            value={status !== "" ? status : undefined}
-            slotLeft={status !== "" ? <Icon icon={categoryIcon(status)} size={14} container="square" /> : undefined}
+        {/* "Your status" — the same label the Time-tracker drawer uses
+            (Daniel, 2026-08-04: one wording across the two). */}
+        <Input label="Your status">
+          <RadioGroup
+            value={status}
+            onChange={(v) => {
+              setStatus(v);
+              setShowError(false);
+            }}
             isValid={!(showError && status === "")}
-            errorMessage="Choose Status"
-            open={statusPop.open}
-            onClick={(e: ReactMouseEvent<HTMLDivElement>) => statusPop.toggle(e.currentTarget)}
-          />
+            // The derived message would read "Choose Your status" — written
+            // out so the sentence stays natural.
+            errorMessage="Choose your status"
+          >
+            {TECH_STATUSES.map((s) => (
+              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
+            ))}
+          </RadioGroup>
         </Input>
       </div>
-
-      {/* Status picker — desktop inline card / mobile drawer (Figma 24353-26471 / -26484). */}
-      <SelectPopoverList pop={statusPop} mobile={mobile} title="Status">
-        <StatusItems
-          current={status !== "" ? status : undefined}
-          onPick={(s) => {
-            setStatus(s);
-            setShowError(false);
-            statusPop.close();
-          }}
-        />
-      </SelectPopoverList>
     </Dialog>
   );
 };
 
 // ---- shared shell state ----------------------------------------------------
+
+// "January 1, 2026" — how the equipment modules print an installation date
+// (the five demo pieces are written that way).
+const EQUIPMENT_DATE = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 // Owns the job lifecycle + scheduling + the two menus + all the job forms
 // (Start / Cancel / Pause / Resume / Change status / Complete) and the time
@@ -811,14 +853,34 @@ function useJobShell(isDesktop: boolean) {
   const menu = useAnchoredMenu(isDesktop); // top-bar ellipsis (Copy URL / …)
   const actionMenu = useAnchoredMenu(isDesktop); // action-bar ellipsis
   // This prototype has exactly two assignees — Lorne (the viewer) + Thiago.
-  const [scheduling, setScheduling] = useState<Scheduling>(() => ({ ...defaultScheduling(), assignees: [1, 2] }));
+  const [scheduling, setScheduling] = useState<Scheduling>(() => defaultScheduling());
+  // Assignees are their OWN module since 2026-08-05, so they are their own
+  // state too — nothing about them belongs to the scheduling slot any more.
+  const [assignees, setAssignees] = useState<number[]>([1, 2]);
   // The Service module's values — edited via ServiceForm; the Details panel's
   // Related module mirrors its "Recall to".
   const [serviceValues, setServiceValues] = useState<ServiceValues>(defaultServiceValues);
-  // The job's equipment (ids into ServicePanel's pool) — lifted here so the
+  // The job's equipment (ids into the location's pool) — lifted here so the
   // Service call form (Summary tab) reads the live Equipment-module list.
   const [equipmentIds, setEquipmentIds] = useState<number[]>(INITIAL_JOB_EQUIPMENT);
-  const jobEquipment = EQUIPMENT_POOL.filter((e) => equipmentIds.includes(e.id));
+  // "Is equipment involved?" — answered when the job is created, so it is
+  // always yes or no (Daniel, 2026-08-03). The demo job starts with equipment.
+  const [equipmentInvolved, setEquipmentInvolved] = useState<EquipmentFormValues["involved"]>("yes");
+  // The Job-properties module's values (Job ID, Branch, Source, Source ID,
+  // Date received, Received by) — edited by JobPropertiesForm.
+  const [jobProperties, setJobProperties] = useState<JobProperties>(defaultJobProperties);
+  // The workspace's job sources — state like the location/equipment pools, so a
+  // source created in the form stays known to the MODULE (it decides whether
+  // the Source ID row shows and whether the source has a logo).
+  const [jobSources, setJobSources] = useState<JobSource[]>(JOB_SOURCES);
+  const createJobSource = (source: JobSource) => setJobSources((prev) => [...prev, source]);
+  // Billing intention — lifted out of DetailsPanel so its edits reach the
+  // activity log (and "Last modified") like every other module's.
+  const [billing, setBilling] = useState<Billing>({ intention: "inheritLocation", clientId: null });
+  // The pool is state too — the New-equipment form appends to it (like the
+  // locations pool), so a created piece exists everywhere the job reads it.
+  const [equipmentPool, setEquipmentPool] = useState<Equipment[]>(EQUIPMENT_POOL);
+  const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
   // The job's service location — lifted here because changing it also clears
   // the equipment (equipment belongs to a location); the Details panel clears
   // its own contacts + billing in the same confirm.
@@ -826,11 +888,17 @@ function useJobShell(isDesktop: boolean) {
   const changeLocation = (next: JobLocation) => {
     setLocation(next);
     setEquipmentIds([]);
+    // Billing falls back to the default intention — set directly, NOT through
+    // changeBilling: the change-location prompt does not mention billing, so
+    // it must not write a "Billing intention" activity log either.
+    setBilling({ intention: "inheritLocation", clientId: null });
   };
   // The location pool is state too — the New-location form appends to it.
   const [locations, setLocations] = useState<JobLocation[]>(LOCATIONS);
   const addLocation = (next: JobLocation) => setLocations((prev) => [...prev, next]);
   const [job, setJob] = useState<JobState>(defaultJob);
+  // The Activity tab: how long the job has been in the "Active" status.
+  const activeTime = useJobActiveTime(job);
   const [startOpen, setStartOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   // Schedule flow: the "Schedule job" dialog (Figma 24222-20585 — the
@@ -838,10 +906,10 @@ function useJobShell(isDesktop: boolean) {
   // (unassigned job, Figma 24215-18742) and the assignees Unschedule dialog
   // (assigned job, Figma 24215-18740 / 24221-19652).
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  // Which radio the Scheduling form opens on — the actions pre-pick theirs
+  // (Daniel, 2026-08-05); the module pen leaves it to the job’s own state.
+  const [scheduleFormMode, setScheduleFormMode] = useState<"schedule" | "unschedule" | undefined>(undefined);
   // "Reschedule job" (paused/on-hold menu) — the same form again (24226-20672).
-  const [rescheduleOpen, setRescheduleOpen] = useState(false);
-  const [unschedulePromptOpen, setUnschedulePromptOpen] = useState(false);
-  const [unscheduleDialogOpen, setUnscheduleDialogOpen] = useState(false);
   // Lifecycle forms: Pause, Resume, Change active status, Change pause status,
   // and the "Time logged" (Complete) review.
   const [pauseOpen, setPauseOpen] = useState(false);
@@ -866,6 +934,172 @@ function useJobShell(isDesktop: boolean) {
   // group gets the add-plus + row edit/delete, and the Complete review is theirs.
   const viewer = users.find((u) => u.id === 1) ?? users[0];
 
+  // The Activity tab's event list, OLDEST first. It opens with the job's
+  // creation (stamped at mount, so the log reads "Just now") and grows as the
+  // user edits a module.
+  const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>(() => [
+    { id: 1, kind: "created", date: new Date(), user: viewer },
+  ]);
+  // Appends one activity log — the viewer is always the actor, the moment is now.
+  const pushEvent = (event: Omit<ActivityEvent, "id" | "date" | "user">) =>
+    setActivityEvents((prev) => [...prev, { id: prev.length + 1, date: new Date(), user: viewer, ...event }]);
+
+  // The job's lifecycle logs (Figma 24512-62842). Every one is "{user} <did
+  // something to the job>", optionally closing on its status — so they all go
+  // through here. The timeline symbol is the job status's SOLID glyph in its own
+  // colour, and a typed reason becomes the log's single sub-log.
+  const pushJobStatus = (glyph: JobGlyph, parts: Omit<JobStatusLog, "icon" | "color">) =>
+    pushEvent({ kind: "jobStatus", jobStatus: { ...glyph, ...parts } });
+  // "… the job" on its own, or "… the job with status <sub-status>".
+  const pushJobStatusWithSub = (glyph: JobGlyph, verb: string, subStatus: string, reason: string, reasonTitle: string) =>
+    pushJobStatus(
+      glyph,
+      subStatus === ""
+        ? { text: ` ${verb}`, reason, reasonTitle }
+        : { text: ` ${verb} with status `, value: subStatus, reason, reasonTitle },
+    );
+
+  // "Last modified" (Job properties module) — Daniel, 2026-08-03: it updates
+  // EVERY time the user changes anything on the job, not just this module.
+  // So it is stamped from an effect over the job's DATA rather than wired into
+  // each handler: every mutation replaces one of these objects. `elapsed` and
+  // the derived active time are deliberately NOT watched — the running timer
+  // ticks once a second and is not a change to the job.
+  const [lastModified, setLastModified] = useState<Date>(() => new Date());
+  const touchJob = () => setLastModified(new Date());
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    setLastModified(new Date());
+  }, [serviceValues, equipmentIds, equipmentInvolved, jobProperties, billing, scheduling, location, job, sessions, checkedIn]);
+
+  // Equipment: one change can both add and remove (the Equipment form applies a
+  // whole session of edits at once), so the diff of the id arrays becomes ONE
+  // log — "added A, B and removed C" (Figma 24450-60498).
+  // `pool` is passed explicitly when the caller just created a piece — the pool
+  // state does not hold it yet in this render.
+  const changeEquipmentIds = (next: number[], pool: Equipment[] = equipmentPool) => {
+    const { added, removed } = diffEquipment(equipmentIds, next, pool);
+    setEquipmentIds(next);
+    if (added.length === 0 && removed.length === 0) return;
+    setActivityEvents((prev) => [
+      ...prev,
+      { id: prev.length + 1, kind: "equipment", date: new Date(), user: viewer, added, removed },
+    ]);
+  };
+
+  // Saving the Equipment form (Figma 24465-35321): the answer + the resulting
+  // equipment. "No" wipes the list, which logs as a removal. The FORM shows the
+  // '"Equipment" module updated' toast.
+  const saveEquipment = ({ involved, equipmentIds: next }: EquipmentFormValues) => {
+    setEquipmentInvolved(involved);
+    changeEquipmentIds(next);
+  };
+
+  // The New-equipment form (Figma 21897-7658), opened from the Equipment form's
+  // picker. The created piece joins the location's POOL here and is returned so
+  // the picker can tick it; it reaches the job when the form is saved. The
+  // New-equipment form shows its own "Equipment created" toast.
+  const createEquipment = (values: NewEquipment): Equipment => {
+    const id = equipmentPool.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+    const equipment: Equipment = {
+      id,
+      name: values.name,
+      manufacturer: values.manufacturer,
+      model: values.model,
+      serial: values.serial,
+      category: values.category,
+      type: values.type,
+      ownership: values.ownership,
+      area: values.area,
+      // The Complete-job form shows this as plain text ("January 1, 2026").
+      installDate: values.installDate != null ? EQUIPMENT_DATE.format(values.installDate) : "",
+      notes: values.notes,
+      labels: values.labels,
+    };
+    setEquipmentPool((prev) => [...prev, equipment]);
+    return equipment;
+  };
+
+  // A job-contact edit (Figma 24487-43383). The contacts live in DetailsPanel,
+  // so it reports the edit here — one log per change, naming the ROLE slot.
+  // The clearing that follows a location change does NOT come through here:
+  // that action has its own log (Daniel, 2026-08-03).
+  const logContactChange = (role: string, before: JobContact | null, after: JobContact | null) => {
+    setActivityEvents((prev) => [
+      ...prev,
+      {
+        id: prev.length + 1,
+        kind: "contact",
+        date: new Date(),
+        user: viewer,
+        role,
+        contactBefore: before?.name ?? null,
+        contactAfter: after?.name ?? null,
+        contactBeforeAvatar: before?.avatar,
+        contactAfterAvatar: after?.avatar,
+      },
+    ]);
+  };
+
+  // Saving the Job-properties form. It logs exactly like the Service module
+  // (Daniel, 2026-08-03), so the same diff → ActivityUpdateLog rules apply.
+  // The FORM shows the '"Job properties" updated' toast.
+  const changeJobProperties = (next: JobProperties) => {
+    const changes = diffJobProperties(jobProperties, next);
+    setJobProperties(next);
+    if (changes.length === 0) return;
+    setActivityEvents((prev) => [
+      ...prev,
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Job properties", changes },
+    ]);
+  };
+
+  // A label edit (Figma 24492-52521). ONE log per save, naming everything it
+  // touched — "added label X", "removed labels ~~X, Y~~", or both joined by
+  // "and". The FORM shows the '"Labels" module updated' toast.
+  const logLabelsChange = (added: string[], removed: string[]) => {
+    setActivityEvents((prev) => [
+      ...prev,
+      { id: prev.length + 1, kind: "labels", date: new Date(), user: viewer, added, removed },
+    ]);
+  };
+
+  // Saving the Scheduling module's edit form — same log pattern as Service /
+  // Job properties (Daniel, 2026-08-04). The FORM shows the '"Scheduling"
+  // updated' toast.
+  // The lifecycle flows that also move the scheduling (Schedule job,
+  // Reschedule, Unschedule) keep the plain setScheduling: they are their OWN
+  // actions with their own toasts, not a module edit.
+
+  // Saving the Billing form — same log pattern as Service / Job properties
+  // (Daniel, 2026-08-03). The FORM shows the '"Billing intention" module
+  // updated' toast.
+  const changeBilling = (next: Billing) => {
+    const changes = diffBilling(billing, next);
+    setBilling(next);
+    if (changes.length === 0) return;
+    setActivityEvents((prev) => [
+      ...prev,
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Billing intention", changes },
+    ]);
+  };
+
+  // Saving the Service form is the only caller of onServiceChange, so the diff
+  // between the two value sets IS the edit the user just made.
+  const changeServiceValues = (next: ServiceValues) => {
+    const changes = diffServiceValues(serviceValues, next);
+    setServiceValues(next);
+    if (changes.length === 0) return;
+    setActivityEvents((prev) => [
+      ...prev,
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Service", changes },
+    ]);
+  };
+
   const avatarStatus = displayStatus(job, scheduling);
   const caption = statusLabel(job, scheduling);
   const locked = job.status === "cancelled"; // cancelled → editing restricted
@@ -878,7 +1112,7 @@ function useJobShell(isDesktop: boolean) {
   const canTrackTime = job.status !== "unscheduled" && job.status !== "cancelled";
   const canAddSessions = canTrackTime;
   // The job's assignees — the Timesheet tab shows a group per assignee.
-  const assigneeUsers = scheduling.assignees
+  const assigneeUsers = assignees
     .map((id) => users.find((u) => u.id === id))
     .filter((u): u is (typeof users)[number] => u != null);
 
@@ -896,6 +1130,17 @@ function useJobShell(isDesktop: boolean) {
   });
   // Per-assignee sessions — only the viewer logs time in this prototype.
   const sessionsByUser: Record<number, Session[]> = { [viewer.id]: displaySessions };
+  // What the Assignees module shows per person (Figma 24522-63732): their total
+  // tracked time — live, the running session included — and, while they are
+  // checked in, the status they are working under.
+  const assigneeStats: Record<number, { trackedSec: number; status?: string }> = {};
+  for (const user of assigneeUsers) {
+    const list = sessionsByUser[user.id] ?? [];
+    assigneeStats[user.id] = {
+      trackedSec: list.reduce((acc, s) => acc + s.durationSec, 0),
+      status: list.find((s) => s.active)?.category,
+    };
+  }
 
   // Ends the running session (check-out / pause): stamp its end time + duration.
   const endActiveSession = () => {
@@ -945,18 +1190,26 @@ function useJobShell(isDesktop: boolean) {
       startedAt: ts,
       activeAt: ts,
     });
-    if (checkIn) beginSession(status || undefined);
+    pushJobStatusWithSub(JOB_GLYPH.active, "started the job", subStatus, reason, "Start reason");
+    if (checkIn) {
+      beginSession(status || undefined);
+      pushEvent({ kind: "checkin", status });
+    }
   };
   const cancelJob = (reason: string) => {
     setCheckedIn(false);
     endActiveSession();
     setJob((j) => ({ ...j, status: "cancelled", statusMessage: reason, cancelledAt: formatStatusTimestamp(new Date()) }));
+    pushJobStatus(JOB_GLYPH.cancelled, { text: " cancelled the job", reason, reasonTitle: "Cancel reason" });
   };
-  // Pause / hold: quick-pause or on-hold, with a sub-status + reason. Pausing
-  // checks the user out (no time tracking while paused).
-  const pauseJob = (type: string, subStatus: string, reason: string) => {
-    setCheckedIn(false);
-    endActiveSession();
+  // Pause / hold: quick-pause or on-hold, with a sub-status + reason. The tech
+  // is checked out only when the form's "Check out" box is ticked (Figma
+  // 24512-62825) — otherwise the job pauses and their session keeps running.
+  const pauseJob = (type: string, subStatus: string, reason: string, checkOut: boolean) => {
+    if (checkOut) {
+      setCheckedIn(false);
+      endActiveSession();
+    }
     setJob((j) => ({
       ...j,
       status: type === "quick-pause" ? "quickPaused" : "onHold",
@@ -964,20 +1217,54 @@ function useJobShell(isDesktop: boolean) {
       statusMessage: reason || undefined,
       pausedAt: formatStatusTimestamp(new Date()),
     }));
+    // One wording for both types — the status names the sub-status, or the pause
+    // type itself when the company has none (Figma 24512-62842). The glyph is
+    // what tells quick-pause from on-hold. Pausing with "Check out" ticked
+    // writes TWO logs, like starting a job with "Check in" — job action first.
+    pushJobStatus(pauseGlyph(type), {
+      text: " paused the job with status ",
+      value: pauseStatusName(type, subStatus),
+      reason,
+      reasonTitle: "Pause reason",
+    });
+    if (checkOut) pushEvent({ kind: "checkout" });
   };
   // Resume back to active with a fresh sub-status (updates "Active on").
   // Like startJob (Figma 24096-19684): the form's "Check in" card decides
   // whether a session starts; the chosen status becomes its category.
   const doResume = (subStatus: string, reason: string, checkIn: boolean, status: string) => {
     setJob((j) => ({ ...j, status: "active", subStatus: subStatus || undefined, statusMessage: reason || undefined, activeAt: formatStatusTimestamp(new Date()) }));
-    if (checkIn) beginSession(status || undefined);
+    pushJobStatusWithSub(JOB_GLYPH.active, "resumed the job", subStatus, reason, "Resume reason");
+    if (checkIn) {
+      beginSession(status || undefined);
+      pushEvent({ kind: "checkin", status });
+    }
   };
   // Change the active sub-status / status message (stays active).
-  const doChangeActive = (subStatus: string, reason: string) =>
+  const doChangeActive = (subStatus: string, reason: string) => {
     setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined }));
+    // A typed Status message rides along as the log's sub-log (Figma 24517-63481).
+    if (subStatus !== "") {
+      pushJobStatus(JOB_GLYPH.active, {
+        text: " changed active status to ",
+        value: subStatus,
+        reason,
+        reasonTitle: "Status message",
+      });
+    }
+  };
   // Change the pause Type / sub-status / reason (stays paused; keeps "Paused on").
-  const doChangePause = (type: string, subStatus: string, reason: string) =>
+  const doChangePause = (type: string, subStatus: string, reason: string) => {
     setJob((j) => ({ ...j, status: type === "quick-pause" ? "quickPaused" : "onHold", subStatus: subStatus || undefined, statusMessage: reason || undefined }));
+    // The Pause reason is a NEW one each time, so it is this log's sub-log
+    // (Figma 24517-63511).
+    pushJobStatus(pauseGlyph(type), {
+      text: " changed pause status to ",
+      value: pauseStatusName(type, subStatus),
+      reason,
+      reasonTitle: "Pause reason",
+    });
+  };
 
   // Check-in — opens the Check in dialog (Figma 24194-74433); confirming
   // with a status starts the session.
@@ -988,7 +1275,12 @@ function useJobShell(isDesktop: boolean) {
   };
   const doCheckIn = (status: string) => {
     beginSession(status);
-    toast({ type: "success", title: "You're checked in" });
+    // Figma 24358-37597: the success toast is DETAILED now — the status the
+    // tech checked in under is its caption.
+    toast({ type: "success", variant: "detailed", title: "You're checked in", caption: status });
+    // ONE log for checking in (Daniel, 2026-08-05): the session it opens is not
+    // finished yet, so there is no session to log.
+    pushEvent({ kind: "checkin", status });
   };
   // The running session's check-in status (drives the bar/pill identity).
   const activeCategory = sessions.find((sess) => sess.active)?.category;
@@ -998,7 +1290,12 @@ function useJobShell(isDesktop: boolean) {
     if (status === activeCategory) return;
     endActiveSession();
     beginSession(status);
-    toast({ type: "success", title: "Your status updated" });
+    // The switch itself is the log (Figma 24453-26403/26436/26425/26447) — the
+    // session it closes and the one it opens are not logged separately.
+    pushEvent({ kind: "status", status });
+    // Detailed toast (Figma 24358-37727). The caption names the NEW status
+    // only — Daniel, 2026-08-04, dropping the "old → new" pair.
+    toast({ type: "success", variant: "detailed", title: "Your status updated", caption: status });
   };
 
   // Ends the running session and logs it — no Time review in this concept.
@@ -1008,6 +1305,7 @@ function useJobShell(isDesktop: boolean) {
     setCheckedIn(false);
     endActiveSession();
     toast({ type: "success", title: "Time session saved" });
+    pushEvent({ kind: "checkout" });
   };
   // "Check out" (bar / pill drawer / Timesheet row): an ACTIVE job opens the
   // confirm prompt first (Figma 24184-59897); any other status logs the
@@ -1033,7 +1331,18 @@ function useJobShell(isDesktop: boolean) {
     setSessionFormOpen(true);
   };
   const confirmDeleteSession = () => {
-    if (deleteTarget != null) setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+    if (deleteTarget != null) {
+      setSessions((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+      // The whole session is struck through in the log (Figma 24453-26470).
+      pushEvent({
+        kind: "sessionDeleted",
+        status: deleteTarget.category,
+        sessionRange: sessionRangeLabel(
+          storedMoment(deleteTarget.dateLabel, deleteTarget.startLabel),
+          storedMoment(deleteTarget.endDateLabel ?? deleteTarget.dateLabel, deleteTarget.endLabel),
+        ),
+      });
+    }
     setDeleteTarget(undefined);
     toast({ type: "success", title: "Time session deleted" });
   };
@@ -1059,35 +1368,118 @@ function useJobShell(isDesktop: boolean) {
         ? prev.map((s) => (s.id === editingSession.id ? { ...s, ...fields } : s))
         : [...prev, { id: prev.reduce((mx, s) => Math.max(mx, s.id), 0) + 1, ...fields }],
     );
+
+    // The activity log (Figma 24453-26325). Adding names the whole session;
+    // editing lists only the fields that really moved, in FORM order (status,
+    // start, end) — the update-log rules then pick the row or the accordion.
+    const startMoment = sessionMoment(startDt);
+    const endMoment = sessionMoment(endDt);
+    const range = sessionRangeLabel(startMoment, endMoment);
+    if (editingSession == null) {
+      pushEvent({ kind: "sessionAdded", status: draft.category, sessionRange: range });
+    } else {
+      const was = editingSession;
+      const changes: FieldChange[] = [
+        // The status carries its icon on BOTH sides — inline and in the
+        // accordion's sub-log (Figma 24509-62280 / 24511-62572).
+        {
+          label: "Status",
+          oldValue: was.category ?? "",
+          newValue: draft.category,
+          oldIcon: was.category != null ? statusValueIcon(was.category) : undefined,
+          newIcon: statusValueIcon(draft.category),
+        },
+        { label: "Start time", oldValue: storedMoment(was.dateLabel, was.startLabel), newValue: startMoment },
+        { label: "End time", oldValue: storedMoment(was.endDateLabel ?? was.dateLabel, was.endLabel), newValue: endMoment },
+      ].filter((c) => c.oldValue !== c.newValue);
+      if (changes.length > 0) pushEvent({ kind: "sessionUpdated", changes, status: draft.category, sessionRange: range });
+    }
+
     // Figma toast 24105-15803 — same copy as check-out.
     toast({ type: "success", title: "Time session saved" });
   };
 
-  // "Schedule job" dialog confirmed: apply the picked scheduling, the job
-  // becomes Upcoming (the form itself shows toast 24049-13916).
-  const confirmSchedule = (next: Scheduling) => {
-    setScheduling(next);
-    setJob({ status: "upcoming", everStarted: false });
+  // The Scheduling module's logs (Figma 24522-89331). Three shapes, and which
+  // one is written depends on WHAT moved (Daniel, 2026-08-05):
+  //   slot cleared          → "unscheduled the job ~~<old slot>~~"   calendar-xmark
+  //   slot set or moved     → "(re)scheduled the job for <slot> for <duration>"
+  //                                                                  calendar-check
+  //   duration alone        → "updated Duration: ~~old~~ → new"      hourglass
+  const logScheduling = (was: Scheduling, next: Scheduling) => {
+    const slot = (s: Scheduling) => (s.date != null ? `${longSlotLabel(s)}` : "");
+    const dur = (s: Scheduling) => durationLabel(s.hours, s.minutes);
+    const slotChanged = slot(was) !== slot(next);
+    const durationChanged = dur(was) !== dur(next);
+
+    if (next.date == null && was.date != null) {
+      pushEvent({ kind: "scheduling", jobStatus: { icon: "calendar-xmark", color: "", text: " unscheduled the job ", strikeValue: slot(was) } });
+      return;
+    }
+    if (slotChanged) {
+      // The duration rides along in this log, changed or not. Scheduling and
+      // RE-scheduling carry different glyphs (Figma 24522-89334 / 89710).
+      const rescheduled = was.date != null;
+      pushEvent({
+        kind: "scheduling",
+        jobStatus: {
+          icon: rescheduled ? "calendar-lines-pen" : "calendar-check",
+          color: "",
+          text: ` ${rescheduled ? "rescheduled" : "scheduled"} the job for `,
+          value: `${slot(next)} for ${dur(next)}`,
+        },
+      });
+      return;
+    }
+    if (durationChanged) {
+      pushEvent({
+        kind: "scheduling",
+        jobStatus: { icon: "hourglass", color: "", text: " updated ", label: "Duration", strikeValue: dur(was), value: dur(next) },
+      });
+    }
   };
-  // "Reschedule job" confirmed: new scheduling only — the job KEEPS its status
-  // (the form shows toast 24226-20727, '"JOB-10001" rescheduled').
-  const confirmReschedule = (next: Scheduling) => {
-    setScheduling(next);
-  };
-  // Unschedule, shared tail: clears "Scheduled for" (date + time), optionally
-  // the assignees too, and flips the job to Unscheduled.
-  const applyUnschedule = (unassign: boolean) => {
-    setScheduling((s) => ({ ...s, date: null, time: "", assignees: unassign ? [] : s.assignees }));
-    setJob((j) => ({ ...j, status: "unscheduled", unscheduledAt: formatStatusTimestamp(new Date()) }));
-    toast({
-      type: "success",
-      title: unassign ? `"${JOB_ID}" unscheduled and unassigned` : `"${JOB_ID}" unscheduled`,
+
+  // The Assignees module (Figma 24522-89736). One log per save, naming who
+  // came on and who went off: "assigned A, B", "unassigned ~~C~~", or both
+  // joined by "and". The unassigned names are always struck through.
+  const changeAssignees = (next: number[]) => {
+    // Each name carries its avatar, like every other person in a log.
+    const people = (ids: number[]) =>
+      ids
+        .map((id) => users.find((u) => u.id === id))
+        .filter((u): u is (typeof users)[number] => u != null)
+        .map((u) => ({ name: u.name, avatar: u.avatar }));
+    const added = people(next.filter((id) => !assignees.includes(id)));
+    const removed = people(assignees.filter((id) => !next.includes(id)));
+    setAssignees(next);
+    if (added.length === 0 && removed.length === 0) return;
+    pushEvent({
+      kind: "assignees",
+      jobStatus: {
+        icon: added.length > 0 && removed.length > 0 ? "user" : added.length > 0 ? "user-plus" : "user-minus",
+        color: "",
+        // The avatars bring their own gaps, so the sentence adds no trailing space.
+        text: added.length > 0 ? " assigned" : " unassigned",
+        people: added.length > 0 ? added : undefined,
+        tailText: added.length > 0 && removed.length > 0 ? " and unassigned" : undefined,
+        // The people who left are always struck through.
+        tailPeople: removed.length > 0 ? removed : undefined,
+      },
     });
   };
-  // "Unschedule job?" prompt confirmed (unassigned job — Figma toast 24106-16399).
-  const confirmUnschedule = () => {
-    setUnschedulePromptOpen(false);
-    applyUnschedule(false);
+
+  // The ONE Scheduling save (Daniel, 2026-08-05): the module's pen and the
+  // Schedule / Reschedule / Unschedule actions all land here, and the job's own
+  // status follows the slot — a first slot makes it Upcoming, clearing the slot
+  // makes it Unscheduled, a moved slot leaves the status alone.
+  const confirmSchedule = (next: Scheduling) => {
+    const was = scheduling;
+    setScheduling(next);
+    if (next.date == null && was.date != null) {
+      setJob((j) => ({ ...j, status: "unscheduled", unscheduledAt: formatStatusTimestamp(new Date()) }));
+    } else if (next.date != null && was.date == null) {
+      setJob({ status: "upcoming", everStarted: false });
+    }
+    logScheduling(was, next);
   };
 
   const actions: JobActions = {
@@ -1097,6 +1489,7 @@ function useJobShell(isDesktop: boolean) {
     },
     onSchedule: () => {
       actionMenu.close();
+      setScheduleFormMode("schedule");
       setScheduleOpen(true);
     },
     onPause: () => {
@@ -1123,16 +1516,18 @@ function useJobShell(isDesktop: boolean) {
     },
     onCheckIn: checkIn,
     onCheckOut: checkOut,
+    // Reschedule and Unschedule open the SAME Scheduling form as Schedule
+    // (Daniel, 2026-08-05) — no separate dialogs, and no question about
+    // assignees any more.
     onReschedule: () => {
       actionMenu.close();
-      setRescheduleOpen(true);
+      setScheduleFormMode("schedule");
+      setScheduleOpen(true);
     },
     onUnschedule: () => {
       actionMenu.close();
-      // Assigned job → the dialog (with the Unassign checkbox); unassigned →
-      // the plain confirm prompt (Daniel's rule, item 5/6).
-      if (scheduling.assignees.length > 0) setUnscheduleDialogOpen(true);
-      else setUnschedulePromptOpen(true);
+      setScheduleFormMode("unschedule");
+      setScheduleOpen(true);
     },
     onCancel: () => {
       actionMenu.close();
@@ -1149,29 +1544,40 @@ function useJobShell(isDesktop: boolean) {
     setServiceValues,
     equipmentIds,
     setEquipmentIds,
+    changeEquipmentIds,
+    equipmentInvolved,
+    saveEquipment,
+    equipmentPool,
+    createEquipment,
     jobEquipment,
+    jobProperties,
+    changeJobProperties,
+    jobSources,
+    createJobSource,
+    billing,
+    changeBilling,
+    lastModified,
+    touchJob,
+    logContactChange,
+    logLabelsChange,
     location,
     changeLocation,
     locations,
     addLocation,
     job,
     viewer,
+    activeTime,
+    activityEvents,
+    changeServiceValues,
     startOpen,
     setStartOpen,
     cancelOpen,
     setCancelOpen,
     scheduleOpen,
     setScheduleOpen,
-    rescheduleOpen,
-    setRescheduleOpen,
-    confirmReschedule,
-    unschedulePromptOpen,
-    setUnschedulePromptOpen,
-    unscheduleDialogOpen,
-    setUnscheduleDialogOpen,
+    scheduleFormMode,
+    setScheduleFormMode,
     confirmSchedule,
-    confirmUnschedule,
-    applyUnschedule,
     pauseOpen,
     setPauseOpen,
     resumeOpen,
@@ -1199,6 +1605,9 @@ function useJobShell(isDesktop: boolean) {
     doCheckIn,
     displaySessions,
     sessionsByUser,
+    assignees,
+    assigneeStats,
+    changeAssignees,
     avatarStatus,
     caption,
     locked,
@@ -1232,52 +1641,21 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.completeOpen}
       onClose={() => s.setCompleteOpen(false)}
       equipmentIds={s.equipmentIds}
-      onEquipmentIdsChange={s.setEquipmentIds}
+      onEquipmentIdsChange={s.changeEquipmentIds}
+      equipmentPool={s.equipmentPool}
       mobile={mobile}
     />
     {/* Schedule job dialog (Figma 24222-20585) — the Scheduling form with
         schedule copy; its own toast is the scheduled one (24049-13916). */}
+    {/* Schedule / Reschedule / Unschedule job all open the SAME Scheduling form
+        now (Daniel, 2026-08-05) — it names the action on its own button and
+        writes the same logs as the module's pen. */}
     <SchedulingForm
       open={s.scheduleOpen}
       onClose={() => s.setScheduleOpen(false)}
       initial={s.scheduling}
+      initialMode={s.scheduleFormMode}
       onSave={s.confirmSchedule}
-      title="Schedule job"
-      submitLabel="Schedule job"
-      toastTitle={`"${JOB_ID}" scheduled`}
-      mode="schedule"
-      mobile={mobile}
-    />
-    {/* Reschedule job dialog (Figma 24226-20672) — same form, reschedule copy;
-        the job keeps its current status. */}
-    <SchedulingForm
-      open={s.rescheduleOpen}
-      onClose={() => s.setRescheduleOpen(false)}
-      initial={s.scheduling}
-      onSave={s.confirmReschedule}
-      title="Reschedule job"
-      submitLabel="Reschedule job"
-      toastTitle={`"${JOB_ID}" rescheduled`}
-      mode="schedule"
-      mobile={mobile}
-    />
-    {/* Unschedule, UNASSIGNED job → plain confirm (Figma 24215-18742). */}
-    <Prompt
-      open={s.unschedulePromptOpen}
-      title="Unschedule job?"
-      body="Scheduled date and time will be cleared"
-      actionLabel="Unschedule job"
-      onAction={s.confirmUnschedule}
-      onCancel={() => s.setUnschedulePromptOpen(false)}
-      breakpoint={mobile ? "mobile" : "desktop"}
-    />
-    {/* Unschedule, ASSIGNED job → the dialog with the Unassign checkbox
-        (Figma 24215-18740 / 24221-19652 / 24221-19892). */}
-    <UnscheduleJobForm
-      open={s.unscheduleDialogOpen}
-      onClose={() => s.setUnscheduleDialogOpen(false)}
-      assignees={s.scheduling.assignees}
-      onUnschedule={s.applyUnschedule}
       mobile={mobile}
     />
     {/* Resume job (Figma 24096-19684): the Start-job form shape — sub-status,
@@ -1309,7 +1687,6 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onClose={() => s.setChangePauseOpen(false)}
       initialType={s.job.status === "onHold" ? "on-hold" : "quick-pause"}
       initialSubStatus={s.job.subStatus ?? ""}
-      initialReason={s.job.statusMessage ?? ""}
       onSubmit={s.doChangePause}
       mobile={mobile}
     />
@@ -1372,7 +1749,7 @@ const DesktopShell = () => {
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel serviceValues={s.serviceValues} onServiceChange={s.setServiceValues} equipmentIds={s.equipmentIds} onEquipmentIdsChange={s.setEquipmentIds} />
+                <ServicePanel serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentInvolved={s.equipmentInvolved} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
@@ -1392,6 +1769,10 @@ const DesktopShell = () => {
             ) : tab === "summary" ? (
               <div className={styles.mainContent}>
                 <SummaryPanel jobEquipment={s.jobEquipment} />
+              </div>
+            ) : tab === "activity" ? (
+              <div className={styles.mainContent}>
+                <ActivityPanel activeSec={s.activeTime.totalSec} activeDays={s.activeTime.days} events={s.activityEvents} />
               </div>
             ) : (
               <Placeholder className={styles.mainContent} />
@@ -1428,7 +1809,10 @@ const DesktopShell = () => {
                 )}
               </div>
             )}
-            <DetailsPanel scheduling={s.scheduling} onSchedulingChange={s.setScheduling} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} />
+            <DetailsPanel scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+          assignees={s.assignees}
+          onAssigneesChange={s.changeAssignees}
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} />
           </ScrollArea>
         </div>
       </div>
@@ -1633,9 +2017,12 @@ const MobileShell = () => {
           render={(t) =>
             t === "details" ? (
 
-          <DetailsPanel mobile scheduling={s.scheduling} onSchedulingChange={s.setScheduling} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} />
+          <DetailsPanel mobile scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+          assignees={s.assignees}
+          onAssigneesChange={s.changeAssignees}
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} />
             ) : t === "service" ? (
-              <ServicePanel mobile serviceValues={s.serviceValues} onServiceChange={s.setServiceValues} equipmentIds={s.equipmentIds} onEquipmentIdsChange={s.setEquipmentIds} />
+              <ServicePanel mobile serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentInvolved={s.equipmentInvolved} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}
@@ -1652,6 +2039,8 @@ const MobileShell = () => {
           />
             ) : t === "summary" ? (
               <SummaryPanel mobile jobEquipment={s.jobEquipment} />
+            ) : t === "activity" ? (
+              <ActivityPanel mobile activeSec={s.activeTime.totalSec} activeDays={s.activeTime.days} events={s.activityEvents} />
             ) : (
               <Placeholder className={styles.mobileContent} />
             )

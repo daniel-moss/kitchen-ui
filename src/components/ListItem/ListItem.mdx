@@ -1,0 +1,234 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ListItemStories from "./ListItem.stories";
+
+<Meta of={ListItemStories} />
+
+# ListItem
+
+We use **ListItem** for object representation — a location, a client, a file, a
+contact, etc.
+
+<Canvas of={ListItemStories.Overview} />
+
+```tsx
+<ListItem
+  variant="titleCaption"
+  title={location.address}
+  caption={location.name}
+  avatar={<AvatarLocation size="xl" />}
+  slotRight={<ListItemSlotIcon icon="angle-right" />}
+  isClickable
+  onClick={() => openLocation(location)}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Content](#content)<br />
+↳&nbsp;&nbsp;[Right elements](#right-elements)<br />
+↳&nbsp;&nbsp;[Bottom elements](#bottom-elements)<br />
+↳&nbsp;&nbsp;[Dragging](#dragging)<br />
+↳&nbsp;&nbsp;[Interactivity](#interactivity)<br />
+↳&nbsp;&nbsp;[Accordion](#accordion)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains an optional avatar, text, and optional elements on the right or at the
+bottom. By default, the minimum height is set to 60px.
+
+<Canvas of={ListItemStories.Anatomy} />
+
+## Content
+
+Contains a text group and an optional left slot.
+
+### Left slot
+
+Supports a left slot. The slot supports an
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+only for now, and the size is the one strict parameter: **xl (36px)**.
+
+<Canvas of={ListItemStories.LeftSlot} />
+
+### Text
+
+Supports several text variations — title, title + caption, caption + title.
+
+<Canvas of={ListItemStories.TextVariants} />
+
+#### Caption
+
+Supports a left slot. The slot supports an `Icon` only for now. Icon size, style
+and color are **not determined** — they are the caller's choice, and so is the
+caption color (`captionClassName`). Caption and the slot are top-aligned.
+
+<Canvas of={ListItemStories.CaptionSlot} />
+
+#### Truncation / wrapping
+
+By default the text truncates if it does not fit one line.
+
+<Canvas of={ListItemStories.Truncation} />
+
+If text is truncated, hovering the truncated element shows a
+<a href="/?path=/story/components-tooltip--playground" target="_top">Tooltip</a>
+with the full text. The tooltip is aligned with the cursor. Hover a line below
+to see it:
+
+<Canvas of={ListItemStories.TruncationTooltip} />
+
+Text can also be truncated after 2 or 3 lines, or wrapped entirely
+(`titleLines` / `captionLines`). It depends on the use case, and the specific
+behaviour is defined in the design files — if it is not defined, the default is
+used. List item elements are top-aligned, so the avatar, the grip, the accordion
+caret, the right text and the right slot all stay on the first line while the
+text grows.
+
+<Canvas of={ListItemStories.MultiLine} />
+
+#### Right text
+
+The component also supports several variations of text on the right — title,
+title + caption, caption + title, and tag. This gives a lot of combinations,
+which improves the component's versatility. Pass a `ListItemTextRight` in the
+`right` prop.
+
+<Canvas of={ListItemStories.RightText} />
+
+Text on the right is supposed to be concise. When there is not enough space, it
+takes priority over the text on the left: the right block hugs its content and
+the left block truncates.
+
+<Canvas of={ListItemStories.RightTextPriority} />
+
+## Right elements
+
+The component supports optional elements on the right — 3 slots maximum. The
+right elements container height is set to 40px.
+
+<Canvas of={ListItemStories.RightSlots} />
+
+The slot supports an icon. For example, an icon can indicate that the item is
+clickable (`angle-right`) or that it will open in a separate tab
+(`arrow-up-right`). Use `ListItemSlotIcon` — it is static, not a control, so
+hovering it does not cancel the row's own hover.
+
+<Canvas of={ListItemStories.SlotIcons} />
+
+The slot supports an
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
+or a <a href="/?path=/docs/components-button--docs" target="_top">Button</a>.
+Their clicks stay inside the slot — they do not trigger a clickable row.
+
+<Canvas of={ListItemStories.SlotButtons} />
+
+The slot supports a
+<a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>.
+The list item must be non-clickable when a TabGroup is inserted.
+
+<Canvas of={ListItemStories.SlotTabGroup} />
+
+The slot supports a
+<a href="/?path=/docs/components-fields-textfield--docs" target="_top">TextField</a>,
+a <a href="/?path=/docs/components-fields-selectfield-selectfield--docs" target="_top">SelectField</a>
+or a <a href="/?path=/docs/components-fields-datefield--docs" target="_top">DateField</a>.
+The list item must be non-clickable when one of these is inserted, and the input
+width is fixed.
+
+<Canvas of={ListItemStories.SlotInputs} />
+
+The slot supports a
+<a href="/?path=/docs/components-toggle-toggle--docs" target="_top">Toggle</a>.
+When it holds one, the whole ListItem works as a control: clicking or tapping
+the row flips the switch. Set `isClickable` + `toggle` — the component renders
+the switch itself at the end of the right slot, so you do not pass a Toggle in.
+Other `slotRight` instances still render before the switch and their own clicks
+do not flip the row. `toggleDisabled` dims only the switch and keeps the rest of
+the row alive. The example is live:
+
+<Canvas of={ListItemStories.SlotToggle} />
+
+The slot supports an
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+or an
+<a href="/?path=/story/components-avatargroup--playground" target="_top">AvatarGroup</a>,
+at lg (32px).
+
+<Canvas of={ListItemStories.SlotAvatars} />
+
+## Bottom elements
+
+Some instances can be placed at the bottom, below the body and stretched to the
+full row width. The bottom instance is for mobile only — it adapts the layout to
+a small format. List items with a bottom instance are non-clickable,
+non-draggable, and cannot have accordion functionality; TypeScript enforces
+this, so `slotBottom` only type-checks on a plain row.
+
+<Canvas of={ListItemStories.BottomSlot} />
+
+These are the instances that go to the bottom when used on mobile.
+
+### Button
+
+<Canvas of={ListItemStories.BottomButton} />
+
+### TabGroup
+
+<Canvas of={ListItemStories.BottomTabGroup} />
+
+### Inputs
+
+<Canvas of={ListItemStories.BottomInputs} />
+
+## Dragging
+
+The component supports dragging. When it does, the item shows a grip icon on the
+left (`isDraggable`).
+
+<Canvas of={ListItemStories.Draggable} />
+
+To drag the item, the user clicks or taps and holds until the state changes to
+dragging. The grip icon changes to arrows and the row lifts into a card. The
+whole list item is the trigger — the trigger area is not restricted to the grip
+icon.
+
+<Canvas of={ListItemStories.DraggingState} />
+
+**ListItem does not reorder anything by itself** — `isDraggable` draws the
+handle and `isDragging` draws the lifted look. The gesture (hold to start, the
+drop slot, the reorder callback) belongs to the list container:
+<a href="/?path=/docs/components-itemgroup--docs" target="_top">ItemGroup</a>
+wires it with `onReorder`.
+
+## Interactivity
+
+The component supports interaction states. This means the entire list item is
+clickable or tappable, and clicking it performs the action (`isClickable` +
+`onClick`). Dragging and clicking can be combined together — the example below
+shows the combined variant in every state.
+
+Clicks inside the right slot and the bottom slot do not trigger the row, as long
+as they land on a real control (a button, a link, an input). Static instances
+such as `ListItemSlotIcon` or an avatar belong to the row and do trigger it.
+
+<Canvas of={ListItemStories.InteractiveStates} />
+
+## Accordion
+
+The component supports accordion functionality (`isAccordion` + `children`).
+Accordion functionality must not be used with dragging.
+
+<Canvas of={ListItemStories.AccordionStates} />
+
+The entire header works as the trigger for collapsing the list item. There is a
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+between the header and the body, and the list item in the open state has a
+background. The header keeps the clickable states; `disabled` dims only the
+header, so an open body stays readable.
+
+<Canvas of={ListItemStories.AccordionOpenStates} />
+
+## Props
+
+<ArgTypes of={ListItemStories} />

@@ -31,6 +31,25 @@ export interface SelectPopover {
   /** Open anchored to `el` WITHOUT toggling — for autocompletes that open on typing. */
   openAt: (el: HTMLElement) => void;
   close: () => void;
+  /**
+   * THE LAYOUT-FREEZE RULE. Returns `value` as it was when the list OPENED, and
+   * re-syncs the moment it closes.
+   *
+   * Wrap whatever the picks GROW below the trigger — a badge row, the picked
+   * items' list. The card is fixed where it opened (see the rule above), so a
+   * row appearing under the trigger pushes the trigger down and the card drifts
+   * away from its field. Frozen content sits behind the open list, so nobody
+   * sees it lag.
+   *
+   * Do NOT wrap the field's own value/counter: the field does not change size,
+   * so it must keep updating live as you tick.
+   *
+   * One slot per popover — a popover belongs to one field, which has one
+   * selection. Call it once per render:
+   *
+   *     const shownLabels = labelsPop.freeze(labels);
+   */
+  freeze: <T>(value: T) => T;
 }
 
 const GAP = 4; // trigger ↔ card
@@ -87,6 +106,17 @@ export function useSelectPopover(mobile: boolean, placement: SelectPopoverPlacem
   };
   const close = () => setOpen(false);
 
+  // The layout-freeze slot (see `freeze` on the type). While the list is open
+  // the stored value is returned unchanged; every closed render re-syncs it.
+  const frozen = useRef<{ value: unknown } | null>(null);
+  const freeze = <T,>(value: T): T => {
+    if (!open) {
+      frozen.current = { value };
+      return value;
+    }
+    return frozen.current != null ? (frozen.current.value as T) : value;
+  };
+
   // Desktop: the card is measured ONCE when it opens and stays FIXED there —
   // it deliberately does NOT follow a trigger that moves from layout changes
   // (e.g. badges pushing the labels plus-button; Daniel, 2026-07-28). No
@@ -115,7 +145,7 @@ export function useSelectPopover(mobile: boolean, placement: SelectPopoverPlacem
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mobile]);
 
-  return { open, pos, cardRef, toggle, openAt, close };
+  return { open, pos, cardRef, toggle, openAt, close, freeze };
 }
 
 // Renders the SelectList for a popover: mobile drawer or desktop anchored card.
@@ -128,6 +158,7 @@ export function SelectPopoverList({
   searchable,
   searchPlaceholder,
   noResultsCaption,
+  noResultsAction,
   createFromSearch,
   state,
   emptyState,
@@ -142,6 +173,7 @@ export function SelectPopoverList({
   searchable?: boolean;
   searchPlaceholder?: string;
   noResultsCaption?: string;
+  noResultsAction?: { label: string; icon?: string; onClick: () => void };
   createFromSearch?: { label: string; onCreate: (query: string) => void };
   state?: "default" | "empty" | "noResults";
   emptyState?: SelectListEmptyState;
@@ -160,6 +192,7 @@ export function SelectPopoverList({
       searchable={searchable}
       searchPlaceholder={searchPlaceholder}
       noResultsCaption={noResultsCaption}
+      noResultsAction={noResultsAction}
       createFromSearch={createFromSearch}
       state={state}
       emptyState={emptyState}

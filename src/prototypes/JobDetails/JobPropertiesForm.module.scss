@@ -1,0 +1,28 @@
+// The Job-properties edit-form body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px between field rows
+  width: 100%;
+}
+
+// A field PAIR (Figma "Inputs"): two equal columns 16px apart on desktop.
+// A row whose second field is hidden leaves the remaining one FULL WIDTH —
+// the "Default / Desktop" doc frame shows Branch and Source that way, so a
+// hidden partner never pulls the next field up.
+.row {
+  display: flex;
+  gap: var(--size-4);
+  align-items: flex-start;
+}
+.row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Mobile: every field is its own full-width row.
+.mobile .row {
+  flex-direction: column;
+  gap: var(--size-6);
+}

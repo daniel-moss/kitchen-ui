@@ -22,3 +22,20 @@
   flex: 0 0 auto;
   min-width: 5rem; // 80px — fits "AM"/"PM" + the chevron
 }
+
+// The End-time offset chips (Figma 24105-15788): FIVE per row on both
+// breakpoints, stretched to equal widths — a grid, not a wrapping flex row,
+// so the two rows line up.
+.offsets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--size-2); // 8px
+  margin-top: var(--size-3); // 12px below the field
+}
+// The grid stretches each Chip past its label. Chip is an inline-flex with no
+// justify-content, so the text would sit at the left edge — centre it here
+// rather than in the DS (every other Chip hugs its content and is unaffected).
+.offsets > * {
+  min-width: 0;
+  justify-content: center;
+}

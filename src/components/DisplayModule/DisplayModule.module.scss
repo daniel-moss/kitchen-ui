@@ -164,9 +164,10 @@
   width: 100%;
   padding: var(--size-4); // 16px default content padding
 }
-// An EmptyState body (error state or a caption-only empty content) brings its
-// own inner padding — don't add the body padding on top.
-.bodyError {
+// No body padding — the content owns it. Used by an EmptyState body (error
+// state or a caption-only empty content), which brings its own inner padding,
+// and by `bodyPadded={false}` for content that needs its own paddings.
+.bodyFlush {
   padding: 0;
 }
 

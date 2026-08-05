@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
-import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
 import Button from "../../components/Button/Button";
 import Counter from "../../components/Counter/Counter";
 import Dialog from "../../components/Dialog/Dialog";
@@ -31,7 +30,14 @@ import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
 import { GROUPS, ChargeGroup } from "./ChargesTab";
 import FormsModule from "./FormsModule";
-import { Equipment, EQUIPMENT_POOL, equipmentCaption, equipmentLabel } from "./ServicePanel";
+import {
+  Equipment,
+  EquipmentAvatar,
+  equipmentCaption,
+  equipmentCaptionText,
+  equipmentLabel,
+  equipmentTitle,
+} from "./equipment";
 import { noop, slot } from "./shared";
 
 import styles from "./CompleteJobForm.module.scss";
@@ -125,8 +131,18 @@ const CopyButton = ({ value, label }: { value: string; label: string }) => (
 // One selected equipment shown as a collapsible module with its detail group.
 // "Open details" opens the Equipment side panel — NOT built (noop, per Daniel).
 function EquipmentDetailModule({ equipment }: { equipment: Equipment }) {
-  const d = EQUIPMENT_DETAILS[equipment.id];
-  const w = WARRANTY_META[d?.warranty ?? "none"];
+  // The five demo pieces keep their details above; equipment CREATED in the
+  // prototype (New-equipment form) carries its own and has no warranty record.
+  const d: EquipmentDetails = EQUIPMENT_DETAILS[equipment.id] ?? {
+    category: equipment.category ?? "",
+    type: equipment.type ?? "",
+    ownership: equipment.ownership ?? "",
+    area: equipment.area ?? "",
+    installDate: equipment.installDate ?? "",
+    warranty: "none",
+    notes: equipment.notes ?? "",
+  };
+  const w = WARRANTY_META[d.warranty];
   return (
     <DisplayModule
       variant="accordion"
@@ -236,12 +252,15 @@ interface CompleteJobFormProps {
    *  Equipment module (Daniel: equipment is shared, the rest is a snapshot). */
   equipmentIds: number[];
   onEquipmentIdsChange: (next: number[]) => void;
+  /** The location's equipment — the LIVE pool (the New-equipment form appends
+   *  to it), so a piece created on the job shows up here too. */
+  equipmentPool: Equipment[];
   mobile?: boolean;
 }
 
 type GenPhase = "idle" | "thinking" | "typing";
 
-export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipmentIdsChange, mobile = false }: CompleteJobFormProps) {
+export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipmentIdsChange, equipmentPool, mobile = false }: CompleteJobFormProps) {
   const [step, setStep] = useState(0);
   const [workSummary, setWorkSummary] = useState("");
   const [notes, setNotes] = useState("");
@@ -270,7 +289,7 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
   }, [open]);
   useEffect(() => () => clearGen(), []);
 
-  const jobEquipment = EQUIPMENT_POOL.filter((e) => equipmentIds.includes(e.id));
+  const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
 
   // Step progress: the current step is half-stroke, passed steps show the jade
   // check — EXCEPT Forms, which shows the amber WARNING when it was moved past
@@ -454,7 +473,7 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
           }
         >
           <SelectListItemGroup>
-            {[...EQUIPMENT_POOL]
+            {[...equipmentPool]
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((e) => {
                 const selected = equipmentIds.includes(e.id);
@@ -463,9 +482,10 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
                     key={e.id}
                     variant="object"
                     multiSelect
-                    label={equipmentLabel(e)}
-                    caption={equipmentCaption(e)}
-                    avatar={<AvatarEquipment size="xl" />}
+                    label={equipmentTitle(e)}
+                    searchText={`${equipmentLabel(e)} ${equipmentCaption(e)}`}
+                    caption={equipmentCaptionText(e)}
+                    avatar={<EquipmentAvatar equipment={e} />}
                     selected={selected}
                     onClick={() => onEquipmentIdsChange(selected ? equipmentIds.filter((id) => id !== e.id) : [...equipmentIds, e.id])}
                   />
