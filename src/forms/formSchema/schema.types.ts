@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 import { FileType } from "../../components/Card/CardFile.types";
 
 /**
@@ -31,6 +33,30 @@ export interface FormMediaAnswer {
   name: string;
   type: FileType;
   src?: string;
+  /** File size in bytes — the file menu shows it next to "Download". */
+  size?: number;
+}
+
+/**
+ * A picked OBJECT (equipment, location, client…). The preview shows it as a
+ * card with a ListItem, so the caller supplies the object's own DS avatar.
+ */
+export interface FormObjectAnswer {
+  title: string;
+  caption?: string;
+  /** The object's avatar element (AvatarEquipment, AvatarLocation…). */
+  avatar?: ReactNode;
+}
+
+/**
+ * A text answer that carries an icon or avatar in front of it (Figma
+ * "SelectField / Single-select + Icon / + Avatar"). The element is the
+ * caller's — the schema never invents an icon.
+ */
+export interface FormTextAnswer {
+  text: string;
+  /** Icon (14px) or avatar (xs) shown in front of the value. */
+  slotLeft?: ReactNode;
 }
 
 /** Everything an answer can be. Which one applies is decided by the field type. */
@@ -40,6 +66,8 @@ export type FormAnswerValue =
   | Date
   | FormDurationAnswer
   | FormDateTimeAnswer
+  | FormTextAnswer
+  | FormObjectAnswer
   | FormMediaAnswer[]
   | null
   | undefined;
@@ -85,14 +113,24 @@ export interface FormTextAreaSchema extends FormFieldBase {
 }
 
 /**
- * Single-select. `options` may be omitted for a picker fed by live data (the
- * Service call equipment list) — the answer then carries the display text.
+ * Single-select. `options` may be omitted for a picker fed by live data — the
+ * answer then carries the display text (optionally with an icon or avatar in
+ * front of it, as a `FormTextAnswer`).
  */
 export interface FormSelectSchema extends FormFieldBase {
   type: "select";
   options?: FormOption[];
   /** Appended to the previewed value ("Value Suffix"). */
   suffix?: string;
+}
+
+/**
+ * A select that picks an OBJECT (equipment, location…). The preview shows it
+ * as a card with the object's avatar, title and caption instead of plain text
+ * (Figma "SelectField (object)").
+ */
+export interface FormObjectSelectSchema extends FormFieldBase {
+  type: "objectSelect";
 }
 
 /** Multi-select. Previewed as the picked options joined in OPTION order. */
@@ -148,6 +186,7 @@ export type FormFieldSchema =
   | FormTextFieldSchema
   | FormTextAreaSchema
   | FormSelectSchema
+  | FormObjectSelectSchema
   | FormMultiSelectSchema
   | FormRadioSchema
   | FormCheckboxSchema
@@ -184,10 +223,17 @@ export interface FormSchema {
 
 // ---- the preview model (what buildFormPreview returns) ----------------------
 
-/** One previewed answer — a label with either text or files. */
+/**
+ * One previewed answer. `kind` is the ValueDisplay kind the mapping picks for
+ * the field type (Figma "Mapping / Input -> Preview" 24469-37438):
+ * `longText` for a TextArea, `files` for a MediaField, `objectCard` for an
+ * object select, `shortText` for everything else.
+ */
 export type PreviewAnswer =
-  | { key: string; label: string; kind: "text"; value: string }
-  | { key: string; label: string; kind: "media"; files: FormMediaAnswer[] };
+  | { key: string; label: string; kind: "shortText"; value: string; slotLeft?: ReactNode }
+  | { key: string; label: string; kind: "longText"; value: string }
+  | { key: string; label: string; kind: "files"; files: FormMediaAnswer[] }
+  | { key: string; label: string; kind: "objectCard"; object: FormObjectAnswer };
 
 /** One previewed module. Modules with no answers are dropped before this. */
 export interface PreviewModule {

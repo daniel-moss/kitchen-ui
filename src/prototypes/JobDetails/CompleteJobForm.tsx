@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
 import Button from "../../components/Button/Button";
@@ -39,6 +39,7 @@ import {
   equipmentTitle,
 } from "./equipment";
 import { noop, slot } from "./shared";
+import useSummaryGenerator from "./summaryGenerator";
 
 import styles from "./CompleteJobForm.module.scss";
 
@@ -58,11 +59,6 @@ const CHARGES_STEP = 3;
 // Placeholder for the prototype (Figma 24401-45608).
 const JOB_TOTAL_TIME = "2 hr 23 min";
 const JOB_TOTAL_SPAN = "Across 1 day";
-
-// A default AI summary (the prototype "generates" this). Reads like a summary of
-// the completed "Ice Machine - Repair" form.
-const DEFAULT_SUMMARY =
-  "Diagnosed and repaired the Hoshizaki ice machine (Model KM-660). Found a clogged water inlet valve restricting flow to the reservoir; cleaned the valve, flushed the supply line, and replaced the inlet filter. Cycled the unit and confirmed normal ice production and drain flow. Recommended a follow-up descaling service in 6 months.";
 
 // Job subtotal = the sum of the group totals, less discounts (none here).
 const money = (s: string) => parseFloat(s.replace(/[$,]/g, "")) || 0;
@@ -258,8 +254,6 @@ interface CompleteJobFormProps {
   mobile?: boolean;
 }
 
-type GenPhase = "idle" | "thinking" | "typing";
-
 export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipmentIdsChange, equipmentPool, mobile = false }: CompleteJobFormProps) {
   const [step, setStep] = useState(0);
   const [workSummary, setWorkSummary] = useState("");
@@ -267,27 +261,22 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
   const [formsDone, setFormsDone] = useState({ all: false, any: false });
   const [skipFormsOpen, setSkipFormsOpen] = useState(false);
   const [equipmentListOpen, setEquipmentListOpen] = useState(false);
-  const [genPhase, setGenPhase] = useState<GenPhase>("idle");
 
-  // Generate-animation timers (thinking delay + the typewriter ticks).
-  const genTimers = useRef<number[]>([]);
-  const clearGen = () => {
-    genTimers.current.forEach((t) => window.clearTimeout(t));
-    genTimers.current = [];
-  };
+  // Generate: "AI thinking" spinner, then the summary is typed in. Shared with
+  // the Work summary module's edit form so both behave the same.
+  const gen = useSummaryGenerator(setWorkSummary);
 
   // A fresh open resets the flow (the forms/summary/charges are a snapshot).
   useEffect(() => {
-    clearGen();
+    gen.reset();
     if (!open) return;
     setStep(0);
     setWorkSummary("");
     setNotes("");
-    setGenPhase("idle");
     setSkipFormsOpen(false);
     setEquipmentListOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-  useEffect(() => () => clearGen(), []);
 
   const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
 
@@ -312,27 +301,6 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
     // Charges → Signature is not built (Daniel): Next does nothing.
     if (step === CHARGES_STEP) return;
     advance();
-  };
-
-  // Generate: first "AI thinking" (button spinner), then TYPE the summary into
-  // the field character by character (prototype animation, Daniel).
-  const generate = () => {
-    clearGen();
-    setWorkSummary("");
-    setGenPhase("thinking");
-    genTimers.current.push(
-      window.setTimeout(() => {
-        setGenPhase("typing");
-        let i = 0;
-        const tick = () => {
-          i = Math.min(DEFAULT_SUMMARY.length, i + 3);
-          setWorkSummary(DEFAULT_SUMMARY.slice(0, i));
-          if (i < DEFAULT_SUMMARY.length) genTimers.current.push(window.setTimeout(tick, 18));
-          else setGenPhase("idle");
-        };
-        tick();
-      }, 1100),
-    );
   };
 
   return (
@@ -402,9 +370,9 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
                   size="lg"
                   isFullWidth
                   leftIcon="wand-magic-sparkles"
-                  isDisabled={!formsDone.any || genPhase !== "idle"}
-                  isProcessing={genPhase === "thinking"}
-                  onClick={generate}
+                  isDisabled={!formsDone.any || gen.busy}
+                  isProcessing={gen.phase === "thinking"}
+                  onClick={gen.generate}
                 >
                   Generate
                 </Button>

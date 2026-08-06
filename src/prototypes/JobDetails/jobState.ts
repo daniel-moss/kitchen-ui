@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
+import { LIFECYCLE_META, LIFECYCLE_ORDER, LifecyclePeriod, LifecycleRow } from "../JobLifecycle/lifecycleData";
 import { isPastDue, Scheduling } from "./SchedulingForm";
+
+export type { LifecyclePeriod, LifecycleRow } from "../JobLifecycle/lifecycleData";
 
 // The job's lifecycle state for the prototype. `pastDue` is not stored — it is
 // derived from an `upcoming` job whose scheduled time has passed.
@@ -30,72 +33,89 @@ export interface JobState {
 
 export const defaultJob: JobState = { status: "upcoming", everStarted: false };
 
-// ---- time spent in the "Active" status --------------------------------------
-// The Activity tab's two widgets measure the JOB's own active time — not the
-// technicians' tracked time (that is the Timesheet tab). A job can go active →
-// paused → active many times, so the total is the sum of every stretch.
+// ---- the job lifecycle (Figma "Job lifecycle" module 24560-134494) ----------
+// Every status the job has ENTERED, with the stretches it spent in each. The
+// module lists a status only when it has stretches, so a fresh job shows one
+// row and the list grows as the job is driven (Daniel: honest live-only).
+//
+// The SHAPE and the per-status look live with the concepts, in
+// src/prototypes/JobLifecycle/lifecycleData.ts — five modules render this data
+// and they must all read it the same way.
 
-/** One stretch the job spent in "active". `end` is null while it still runs. */
-export interface ActivePeriod {
-  start: number;
-  end: number | null;
-}
-
-const DAY_LABEL = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+/** The statuses whose ROW is named by the sub-status ("Lunch", "Parts needed"). */
+const SUBSTATUS_ROWS = ["quickPaused", "onHold"];
 
 /**
- * Accumulates the job's time in the "active" status across every
- * start / pause / resume cycle. While the job is active the total ticks once a
- * second, so the widgets update in real time.
+ * Tracks how long the job spends in each status, live.
  *
- * Returns the running total in seconds and the distinct calendar days any
- * active stretch touched (e.g. ["Jan 1", "Jan 3"]).
+ * `billableSec` is the time in "Active" — what the module's "Billable time"
+ * highlight shows for now (Daniel, 2026-08-06). `lifecycleSec` runs from the
+ * job's creation until it is cancelled (or finalized, once that status
+ * exists); while the job is open it counts to now.
  */
-export function useJobActiveTime(job: JobState) {
-  const [periods, setPeriods] = useState<ActivePeriod[]>([]);
+export function useJobLifecycle(job: JobState, scheduling: Scheduling) {
+  // The prototype's job is created when the shell mounts — the same instant as
+  // the seeded "created the job" activity event.
+  const createdAt = useRef(Date.now()).current;
+  const [rows, setRows] = useState<{ key: string; label: string; periods: LifecyclePeriod[] }[]>([]);
   const [now, setNow] = useState(() => Date.now());
+  const [endedAt, setEndedAt] = useState<number | null>(null);
 
-  // Open a stretch when the job becomes active; close it when it leaves.
-  // The guard makes this safe against React's double-invoked effects.
-  useEffect(() => {
-    setPeriods((p) => {
-      const open = p.length > 0 && p[p.length - 1].end === null;
-      if (job.status === "active") return open ? p : [...p, { start: Date.now(), end: null }];
-      return open ? [...p.slice(0, -1), { ...p[p.length - 1], end: Date.now() }] : p;
-    });
-  }, [job.status]);
+  const display = displayStatus(job, scheduling);
+  const isCancelled = display === "cancelled";
+  // A paused job's row is its sub-status; without one it falls back to the
+  // status label, so the row is never nameless.
+  const statusKind = SUBSTATUS_ROWS.includes(job.status) ? job.status : display;
+  const label = SUBSTATUS_ROWS.includes(job.status) ? (job.subStatus ?? LABELS[display]) : LABELS[display];
+  const key = SUBSTATUS_ROWS.includes(job.status) ? `${statusKind}:${label}` : statusKind;
 
-  // A job reset back to "never started" starts its history over.
+  // A 1-second tick: the open stretch, the lifecycle total and the past-due
+  // flip all move on their own.
   useEffect(() => {
-    if (!job.everStarted) setPeriods([]);
-  }, [job.everStarted]);
-
-  // Tick while active. `now` is refreshed immediately so the open stretch never
-  // measures against a stale clock in the second before the first tick.
-  useEffect(() => {
-    if (job.status !== "active") return undefined;
-    setNow(Date.now());
     const t = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(t);
-  }, [job.status]);
+  }, []);
 
-  const totalSec = periods.reduce((acc, p) => acc + Math.max(0, (p.end ?? now) - p.start), 0) / 1000;
+  // Close the running stretch and open one for the new status. Cancelled ends
+  // the lifecycle: the last stretch closes and nothing new opens.
+  useEffect(() => {
+    const at = Date.now();
+    setEndedAt(isCancelled ? at : null);
+    setRows((prev) => {
+      // Close whatever is still running (there is at most one).
+      const closed = prev.map((row) =>
+        row.periods.some((p) => p.end === null)
+          ? { ...row, periods: row.periods.map((p) => (p.end === null ? { ...p, end: at } : p)) }
+          : row,
+      );
+      if (isCancelled) return closed;
+      const existing = closed.find((row) => row.key === key);
+      if (existing != null) {
+        return closed.map((row) => (row === existing ? { ...row, periods: [...row.periods, { start: at, end: null }] } : row));
+      }
+      return [...closed, { key, label, periods: [{ start: at, end: null }] }];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, isCancelled]);
 
-  // Every calendar day a stretch touched, in order. A stretch that crosses
-  // midnight counts both days.
-  const days: string[] = [];
-  for (const p of periods) {
-    const d = new Date(p.start);
-    d.setHours(0, 0, 0, 0);
-    const last = p.end ?? now;
-    while (d.getTime() <= last) {
-      const label = DAY_LABEL.format(d);
-      if (!days.includes(label)) days.push(label);
-      d.setDate(d.getDate() + 1);
-    }
-  }
+  const secondsOf = (periods: LifecyclePeriod[]) =>
+    periods.reduce((acc, p) => acc + Math.max(0, (p.end ?? now) - p.start), 0) / 1000;
 
-  return { totalSec, days };
+  // Listed in the designed status order; several sub-statuses of one kind keep
+  // the order they first appeared in.
+  const breakdown: LifecycleRow[] = rows
+    .map((row) => {
+      const kind = row.key.split(":")[0];
+      const meta = LIFECYCLE_META[kind] ?? { icon: "circle-dashed", color: "var(--gray-a9)" };
+      return { ...row, ...meta, totalSec: secondsOf(row.periods) };
+    })
+    .sort((a, b) => LIFECYCLE_ORDER.indexOf(a.key.split(":")[0]) - LIFECYCLE_ORDER.indexOf(b.key.split(":")[0]));
+
+  return {
+    breakdown,
+    billableSec: breakdown.find((r) => r.key === "active")?.totalSec ?? 0,
+    lifecycleSec: Math.max(0, (endedAt ?? now) - createdAt) / 1000,
+  };
 }
 
 // The upcoming job's fixed demo scheduled time ("Scheduled on"). The transition

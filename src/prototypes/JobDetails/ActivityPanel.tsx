@@ -7,15 +7,16 @@ import { Icon } from "../../components/Icon/Icon";
 
 import { ActivityEvent, ValueIcon } from "./activityEvents";
 import ActivityUpdateLog, { Muted, PeopleValue, PersonValue, ReasonSubLog, ValueGlyph } from "./ActivityUpdateLog";
-import { StatWidget, StatWidgetRow } from "./StatWidget";
-import { categoryIcon, formatHrMin } from "./TimesheetPanel";
+// The Activity tab renders CONCEPT 1 of the Job lifecycle module; the other
+// four live beside it in src/prototypes/JobLifecycle/ and take the same props,
+// so any of them can be swapped in here to try it (Daniel, 2026-08-07).
+import Concept1 from "../JobLifecycle/Concept1";
+import { LifecycleRow } from "./jobState";
+import { categoryIcon } from "./TimesheetPanel";
 
 import styles from "./ActivityPanel.module.scss";
 
 const MONTH_LABEL = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
-
-// "1 day" / "2 days"
-const plural = (n: number, unit: string) => `${n} ${unit}${n === 1 ? "" : "s"}`;
 
 // An equipment change reads as one sentence (Figma 24450-60498): "added
 // equipment A, B", "removed equipment ~~C~~", or both joined by "and". Only the
@@ -214,20 +215,19 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
 export interface ActivityPanelProps {
   mobile?: boolean;
   /** Seconds the job has spent in the "Active" status (live while active). */
-  activeSec: number;
-  /** The calendar days any active stretch touched, e.g. ["Jan 1", "Jan 3"]. */
-  activeDays: string[];
+  billableSec: number;
+  /** Seconds from the job's creation until it ended (or now). */
+  lifecycleSec: number;
+  /** Every status the job entered, in the designed order. */
+  breakdown: LifecycleRow[];
   /** The job's events, OLDEST first — the log shows them newest first. */
   events: ActivityEvent[];
 }
 
-// The "Activity" tab. Two stat widgets measuring the JOB's own active time,
-// then the activity log. Events so far: the job's creation + Service-module
-// updates (the update-log rules Daniel is testing).
-export default function ActivityPanel({ mobile = false, activeSec, activeDays, events }: ActivityPanelProps) {
-  // Nothing active yet → both widgets read as placeholders.
-  const empty = activeDays.length === 0;
-
+// The "Activity" tab. The Job lifecycle module (which REPLACED the two stat
+// widgets, Figma 24560-134494), then the activity log. Events so far: the
+// job's creation + module updates (the update-log rules Daniel is testing).
+export default function ActivityPanel({ mobile = false, billableSec, lifecycleSec, breakdown, events }: ActivityPanelProps) {
   // Newest first, grouped by month — the group header names the month.
   const groups: { label: string; items: ActivityEvent[] }[] = [];
   for (const event of [...events].reverse()) {
@@ -239,18 +239,8 @@ export default function ActivityPanel({ mobile = false, activeSec, activeDays, e
 
   return (
     <div className={styles.panel}>
-      {/* Widgets — live: the total ticks while the job is active. */}
-      <StatWidgetRow mobile={mobile}>
-        <StatWidget label="Total time logged" value={formatHrMin(activeSec)} sub='with "Active" status' empty={empty} />
-        <StatWidget
-          label="Across"
-          value={plural(activeDays.length, "day")}
-          // NOTE: the empty caption is my copy — the Figma "Widgets"
-          // documentation frame still holds placeholder text for this state.
-          sub={empty ? "No active days" : activeDays.join(", ")}
-          empty={empty}
-        />
-      </StatWidgetRow>
+      {/* Job lifecycle — live: the open stretch and both highlights tick. */}
+      <Concept1 billableSec={billableSec} lifecycleSec={lifecycleSec} breakdown={breakdown} mobile={mobile} />
 
       <ActivityLog>
         {groups.map((group) => (
@@ -260,7 +250,6 @@ export default function ActivityPanel({ mobile = false, activeSec, activeDays, e
                 <ActivityUpdateLog
                   key={event.id}
                   userName={event.user.name}
-                  module={event.module ?? ""}
                   changes={event.changes ?? []}
                   date={event.date}
                 />
@@ -268,11 +257,11 @@ export default function ActivityPanel({ mobile = false, activeSec, activeDays, e
                 // A session edit follows the SAME update-log rules as a module
                 // (Figma 24453-26459 one field / 24511-62572 several): one
                 // changed field reads inline, more than one becomes the
-                // accordion — naming the session itself instead of a module.
+                // accordion — naming the session itself (`subject`) instead of
+                // the changed properties.
                 <ActivityUpdateLog
                   key={event.id}
                   userName={event.user.name}
-                  module=""
                   changes={event.changes ?? []}
                   date={event.date}
                   symbol={<Icon icon="stopwatch" size={14} />}

@@ -27,7 +27,13 @@ export default function useFocusTrap(containerRef: RefObject<HTMLElement | null>
       // field). Both that autofocus and this trap poll on mount timers — in
       // either winning order, the content's own focus must be the survivor.
       if (container.contains(document.activeElement)) return;
-      first.focus();
+      // preventScroll — the overlay is usually still ANIMATING in when this
+      // runs, so the focused element can sit outside the container's clip.
+      // Plain focus() then scrolls the nearest scrollable ancestor to reveal
+      // it, which dragged the whole panel sideways mid-slide and let it drift
+      // back as the scroll was clamped (Daniel's recording, 2026-08-06).
+      // useRestoreFocus already focuses this way.
+      first.focus({ preventScroll: true });
     };
     timer = window.setTimeout(tryInitialFocus, 0);
 

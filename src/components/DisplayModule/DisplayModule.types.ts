@@ -9,6 +9,8 @@ export interface DisplayModuleBanner {
   ctaLabel?: string;
   ctaHref?: string;
   ctaOnClick?: (event: MouseEvent<HTMLElement>) => void;
+  /** Optional icon name before the CTA label (e.g. "wand-magic-sparkles"). */
+  ctaIcon?: string;
   onDismiss?: () => void;
 }
 

@@ -311,7 +311,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               <ValueDisplay
                 label="Assignees"
                 orientation="vertical"
-                kind="avatarGroup"
+                kind="avatarStack"
                 // More than 3 assignees → truncate to 3 with a "Show N more" (Figma).
                 avatarLimit={3}
                 items={schedulingUsers.map((u) => ({ content: "image", imageSrc: u.avatar, name: u.name }))}

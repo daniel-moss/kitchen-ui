@@ -1,0 +1,28 @@
+// The "collected" body (Figma 21849-103533): 16px sides and top, 12px bottom
+// — NOT the module's uniform 16px — with 12px between the ink box and the
+// value pairs. So the body opts out of DisplayModule's padding and sets its own.
+.collectedBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  padding: var(--size-4) var(--size-4) var(--size-3); // 16 16 12
+}
+
+// The signature canvas: a flat tinted box, 200px tall, ink centred. NOT a DS
+// component — prototype-local (flagged to Daniel).
+.inkBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  border-radius: var(--border-radius-2_5); // 10px
+  background: var(--gray-a2);
+}
+
+// The drawing keeps its Figma size (143 × 66) and takes its colour from the
+// box, so it flips with the theme.
+.ink {
+  width: 143px;
+  height: 66px;
+  color: var(--gray-12);
+}

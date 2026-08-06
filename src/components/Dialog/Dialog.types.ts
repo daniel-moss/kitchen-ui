@@ -28,6 +28,14 @@ interface DialogBaseProps {
   caption?: string;
   /** Optional left slot on the caption — an Icon (e.g. the owning object's icon). */
   captionLeftSlot?: ReactNode;
+  /** Show an info icon after the title. */
+  titleHint?: boolean;
+  /**
+   * Hint bubble content for the title's info icon (a HoverHint caption, like
+   * FormModule's `titleHintContent`). Implies the trigger — `titleHint` is not
+   * needed when this is set.
+   */
+  titleHintContent?: ReactNode;
   /**
    * "auto" (default) picks desktop ≥ 1024px, else mobile. "desktop" / "mobile"
    * force one. On mobile, a default dialog is a drawer; a focus dialog is a

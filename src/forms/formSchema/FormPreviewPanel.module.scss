@@ -1,0 +1,8 @@
+// The file card's ⋯ menu — a fixed wrapper the anchored-menu hook positions.
+// It is portaled to <body> so the panel's scroll container can not clip it, and
+// it sits at --z-menu: the SidePanel's own portal is --z-modal and renders
+// later in the DOM, so an equal z-index would paint the menu behind it.
+.cardMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

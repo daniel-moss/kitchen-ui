@@ -1,7 +1,5 @@
 import { MouseEvent, useEffect, useRef, useState } from "react";
 
-import clsx from "clsx";
-
 import Button from "../../components/Button/Button";
 import Chip from "../../components/Chip/Chip";
 import Dialog from "../../components/Dialog/Dialog";
@@ -13,12 +11,10 @@ import TextField from "../../components/Fields/TextField/TextField";
 import FormModule from "../../components/FormModule/FormModule";
 import { Icon } from "../../components/Icon/Icon";
 import Input from "../../components/Input/Input";
-import InputHelpText from "../../components/InputHelpText/InputHelpText";
 import MenuItem from "../../components/Menu/MenuItem";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
-import SelectList from "../../components/SelectList/SelectList";
 import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
@@ -40,6 +36,7 @@ import {
   TECH_COUNT_OPTIONS,
   VOLTAGE_OPTIONS,
 } from "../../forms/formSchema/serviceCallSchema";
+import ObjectCard from "../../forms/shared/ObjectCard";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
 import { noop } from "./shared";
 
@@ -122,7 +119,7 @@ interface ServiceCallFormProps {
   onClose: () => void;
   /** Dialog title (= the form's name). */
   title?: string;
-  /** The job's live Equipment-module list (chips + the picker rows). */
+  /** The job's live Equipment-module list (the picker rows). */
   equipment: Equipment[];
   /** The saved draft to prefill (null = fresh form). */
   initial: ServiceCallDraft | null;
@@ -133,9 +130,9 @@ interface ServiceCallFormProps {
   mobile?: boolean;
 }
 
-// The "Service call" form (Figma 24277-27279): a standard Dialog with 6
-// FormModules. Equipment / Warranty (equipment picker + quick-pick chips from
-// the job's Equipment module, three spec selects, warranty with an in-card
+// The "Service call" form (Figma 24461-33199 "Edit"): a standard Dialog with 6
+// FormModules. Equipment / Warranty (the equipment object picker, three spec
+// selects, warranty with an in-card
 // "What is covered?" reveal), Diagnosis / Issues, Resolution ("Was the repair
 // completed on this visit?" — Yes reveals the rest), Quote details ("Is the
 // unit fully operational?" — No reveals the rest), COD, and optional notes.
@@ -154,22 +151,24 @@ export default function ServiceCallForm({
 }: ServiceCallFormProps) {
   const [draft, setDraft] = useState<ServiceCallDraft>(emptyServiceCallDraft());
   const [showErrors, setShowErrors] = useState(false);
-  const [equipmentListOpen, setEquipmentListOpen] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const equipmentPop = useSelectPopover(mobile);
   const voltagePop = useSelectPopover(mobile);
   const phasePop = useSelectPopover(mobile);
   const gasPop = useSelectPopover(mobile);
+  const techsPop = useSelectPopover(mobile);
   const minutePop = useSelectPopover(mobile);
 
   // A fresh open prefills from the saved draft (deep copy — edits must not
   // mutate the parent's stored answers).
   useEffect(() => {
     if (!open) {
+      equipmentPop.close();
       voltagePop.close();
       phasePop.close();
       gasPop.close();
+      techsPop.close();
       minutePop.close();
-      setEquipmentListOpen(false);
       return;
     }
     setDraft(initial != null ? (JSON.parse(JSON.stringify(initial)) as ServiceCallDraft) : emptyServiceCallDraft());
@@ -183,6 +182,9 @@ export default function ServiceCallForm({
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial ?? emptyServiceCallDraft());
 
   const selectedEquipment = equipment.find((e) => e.id === draft.equipmentId);
+  // The card under the field grows the layout, so it is frozen while the list
+  // is open (the layout-freeze rule) — the field's own value stays live.
+  const shownEquipment = equipmentPop.freeze(selectedEquipment);
   // Sorted by equipment name A→Z (the design annotation).
   const sortedEquipment = [...equipment].sort((a, b) => equipmentLabel(a).localeCompare(equipmentLabel(b)));
 
@@ -302,7 +304,7 @@ export default function ServiceCallForm({
     </div>
   );
 
-  const specSelect = (key: "voltage" | "phase" | "gas", pop: ReturnType<typeof useSelectPopover>) => (
+  const specSelect = (key: "voltage" | "phase" | "gas" | "techs", pop: ReturnType<typeof useSelectPopover>) => (
     <div {...field(key)}>
       <Input label={labelOf(key)}>
         <SelectField
@@ -316,7 +318,7 @@ export default function ServiceCallForm({
   );
 
   const specPicker = (
-    key: "voltage" | "phase" | "gas",
+    key: "voltage" | "phase" | "gas" | "techs",
     options: FormOption[],
     pop: ReturnType<typeof useSelectPopover>,
   ) => (
@@ -363,32 +365,27 @@ export default function ServiceCallForm({
     >
       <div className={styles.form} ref={bodyRef}>
         <FormModule title={moduleTitle("equipment-warranty")}>
-          {/* Equipment — the picker select + quick-pick chips from the job's
-              Equipment module (only when the job has equipment). */}
+          {/* Equipment — an INLINE select list; the pick then shows as a card
+              12px under the field (Figma DS 29019-62714). The card is FROZEN
+              while the list is open (the layout-freeze rule) so it can never
+              push the trigger away from its anchored card. */}
           <div {...field("equipment")}>
-            <div className={styles.stack}>
+            <div className={styles.objectField}>
               <Input label={labelOf("equipment")}>
                 <SelectField
                   value={selectedEquipment != null ? equipmentLabel(selectedEquipment) : undefined}
                   isValid={!(showErrors && bad.equipment)}
-                  open={equipmentListOpen}
-                  onClick={() => setEquipmentListOpen(true)}
+                  open={equipmentPop.open}
+                  onClick={(e: MouseEvent<HTMLDivElement>) => equipmentPop.toggle(e.currentTarget)}
                 />
               </Input>
-              {equipment.length > 0 && (
-                <div className={styles.chips}>
-                  {sortedEquipment.map((e) => (
-                    <Chip
-                      key={e.id}
-                      size="lg"
-                      slotLeft={<Icon icon="plus" />}
-                      active={e.id === draft.equipmentId}
-                      onClick={() => set("equipmentId", e.id)}
-                    >
-                      {equipmentLabel(e)}
-                    </Chip>
-                  ))}
-                </div>
+              {shownEquipment != null && (
+                <ObjectCard
+                  avatar={<EquipmentAvatar equipment={shownEquipment} />}
+                  title={equipmentTitle(shownEquipment)}
+                  caption={equipmentCaptionText(shownEquipment)}
+                  onClick={noop}
+                />
               )}
             </div>
           </div>
@@ -461,31 +458,8 @@ export default function ServiceCallForm({
               {textAreaField("repairsRequired")}
               {textAreaField("partsNeeded")}
 
-              {/* Techs — the chip row (fills the width, 1–5 + "5+"). */}
-              <div {...field("techs")}>
-                <Input label={labelOf("techs")}>
-                  <div className={styles.chipsField}>
-                    <div className={clsx(styles.chips, styles.fillChips)}>
-                      {TECHS_OPTIONS.map((t) => (
-                        <Chip
-                          key={t}
-                          size="lg"
-                          className={styles.techChip}
-                          active={t === draft.techs}
-                          onClick={() => set("techs", t)}
-                        >
-                          {t}
-                        </Chip>
-                      ))}
-                    </div>
-                    {showErrors && bad.techs && (
-                      <InputHelpText status="error" slotLeft>
-                        Choose an option
-                      </InputHelpText>
-                    )}
-                  </div>
-                </Input>
-              </div>
+              {/* Techs — a SelectField since the 2026-08-06 Figma update. */}
+              {specSelect("techs", techsPop)}
 
               {/* Duration — the Scheduling shape: hr + min group, preset chips. */}
               <div className={styles.stack} {...field("time")}>
@@ -527,22 +501,24 @@ export default function ServiceCallForm({
         <FormModule title={moduleTitle("cod")}>{radioField("payment")}</FormModule>
 
         <Divider className={styles.moduleDivider} />
-        {/* The notes module has no field label — its title labels the answer. */}
+        {/* The notes field repeats the module title as its label — every Input
+            carries one (Daniel, 2026-08-06). */}
         <FormModule title={moduleTitle("notes")} titleCondition={moduleOf("notes")?.optional ? "optional" : undefined}>
-          <TextArea value={draft.notes} onChange={(e) => set("notes", e.target.value)} clearPromptLabel={moduleTitle("notes")} />
+          <Input label={labelOf("notes")} labelCondition="optional">
+            <TextArea value={draft.notes} onChange={(e) => set("notes", e.target.value)} />
+          </Input>
         </FormModule>
       </div>
 
-      {/* The Equipment picker (Figma 24244-21291): SINGLE select (Daniel's
+      {/* The Equipment picker: an INLINE list under the field (Daniel,
+          2026-08-06 — it used to be a dialog). SINGLE select (Daniel's
           override of the design's checkboxes), search, A→Z, object rows.
           "Add equipment" opens the New-equipment form from ANOTHER Figma file
           — not built, noop (flagged). */}
-      <SelectList
-        variant={mobile ? "drawer" : "dialog"}
-        breakpoint={mobile ? "mobile" : "desktop"}
+      <SelectPopoverList
+        pop={equipmentPop}
+        mobile={mobile}
         title={labelOf("equipment")}
-        open={equipmentListOpen}
-        onClose={() => setEquipmentListOpen(false)}
         searchable
         searchPlaceholder="Search by equipment name..."
         state={equipment.length === 0 ? "empty" : "default"}
@@ -572,16 +548,17 @@ export default function ServiceCallForm({
               selected={e.id === draft.equipmentId}
               onClick={() => {
                 set("equipmentId", e.id);
-                setEquipmentListOpen(false);
+                equipmentPop.close();
               }}
             />
           ))}
         </SelectListItemGroup>
-      </SelectList>
+      </SelectPopoverList>
 
       {specPicker("voltage", VOLTAGE_OPTIONS, voltagePop)}
       {specPicker("phase", PHASE_OPTIONS, phasePop)}
       {specPicker("gas", GAS_OPTIONS, gasPop)}
+      {specPicker("techs", TECH_COUNT_OPTIONS, techsPop)}
 
       {/* Minutes picker */}
       <SelectPopoverList pop={minutePop} mobile={mobile} title="Minutes">

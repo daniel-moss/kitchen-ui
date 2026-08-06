@@ -191,18 +191,6 @@ export const WithMediaField: Story = {
   ),
 };
 
-/** The textAreaMedia pair — two fields under one header, 12px apart. */
-export const CombinedFields: Story = {
-  render: () => (
-    <div style={docsFrame}>
-      <Input label="TextArea + MediaField">
-        <TextArea />
-        <MediaField breakpoint="desktop" />
-      </Input>
-    </div>
-  ),
-};
-
 /** The header combinations (the component set). */
 export const Overview: Story = {
   parameters: { layout: "padded" },
@@ -301,10 +289,6 @@ export const Fields: Story = {
         </RadioGroup>
       </Input>
       <Input label="MediaField" helpText="Help text">
-        <MediaField breakpoint="desktop" />
-      </Input>
-      <Input label="TextArea + MediaField" helpText="The textAreaMedia combination — two fields, 12px apart">
-        <TextArea />
         <MediaField breakpoint="desktop" />
       </Input>
     </div>

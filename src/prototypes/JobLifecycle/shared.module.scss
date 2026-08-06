@@ -1,0 +1,86 @@
+@use "../../styles/mixins/font" as *;
+
+// The pieces every "Job lifecycle" concept shares. Each concept's module body
+// owns its own insets, so DisplayModule's 16px padding is switched off and the
+// Top Data row supplies its own.
+
+// Two value boxes side by side on desktop…
+.highlights {
+  display: flex;
+  gap: var(--size-3); // 12px
+  padding: var(--size-4); // 16px
+}
+
+// …stacked on mobile (the 343px Figma variant is 236px tall vs 128px).
+.stacked {
+  flex-direction: column;
+}
+
+.value {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px; // untokenized in Figma
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+}
+
+.valueTitle {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+}
+
+// 32/40 Inter Medium — untokenized in Figma, so it is written in px.
+.valueNumber {
+  overflow: hidden;
+  font-family: var(--font-family-base);
+  font-size: 32px;
+  font-weight: var(--font-weight-medium);
+  line-height: 40px;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// "Statuses" / "Break down" — caption/md 500 over the list, with its hint.
+.sectionTitle {
+  display: flex;
+  gap: var(--size-1_5); // 6px
+  align-items: center;
+  padding: var(--size-2) var(--size-4) 0; // 8px 16px 0
+  @include font("caption-medium-500");
+  color: var(--text-subtle);
+}
+
+.glyph {
+  display: inline-flex;
+  align-items: center;
+}
+
+// The "Upcoming" glyph is the half-stroke circle turned so its fill sits on
+// the RIGHT — the same trick the form rows use for their in-progress avatar.
+.rotated {
+  transform: rotate(180deg);
+}
+
+// The ListItem concepts' 36px status avatar. `color` is set inline per status;
+// the tint reuses it at 12% so one rule serves every status.
+.avatar {
+  flex: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: color-mix(in srgb, currentcolor 12%, transparent);
+}
+
+.avatarTint {
+  display: inline-flex;
+  align-items: center;
+}

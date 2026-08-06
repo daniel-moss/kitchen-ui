@@ -1,13 +1,16 @@
 import { YES_NO_OPTIONS } from "./options";
 import { FormSchema } from "./schema.types";
 
-// The "Hot Side - Repair" form as data (Figma 23920-13390). Unlike Service
-// call, this form has NO modules — one flat field list, so the schema holds a
-// single title-less module and the preview renders the answers without a
-// FormModule wrapper (not covered by the mapping frames — flagged to Daniel).
+// The "Hot Side - Repair" form as data (Figma 24461-33288 "Edit", preview
+// 24467-36576). Unlike Service call, this form has NO modules — one flat field
+// list, so the schema holds a single title-less module and the preview renders
+// the answers without a FormModule wrapper.
 //
-// Ten fields are "(optional)" per the node. The design typo "Thermostate" is
-// fixed per Daniel.
+// 2026-08-06 Figma update: "Equipment name" (text) became an OBJECT select,
+// "Issues found" is now TWO fields sharing the label (a TextArea and a
+// MediaField, each with its own help text — the Input pair was removed from the
+// DS), and the "STAND ALONE quote" question is gone. Eleven fields are
+// "(optional)". The design typo "Thermostate" stays fixed (Daniel).
 
 export const HOT_SIDE_REPAIR_SCHEMA: FormSchema = {
   id: "hot-side-repair",
@@ -17,7 +20,7 @@ export const HOT_SIDE_REPAIR_SCHEMA: FormSchema = {
       id: "fields",
       fields: [
         { key: "checkIn", type: "text", label: "Who did you check-in with?", helpText: "Name and title" },
-        { key: "equipmentName", type: "text", label: "Equipment name", helpText: "Customer, equipment ID" },
+        { key: "equipment", type: "objectSelect", label: "Equipment" },
         { key: "reportedIssue", type: "text", label: "What was the reported issue?" },
         {
           key: "operatingOnArrival",
@@ -71,12 +74,11 @@ export const HOT_SIDE_REPAIR_SCHEMA: FormSchema = {
           optional: true,
           accept: "image/*",
         },
-        // "Issues found" is ONE labelled pair in the form (a TextArea + a
-        // MediaField, both required). As schema data it is two fields sharing
-        // the label; how the preview groups the pair is still open — it is
-        // blocked on the ValueDisplay media update either way.
-        { key: "issuesText", type: "textArea", label: "Issues found" },
-        { key: "issuesMedia", type: "media", label: "Issues found" },
+        // "Issues found" is TWO fields with the SAME label (Daniel confirmed):
+        // the note and its photos/videos, each required, each previewed as its
+        // own answer.
+        { key: "issuesText", type: "textArea", label: "Issues found", helpText: "Describe the issue" },
+        { key: "issuesMedia", type: "media", label: "Issues found", helpText: "Provide photos or videos" },
         { key: "actionsTaken", type: "textArea", label: "What actions were taken to address the issue?" },
         {
           key: "postFlame",
@@ -121,13 +123,6 @@ export const HOT_SIDE_REPAIR_SCHEMA: FormSchema = {
         },
         { key: "finalVideo", type: "media", label: "Final video recap", accept: "video/*" },
         { key: "checkOut", type: "text", label: "Who did you check-out with?", helpText: "Name and title" },
-        {
-          key: "standaloneQuote",
-          type: "radio",
-          label: "Will a STAND ALONE quote be submitted for a separate issue?",
-          options: YES_NO_OPTIONS,
-          orientation: "horizontal",
-        },
       ],
     },
   ],

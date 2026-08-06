@@ -6,27 +6,42 @@
 .layer {
   position: absolute;
   inset: 0;
-  z-index: var(--z-modal);
-  overflow: hidden;
+  // The SAME in-page overlay layer the Popover drawer's scrim uses (100):
+  // above all page chrome (NavTopBar's sticky bar is 10), and equal to any
+  // drawer opened over the panel — a Menu, a SelectList — so DOM order decides
+  // and the later one wins. At --z-modal the panel buried every drawer that
+  // opened over it (the file menu, 2026-08-06).
+  z-index: 100;
+  // `clip`, not `hidden`: both clip the panel while it sits outside the edge,
+  // but `hidden` also makes the layer SCROLLABLE, and anything that scrolls it
+  // (focus moving into the panel while it is still off-screen) drags the panel
+  // with it. A clip container can not be scrolled at all.
+  overflow: clip;
 
   display: flex;
   align-items: stretch;
   justify-content: flex-end;
 }
 
-// Portaled to <body>: cover the whole viewport.
+// Portaled to <body>: cover the whole viewport, on the modal layer — same
+// pairing as the Popover drawer's .scrimFixed.
 .layerFixed {
   position: fixed;
+  z-index: var(--z-modal);
 }
 
 // Desktop: the panel hangs on the right edge with a 12px margin all around,
-// over a scrim that fades with it.
+// over a scrim that fades in behind it.
+//
+// Only the DIM fades — the layer's own `opacity` must stay 1. The layer holds
+// the panel, so fading it faded the panel too: the slide finishes early (its
+// curve is front-loaded) while the opacity is still ramping, and the page shows
+// through the panel for a moment (Daniel: "side panel glitches when it's
+// opening", 2026-08-06). The panel is opaque the whole way; it only slides.
 .scrim {
   padding: var(--size-3); // 12px
-  background: var(--pure-black-a5);
-
-  opacity: 0;
-  transition: opacity 240ms ease;
+  background-color: transparent;
+  transition: background-color 240ms ease;
 }
 
 // Mobile: the panel fills the screen, so there is no scrim to show and no
@@ -35,8 +50,8 @@
   padding: 0;
 }
 
-.layerOpen {
-  opacity: 1;
+.scrim.layerOpen {
+  background-color: var(--pure-black-a5);
 }
 
 // The content slot — 16px on every side, 16px between items (Figma; both are
@@ -56,4 +71,23 @@
   box-sizing: border-box;
   height: 100%;
   padding: var(--size-4); // 16px
+}
+
+// The slide. The panel starts fully outside the right edge — the distance comes
+// from --side-panel-offscreen (its width + the layer's margin, set by the
+// component) — and travels to rest. It stays fully OPAQUE the whole way; only
+// the scrim behind it fades. Keep the duration in sync with DURATION in
+// SidePanel.tsx.
+//
+// This lives in the stylesheet on purpose: when the transform and its
+// transition were both inline, React committed them together and the browser
+// could join the animation late and play it from the wrong position — the panel
+// swung past its resting spot and snapped back.
+.panel {
+  transform: translateX(var(--side-panel-offscreen, 100%));
+  transition: transform 240ms cubic-bezier(0.5, 0, 0.85, 0.3); // exit curve
+}
+.panelOpen {
+  transform: none;
+  transition-timing-function: cubic-bezier(0.32, 0.72, 0, 1); // enter curve
 }

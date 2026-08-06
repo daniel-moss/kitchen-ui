@@ -28,10 +28,17 @@ import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
+import FormPreviewPanel from "../../forms/formSchema/FormPreviewPanel";
+import { HOT_SIDE_REPAIR_SCHEMA } from "../../forms/formSchema/hotSideRepairSchema";
+import { ICE_MACHINE_REPAIR_SCHEMA } from "../../forms/formSchema/iceMachineRepairSchema";
+import { SERVICE_CALL_SCHEMA } from "../../forms/formSchema/serviceCallSchema";
+import { DEMO_HOT_SIDE_DRAFT, DEMO_SERVICE_CALL_DRAFT } from "./demoFormDrafts";
+import { hotSideAnswers, iceMachineAnswers, serviceCallAnswers } from "./formAnswers";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { users } from "../../data/users";
 import HotSideRepairForm, { HotSideDraft, hotSideDraftHasContent } from "./HotSideRepairForm";
 import HvacPmStepForm, { HvacPmStepDraft, hvacStepDraftHasContent } from "./HvacPmStepForm";
+import IceMachineRepairForm, { IceMachineDraft, iceMachineDraftHasContent } from "./IceMachineRepairForm";
 import ServiceCallForm, { ServiceCallDraft, serviceCallDraftHasContent } from "./ServiceCallForm";
 import { Equipment } from "./equipment";
 import { formatStatusTimestamp, STATUS_TS } from "./jobState";
@@ -63,10 +70,15 @@ interface JobForm {
 // rows are gone). Forms are NOT sorted — shown in added order.
 const INITIAL_FORMS: JobForm[] = [
   { id: 6, name: "HVAC PM", template: "HVAC PM", visibility: "public", state: "notStarted" },
-  { id: 9, name: "Service call", template: "Service call", visibility: "public", state: "notStarted" },
-  { id: 10, name: "Hot Side - Repair", template: "Hot Side - Repair", visibility: "public", state: "notStarted" },
+  // Both schema-backed forms start COMPLETED and pre-filled (demoFormDrafts.ts)
+  // so the read-only preview can be shown without filling a form first
+  // (Daniel, 2026-08-06).
+  { id: 9, name: "Service call", template: "Service call", visibility: "public", state: "completed", statusBy: "Lorne R." },
+  { id: 10, name: "Hot Side - Repair", template: "Hot Side - Repair", visibility: "public", state: "completed" },
+  // PUBLIC and EMPTY on purpose (Daniel, 2026-08-06): this is the row to walk
+  // Not started → Progress saved → Completed by hand, so Private keeps one row.
+  { id: 4, name: "Ice Machine - Repair", template: "Ice Machine - Repair", visibility: "public", state: "notStarted" },
   { id: 3, name: "RTU - PM", template: "RTU - PM", visibility: "private", state: "inProgress" },
-  { id: 4, name: "Ice Machine - Repair", template: "Ice Machine - Repair", visibility: "private", state: "completed" },
 ];
 
 // The workspace's form templates = the "Add forms" list. STATIC — a template
@@ -87,10 +99,12 @@ const FORM_TEMPLATES = [
 
 // The forms with a real fillable questionnaire: "HVAC PM" = the 7-step
 // stepper (Figma 24337-41981); "Service call" = the modules form (Figma
-// 24277-27279). Identified by TEMPLATE so renames keep working.
-type FillableTemplate = "HVAC PM" | "Service call" | "Hot Side - Repair";
-const isFillable = (t: string): t is FillableTemplate =>
-  t === "HVAC PM" || t === "Service call" || t === "Hot Side - Repair";
+// 24277-27279); "Hot Side - Repair" (23920-13390) and "Ice Machine - Repair"
+// (24564-137511) = the flat WCE field lists. Identified by TEMPLATE so renames
+// keep working.
+type FillableTemplate = "HVAC PM" | "Service call" | "Hot Side - Repair" | "Ice Machine - Repair";
+const FILLABLE: FillableTemplate[] = ["HVAC PM", "Service call", "Hot Side - Repair", "Ice Machine - Repair"];
+const isFillable = (t: string): t is FillableTemplate => FILLABLE.includes(t as FillableTemplate);
 // The demo viewer filling the form (Lorne Riddle, the app-wide viewer).
 const VIEWER = users[0];
 
@@ -149,6 +163,66 @@ const FormAvatar = ({ state }: { state: FormState }) => {
 
 // ---- the row + its context menu ---------------------------------------------
 
+/** Everything a form's context menu can do. `onPreview` is dropped inside the
+ *  preview panel itself — see `formMenuItems`. */
+export interface FormMenuActions {
+  onOpen: () => void;
+  onPreview: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+  onToggleVisibility: () => void;
+  onRemove: () => void;
+}
+
+/**
+ * The form context menu (Figma 23899-17336 notStarted / 24225-20206 required /
+ * 24255-67714 inProgress / 24255-68260 progressSaved / 24225-20518 completed):
+ * every status gets the standard menu WITH Remove, completed adds Preview —
+ * EXCEPT inProgress, which is reduced to ONLY Duplicate + the visibility toggle
+ * (someone else is editing the form).
+ *
+ * Shared so the row's ⋯ and the PREVIEW PANEL's ⋯ cannot drift apart (Daniel,
+ * 2026-08-06). `includePreview` is false inside the panel — the preview is
+ * already open there, so the item would do nothing.
+ */
+export const formMenuItems = (
+  form: Pick<JobForm, "state" | "visibility">,
+  actions: FormMenuActions,
+  close: () => void,
+  includePreview = true,
+) => {
+  const completed = form.state === "completed";
+  const inProgress = form.state === "inProgress";
+  const isPrivate = form.visibility === "private";
+
+  const item = (label: string, icon: string, onClick: () => void, itemCaption?: string) => (
+    <MenuItem
+      label={label}
+      caption={itemCaption}
+      slotLeft={<Icon icon={icon} container="square" />}
+      onClick={() => {
+        close();
+        onClick();
+      }}
+    />
+  );
+
+  return (
+    <>
+      <MenuItemGroup>
+        {!inProgress && item("Edit", "pen", actions.onOpen)}
+        {completed && includePreview && item("Preview", "eye", actions.onPreview)}
+        {!inProgress && item("Rename", "text-size", actions.onRename)}
+        {item("Duplicate", "clone", actions.onDuplicate)}
+        {isPrivate
+          ? item("Make public", "globe", actions.onToggleVisibility, "Visible to your client")
+          : item("Make private", "lock", actions.onToggleVisibility, "Visible to team members only")}
+      </MenuItemGroup>
+      {!inProgress && <MenuItemGroup>{item("Remove", "xmark", actions.onRemove)}</MenuItemGroup>}
+    </>
+  );
+};
+
 // NOTE: FormRow is a WRAPPER around ListItem, and ItemGroup clones the
 // wrapper with `isDragging`/`disabled` for the lifted drag copy — they MUST be
 // accepted and forwarded (the FileRow lesson), or the dragged copy renders flat.
@@ -159,6 +233,7 @@ const FormRow = ({
   isDragging,
   disabled,
   onOpen,
+  onPreview,
   onRename,
   onDuplicate,
   onToggleVisibility,
@@ -170,8 +245,10 @@ const FormRow = ({
   draggable?: boolean;
   isDragging?: boolean;
   disabled?: boolean;
-  /** Row click — opens the form (a noop for forms without a questionnaire). */
+  /** Row click — opens the form, or its preview once completed. */
   onOpen: () => void;
+  /** Opens the read-only preview (completed forms only). */
+  onPreview: () => void;
   onRename: () => void;
   onDuplicate: () => void;
   onToggleVisibility: () => void;
@@ -180,41 +257,14 @@ const FormRow = ({
   const menu = useAnchoredMenu(!mobile, "end");
   const completed = form.state === "completed";
   const inProgress = form.state === "inProgress";
-  const isPrivate = form.visibility === "private";
   // A union CONST (not an inline ternary spread) — TS must keep the two
   // branches apart to satisfy ListItem's draggable discriminated union.
   const dragProps = draggable ? ({ isDraggable: true, isDragging } as const) : ({ isDraggable: false } as const);
 
-  const item = (label: string, icon: string, onClick: () => void, itemCaption?: string) => (
-    <MenuItem
-      label={label}
-      caption={itemCaption}
-      slotLeft={<Icon icon={icon} container="square" />}
-      onClick={() => {
-        menu.close();
-        onClick();
-      }}
-    />
-  );
-
-  // Menus per status (Figma 2026-07-23 update: 23899-17336 notStarted /
-  // 24225-20206 required / 24255-67714 inProgress / 24255-68260 progressSaved /
-  // 24225-20518 completed): every status gets the standard menu WITH Remove,
-  // completed adds Preview — EXCEPT inProgress, which is reduced to ONLY
-  // Duplicate + the visibility toggle (someone is editing the form).
-  const menuBody = (
-    <>
-      <MenuItemGroup>
-        {!inProgress && item("Edit", "pen", noop)}
-        {completed && item("Preview", "eye", noop)}
-        {!inProgress && item("Rename", "text-size", onRename)}
-        {item("Duplicate", "clone", onDuplicate)}
-        {isPrivate
-          ? item("Make public", "globe", onToggleVisibility, "Visible to your client")
-          : item("Make private", "lock", onToggleVisibility, "Visible to team members only")}
-      </MenuItemGroup>
-      {!inProgress && <MenuItemGroup>{item("Remove", "xmark", onRemove)}</MenuItemGroup>}
-    </>
+  const menuBody = formMenuItems(
+    form,
+    { onOpen, onPreview, onRename, onDuplicate, onToggleVisibility, onRemove },
+    menu.close,
   );
 
   return (
@@ -226,7 +276,9 @@ const FormRow = ({
         avatar={<FormAvatar state={form.state} />}
         disabled={disabled}
         isClickable
-        onClick={onOpen}
+        // A completed form opens its PREVIEW; the menu's Edit still opens the
+        // form itself (Daniel, 2026-08-06).
+        onClick={completed ? onPreview : onOpen}
         {...dragProps}
         slotRight={
           <span className={styles.rowRight}>
@@ -359,6 +411,7 @@ export default function FormsModule({
   jobEquipment = [],
   stepVariant = false,
   onCompletionChange,
+  onFormsRevision,
 }: {
   mobile?: boolean;
   /** The job's live Equipment-module list (the Service call form reads it). */
@@ -371,6 +424,13 @@ export default function FormsModule({
   stepVariant?: boolean;
   /** Reports the forms' completion (Complete flow gates Next + the Generate button). */
   onCompletionChange?: (state: { all: boolean; any: boolean }) => void;
+  /**
+   * Fires whenever a form's ANSWERS or completion state change (not a rename
+   * or a visibility switch). The Work summary module compares this against the
+   * revision its summary was written from, to know the forms moved on
+   * (Figma 24268-68841 "Forms updated. Update the summary?").
+   */
+  onFormsRevision?: (revision: number) => void;
 }) {
   const [forms, setForms] = useState<JobForm[]>(INITIAL_FORMS);
   const [nextId, setNextId] = useState(100);
@@ -384,10 +444,15 @@ export default function FormsModule({
   // (prefills reopen). Each dialog has a fixed title, so no last-shown refs.
   const [openFormTemplate, setOpenFormTemplate] = useState<FillableTemplate | null>(null);
   const [stepDraft, setStepDraft] = useState<HvacPmStepDraft | null>(null);
-  const [serviceDraft, setServiceDraft] = useState<ServiceCallDraft | null>(null);
-  const [hotSideDraft, setHotSideDraft] = useState<HotSideDraft | null>(null);
+  // Pre-filled demo answers — the two completed rows above open their preview.
+  const [serviceDraft, setServiceDraft] = useState<ServiceCallDraft | null>(DEMO_SERVICE_CALL_DRAFT);
+  const [hotSideDraft, setHotSideDraft] = useState<HotSideDraft | null>(DEMO_HOT_SIDE_DRAFT);
+  // Ice Machine starts EMPTY — the row to fill by hand (Daniel, 2026-08-06).
+  const [iceMachineDraft, setIceMachineDraft] = useState<IceMachineDraft | null>(null);
   // The Add list STAGES copies per template ({name: count}); the footer's Add
   // commits them all at once. Dismissing the list discards the staging.
+  // The form whose read-only preview is open (a completed row / its menu).
+  const [previewForm, setPreviewForm] = useState<JobForm | null>(null);
   const [staged, setStaged] = useState<Record<string, number>>({});
   useEffect(() => {
     if (addTarget == null) setStaged({});
@@ -410,7 +475,47 @@ export default function FormsModule({
     });
   }, [forms, onCompletionChange]);
 
+  // The forms' CONTENT revision: the completion states plus the stored answers.
+  // A rename or a visibility switch also rewrites `forms`, so the states are
+  // keyed rather than watched as an array — otherwise renaming a form would
+  // claim the summary is out of date.
+  const stateKey = forms.map((f) => `${f.id}:${f.state}`).join("|");
+  const revision = useRef(0);
+  const firstRevision = useRef(true);
+  useEffect(() => {
+    // The first run is the initial render, not an edit.
+    if (firstRevision.current) {
+      firstRevision.current = false;
+      return;
+    }
+    revision.current += 1;
+    onFormsRevision?.(revision.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateKey, serviceDraft, hotSideDraft, stepDraft, iceMachineDraft]);
+
   const detailedToast = (title: string, formName: string) => toast({ type: "success", variant: "detailed", title, caption: formName });
+
+  // ---- the read-only preview -------------------------------------------------
+  // A preview needs a SCHEMA and stored answers, so only the two schema-backed
+  // forms have one: the HVAC PM stepper is out of scope and the demo rows carry
+  // no draft (both flagged to Daniel).
+  const previewAnswersOf = (form: JobForm) => {
+    if (form.template === "Service call" && serviceDraft != null) {
+      return { schema: SERVICE_CALL_SCHEMA, answers: serviceCallAnswers(serviceDraft, jobEquipment) };
+    }
+    if (form.template === "Hot Side - Repair" && hotSideDraft != null) {
+      return { schema: HOT_SIDE_REPAIR_SCHEMA, answers: hotSideAnswers(hotSideDraft, jobEquipment) };
+    }
+    if (form.template === "Ice Machine - Repair" && iceMachineDraft != null) {
+      return { schema: ICE_MACHINE_REPAIR_SCHEMA, answers: iceMachineAnswers(iceMachineDraft, jobEquipment) };
+    }
+    return null;
+  };
+  // The panel keeps its content through the close animation.
+  const lastPreview = useRef<JobForm | null>(null);
+  if (previewForm != null) lastPreview.current = previewForm;
+  const shownPreview = previewForm ?? lastPreview.current;
+  const preview = shownPreview != null ? previewAnswersOf(shownPreview) : null;
 
   const rename = (form: JobForm, name: string) => setForms((prev) => prev.map((f) => (f.id === form.id ? { ...f, name } : f)));
   // Duplicate = a fresh not-started copy right after the original (cleared fields).
@@ -522,10 +627,24 @@ export default function FormsModule({
     setFillableState("Hot Side - Repair", "completed");
     detailedToast("The form submitted", "Hot Side - Repair");
   };
+  const saveIceMachineProgress = (draft: IceMachineDraft) => {
+    setIceMachineDraft(draft);
+    if (!iceMachineDraftHasContent(draft)) return;
+    setFillableState("Ice Machine - Repair", "progressSaved");
+    detailedToast("The progress is saved", "Ice Machine - Repair");
+  };
+  const submitIceMachine = (draft: IceMachineDraft) => {
+    setIceMachineDraft(draft);
+    setFillableState("Ice Machine - Repair", "completed");
+    detailedToast("The form submitted", "Ice Machine - Repair");
+  };
 
   const rowActions = (f: JobForm) => ({
     // Every row is clickable; only the questionnaire forms open (the rest noop).
     onOpen: isFillable(f.template) ? () => setOpenFormTemplate(f.template as FillableTemplate) : noop,
+    // Only the two schema-backed forms have a preview (the stepper is out of
+    // scope, and the demo rows carry no answers) — the rest noop, flagged.
+    onPreview: previewAnswersOf(f) != null ? () => setPreviewForm(f) : noop,
     onRename: () => setRenameTarget(f),
     onDuplicate: () => duplicate(f),
     onToggleVisibility: () => toggleVisibility(f),
@@ -668,11 +787,57 @@ export default function FormsModule({
       <HotSideRepairForm
         open={openFormTemplate === "Hot Side - Repair"}
         onClose={() => setOpenFormTemplate(null)}
+        equipment={jobEquipment}
         initial={hotSideDraft}
         onSaveProgress={saveHotSideProgress}
         onSubmit={submitHotSide}
         mobile={mobile}
       />
+
+      {/* The "Ice Machine - Repair" form (Figma 24564-137511). */}
+      <IceMachineRepairForm
+        open={openFormTemplate === "Ice Machine - Repair"}
+        onClose={() => setOpenFormTemplate(null)}
+        equipment={jobEquipment}
+        initial={iceMachineDraft}
+        onSaveProgress={saveIceMachineProgress}
+        onSubmit={submitIceMachine}
+        mobile={mobile}
+      />
+
+      {/* The read-only preview (Figma 24463-34993 / 24467-36576): a SidePanel
+          over the page, opened by a completed row or its menu's Preview. Its
+          header ⋯ opens the SAME menu as the row's (Daniel, 2026-08-06) —
+          without "Preview", which would do nothing here. Edit and Remove CLOSE
+          the panel first: the form opens over the page, and a removed form has
+          nothing left to preview. */}
+      {preview != null && shownPreview != null && (
+        <FormPreviewPanel
+          open={previewForm != null}
+          onClose={() => setPreviewForm(null)}
+          title={shownPreview.name}
+          schema={preview.schema}
+          answers={preview.answers}
+          breakpoint={mobile ? "mobile" : "desktop"}
+          headerMenu={(close) => {
+            const actions = rowActions(shownPreview);
+            const closePanel = (run: () => void) => () => {
+              setPreviewForm(null);
+              run();
+            };
+            return formMenuItems(
+              shownPreview,
+              {
+                ...actions,
+                onOpen: closePanel(actions.onOpen),
+                onRemove: closePanel(actions.onRemove),
+              },
+              close,
+              false,
+            );
+          }}
+        />
+      )}
 
       {/* Remove confirms (Figma 24255-67421 required / 24255-68517 saved
           progress; typos in the required body fixed per Daniel). */}

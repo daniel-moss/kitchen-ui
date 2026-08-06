@@ -58,7 +58,7 @@ export const MultipleVertical: Story = {
       <ValueDisplayGroup>
         <ValueDisplay label="Scheduled for" value="January 1, 2026 at 12:00 PM" />
         <ValueDisplay label="Duration" value="1 hour 30 minutes" />
-        <ValueDisplay orientation="vertical" label="Assignees" kind="avatarGroup" items={USERS} />
+        <ValueDisplay orientation="vertical" label="Assignees" kind="avatarStack" items={USERS} />
         <ValueDisplay orientation="vertical" label="Notes" value={LONG_TEXT} />
       </ValueDisplayGroup>
     </div>

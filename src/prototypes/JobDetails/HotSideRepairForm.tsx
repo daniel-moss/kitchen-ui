@@ -2,9 +2,9 @@ import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import Button from "../../components/Button/Button";
 import CardFile from "../../components/Card/CardFile";
-import { FileType } from "../../components/Card/CardFile.types";
 import Dialog from "../../components/Dialog/Dialog";
 import MediaField from "../../components/Fields/MediaField/MediaField";
+import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import TextField from "../../components/Fields/TextField/TextField";
 import Input from "../../components/Input/Input";
@@ -15,9 +15,22 @@ import { Icon } from "../../components/Icon/Icon";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
+import SelectListItem from "../../components/SelectList/SelectListItem";
+import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { HOT_SIDE_REPAIR_SCHEMA } from "../../forms/formSchema/hotSideRepairSchema";
 import { fieldMap } from "../../forms/formSchema/options";
-import { useAnchoredMenu } from "./shared";
+import {
+  Equipment,
+  EquipmentAvatar,
+  equipmentCaption,
+  equipmentCaptionText,
+  equipmentLabel,
+  equipmentTitle,
+} from "./equipment";
+import ObjectCard from "../../forms/shared/ObjectCard";
+import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { fileTypeOf, isPreviewable, MediaItem } from "./mediaItem";
+import { noop, useAnchoredMenu } from "./shared";
 
 import styles from "./HotSideRepairForm.module.scss";
 
@@ -30,30 +43,16 @@ const isOptional = (key: string) => F[key].optional === true;
 
 type YesNo = "" | "Yes" | "No";
 
-/** One picked file, kept as CardFile props (object URL previews). */
-export interface MediaItem {
-  name: string;
-  type: FileType;
-  src?: string;
-}
-
-// The media fields, in ORDER of appearance (interleaved with the text fields
-// below). accept: photo fields take image/* (mobile offers the camera), the
-// video recap video/*, the Issues-found media anything.
-const fileTypeOf = (file: File): FileType => {
-  if (file.type === "image/gif") return "gif";
-  if (file.type.startsWith("image/")) return "image";
-  if (file.type.startsWith("video/")) return "video";
-  if (file.type.startsWith("audio/")) return "audio";
-  if (file.type === "application/pdf") return "pdf";
-  return "generic";
-};
+// The picked-file shape and its helpers moved to ./mediaItem when the Ice
+// Machine form arrived; re-exported so existing imports keep working.
+export type { MediaItem } from "./mediaItem";
 
 // ---- the draft --------------------------------------------------------------
 
 export interface HotSideDraft {
   checkIn: string;
-  equipmentName: string;
+  /** The picked equipment (the object select — 2026-08-06 Figma update). */
+  equipmentId: number | null;
   reportedIssue: string;
   operatingOnArrival: YesNo;
   temperature: string;
@@ -64,14 +63,13 @@ export interface HotSideDraft {
   needReturn: YesNo;
   partsPicture: YesNo;
   checkOut: string;
-  standaloneQuote: YesNo;
   /** Media per field key (dateTag / wideShot / … / issuesMedia / finalVideo). */
   media: Record<string, MediaItem[]>;
 }
 
 export const emptyHotSideDraft = (): HotSideDraft => ({
   checkIn: "",
-  equipmentName: "",
+  equipmentId: null,
   reportedIssue: "",
   operatingOnArrival: "",
   temperature: "",
@@ -82,7 +80,6 @@ export const emptyHotSideDraft = (): HotSideDraft => ({
   needReturn: "",
   partsPicture: "",
   checkOut: "",
-  standaloneQuote: "",
   media: {},
 });
 
@@ -96,6 +93,8 @@ interface HotSideRepairFormProps {
   onClose: () => void;
   /** Dialog title (= the form's name). */
   title?: string;
+  /** The job's live Equipment-module list (the Equipment picker rows). */
+  equipment: Equipment[];
   /** The saved draft to prefill (null = fresh form). */
   initial: HotSideDraft | null;
   /** Save progress — no validation; the parent stores the draft + row state. */
@@ -105,18 +104,20 @@ interface HotSideRepairFormProps {
   mobile?: boolean;
 }
 
-// The "Hot Side - Repair" form (Figma 23920-13390): a standard Dialog with a
-// FLAT field list — check-in/out TextFields (help texts under the labels),
-// Yes/No card radios, TextAreas, and ELEVEN MediaFields (photo/video uploads;
-// picked files render as CardFiles with a ⋯ → Remove menu). "Issues found" is
-// the Input textAreaMedia pair — BOTH the text and at least one file are
-// required (Daniel). Ten fields are "(optional)" per the node. Submit
-// validates + scrolls to the first error; focusing an invalid field clears
-// all error states; Save progress saves and closes.
+// The "Hot Side - Repair" form (Figma 24461-33288 "Edit"): a standard Dialog
+// with a FLAT field list — check-in/out TextFields (help texts under the
+// labels), the Equipment object picker, Yes/No card radios, TextAreas, and
+// ELEVEN MediaFields (photo/video uploads; picked files render as CardFiles
+// with a ⋯ → Remove menu). "Issues found" is TWO fields sharing one label (the
+// note and its media, both required — the Input pair was removed from the DS
+// on 2026-08-06). Eleven fields are "(optional)". Submit validates + scrolls to
+// the first error; focusing an invalid field clears all error states; Save
+// progress saves and closes.
 export default function HotSideRepairForm({
   open,
   onClose,
   title = "Hot Side - Repair",
+  equipment,
   initial,
   onSaveProgress,
   onSubmit,
@@ -125,6 +126,7 @@ export default function HotSideRepairForm({
   const [draft, setDraft] = useState<HotSideDraft>(emptyHotSideDraft());
   const [showErrors, setShowErrors] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const equipmentPop = useSelectPopover(mobile);
   // The ⋯ menu of one file card (its field key + file index).
   const cardMenu = useAnchoredMenu(!mobile, "end");
   const [menuTarget, setMenuTarget] = useState<{ key: string; index: number } | null>(null);
@@ -132,6 +134,7 @@ export default function HotSideRepairForm({
   useEffect(() => {
     if (!open) {
       cardMenu.close();
+      equipmentPop.close();
       return;
     }
     setDraft(initial != null ? (JSON.parse(JSON.stringify(initial)) as HotSideDraft) : emptyHotSideDraft());
@@ -150,13 +153,13 @@ export default function HotSideRepairForm({
         ...prev.media,
         [key]: [
           ...(prev.media[key] ?? []),
+          // Every file gets an object URL (the preview downloads from it); only
+          // the previewable kinds show it as the card's image.
           ...picked.map((file) => ({
             name: file.name,
             type: fileTypeOf(file),
-            src:
-              file.type.startsWith("image/") || file.type.startsWith("video/")
-                ? URL.createObjectURL(file)
-                : undefined,
+            src: URL.createObjectURL(file),
+            size: file.size,
           })),
         ],
       },
@@ -166,39 +169,46 @@ export default function HotSideRepairForm({
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial ?? emptyHotSideDraft());
 
+  const selectedEquipment = equipment.find((e) => e.id === draft.equipmentId);
+  // Frozen while the list is open (the layout-freeze rule) — the card under the
+  // field must not push the trigger away from the anchored list.
+  const shownEquipment = equipmentPop.freeze(selectedEquipment);
+  // Sorted by equipment name A→Z (the design annotation).
+  const sortedEquipment = [...equipment].sort((a, b) => equipmentLabel(a).localeCompare(equipmentLabel(b)));
+
   // ---- validation ------------------------------------------------------------
   const bad: Record<string, boolean> = {
     checkIn: draft.checkIn.trim() === "",
-    equipmentName: draft.equipmentName.trim() === "",
+    equipment: draft.equipmentId == null,
     reportedIssue: draft.reportedIssue.trim() === "",
     operatingOnArrival: draft.operatingOnArrival === "",
     dateTag: filesOf("dateTag").length === 0,
     wideShot: filesOf("wideShot").length === 0,
-    // "Issues found" requires BOTH the note and at least one file (Daniel).
-    issues: draft.issuesText.trim() === "" || filesOf("issuesMedia").length === 0,
+    // "Issues found" is two required fields sharing one label.
+    issuesText: draft.issuesText.trim() === "",
+    issuesMedia: filesOf("issuesMedia").length === 0,
     actionsTaken: draft.actionsTaken.trim() === "",
     functioningOnDeparture: draft.functioningOnDeparture === "",
     needReturn: draft.needReturn === "",
     partsPicture: draft.partsPicture === "",
     finalVideo: filesOf("finalVideo").length === 0,
     checkOut: draft.checkOut.trim() === "",
-    standaloneQuote: draft.standaloneQuote === "",
   };
   const FIELD_ORDER = [
     "checkIn",
-    "equipmentName",
+    "equipment",
     "reportedIssue",
     "operatingOnArrival",
     "dateTag",
     "wideShot",
-    "issues",
+    "issuesText",
+    "issuesMedia",
     "actionsTaken",
     "functioningOnDeparture",
     "needReturn",
     "partsPicture",
     "finalVideo",
     "checkOut",
-    "standaloneQuote",
   ];
 
   const submit = () => {
@@ -228,7 +238,7 @@ export default function HotSideRepairForm({
 
   // ---- field builders --------------------------------------------------------
 
-  const textField = (key: "checkIn" | "equipmentName" | "reportedIssue" | "temperature" | "checkOut") => {
+  const textField = (key: "checkIn" | "reportedIssue" | "temperature" | "checkOut") => {
     const label = labelOf(key);
     return (
       <div {...field(key)} key={key}>
@@ -259,9 +269,7 @@ export default function HotSideRepairForm({
     </div>
   );
 
-  const yesNo = (
-    key: "operatingOnArrival" | "functioningOnDeparture" | "needReturn" | "partsPicture" | "standaloneQuote",
-  ) => {
+  const yesNo = (key: "operatingOnArrival" | "functioningOnDeparture" | "needReturn" | "partsPicture") => {
     const schemaField = F[key];
     const options = schemaField.type === "radio" ? schemaField.options : [];
     return (
@@ -289,7 +297,7 @@ export default function HotSideRepairForm({
         key={`${f.name}-${i}`}
         name={f.name}
         fileType={f.type}
-        previewSrc={f.src}
+        previewSrc={isPreviewable(f.type) ? f.src : undefined}
         onMenuClick={(e) => {
           setMenuTarget({ key, index: i });
           cardMenu.onActions(e);
@@ -356,7 +364,32 @@ export default function HotSideRepairForm({
     >
       <div className={styles.form} ref={bodyRef}>
         {textField("checkIn")}
-        {textField("equipmentName")}
+
+        {/* Equipment — the object picker (2026-08-06 Figma update; it replaced
+            the "Equipment name" text field). An INLINE list, and the pick shows
+            as a card 12px below the field (Figma DS 29019-62714); the card is
+            frozen while the list is open (the layout-freeze rule). */}
+        <div {...field("equipment")}>
+          <div className={styles.objectField}>
+            <Input label={labelOf("equipment")}>
+              <SelectField
+                value={selectedEquipment != null ? equipmentLabel(selectedEquipment) : undefined}
+                isValid={!(showErrors && bad.equipment)}
+                open={equipmentPop.open}
+                onClick={(e: MouseEvent<HTMLDivElement>) => equipmentPop.toggle(e.currentTarget)}
+              />
+            </Input>
+            {shownEquipment != null && (
+              <ObjectCard
+                avatar={<EquipmentAvatar equipment={shownEquipment} />}
+                title={equipmentTitle(shownEquipment)}
+                caption={equipmentCaptionText(shownEquipment)}
+                onClick={noop}
+              />
+            )}
+          </div>
+        </div>
+
         {textField("reportedIssue")}
         {yesNo("operatingOnArrival")}
         {media("dateTag")}
@@ -371,23 +404,19 @@ export default function HotSideRepairForm({
         {media("gasPressure")}
         {media("solenoid")}
 
-        {/* "Issues found" — the textAreaMedia pair; BOTH parts required. */}
-        <div {...field("issues")}>
-          <Input label={labelOf("issuesText")}>
+        {/* "Issues found" — TWO fields sharing the label, each with its own
+            help text; both required. */}
+        <div {...field("issuesText")}>
+          <Input label={labelOf("issuesText")} helpText={F.issuesText.helpText}>
             <TextArea
               value={draft.issuesText}
               onChange={(e) => set("issuesText", e.target.value)}
-              isValid={!(showErrors && draft.issuesText.trim() === "")}
+              isValid={!(showErrors && bad.issuesText)}
+              errorMessage="Provide an answer"
             />
-            <MediaField
-              breakpoint={mobile ? "mobile" : "desktop"}
-              isValid={!(showErrors && filesOf("issuesMedia").length === 0)}
-              onFilesSelected={(picked) => addMedia("issuesMedia", picked)}
-            >
-              {mediaCards("issuesMedia")}
-            </MediaField>
           </Input>
         </div>
+        {media("issuesMedia")}
 
         {textAreaField("actionsTaken")}
         {media("postFlame")}
@@ -398,8 +427,42 @@ export default function HotSideRepairForm({
         {textAreaField("safetyConcerns")}
         {media("finalVideo")}
         {textField("checkOut")}
-        {yesNo("standaloneQuote")}
       </div>
+
+      {/* The Equipment picker — the same INLINE object list the Service call
+          form uses (single select, search, A→Z). */}
+      <SelectPopoverList
+        pop={equipmentPop}
+        mobile={mobile}
+        title={labelOf("equipment")}
+        searchable
+        searchPlaceholder="Search by equipment name..."
+        state={equipment.length === 0 ? "empty" : "default"}
+        emptyState={{
+          icon: "cube",
+          title: "No equipment here yet",
+          caption: "Add equipment to see it here",
+        }}
+        noResultsCaption="Try a different search or add a new equipment"
+      >
+        <SelectListItemGroup>
+          {sortedEquipment.map((e) => (
+            <SelectListItem
+              key={e.id}
+              variant="object"
+              label={equipmentTitle(e)}
+              searchText={`${equipmentLabel(e)} ${equipmentCaption(e)}`}
+              caption={equipmentCaptionText(e)}
+              avatar={<EquipmentAvatar equipment={e} />}
+              selected={e.id === draft.equipmentId}
+              onClick={() => {
+                set("equipmentId", e.id);
+                equipmentPop.close();
+              }}
+            />
+          ))}
+        </SelectListItemGroup>
+      </SelectPopoverList>
 
       {/* The file-card ⋯ menu — desktop anchored card / mobile drawer. */}
       {mobile ? (

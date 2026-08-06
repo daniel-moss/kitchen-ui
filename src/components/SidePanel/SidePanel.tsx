@@ -26,8 +26,6 @@ const PANEL_WIDTH = 400;
 // Enter: fast out of the edge, decelerate into place. Exit: start slow,
 // accelerate away — the same pair the drawer uses, so the scrim and the panel
 // move together.
-const EASE_IN = "cubic-bezier(0.32, 0.72, 0, 1)";
-const EASE_OUT = "cubic-bezier(0.5, 0, 0.85, 0.3)";
 
 // The error / offline body states (EmptyState content). Same copy as Dialog's.
 const STATE_CONTENT: Record<Exclude<SidePanelState, "content">, {
@@ -85,7 +83,6 @@ export default function SidePanel({
   breakpoint = "auto",
   className,
 }: SidePanelProps) {
-  const { mounted, visible } = useMountTransition(open, DURATION);
   const isDesktop = useIsDesktop(breakpoint);
   const layerRef = useRef<HTMLDivElement>(null);
 
@@ -105,13 +102,22 @@ export default function SidePanel({
     setRoot(markerRef.current?.closest("[data-drawer-root]") ?? document.body);
   }, [ctxRoot]);
 
+  // The enter transition waits for that root. The panel only PAINTS once it is
+  // portaled, so a panel that mounts already open (the consumer renders it the
+  // moment it is needed) would otherwise run both of the hook's frames before
+  // anything painted: the closed state is never shown, and the panel appears at
+  // rest and just fades in — the glitch Daniel reported (2026-08-06). Mounting
+  // still follows `open` alone, so the marker below can resolve the root.
+  const { mounted, visible } = useMountTransition(open && root != null, DURATION);
+
   // Overlay a11y — Escape dismisses, focus is trapped inside the panel and
   // returns to the trigger on close.
   useEscapeKey(open, onClose);
   useRestoreFocus(open, layerRef);
   useFocusTrap(layerRef, open);
 
-  if (!mounted) return null;
+  // Closed: only the marker stays, so the root is known BEFORE the next open.
+  if (!mounted) return <span ref={markerRef} hidden />;
 
   const isStateView = state !== "content";
 
@@ -161,18 +167,22 @@ export default function SidePanel({
     children
   );
 
-  // The slide. The panel starts fully outside the right edge (plus its own
-  // margin on desktop) and travels to rest. Inline, because it must override
-  // Popover's own card fade/lift — the panel is opaque the whole way.
-  const offscreen = isDesktop ? "calc(100% + var(--size-3))" : "100%";
-  const panelStyle: CSSProperties = {
+  // The slide distance — the panel's own width plus the layer's 12px margin, so
+  // it starts fully outside the right edge. Only the DISTANCE is inline (as a
+  // custom property); the transform and its transition live in the stylesheet
+  // (.panel / .panelOpen). Driving them from inline styles wobbled: React
+  // commits the transform and the transition string together, and the browser
+  // could pick the animation up mid-flight and play it from the wrong place —
+  // the panel visibly swung ~200px past its resting spot and back (Daniel's
+  // recording, 2026-08-06).
+  const offscreen = isDesktop ? `${PANEL_WIDTH + 12}px` : "100%";
+  const panelStyle: CSSProperties & { "--side-panel-offscreen": string } = {
+    "--side-panel-offscreen": offscreen,
     background: "var(--surface-level-first)",
     width: isDesktop ? PANEL_WIDTH : "100%",
     height: "100%",
     maxHeight: "none",
     opacity: 1,
-    transform: visible ? "none" : `translateX(${offscreen})`,
-    transition: `transform ${DURATION}ms ${visible ? EASE_IN : EASE_OUT}`,
     ...(isDesktop
       ? null
       : {
@@ -201,7 +211,12 @@ export default function SidePanel({
       )}
       onClick={isDesktop ? onScrimClick : undefined}
     >
-      <Popover header={header} footer={isStateView ? undefined : footer} style={panelStyle}>
+      <Popover
+        header={header}
+        footer={isStateView ? undefined : footer}
+        className={clsx(styles.panel, visible && styles.panelOpen)}
+        style={panelStyle}
+      >
         {body}
       </Popover>
     </div>

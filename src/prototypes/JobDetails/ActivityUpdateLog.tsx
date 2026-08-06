@@ -12,13 +12,28 @@ import { diffWords } from "./textDiff";
 import styles from "./ActivityUpdateLog.module.scss";
 
 // The three update-log shapes Daniel is testing (Figma 24442-56041 / 24442-56092
-// / 24435-55755):
+// / 24435-55755 and 24509-62472):
 //   1 short field  → a plain row, values inline, no accordion
 //   1 TextArea     → an accordion whose body is just the two versions
-//   2+ fields      → an accordion naming the module, one sub-log per field
+//   2+ fields      → an accordion naming the CHANGED PROPERTIES, one sub-log
+//                    per field
 // All PROTOTYPE-LOCAL — the DS ActivityLog is untouched.
 
 const EMPTY = "No value";
+
+// The multi-field row lists the properties that changed (Figma 24509-62472,
+// which replaced the older '"<module>" module' wording). Past this many the
+// tail collapses to "and N more" so a big edit cannot push the row to three
+// lines (Daniel, 2026-08-06).
+const MAX_LISTED_PROPERTIES = 3;
+
+/** `A, B, C` · `A, B, C and 2 more` — the changed properties, in change order. */
+const propertyList = (changes: FieldChange[]) => {
+  const labels = changes.map((change) => change.label);
+  if (labels.length <= MAX_LISTED_PROPERTIES) return labels.join(", ");
+  const shownLabels = labels.slice(0, MAX_LISTED_PROPERTIES).join(", ");
+  return `${shownLabels} and ${labels.length - MAX_LISTED_PROPERTIES} more`;
+};
 
 const shown = (value: string) => (value === "" ? EMPTY : value);
 
@@ -179,8 +194,6 @@ const SubItem = ({ change }: { change: FieldChange }) => (
 
 export interface ActivityUpdateLogProps {
   userName: string;
-  /** The module the changed fields belong to, e.g. "Service". */
-  module: string;
   changes: FieldChange[];
   date: Date;
   /** The timeline glyph. Default: the `pen` of a module edit. */
@@ -188,7 +201,7 @@ export interface ActivityUpdateLogProps {
   /** The words between the user and the change. Default "updated". */
   verb?: string;
   /**
-   * What the multi-field row names instead of the module, e.g. the time
+   * What the multi-field row names instead of the property list, e.g. the time
    * session's own "Travelling: Mon, Jan 1 at 11:30 AM → …" (Figma 24511-62572).
    */
   subject?: ReactNode;
@@ -196,7 +209,6 @@ export interface ActivityUpdateLogProps {
 
 export default function ActivityUpdateLog({
   userName,
-  module,
   changes,
   date,
   symbol = <Icon icon="pen" size={14} />,
@@ -250,14 +262,15 @@ export default function ActivityUpdateLog({
     );
   }
 
-  // Rule 3 — more than one field: name the module, list every field.
+  // Rule 3 — more than one field: name the changed properties, then list every
+  // field in the body.
   return (
     <ActivityLogItem
       symbol={symbol}
       date={date}
       text={
         <>
-          <Em>{userName}</Em> {verb} <Em>{subject ?? `"${module}" module`}</Em>
+          <Em>{userName}</Em> {verb} <Em>{subject ?? propertyList(changes)}</Em>
         </>
       }
     >

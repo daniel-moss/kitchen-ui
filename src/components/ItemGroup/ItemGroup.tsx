@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
+import { useCardGridWidth } from "../../hooks/useCardGridWidth";
 import useControllableState from "../../hooks/useControllableState";
 import { setRowDragActive } from "../../utils/dragLock";
 import Button from "../Button/Button";
@@ -74,10 +75,6 @@ export default function ItemGroup({
   const [isOpen, setOpen] = useControllableState(open, defaultOpen, onOpenChange);
   // Truncation is two-way: "Show N more" expands, "Show less" collapses back.
   const [expanded, setExpanded] = useState(false);
-  // Cards view: a uniform card width so a wrapped (short) row matches the first
-  // row's card width (#8) — see the measuring effect below.
-  const [cardWidth, setCardWidth] = useState<number | null>(null);
-
   const rootRef = useRef<HTMLDivElement>(null);
   const itemsRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragGeometry | null>(null);
@@ -98,31 +95,10 @@ export default function ItemGroup({
   const hiddenCount = canTruncate ? items.length - truncateAfter : 0;
   const shown = canTruncate && !expanded ? items.slice(0, truncateAfter) : items;
 
-  // Cards view: measure a uniform card width. Columns = how many cards fit at
-  // their min width (106); every card then takes the resulting width (capped at
-  // 184), so a lone card on a wrapped row matches the first row (#8).
-  useLayoutEffect(() => {
-    if (!isCards) return undefined;
-    const el = itemsRef.current;
-    if (el == null || shown.length === 0) return undefined;
-    const GAP = 12; // --size-3
-    const MIN = 106;
-    const MAX = 184;
-    // Size columns to `cardCountBasis` when given (the module's fullest group)
-    // so sibling groups share one card width; otherwise this group's own count.
-    const n = cardCountBasis ?? shown.length;
-    const compute = () => {
-      const cs = getComputedStyle(el);
-      const inner = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-      if (inner <= 0) return;
-      const cols = Math.max(1, Math.min(n, Math.floor((inner + GAP) / (MIN + GAP))));
-      setCardWidth(Math.min(MAX, Math.floor((inner - (cols - 1) * GAP) / cols)));
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [isCards, shown.length, cardCountBasis]);
+  // Cards view: one uniform card width for every row (the shared file-card grid
+  // rule — see useCardGridWidth). `cardCountBasis`, when given, is the module's
+  // fullest group, so sibling groups all share one card width.
+  const cardWidth = useCardGridWidth(itemsRef, cardCountBasis ?? shown.length, isCards && shown.length > 0);
 
   // ---- drag-and-drop reorder ----------------------------------------------
   // Two ways in: an immediate drag from a ListItem's grip handle, or a

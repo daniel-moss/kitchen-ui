@@ -21,28 +21,16 @@
   gap: var(--size-2); // 8px
 }
 
-// Chips + their error line as ONE Input field child (6px, the field gap).
-.chipsField {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-1_5); // 6px
-  width: 100%;
-}
-
-// A quick-pick chip row: equipment + duration presets HUG their content.
+// The duration preset chip row — hugs its content.
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--size-2); // 8px
 }
 
-// The techs row fills the width, chips sharing it equally (Daniel).
-.fillChips > * {
-  flex: 1 1 0;
-}
-
-// Techs chips: min 40px wide, label centered (Daniel).
-.techChip {
-  min-width: 40px;
-  justify-content: center;
+// An object select field and its picked card (Figma DS 29019-62714).
+.objectField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px — field ↔ card
 }

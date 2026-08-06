@@ -197,7 +197,7 @@ export const Invalid: Story = {
   ),
 };
 
-/** Inside an Input: shared label, derived "Add [Label]", textAreaMedia, loading. */
+/** Inside an Input: shared label, derived "Add [Label]", invalid, loading. */
 export const InsideInput: Story = {
   render: () => (
     <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: 24 }}>
@@ -206,10 +206,6 @@ export const InsideInput: Story = {
       </Input>
       <Input label="Photos">
         <MediaField breakpoint="desktop" isValid={false} />
-      </Input>
-      <Input label="Job notes" helpText="Notes and any supporting files">
-        <TextArea />
-        <MediaField breakpoint="desktop" />
       </Input>
       <Input label="Photos" isLoading>
         <MediaField breakpoint="desktop" />

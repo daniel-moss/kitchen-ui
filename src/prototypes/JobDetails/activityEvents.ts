@@ -83,8 +83,6 @@ export interface ActivityEvent {
     | "assignees";
   date: Date;
   user: User;
-  /** Update events only — the module the changed fields belong to. */
-  module?: string;
   /** Update events only — the changed fields, in form order. */
   changes?: FieldChange[];
   /** Equipment AND label events — what was put on / taken off the job. */

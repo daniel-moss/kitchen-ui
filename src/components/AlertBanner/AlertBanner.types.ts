@@ -14,6 +14,11 @@ interface AlertBannerBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "col
 
   ctaHref?: string;
   ctaOnClick?: (event: MouseEvent<HTMLElement>) => void;
+  /**
+   * Optional icon name shown before the CTA label (e.g. "wand-magic-sparkles").
+   * It inherits the status color from the LinkButton.
+   */
+  ctaIcon?: string;
 
   /** When provided, shows a muted dismiss button (xmark) that calls this. */
   onDismiss?: () => void;

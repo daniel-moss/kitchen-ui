@@ -28,6 +28,7 @@ export default function AlertBanner({
   ctaLabel,
   ctaHref,
   ctaOnClick,
+  ctaIcon,
   onDismiss,
   className,
   ...rest
@@ -36,7 +37,7 @@ export default function AlertBanner({
 
   const cta = ctaLabel ? (
     <span className={styles.cta}>
-      <LinkButton size="md" colorScheme={scheme} href={ctaHref} onClick={ctaOnClick}>
+      <LinkButton size="md" colorScheme={scheme} leftIcon={ctaIcon} href={ctaHref} onClick={ctaOnClick}>
         {ctaLabel}
       </LinkButton>
     </span>

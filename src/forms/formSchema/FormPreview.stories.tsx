@@ -1,7 +1,18 @@
 import { ReactNode } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { useState } from "react";
+
+import Button from "../../components/Button/Button";
+import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
+import AvatarUser from "../../components/Avatar/AvatarUser";
+import { Icon } from "../../components/Icon/Icon";
+import MenuItem from "../../components/Menu/MenuItem";
+import MenuItemGroup from "../../components/Menu/MenuItemGroup";
+import { users } from "../../data/users";
+import { DeviceFrame, noop } from "../../stories/helpers";
 import FormPreview from "./FormPreview";
+import FormPreviewPanel from "./FormPreviewPanel";
 import { HOT_SIDE_REPAIR_SCHEMA } from "./hotSideRepairSchema";
 import { YES_NO_OPTIONS } from "./options";
 import { FormAnswers, FormSchema } from "./schema.types";
@@ -46,6 +57,9 @@ const MAPPING_SCHEMA: FormSchema = {
         { key: "textArea", type: "textArea", label: "TextArea" },
         { key: "select", type: "select", label: "SelectField (single-select)", options: [{ value: "Value" }] },
         { key: "selectSuffix", type: "select", label: "SelectField (Suffix)", options: [{ value: "Value" }], suffix: "Suffix" },
+        { key: "selectIcon", type: "select", label: "SelectField (icon)" },
+        { key: "selectAvatar", type: "select", label: "SelectField (avatar)" },
+        { key: "selectObject", type: "objectSelect", label: "SelectField (object)" },
         {
           key: "multiSelect",
           type: "multiSelect",
@@ -77,6 +91,7 @@ const MAPPING_SCHEMA: FormSchema = {
           multiple: true,
           options: ["1", "2", "3", "4", "5"].map((value) => ({ value })),
         },
+        { key: "media", type: "media", label: "MediaField" },
       ],
     },
   ],
@@ -92,6 +107,14 @@ const MAPPING_ANSWERS: FormAnswers = {
     "The product team convened late in the afternoon to review the latest iteration of the interface, focusing on clarity, consistency, and the cumulative impact of small interaction decisions.",
   select: "Value",
   selectSuffix: "Value",
+  // A value with an icon / avatar in front of it — the element is the caller's.
+  selectIcon: { text: "Value", slotLeft: <Icon icon="diamonds-4" size={14} /> },
+  selectAvatar: { text: users[0].name, slotLeft: <AvatarUser size="xs" content="image" imageSrc={users[0].avatar} /> },
+  selectObject: {
+    title: "Oven ・ Bosch",
+    caption: "Model: 01234 ・ Serial: 56789",
+    avatar: <AvatarEquipment size="xl" />,
+  },
   // Picked out of order — the preview lists them in the OPTION order.
   multiSelect: ["Second option", "First option"],
   date: new Date(2026, 0, 1),
@@ -103,6 +126,11 @@ const MAPPING_ANSWERS: FormAnswers = {
   yesNo: "Yes",
   chipsSingle: "4",
   chipsMulti: ["3", "4"],
+  media: [
+    { name: "Burner.jpg", type: "image" as const },
+    { name: "Manifold.jpg", type: "image" as const },
+    { name: "Recap.mp4", type: "video" as const },
+  ],
 };
 
 /** One answer per input type — the Figma mapping frame, rendered. */
@@ -118,7 +146,11 @@ export const Mapping: Story = {
 // ---- a real filled form -----------------------------------------------------
 
 const SERVICE_CALL_ANSWERS: FormAnswers = {
-  equipment: "Fryer #2",
+  equipment: {
+    title: "Fryer #2 ・ Frymaster",
+    caption: "Model: FPP345 ・ Serial: 90210",
+    avatar: <AvatarEquipment size="xl" />,
+  },
   voltage: "208V",
   phase: "Three phase",
   gas: "Natural gas",
@@ -181,24 +213,33 @@ export const HiddenAnswers: Story = {
 
 const HOT_SIDE_ANSWERS: FormAnswers = {
   checkIn: "Marta Reyes, kitchen manager",
-  equipmentName: "Hot side range, ID 4471",
+  equipment: {
+    title: "Range ・ Vulcan",
+    caption: "Model: V60F ・ Serial: 4471",
+    avatar: <AvatarEquipment size="xl" />,
+  },
   reportedIssue: "The left burner does not hold a flame.",
   operatingOnArrival: "No",
+  dateTag: [{ name: "Date tag.jpg", type: "image" as const, size: 4_194_304 }],
+  wideShot: [{ name: "Wide shot.jpg", type: "image" as const, size: 2_600_000 }],
   temperature: "312 °F",
   issuesText: "The pilot assembly is corroded and the thermocouple reading drops under load.",
+  issuesMedia: [
+    { name: "Pilot assembly.jpg", type: "image" as const, size: 512_000 },
+    { name: "Thermocouple.jpg", type: "image" as const, size: 890_000 },
+  ],
   actionsTaken: "Cleaned the pilot assembly, replaced the thermocouple and re-tested the burner.",
   functioningOnDeparture: "Yes",
   needReturn: "No",
   partsPicture: "Yes",
   safetyConcerns: "The gas line fitting behind the unit should be re-sealed on the next visit.",
+  finalVideo: [{ name: "Recap.mp4", type: "video" as const, size: 18_800_000 }],
   checkOut: "Marta Reyes, kitchen manager",
-  standaloneQuote: "No",
 };
 
 /**
  * "Hot Side - Repair" — a form with no modules: the answers render as one flat
- * list. Its media answers are not shown yet (waiting for the ValueDisplay
- * update), so the photo and video fields are missing from this preview.
+ * list, with the object card and the file grids.
  */
 export const HotSideRepair: Story = {
   parameters: { layout: "centered" },
@@ -206,5 +247,50 @@ export const HotSideRepair: Story = {
     <Frame>
       <FormPreview schema={HOT_SIDE_REPAIR_SCHEMA} answers={HOT_SIDE_ANSWERS} />
     </Frame>
+  ),
+};
+
+// ---- the panel (how the preview is really shown) ---------------------------
+
+const PanelDemo = ({ breakpoint }: { breakpoint: "desktop" | "mobile" }) => {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <Button size="lg" variant="subtle" leftIcon="eye" onClick={() => setOpen(true)}>
+        Preview form
+      </Button>
+      <FormPreviewPanel
+        open={open}
+        onClose={() => setOpen(false)}
+        schema={HOT_SIDE_REPAIR_SCHEMA}
+        answers={HOT_SIDE_ANSWERS}
+        title="Hot Side - Repair"
+        breakpoint={breakpoint}
+        // The consumer owns the items; here a stand-in for the form's own menu.
+        headerMenu={(close) => (
+          <MenuItemGroup>
+            <MenuItem label="Edit" slotLeft={<Icon icon="pen" container="square" />} onClick={close} />
+            <MenuItem label="Rename" slotLeft={<Icon icon="text-size" container="square" />} onClick={close} />
+            <MenuItem label="Duplicate" slotLeft={<Icon icon="clone" container="square" />} onClick={close} />
+          </MenuItemGroup>
+        )}
+      />
+    </>
+  );
+};
+
+/** The preview as it is really shown: a SidePanel over the page. */
+export const PanelDesktop: Story = {
+  parameters: { layout: "centered" },
+  render: () => <PanelDemo breakpoint="desktop" />,
+};
+
+/** Mobile: the panel fills the screen. */
+export const PanelMobile: Story = {
+  parameters: { layout: "centered" },
+  render: () => (
+    <DeviceFrame>
+      <PanelDemo breakpoint="mobile" />
+    </DeviceFrame>
   ),
 };

@@ -31,10 +31,8 @@ export interface InputProps {
   isLoading?: boolean;
 
   /**
-   * The field — ONE of: TextField, TextArea, SelectField, DateField,
-   * PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField — or TWO
-   * for the textAreaMedia combination: a TextArea followed by a MediaField
-   * (stacked --size-3 (12px) apart under the shared header).
+   * The field — exactly ONE of: TextField, TextArea, SelectField, DateField,
+   * PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField.
    */
   children: ReactNode;
 

@@ -18,23 +18,21 @@ import { InputProps } from "./Input.types";
 // Input — the shared field header: an optional Label (with condition, hint
 // trigger, and the password strength indicator) plus neutral help text, stacked
 // above ONE bare field (TextField, TextArea, SelectField, DateField,
-// PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField) — or TWO
-// for the textAreaMedia combination (TextArea + MediaField, 12px apart). The
-// fields carry no label/help text of their own — Input owns everything above
-// the field.
+// PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField). The field
+// carries no label/help text of its own — Input owns everything above it.
+// (The old TextArea + MediaField pair was removed 2026-08-06, Daniel: one
+// Input = one field, and every field keeps its own label.)
 //
 // A STRING label also flows down through InputContext, so the field derives
 // its label-based copy automatically: the default missing-value message
 // ("Enter/Choose/Provide/Add [Label]"), TextArea's clear-Prompt copy, and
 // DateField's mobile picker label. See Figma "Input".
 
-// The loading stand-in for one field.
-const fieldSkeleton = (el: ReactElement | null, isDesktop: boolean, key?: number) => {
+// The loading stand-in for the field.
+const fieldSkeleton = (el: ReactElement | null, isDesktop: boolean) => {
   const isMedia = el?.type === MediaField;
   const height = el?.type === TextArea ? 102 : isMedia ? (isDesktop ? 180 : 151) : 36;
-  return (
-    <Skeleton key={key} height={height} borderRadius={isMedia ? "var(--border-radius-2)" : "var(--border-radius-1_5)"} />
-  );
+  return <Skeleton height={height} borderRadius={isMedia ? "var(--border-radius-2)" : "var(--border-radius-1_5)"} />;
 };
 
 export default function Input({
@@ -55,14 +53,12 @@ export default function Input({
   // MediaField's skeleton is breakpoint-sized, like its empty trigger.
   const isDesktop = useIsDesktop();
 
-  // ONE field normally; TWO for textAreaMedia — those stack in .fields.
+  // Exactly ONE field.
   const fields = Children.toArray(children).filter(isValidElement) as ReactElement[];
-  const isPair = fields.length > 1;
 
   // "(read-only)" on the label may ONLY come from the field's real readOnly
   // prop — a manually passed "readOnly" condition is ignored (the type
-  // discourages it, but ReactNode can not exclude the string). Single-field
-  // only: the textAreaMedia pair has no read-only state.
+  // discourages it, but ReactNode can not exclude the string).
   const field = fields.length === 1 ? fields[0] : null;
   const readOnly = (field?.props as { readOnly?: boolean } | undefined)?.readOnly === true;
   const effectiveCondition = readOnly ? "readOnly" : labelCondition === "readOnly" ? undefined : labelCondition;
@@ -108,18 +104,11 @@ export default function Input({
       )}
 
       {isLoading ? (
-        // The field skeletons — TextArea is 4 rows (102px), MediaField its
+        // The field skeleton — TextArea is 4 rows (102px), MediaField its
         // empty trigger box (151/180px by breakpoint, radius 8), else 36px.
-        // A pair gets one skeleton per field, stacked like the fields.
-        isPair ? (
-          <div className={styles.fields}>{fields.map((el, index) => fieldSkeleton(el, isDesktop, index))}</div>
-        ) : (
-          fieldSkeleton(field, isDesktop)
-        )
+        fieldSkeleton(field, isDesktop)
       ) : (
-        <InputProvider value={context}>
-          {isPair ? <div className={styles.fields}>{children}</div> : children}
-        </InputProvider>
+        <InputProvider value={context}>{children}</InputProvider>
       )}
     </div>
   );

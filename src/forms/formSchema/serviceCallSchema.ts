@@ -26,9 +26,10 @@ export const SERVICE_CALL_SCHEMA: FormSchema = {
       id: "equipment-warranty",
       title: "Equipment / Warranty",
       fields: [
-        // The equipment picker is fed by the job's live Equipment module, so it
-        // carries no fixed options — the answer holds the equipment's name.
-        { key: "equipment", type: "select", label: "Equipment" },
+        // The equipment picker is fed by the job's live Equipment module. It
+        // picks an OBJECT, so the preview shows it as a card, not as text
+        // (Figma update 2026-08-06; the quick-pick chips were dropped).
+        { key: "equipment", type: "objectSelect", label: "Equipment" },
         { key: "voltage", type: "select", label: "Voltage", options: VOLTAGE_OPTIONS },
         { key: "phase", type: "select", label: "Phase", options: PHASE_OPTIONS },
         { key: "gas", type: "select", label: "Gas type", options: GAS_OPTIONS },
@@ -122,8 +123,9 @@ export const SERVICE_CALL_SCHEMA: FormSchema = {
           visibleWhen: (answers) => isNo(answers.fullyOperational),
         },
         {
+          // A SelectField since the 2026-08-06 Figma update (was a chip row).
           key: "techs",
-          type: "chips",
+          type: "select",
           label: "How many techs are required?",
           options: TECH_COUNT_OPTIONS,
           visibleWhen: (answers) => isNo(answers.fullyOperational),
@@ -143,7 +145,7 @@ export const SERVICE_CALL_SCHEMA: FormSchema = {
         {
           key: "payment",
           type: "radio",
-          label: "How are you collecting payment?",
+          label: "How are you collecting the payment?",
           options: PAYMENT_OPTIONS,
           orientation: "horizontal",
         },
@@ -153,8 +155,9 @@ export const SERVICE_CALL_SCHEMA: FormSchema = {
       id: "notes",
       title: "Additional / Daily notes",
       optional: true,
-      // No label of its own — the module title labels the answer.
-      fields: [{ key: "notes", type: "textArea", optional: true }],
+      // The field repeats the module title as its label — every Input must
+      // carry one (Daniel, 2026-08-06).
+      fields: [{ key: "notes", type: "textArea", label: "Additional / Daily notes", optional: true }],
     },
   ],
 };

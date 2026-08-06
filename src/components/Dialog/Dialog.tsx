@@ -16,6 +16,8 @@ import PopoverHeaderText from "../Popover/PopoverHeaderText";
 import PopoverFooter from "../Popover/PopoverFooter";
 import Button from "../Button/Button";
 import EmptyState from "../EmptyState/EmptyState";
+import HintTrigger from "../Hint/HintTrigger";
+import HoverHint from "../Hint/HoverHint";
 import Prompt from "../Prompt/Prompt";
 
 import styles from "./Dialog.module.scss";
@@ -57,6 +59,8 @@ export default function Dialog(props: DialogProps) {
     title,
     caption,
     captionLeftSlot,
+    titleHint = false,
+    titleHintContent,
     breakpoint = "auto",
     children,
     bodyPadded = true,
@@ -130,6 +134,18 @@ export default function Dialog(props: DialogProps) {
 
   if (!mounted) return null;
 
+  // The title's info icon. With content it opens a HoverHint (375px info
+  // bubble) — the same pattern FormModule and Label use; bare, it is just the
+  // trigger.
+  const titleHintSlot =
+    titleHintContent != null ? (
+      <HoverHint caption={titleHintContent} width={375}>
+        <HintTrigger />
+      </HoverHint>
+    ) : titleHint ? (
+      <HintTrigger />
+    ) : undefined;
+
   const titleContent = (
     <PopoverHeaderContent>
       <PopoverHeaderText
@@ -137,6 +153,7 @@ export default function Dialog(props: DialogProps) {
         title={title}
         caption={caption}
         captionLeftSlot={captionLeftSlot}
+        titleRightSlot={titleHintSlot}
       />
     </PopoverHeaderContent>
   );

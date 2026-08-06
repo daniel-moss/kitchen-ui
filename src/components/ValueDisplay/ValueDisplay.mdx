@@ -1,0 +1,283 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ValueDisplayStories from "./ValueDisplay.stories";
+
+<Meta of={ValueDisplayStories} />
+
+# ValueDisplay
+
+We use **ValueDisplay** to show a label–value pair.
+
+<Canvas of={ValueDisplayStories.Horizontal} />
+
+```tsx
+<ValueDisplay label="Model number" value="HX-4021-B" />
+
+<ValueDisplay orientation="vertical" label="Technician notes" value={notes} lineLimit />
+```
+
+It supports 2 orientations — horizontal and vertical. The orientation decides
+which value kinds are available.
+
+↳&nbsp;&nbsp;[Horizontal](#horizontal)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Text](#text)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Badge](#badge)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[LinkButton](#linkbutton)<br />
+↳&nbsp;&nbsp;[Vertical](#vertical)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Short text](#short-text)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Long text](#long-text)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[AvatarGroup](#avatargroup)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Files](#files)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Object card](#object-card)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Horizontal
+
+The label and the value are horizontally aligned. The label container is fixed
+width — 120px — and the value container fills the rest. They sit `--size-1`
+(4px) apart. The label is `body-400-compact` in `--text-subtle`; the value
+container has `--size-3` (12px) side and `--size-2` (8px) vertical padding, so a
+one-line row is 36px tall.
+
+<Canvas of={ValueDisplayStories.Horizontal} />
+
+It supports an optional IconButton (lg) on the right side of the value
+container — pass it as `slotRight`.
+
+<Canvas of={ValueDisplayStories.HorizontalSlotRight} />
+
+The label never truncates: it wraps when it does not fit one line. The label and
+the value containers stay top-aligned, so the first lines line up.
+
+<Canvas of={ValueDisplayStories.HorizontalLabelWraps} />
+
+The value container holds text, a
+<a href="/?path=/story/components-badge--playground" target="_top">Badge</a> or a
+<a href="/?path=/story/components-linkbutton--playground" target="_top">LinkButton</a>.
+
+### Text
+
+If the value is text only, it wraps when it does not fit one line.
+
+<Canvas of={ValueDisplayStories.Text} />
+
+The text supports a left slot (`slotLeft`), and the two are top-aligned. The
+slot takes an
+<a href="/?path=/story/components-icon--playground" target="_top">Icon</a> —
+all its parameters are yours — or an
+<a href="/?path=/story/components-avatar--playground" target="_top">avatar</a>,
+whose size is fixed at xs (20px). All avatar types are supported.
+
+<Canvas of={ValueDisplayStories.TextSlotLeft} />
+
+The text **with a left slot** truncates when it does not fit one line. Hovering
+the truncated text shows a tooltip with the full value. The trigger is the text
+itself, and the tooltip follows the cursor.
+
+<Canvas of={ValueDisplayStories.TextTruncates} />
+
+The text supports any color — pass it as `valueColor`.
+
+<Canvas of={ValueDisplayStories.TextColors} />
+
+When the value is missing, we show the placeholder instead. Its copy follows the
+pattern "No [label]", with the label's first letter in uppercase. `emptyText`
+overrides it when that reads badly.
+
+<Canvas of={ValueDisplayStories.TextEmpty} />
+
+The text supports a warning state (`isWarning`). We usually use it when the
+value is important but missing, or when the value is suspicious. The text takes
+`--text-warning` and the amber icon is pinned to the right edge, so a wrapping
+message grows downwards past it — the elements are top-aligned.
+
+<Canvas of={ValueDisplayStories.TextWarning} />
+
+Loading state. The label is available on the frontend, so we show it while
+loading; the value is replaced by 1 skeleton line.
+
+<Canvas of={ValueDisplayStories.TextLoading} />
+
+### Badge
+
+Supports any badge — Badge, BadgeColor, an object status badge, etc. The badge
+size is fixed at `md`.
+
+<Canvas of={ValueDisplayStories.BadgeValue} />
+
+If the badge is too long for the width, its copy truncates. Hovering the
+truncated copy shows a tooltip with the full text. The trigger is the badge, and
+the tooltip follows the cursor.
+
+<Canvas of={ValueDisplayStories.BadgeTruncates} />
+
+When the value is missing, we show the placeholder instead.
+
+<Canvas of={ValueDisplayStories.BadgeEmpty} />
+
+Loading state — the badge itself is in its loading state.
+
+<Canvas of={ValueDisplayStories.BadgeLoading} />
+
+### LinkButton
+
+Supports a LinkButton.
+
+<Canvas of={ValueDisplayStories.LinkValue} />
+
+If the button does not fit the width, its copy truncates. Hovering the truncated
+copy shows a tooltip with the full text. The trigger is the button itself, and
+the tooltip follows the cursor.
+
+<Canvas of={ValueDisplayStories.LinkTruncates} />
+
+When the value is missing, we show the placeholder instead.
+
+<Canvas of={ValueDisplayStories.LinkEmpty} />
+
+Loading state — the value is replaced by 1 skeleton line.
+
+<Canvas of={ValueDisplayStories.LinkLoading} />
+
+## Vertical
+
+The label and the value are laid out vertically, `--size-1` (4px) apart. Both
+the label and the value containers fill the width.
+
+<Canvas of={ValueDisplayStories.Vertical} />
+
+The label wraps if it does not fit one line.
+
+<Canvas of={ValueDisplayStories.VerticalLabelWraps} />
+
+The value container supports several variants — short text, long text, files, a
+card and an AvatarGroup.
+
+### Short text
+
+`kind="shortText"` is the compact text value — `body-400-compact` (14/20). The
+text wraps if it does not fit one line. It never truncates, so it has no
+tooltip.
+
+<Canvas of={ValueDisplayStories.ShortText} />
+
+It supports a left slot (`slotLeft`); the slot and the text are top-aligned. The
+slot takes an Icon — all its parameters are yours — or an avatar, whose size is
+fixed at xs (20px). All avatar types are supported.
+
+<Canvas of={ValueDisplayStories.ShortTextSlotLeft} />
+
+When the value is missing, we show the placeholder.
+
+<Canvas of={ValueDisplayStories.ShortTextEmpty} />
+
+Loading state — the value is replaced by 1 skeleton line.
+
+<Canvas of={ValueDisplayStories.ShortTextLoading} />
+
+### Long text
+
+`kind="longText"` is the spacious text value — `body-400-spacious` (14/22). It
+is the vertical default. The text has no line limit and wraps as far as it needs
+to.
+
+<Canvas of={ValueDisplayStories.LongText} />
+
+If the text is expected to be very long, we can truncate it when it reaches 4
+lines — pass `lineLimit`. A truncated text gets a **Show more** button which
+expands it; when expanded the button changes to **Show less**. The button only
+appears when the text really overflows, and the height animates on both
+directions.
+
+<Canvas of={ValueDisplayStories.LongTextTruncated} />
+
+When the value is missing, we show the placeholder.
+
+<Canvas of={ValueDisplayStories.LongTextEmpty} />
+
+Loading state — the value is replaced by 4 skeleton lines.
+
+<Canvas of={ValueDisplayStories.LongTextLoading} />
+
+### AvatarGroup
+
+`kind="avatarStack"` shows an
+<a href="/?path=/story/components-avatargroup--playground" target="_top">AvatarGroup</a>
+stack (xs). It shows up to 3 avatars without truncation. The container has
+`--size-2` (8px) top padding.
+
+<Canvas of={ValueDisplayStories.AvatarStack} />
+
+We truncate the group when it has more than 3 avatars. A truncated group gets a
+**Show more** button which expands it; when expanded the button changes to
+**Show less**. `avatarLimit` changes the number, and `avatarLimit={false}` shows
+every avatar.
+
+<Canvas of={ValueDisplayStories.AvatarStackTruncated} />
+
+The names truncate when they do not fit the width. If the group is truncated,
+the last line shows how many avatars are hidden and lists the hidden users'
+names, separated by commas; that line truncates too. Hovering the hidden-users
+line shows a tooltip with all of them, and hovering a truncated name shows the
+full name. Both tooltips follow the cursor.
+
+<Canvas of={ValueDisplayStories.AvatarStackNames} />
+
+When the value is missing, we show the placeholder instead.
+
+<Canvas of={ValueDisplayStories.AvatarStackEmpty} />
+
+Loading state — the value is replaced by 3 skeleton lines.
+
+<Canvas of={ValueDisplayStories.AvatarStackLoading} />
+
+### Files
+
+`kind="files"` handles the grid of
+<a href="/?path=/docs/components-card-cardfile--docs" target="_top">CardFile</a>s.
+There is no card limit — we show as many as exist, without truncation. The gap
+between the cards is `--size-3` (12px) on both axes.
+
+<Canvas of={ValueDisplayStories.Files} />
+
+A card fills out the width until it reaches its max width (184px).
+
+<Canvas of={ValueDisplayStories.FilesOneCard} />
+
+The cards shrink until they reach their min width (106px). After that they wrap.
+The second and subsequent rows inherit the card width from the first row, so all
+cards stay the same width.
+
+<Canvas of={ValueDisplayStories.FilesWrap} />
+
+When the value is missing, we show the placeholder.
+
+<Canvas of={ValueDisplayStories.FilesEmpty} />
+
+Loading state — the value is replaced by a card in its loading state.
+`loadingCount` changes how many.
+
+<Canvas of={ValueDisplayStories.FilesLoading} />
+
+### Object card
+
+`kind="objectCard"` handles one card with object data. Pass a
+<a href="/?path=/docs/components-listitem-listitem--docs" target="_top">ListItem</a>
+as `card`; ValueDisplay wraps it in the
+<a href="/?path=/docs/components-card-card--docs" target="_top">Card</a> with
+`--size-1` (4px) padding.
+
+<Canvas of={ValueDisplayStories.ObjectCard} />
+
+When the value is missing, we show the placeholder.
+
+<Canvas of={ValueDisplayStories.ObjectCardEmpty} />
+
+Loading state — the value is replaced by the card in its loading state: a
+skeleton avatar and two skeleton lines, with no right icon.
+
+<Canvas of={ValueDisplayStories.ObjectCardLoading} />
+
+## Props
+
+<ArgTypes of={ValueDisplayStories} />

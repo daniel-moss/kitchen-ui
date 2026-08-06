@@ -55,7 +55,7 @@ import { JobContact } from "./contacts";
 import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { DEFAULT_LOCATION, JOB_ID, JobLocation, LOCATIONS } from "./jobData";
-import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel, useJobActiveTime } from "./jobState";
+import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel, useJobLifecycle } from "./jobState";
 import PauseJobForm from "./PauseJobForm";
 import SchedulingForm, { defaultScheduling, durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import { defaultServiceValues, ServiceValues } from "./ServiceForm";
@@ -898,7 +898,7 @@ function useJobShell(isDesktop: boolean) {
   const addLocation = (next: JobLocation) => setLocations((prev) => [...prev, next]);
   const [job, setJob] = useState<JobState>(defaultJob);
   // The Activity tab: how long the job has been in the "Active" status.
-  const activeTime = useJobActiveTime(job);
+  const lifecycle = useJobLifecycle(job, scheduling);
   const [startOpen, setStartOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   // Schedule flow: the "Schedule job" dialog (Figma 24222-20585 — the
@@ -1054,7 +1054,7 @@ function useJobShell(isDesktop: boolean) {
     if (changes.length === 0) return;
     setActivityEvents((prev) => [
       ...prev,
-      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Job properties", changes },
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, changes },
     ]);
   };
 
@@ -1084,7 +1084,7 @@ function useJobShell(isDesktop: boolean) {
     if (changes.length === 0) return;
     setActivityEvents((prev) => [
       ...prev,
-      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Billing intention", changes },
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, changes },
     ]);
   };
 
@@ -1096,7 +1096,7 @@ function useJobShell(isDesktop: boolean) {
     if (changes.length === 0) return;
     setActivityEvents((prev) => [
       ...prev,
-      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, module: "Service", changes },
+      { id: prev.length + 1, kind: "updated", date: new Date(), user: viewer, changes },
     ]);
   };
 
@@ -1566,7 +1566,7 @@ function useJobShell(isDesktop: boolean) {
     addLocation,
     job,
     viewer,
-    activeTime,
+    lifecycle,
     activityEvents,
     changeServiceValues,
     startOpen,
@@ -1772,7 +1772,12 @@ const DesktopShell = () => {
               </div>
             ) : tab === "activity" ? (
               <div className={styles.mainContent}>
-                <ActivityPanel activeSec={s.activeTime.totalSec} activeDays={s.activeTime.days} events={s.activityEvents} />
+                <ActivityPanel
+                  billableSec={s.lifecycle.billableSec}
+                  lifecycleSec={s.lifecycle.lifecycleSec}
+                  breakdown={s.lifecycle.breakdown}
+                  events={s.activityEvents}
+                />
               </div>
             ) : (
               <Placeholder className={styles.mainContent} />
@@ -2040,7 +2045,13 @@ const MobileShell = () => {
             ) : t === "summary" ? (
               <SummaryPanel mobile jobEquipment={s.jobEquipment} />
             ) : t === "activity" ? (
-              <ActivityPanel mobile activeSec={s.activeTime.totalSec} activeDays={s.activeTime.days} events={s.activityEvents} />
+              <ActivityPanel
+            mobile
+            billableSec={s.lifecycle.billableSec}
+            lifecycleSec={s.lifecycle.lifecycleSec}
+            breakdown={s.lifecycle.breakdown}
+            events={s.activityEvents}
+          />
             ) : (
               <Placeholder className={styles.mobileContent} />
             )

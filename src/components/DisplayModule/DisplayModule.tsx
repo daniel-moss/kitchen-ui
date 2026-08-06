@@ -82,6 +82,7 @@ export default function DisplayModule({
       ctaLabel={banner.ctaLabel as string}
       ctaHref={banner.ctaHref}
       ctaOnClick={banner.ctaOnClick}
+      ctaIcon={banner.ctaIcon}
       onDismiss={banner.onDismiss}
     >
       {banner.children}

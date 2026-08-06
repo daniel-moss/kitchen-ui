@@ -80,10 +80,14 @@
   color: var(--amber-a9);
 }
 
+// The left slot box: a 20px line box (one text line) with the icon or the xs
+// avatar centred in it, 8px before the text. Shared by the horizontal text and
+// the vertical short text — in both, the slot and the text are top-aligned.
 .slotLeft {
   display: flex;
   flex: none;
   align-items: center;
+  height: 20px;
   padding-right: var(--size-2); // 8px to the text
 }
 
@@ -160,6 +164,32 @@
   word-break: break-word;
 }
 
+// ---- vertical: short text --------------------------------------------------
+// Short text is the COMPACT body style (14/20) — long text below is spacious.
+// It wraps; unlike horizontal text with a left slot, it never truncates.
+.textShort {
+  @include font("body-400-compact");
+  color: var(--text-strong);
+
+  width: 100%;
+  margin: 0;
+  word-break: break-word;
+}
+
+// With a left slot the text becomes the flexible column beside it, top-aligned.
+.shortRow {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+
+  .textShort {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+// ---- vertical: long text ---------------------------------------------------
 // Vertical text is the SPACIOUS body style (14/22) — horizontal is compact.
 .textVertical {
   @include font("body-400-spacious");
@@ -242,4 +272,32 @@
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+// ---- vertical: files -------------------------------------------------------
+// The file-card grid. The uniform card width is MEASURED (useCardGridWidth,
+// shared with ItemGroup's cards view) and set inline on each cell: the doc's
+// rule is that every row keeps the first row's card width, which a wrapping
+// flex row alone cannot do — a short last row would stretch its cards.
+.filesGrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: var(--size-3); // 12px
+  width: 100%;
+}
+
+// The fallback before the first measurement (the CardFile width range).
+.fileCell {
+  flex: 1 0 0;
+  min-width: 106px;
+  max-width: 184px;
+}
+
+// ---- vertical: object card -------------------------------------------------
+// The Card wrapper. Its 4px body padding is passed as Card's `padding` prop —
+// the ListItem inside brings its own 12/10 padding and its own hover states
+// (Card excludes interactive descendants from its own hover).
+.objectCard {
+  width: 100%;
 }

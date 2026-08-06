@@ -6,8 +6,10 @@ import {
   FormFieldSchema,
   FormMediaAnswer,
   FormModuleSchema,
+  FormObjectAnswer,
   FormOption,
   FormSchema,
+  FormTextAnswer,
   PreviewAnswer,
   PreviewModule,
 } from "./schema.types";
@@ -33,7 +35,16 @@ const PREVIEW_DATE = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
-const asText = (value: FormAnswerValue): string => (typeof value === "string" ? value.trim() : "");
+// A text answer is a plain string, or a { text, slotLeft } pair when the value
+// carries an icon / avatar in front of it.
+const asText = (value: FormAnswerValue): string => {
+  if (typeof value === "string") return value.trim();
+  const pair = value as FormTextAnswer | null | undefined;
+  return typeof pair?.text === "string" ? pair.text.trim() : "";
+};
+
+const slotLeftOf = (value: FormAnswerValue) =>
+  typeof value === "object" && value != null && "slotLeft" in value ? (value as FormTextAnswer).slotLeft : undefined;
 
 const asList = (value: FormAnswerValue): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -148,6 +159,8 @@ export function answerText(field: FormFieldSchema, answers: FormAnswers): string
     }
 
     case "media":
+    case "objectSelect":
+      // Not text — buildFormPreview turns these into `files` / `objectCard`.
       return null;
   }
 }
@@ -157,14 +170,26 @@ function previewAnswer(field: FormFieldSchema, module: FormModuleSchema, answers
   if (!isFieldVisible(field, answers)) return null;
   // A label-less field is labelled by its module's title (Daniel, 2026-08-05).
   const label = field.label ?? module.title ?? "";
+  const raw = answers[field.key];
 
+  // A MediaField becomes the CardFile grid.
   if (field.type === "media") {
-    const files = asFiles(answers[field.key]);
-    return files.length === 0 ? null : { key: field.key, label, kind: "media", files };
+    const files = asFiles(raw);
+    return files.length === 0 ? null : { key: field.key, label, kind: "files", files };
+  }
+
+  // An object select becomes the object card.
+  if (field.type === "objectSelect") {
+    const object = asObject<FormObjectAnswer>(raw);
+    const title = typeof object?.title === "string" ? object.title.trim() : "";
+    return title === "" ? null : { key: field.key, label, kind: "objectCard", object: { ...object, title } };
   }
 
   const value = answerText(field, answers);
-  return value == null ? null : { key: field.key, label, kind: "text", value };
+  if (value == null) return null;
+  // A TextArea is the only spacious value — everything else is compact.
+  if (field.type === "textArea") return { key: field.key, label, kind: "longText", value };
+  return { key: field.key, label, kind: "shortText", value, slotLeft: slotLeftOf(raw) };
 }
 
 /**

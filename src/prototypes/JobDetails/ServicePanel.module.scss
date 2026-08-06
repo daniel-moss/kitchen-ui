@@ -22,3 +22,12 @@
 .emptyBody {
   margin: calc(-1 * var(--size-4)); // -16px
 }
+
+// A file's context-menu card, anchored under its ellipsis / card ⋯ button.
+// MUST stay here: FilesModule renders the wrapper as a sibling of its rows
+// inside ItemGroup, so without `position: fixed` the menu joins the list flow
+// and shows up as an extra row.
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}

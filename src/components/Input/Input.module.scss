@@ -13,14 +13,6 @@
   gap: var(--size-0_5); // 2px — label ↔ help text
 }
 
-// Two fields under one header (Figma field=textAreaMedia: TextArea + MediaField).
-.fields {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-3); // 12px — field ↔ field
-  width: 100%;
-}
-
 // Label row — the label plus the optional strength indicator at the right edge.
 .labelRow {
   display: flex;
