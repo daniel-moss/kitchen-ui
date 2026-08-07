@@ -1,21 +1,27 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
 import Button from "../../components/Button/Button";
 import Counter from "../../components/Counter/Counter";
 import Dialog from "../../components/Dialog/Dialog";
+import { Divider } from "../../components/Divider/Divider";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
+import TextField from "../../components/Fields/TextField/TextField";
 import FormModule from "../../components/FormModule/FormModule";
 import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
 import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
+import Input from "../../components/Input/Input";
+import LinkButton from "../../components/LinkButton/LinkButton";
 import ListItem from "../../components/ListItem/ListItem";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
+import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
 import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
 import MenuItem from "../../components/Menu/MenuItem";
+import PopoverFooter from "../../components/Popover/PopoverFooter";
 import Prompt from "../../components/Prompt/Prompt";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListFooter from "../../components/SelectList/SelectListFooter";
@@ -29,7 +35,7 @@ import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
 import { GROUPS, ChargeGroup } from "./ChargesTab";
-import FormsModule from "./FormsModule";
+import FormsModule, { FormAvatar, FormSummary } from "./FormsModule";
 import {
   Equipment,
   EquipmentAvatar,
@@ -38,7 +44,10 @@ import {
   equipmentLabel,
   equipmentTitle,
 } from "./equipment";
+import { DEFAULT_LOCATION, locationCaption } from "./jobData";
 import { noop, slot } from "./shared";
+import SignaturePad from "./SignaturePad";
+import { SignatureResult } from "./SignatureModule";
 import useSummaryGenerator from "./summaryGenerator";
 
 import styles from "./CompleteJobForm.module.scss";
@@ -47,18 +56,13 @@ import styles from "./CompleteJobForm.module.scss";
 // "Complete job" — the 5-step focus Dialog (Figma section 24106-16424):
 // Equipment · Forms · Summary · Charges · Signature. Each step maps to a job
 // module; the DS `Dialog type="focus"` owns the step footer (Cancel/Back →
-// Next). Signature is NOT built yet — it shows in the step bar but is
-// unreachable (Next on Charges is a no-op, Daniel).
+// Next). The last step adds a "Skip signature" secondary action.
 // ---------------------------------------------------------------------------
 
 const STEP_LABELS = ["Equipment", "Forms", "Summary", "Charges", "Signature"];
 const FORMS_STEP = 1;
-const CHARGES_STEP = 3;
-
-// Job total time = how long the JOB was active (not the tech's tracked time).
-// Placeholder for the prototype (Figma 24401-45608).
-const JOB_TOTAL_TIME = "2 hr 23 min";
-const JOB_TOTAL_SPAN = "Across 1 day";
+const SUMMARY_STEP = 2;
+const SIGNATURE_STEP = 4;
 
 // Job subtotal = the sum of the group totals, less discounts (none here).
 const money = (s: string) => parseFloat(s.replace(/[$,]/g, "")) || 0;
@@ -173,24 +177,9 @@ function EquipmentDetailModule({ equipment }: { equipment: Equipment }) {
   );
 }
 
-// The centered "Job total time" widget (Figma 24401-45608).
-const JobTotalTimeWidget = () => (
-  <DisplayModule
-    variant="bodyOnly"
-    content={
-      <div className={styles.totalTime}>
-        <span className={styles.totalLabel}>Job total time</span>
-        <div className={styles.totalValueBlock}>
-          <span className={styles.totalValue}>{JOB_TOTAL_TIME}</span>
-          <span className={styles.totalCaption}>{JOB_TOTAL_SPAN}</span>
-        </div>
-      </div>
-    }
-  />
-);
-
 // One charges group as its own DisplayModule (Figma 24395-36688): header (label
-// + Counter + plus) over the line items + a group-total footer. Rows are
+// + Counter + plus) over the line items. NO group-total footer — the 2026-08-07
+// node dropped it; only the Job subtotal below the modules remains. Rows are
 // clickable (noop) and draggable — drag only when the group has more than one
 // row (Daniel; a single row has nothing to reorder).
 function ChargeModule({ group }: { group: ChargeGroup }) {
@@ -231,19 +220,50 @@ function ChargeModule({ group }: { group: ChargeGroup }) {
               return draggable ? <ListItem key={it.id} {...common} isDraggable /> : <ListItem key={it.id} {...common} />;
             })}
           </ItemGroup>
-          <div className={styles.subtotalRow}>
-            <span className={styles.subtotalLabel}>{group.label} total:</span>
-            <span className={styles.subtotalValue}>{group.subtotal}</span>
-          </div>
         </div>
       }
     />
   );
 }
 
+// One charges group on the SIGNATURE step: the same rows, read-only — no plus,
+// no ⋯, no drag; the row opens the charge (noop) and shows an angle-right
+// (Figma 24395-37211).
+const ChargeSummaryModule = ({ group }: { group: ChargeGroup }) => (
+  <DisplayModule
+    title={group.label}
+    content={
+      <div className={styles.chargeBody}>
+        <ItemGroup>
+          {group.items.map((it) => (
+            <ListItem
+              key={it.id}
+              variant="titleCaption"
+              title={it.title}
+              caption={it.caption}
+              captionLines={1}
+              avatar={<Avatar type="object" content="icon" icon={group.icon} size="xl" />}
+              right={<ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />}
+              slotRight={<ListItemSlotIcon icon="angle-right" />}
+              isClickable
+              onClick={noop}
+            />
+          ))}
+        </ItemGroup>
+      </div>
+    }
+  />
+);
+
 interface CompleteJobFormProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * The job was completed — through the signature or through "Skip and
+   * complete". The caller moves the job to "Completed", files the signature
+   * into the Summary tab's Signature module and opens the Send-summary form.
+   */
+  onCompleted: (signature: SignatureResult) => void;
   /** The job's equipment (ids into the pool) — the LIVE list, shared with the
    *  Equipment module (Daniel: equipment is shared, the rest is a snapshot). */
   equipmentIds: number[];
@@ -251,20 +271,61 @@ interface CompleteJobFormProps {
   /** The location's equipment — the LIVE pool (the New-equipment form appends
    *  to it), so a piece created on the job shows up here too. */
   equipmentPool: Equipment[];
+  /**
+   * The job facts the Signature step recaps, straight from the modules that own
+   * them: Type / Recall to / Service come from the SERVICE module, Source ID
+   * from Job properties (Daniel, 2026-08-07). `sourceId` is undefined when the
+   * job's source does not provide one, and `recallTo` is null unless the job is
+   * a recall — both rows then disappear.
+   */
+  jobFacts: {
+    jobId: string;
+    sourceId?: string;
+    isRecall: boolean;
+    recallTo: string | null;
+    service: string;
+  };
   mobile?: boolean;
 }
 
-export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipmentIdsChange, equipmentPool, mobile = false }: CompleteJobFormProps) {
+export default function CompleteJobForm({ open, onClose, onCompleted, equipmentIds, onEquipmentIdsChange, equipmentPool, jobFacts, mobile = false }: CompleteJobFormProps) {
   const [step, setStep] = useState(0);
   const [workSummary, setWorkSummary] = useState("");
   const [notes, setNotes] = useState("");
-  const [formsDone, setFormsDone] = useState({ all: false, any: false });
+  const [formsDone, setFormsDone] = useState({ all: false, any: false, count: 0 });
+  const [forms, setForms] = useState<FormSummary[]>([]);
   const [skipFormsOpen, setSkipFormsOpen] = useState(false);
   const [equipmentListOpen, setEquipmentListOpen] = useState(false);
+  // Summary step: the Work summary is required, so Next can fail (Figma
+  // "Missing Value" 24429-51496 — "Provide Work summary").
+  const [summaryError, setSummaryError] = useState(false);
+  // Signature step: the pad and "Signed by" are both required. The pad hands
+  // over a capture function so the drawn ink can travel to the Signature module.
+  const captureInk = useRef<(() => string | null) | null>(null);
+  const registerCapture = useCallback((capture: () => string | null) => {
+    captureInk.current = capture;
+  }, []);
+  const [hasSignature, setHasSignature] = useState(false);
+  const [signedBy, setSignedBy] = useState("");
+  const [signatureErrors, setSignatureErrors] = useState(false);
+  // Skip signature (Figma 24561-137021): its reason is required too.
+  const [skipSignatureOpen, setSkipSignatureOpen] = useState(false);
+  const [skipReason, setSkipReason] = useState("");
+  const [skipReasonError, setSkipReasonError] = useState(false);
 
   // Generate: "AI thinking" spinner, then the summary is typed in. Shared with
   // the Work summary module's edit form so both behave the same.
   const gen = useSummaryGenerator(setWorkSummary);
+
+  // The Forms step owns the preview panel; the Signature step's read-only list
+  // opens it through this (registered by FormsModule).
+  const openFormPreview = useRef<((id: number) => void) | null>(null);
+  const registerPreview = useCallback((open: (id: number) => void) => {
+    openFormPreview.current = open;
+  }, []);
+  // FormsModule reports through effects — a new function identity every render
+  // would make it report in a loop.
+  const handleFormsChange = useCallback((next: FormSummary[]) => setForms(next), []);
 
   // A fresh open resets the flow (the forms/summary/charges are a snapshot).
   useEffect(() => {
@@ -275,14 +336,22 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
     setNotes("");
     setSkipFormsOpen(false);
     setEquipmentListOpen(false);
+    setSummaryError(false);
+    setHasSignature(false);
+    setSignedBy("");
+    setSignatureErrors(false);
+    setSkipSignatureOpen(false);
+    setSkipReason("");
+    setSkipReasonError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
+  const completedForms = forms.filter((f) => f.completed);
 
   // Step progress: the current step is half-stroke, passed steps show the jade
   // check — EXCEPT Forms, which shows the amber WARNING when it was moved past
-  // without every form completed (Skip-forms). Signature is never reached.
+  // without every form completed (Skip-forms).
   const progressOf = (i: number): StepItemProgress => {
     if (i === step) return "current";
     if (i === FORMS_STEP && i < step) return formsDone.all ? "completed" : "warning";
@@ -298,9 +367,23 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
       setSkipFormsOpen(true);
       return;
     }
-    // Charges → Signature is not built (Daniel): Next does nothing.
-    if (step === CHARGES_STEP) return;
+    // Summary: the Work summary is required.
+    if (step === SUMMARY_STEP && workSummary.trim() === "") {
+      setSummaryError(true);
+      return;
+    }
     advance();
+  };
+
+  // "Complete job" validates the signature step, then hands the COLLECTED
+  // signature over: the flow closes, the job turns Completed, the Signature
+  // module fills in and the Send-summary form opens.
+  const handleFinish = () => {
+    if (!hasSignature || signedBy.trim() === "") {
+      setSignatureErrors(true);
+      return;
+    }
+    onCompleted({ state: "collected", signedBy: signedBy.trim(), date: new Date(), ink: captureInk.current?.() ?? undefined });
   };
 
   return (
@@ -311,7 +394,6 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
         onClose={onClose}
         title="Complete job"
         breakpoint={mobile ? "mobile" : "desktop"}
-        requireScrollToEnd
         stepGroup={
           <StepItemGroup>
             {STEP_LABELS.map((label, i) => (
@@ -330,8 +412,16 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
         stepCount={STEP_LABELS.length}
         onBack={() => setStep((s) => Math.max(0, s - 1))}
         onNext={handleNext}
-        onFinish={noop}
+        onFinish={handleFinish}
         finalActionLabel="Complete job"
+        // The Signature step alone offers a way out of signing.
+        secondaryAction={
+          step === SIGNATURE_STEP ? (
+            <Button size="lg" variant="subtle" onClick={() => setSkipSignatureOpen(true)}>
+              Skip signature
+            </Button>
+          ) : undefined
+        }
       >
         {/* Step 1 — Equipment */}
         {step === 0 && (
@@ -356,27 +446,44 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
         {/* Step 2 — Forms (kept mounted across steps so its state persists;
             reports completion up for the Skip gating + the Generate button). */}
         <div style={{ display: step === FORMS_STEP ? undefined : "none" }}>
-          <FormsModule mobile={mobile} stepVariant onCompletionChange={setFormsDone} />
+          <FormsModule
+            mobile={mobile}
+            stepVariant
+            onCompletionChange={setFormsDone}
+            onFormsChange={handleFormsChange}
+            registerPreview={registerPreview}
+          />
         </div>
 
         {/* Step 3 — Summary */}
-        {step === 2 && (
+        {step === SUMMARY_STEP && (
           <FormModuleGroup>
-            <JobTotalTimeWidget />
             <FormModule title="Work summary" caption="Roopairs can generate summary based on completed forms or you can fill it out manually">
               <div className={styles.genStack}>
-                <Button
-                  variant="subtle"
-                  size="lg"
-                  isFullWidth
-                  leftIcon="wand-magic-sparkles"
-                  isDisabled={!formsDone.any || gen.busy}
-                  isProcessing={gen.phase === "thinking"}
-                  onClick={gen.generate}
-                >
-                  Generate
-                </Button>
-                <TextArea value={workSummary} onChange={(e) => setWorkSummary(e.target.value)} />
+                {/* The button is only offered when the job HAS forms; with
+                    forms but none completed it stays, disabled, and SAYS so
+                    (Figma 24429-51511). */}
+                {formsDone.count > 0 && (
+                  <Button
+                    variant="subtle"
+                    size="lg"
+                    isFullWidth
+                    leftIcon="wand-magic-sparkles"
+                    isDisabled={!formsDone.any || gen.busy}
+                    isProcessing={gen.phase === "thinking"}
+                    onClick={gen.generate}
+                  >
+                    {formsDone.any ? "Generate" : "No completed forms"}
+                  </Button>
+                )}
+                {/* The error clears as soon as there IS a summary — typed or
+                    generated (Generate writes straight into the value). */}
+                <TextArea
+                  value={workSummary}
+                  isValid={!(summaryError && workSummary.trim() === "")}
+                  errorMessage="Provide Work summary"
+                  onChange={(e) => setWorkSummary(e.target.value)}
+                />
               </div>
             </FormModule>
             <FormModule
@@ -389,7 +496,9 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
           </FormModuleGroup>
         )}
 
-        {/* Step 4 — Charges (one DisplayModule per group + Discounts + subtotal) */}
+        {/* Step 4 — Charges: one DisplayModule per group + Discounts, then the
+            Job subtotal. The groups carry NO total row of their own any more
+            (Figma 24429-51526, 2026-08-07). */}
         {step === 3 && (
           <FormModule title="Charges" caption="Add labor, products, and any other charges or discounts">
             <div className={styles.stack}>
@@ -404,15 +513,7 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
                     <IconButton icon="plus" variant="ghost" size="md" aria-label="Add discount" onClick={noop} />
                   </HoverTooltip>
                 }
-                content={
-                  <div className={styles.chargeBody}>
-                    <EmptyState caption="No discounts here yet" />
-                    <div className={styles.subtotalRow}>
-                      <span className={styles.subtotalLabel}>Discounts total:</span>
-                      <span className={styles.subtotalMuted}>$0.00</span>
-                    </div>
-                  </div>
-                }
+                content={<EmptyState caption="No discounts here yet" />}
               />
               {/* Job subtotal — the sum of the groups, less discounts. */}
               <div className={styles.jobSubtotal}>
@@ -421,6 +522,119 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
               </div>
             </div>
           </FormModule>
+        )}
+
+        {/* Step 5 — Signature: a read-only recap of the job the customer signs
+            off (Figma 24395-37211), then the signature pad + "Signed by". */}
+        {step === SIGNATURE_STEP && (
+          <div className={styles.signatureStep}>
+            <div className={styles.recap}>
+              <div className={styles.client}>
+                <span className={styles.clientName}>{DEFAULT_LOCATION.client}</span>
+                <span className={styles.clientAddress}>{locationCaption(DEFAULT_LOCATION)}</span>
+              </div>
+
+              <div className={styles.stack}>
+                {/* The job's facts, from the Service + Job-properties modules.
+                    Source ID only when the source provides one; Recall to only
+                    on a recall (Daniel, 2026-08-07). */}
+                <DisplayModule
+                  variant="bodyOnly"
+                  content={
+                    <ValueDisplayGroup>
+                      <ValueDisplay label="Job ID" value={jobFacts.jobId} />
+                      {jobFacts.sourceId != null && <ValueDisplay label="Source ID" value={jobFacts.sourceId} />}
+                      <ValueDisplay
+                        label="Type"
+                        value={jobFacts.isRecall ? "Recall" : "New"}
+                        // The same icons the Service module and its edit form
+                        // use: sparkle = New, clock-rotate-left = Recall.
+                        slotLeft={
+                          <Icon
+                            icon={jobFacts.isRecall ? "clock-rotate-left" : "sparkle"}
+                            pack="regular"
+                            size={14}
+                            container="square"
+                          />
+                        }
+                      />
+                      {jobFacts.isRecall && jobFacts.recallTo != null && (
+                        <ValueDisplay
+                          label="Recall to"
+                          kind="linkButton"
+                          link={
+                            <LinkButton rightIcon="arrow-up-right" onClick={noop}>
+                              {jobFacts.recallTo}
+                            </LinkButton>
+                          }
+                        />
+                      )}
+                      <ValueDisplay label="Service" value={jobFacts.service} />
+                    </ValueDisplayGroup>
+                  }
+                />
+
+                <DisplayModule title="Work summary" content={<p className={styles.paragraph}>{workSummary}</p>} />
+
+                {/* ONLY the completed forms, read-only — with none the module
+                    does not show at all (Daniel, 2026-08-07). A row opens the
+                    same preview panel the Forms step uses. */}
+                {completedForms.length > 0 && (
+                  <DisplayModule
+                    title="Forms"
+                    content={
+                      <div className={styles.chargeBody}>
+                        <ItemGroup>
+                          {completedForms.map((f) => (
+                            <ListItem
+                              key={f.id}
+                              variant="titleCaption"
+                              title={f.name}
+                              caption={f.caption}
+                              captionLines={1}
+                              avatar={<FormAvatar state="completed" />}
+                              slotRight={<ListItemSlotIcon icon="angle-right" />}
+                              isClickable
+                              onClick={() => openFormPreview.current?.(f.id)}
+                            />
+                          ))}
+                        </ItemGroup>
+                      </div>
+                    }
+                  />
+                )}
+
+                {GROUPS.map((g) => (
+                  <ChargeSummaryModule key={g.key} group={g} />
+                ))}
+              </div>
+
+              <div className={styles.jobSubtotal}>
+                <span className={styles.jobSubtotalLabel}>Subtotal</span>
+                <span className={styles.jobSubtotalValue}>{JOB_SUBTOTAL}</span>
+              </div>
+            </div>
+
+            <Divider />
+
+            {/* The pad and the field are direct children, so FormModule's own
+                24px content gap separates them (Daniel, 2026-08-07). */}
+            <FormModule title="Signature">
+              <SignaturePad
+                isValid={!(signatureErrors && !hasSignature)}
+                errorMessage="Collect Signature"
+                onInkChange={setHasSignature}
+                registerCapture={registerCapture}
+              />
+              <Input label="Signed by">
+                <TextField
+                  value={signedBy}
+                  isValid={!(signatureErrors && signedBy.trim() === "")}
+                  onChange={(e) => setSignedBy(e.target.value)}
+                />
+              </Input>
+            </FormModule>
+          </div>
         )}
 
         {/* Add equipment (same pool + multi-select as the Equipment module). */}
@@ -483,6 +697,51 @@ export default function CompleteJobForm({ open, onClose, equipmentIds, onEquipme
         }}
         onCancel={() => setSkipFormsOpen(false)}
       />
+
+      {/* "Skip signature" (Figma 24561-137021) — a reason is required. Its
+          "Skip and complete" completes the job the same way the signature does,
+          so it hands over to the Send-summary form too. */}
+      <Dialog
+        open={skipSignatureOpen}
+        onClose={() => setSkipSignatureOpen(false)}
+        title="Skip signature"
+        breakpoint={mobile ? "mobile" : "desktop"}
+        confirmOnDismiss={skipReason !== ""}
+        footer={
+          <PopoverFooter
+            leadingButton={
+              <Button size="lg" variant="ghost" onClick={() => setSkipSignatureOpen(false)}>
+                Cancel
+              </Button>
+            }
+          >
+            <Button
+              size="lg"
+              variant="solid"
+              onClick={() => {
+                if (skipReason.trim() === "") {
+                  setSkipReasonError(true);
+                  return;
+                }
+                setSkipSignatureOpen(false);
+                // Skipping still completes the job — the module shows the
+                // "skipped" state with this reason instead of the ink.
+                onCompleted({ state: "skipped", skipReason: skipReason.trim(), date: new Date() });
+              }}
+            >
+              Skip and complete
+            </Button>
+          </PopoverFooter>
+        }
+      >
+        <Input label="Skip reason" helpText="Why you can't collect a signature?">
+          <TextArea
+            value={skipReason}
+            isValid={!(skipReasonError && skipReason.trim() === "")}
+            onChange={(e) => setSkipReason(e.target.value)}
+          />
+        </Input>
+      </Dialog>
     </>
   );
 }

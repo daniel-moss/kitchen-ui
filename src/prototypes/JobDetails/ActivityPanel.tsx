@@ -198,7 +198,14 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
           <PeopleValue people={log.people} />
         </Em>
       ) : (
-        log.value != null && <Em>{log.strikeValue != null ? ` → ${log.value}` : log.value}</Em>
+        log.value != null &&
+        (log.valueLink ? (
+          <Em>
+            <span className={styles.link}>{log.value}</span>
+          </Em>
+        ) : (
+          <Em>{log.strikeValue != null ? ` → ${log.value}` : log.value}</Em>
+        ))
       )}
       {log.tailText}
       {log.tailPeople != null ? (
@@ -283,7 +290,11 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   text={<SessionText event={event} />}
                   date={event.date}
                 />
-              ) : event.kind === "jobStatus" || event.kind === "scheduling" || event.kind === "assignees" ? (
+              ) : event.kind === "jobStatus" ||
+                event.kind === "scheduling" ||
+                event.kind === "assignees" ||
+                event.kind === "createdFrom" ||
+                event.kind === "forms" ? (
                 // The job's lifecycle (Figma 24512-62842) — the status glyph is
                 // the symbol, SOLID and in the status's own colour, so the
                 // sentence names the status without one. A typed reason turns

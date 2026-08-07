@@ -10,8 +10,7 @@ export type AvatarJobStatus =
   | "quickPaused"
   | "onHoldExternal"
   | "onHoldInternal"
-  | "uninvoiced"
-  | "unestimated"
+  | "completed"
   | "finalized"
   | "cancelled";
 

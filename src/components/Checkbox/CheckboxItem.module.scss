@@ -175,7 +175,9 @@
 
 // ===== content slot =====
 // 16px padding on all sides (Figma — same rule as RadioItem's content slot;
-// confirmed on the Start-job Check in card, node 24191-72766).
+// confirmed on the Start-job Check in card, node 24191-72766). `contentPadded`
+// drops it when the content owns its own spacing — e.g. a full-bleed Divider
+// between a field and a list (Send-job-summary, Daniel 2026-08-07).
 .contentSlot {
   box-sizing: border-box;
   width: 100%;
@@ -183,4 +185,7 @@
   // The slot doesn't toggle the card, so no pointer here — interactive content
   // inside (e.g. RadioItem) brings its own cursor.
   cursor: default;
+}
+.contentBare {
+  padding: 0;
 }

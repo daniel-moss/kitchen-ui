@@ -66,10 +66,14 @@ function filterGroups(children: ReactNode, query: string): { nodes: ReactNode; c
 // when the list OPENS are pinned into a group at the top, a divider, then the
 // rest. `pinned` is the snapshot of selected keys taken on open and FROZEN while
 // open — checking/unchecking does not move items (they only re-sort on the next
-// open), so options never jump under the finger. Multi-select lists have no
-// group labels, so all items are flattened and re-split into selected/unselected
-// (the first group element is reused as the wrapper). withGroupDividers then
-// draws the divider between the two.
+// open), so options never jump under the finger. All items are flattened and
+// re-split into selected/unselected (the first group element is reused as the
+// wrapper). withGroupDividers then draws the divider between the two.
+//
+// THE RULE (Daniel, 2026-08-07): this applies ONLY to a SINGLE-group list. With
+// more than one group the groups carry meaning — where an option comes from —
+// so they stay as the consumer wrote them and nothing is pinned on top. See
+// `groupCount` at the call site.
 function reorderSelected(children: ReactNode, pinned: Set<string>): ReactNode {
   const groups = Children.toArray(children).filter(isValidElement) as ReactElement[];
   if (groups.length === 0) return children;
@@ -162,7 +166,10 @@ export default function SelectList({
     setPinned(keys);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-  const orderedChildren = multiSelect ? reorderSelected(bodyChildren, pinned) : bodyChildren;
+  // Counted on the ORIGINAL children, not the filtered ones: a search that
+  // empties one of two groups must not flip the list into "selected on top".
+  const groupCount = Children.toArray(children).filter(isValidElement).length;
+  const orderedChildren = multiSelect && groupCount === 1 ? reorderSelected(bodyChildren, pinned) : bodyChildren;
 
   // A search header auto-focuses on open ONLY on devices with a real pointer
   // (`hover: hover` — the same signal as the DS-wide hover rule), so typing

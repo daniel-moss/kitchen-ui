@@ -170,8 +170,13 @@
 // ===== content slot =====
 // 16px padding on all sides (Figma node 24096-17121: the revealed SelectField
 // sits at x16/y16 with a 16px inset every side).
+// `contentPadded={false}` drops it when the content owns its own spacing —
+// e.g. a full-bleed Divider between a field and a list.
 .contentSlot {
   box-sizing: border-box;
   width: 100%;
   padding: var(--size-4); // 16px
+}
+.contentBare {
+  padding: 0;
 }

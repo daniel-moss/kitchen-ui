@@ -10,8 +10,7 @@ export const STATUS = {
   quickPaused: { scheme: "amber", icon: "circle-pause", label: "Quick-paused" },
   onHoldExternal: { scheme: "crimson", icon: "circle-stop", label: "On hold" },
   onHoldInternal: { scheme: "brown", icon: "circle-stop", label: "On hold" },
-  uninvoiced: { scheme: "orange", icon: "circle-check", label: "Uninvoiced" },
-  unestimated: { scheme: "orange", icon: "circle-check", label: "Unestimated" },
+  completed: { scheme: "orange", icon: "circle-check", label: "Completed" },
   finalized: { scheme: "jade", icon: "circle-check", label: "Finalized" },
   cancelled: { scheme: "gray", icon: "circle-xmark", label: "Cancelled" },
 } satisfies Record<string, StatusDef>;

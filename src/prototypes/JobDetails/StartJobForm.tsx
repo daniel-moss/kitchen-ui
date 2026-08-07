@@ -1,5 +1,6 @@
 import { MouseEvent, useEffect, useState } from "react";
 
+import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import Button from "../../components/Button/Button";
 import CheckboxItem from "../../components/Checkbox/CheckboxItem";
 import Dialog from "../../components/Dialog/Dialog";
@@ -40,13 +41,20 @@ interface StartJobFormProps {
   reasonLabel?: string;
   /** Success toast title. Default '"JOB-ID" started'. */
   toastTitle?: string;
+  /**
+   * Optional info AlertBanner above the fields, dismissible. Resuming a
+   * COMPLETED job uses it to warn that a new signature is needed
+   * (Figma 24567-140277); plain Start / Resume have no banner.
+   */
+  banner?: string;
 }
 
 // The "Start job" form (Figma 24048-13283, 2026-07-27 update): Job sub-status
 // select + optional reason + a "Check in" CheckboxItem card (selected by
 // default) whose content is a VERTICAL stack of card radios over the four
 // tech statuses (error "Choose your status"). The SAME form serves "Resume job"
-// (Figma 24096-19684) via the copy props — resume has NO banner.
+// (Figma 24096-19684) via the copy props — resuming a PAUSED job has no banner,
+// resuming a COMPLETED one passes `banner` (Figma 24567-140277).
 export default function StartJobForm({
   open,
   onClose,
@@ -56,12 +64,14 @@ export default function StartJobForm({
   submitLabel = "Start job",
   reasonLabel = "Start reason",
   toastTitle = `"${JOB_ID}" started`,
+  banner,
 }: StartJobFormProps) {
   const [subStatus, setSubStatus] = useState("");
   const [reason, setReason] = useState("");
   const [checkIn, setCheckIn] = useState(true);
   const [status, setStatus] = useState("");
   const [showError, setShowError] = useState(false);
+  const [bannerShown, setBannerShown] = useState(true);
   const subStatusPop = useSelectPopover(mobile);
 
   // A fresh open resets the draft; closing also forces the nested selects shut.
@@ -72,6 +82,7 @@ export default function StartJobForm({
     setCheckIn(true);
     setStatus("");
     setShowError(false);
+    setBannerShown(true);
     subStatusPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -111,6 +122,12 @@ export default function StartJobForm({
       }
     >
       <div className={styles.form}>
+        {banner != null && bannerShown && (
+          <AlertBanner orientation="vertical" status="info" onDismiss={() => setBannerShown(false)}>
+            {banner}
+          </AlertBanner>
+        )}
+
         <Input label="Job sub-status">
           <SelectField
             value={subStatus || undefined}

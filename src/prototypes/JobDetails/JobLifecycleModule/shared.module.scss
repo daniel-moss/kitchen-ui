@@ -45,6 +45,11 @@
   white-space: nowrap;
 }
 
+// An empty highlight ("0 min") is dimmed — Figma "Billable Time" 24575-150179.
+.valueEmpty {
+  color: var(--text-placeholder);
+}
+
 // "Statuses" / "Break down" — caption/md 500 over the list, with its hint.
 .sectionTitle {
   display: flex;

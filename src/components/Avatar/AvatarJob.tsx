@@ -17,8 +17,7 @@ const STATUS: Record<
   quickPaused: { icon: "circle-pause", color: "var(--amber-a9)", rotate: 0 },
   onHoldExternal: { icon: "circle-stop", color: "var(--crimson-a9)", rotate: 0 },
   onHoldInternal: { icon: "circle-stop", color: "var(--brown-a9)", rotate: 0 },
-  uninvoiced: { icon: "circle-check", color: "var(--orange-a9)", rotate: 0 },
-  unestimated: { icon: "circle-check", color: "var(--orange-a9)", rotate: 0 },
+  completed: { icon: "circle-check", color: "var(--orange-a9)", rotate: 0 },
   finalized: { icon: "circle-check", color: "var(--jade-a9)", rotate: 0 },
   cancelled: { icon: "circle-xmark", color: "var(--gray-a9)", rotate: 0 },
 };

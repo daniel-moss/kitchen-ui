@@ -87,6 +87,14 @@ export interface DialogDefaultProps extends DialogBaseProps {
    * over the defaults; desktop presentation only.
    */
   cardStyle?: CSSProperties;
+  /**
+   * MOBILE only — how the drawer's header looks. "bodyOnly" (default) is the
+   * title row with the close button; "dragHandle" drops the row and leaves the
+   * grab handle alone, for a drawer that is dismissed by dragging or tapping
+   * the scrim. `title` is still required and still names the dialog for screen
+   * readers. Desktop is unaffected.
+   */
+  drawerHeader?: "bodyOnly" | "dragHandle";
 }
 
 /**

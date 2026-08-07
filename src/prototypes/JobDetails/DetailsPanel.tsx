@@ -142,7 +142,7 @@ interface ContactRowProps {
 }
 
 const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false }: ContactRowProps) => {
-  const menu = useAnchoredMenu(!mobile, "end");
+  const menu = useAnchoredMenu(!mobile);
   const { email, phone } = contact;
   // Locked (cancelled job): the menu stays, but the editing actions (Change /
   // Remove) drop out — only the copy actions remain.
@@ -162,26 +162,33 @@ const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false 
           />
         </MenuItemGroup>
       )}
+      {/* A contact may lack one of the two details — then its copy action is
+          not offered at all (the data gained optional phone/e-mail with the
+          Send-summary form, 2026-08-07). */}
       <MenuItemGroup>
-        <MenuItem
-          label="Copy email address"
-          caption={email}
-          slotLeft={slot("copy")}
-          onClick={() => {
-            menu.close();
-            // These toasts drop the quotes the ID ones use (node 21758-23044).
-            void copyText(email, "Email address", "Email address copied");
-          }}
-        />
-        <MenuItem
-          label="Copy phone number"
-          caption={phone}
-          slotLeft={slot("copy")}
-          onClick={() => {
-            menu.close();
-            void copyText(phone, "Phone number", "Phone number copied");
-          }}
-        />
+        {email != null && (
+          <MenuItem
+            label="Copy email address"
+            caption={email}
+            slotLeft={slot("copy")}
+            onClick={() => {
+              menu.close();
+              // These toasts drop the quotes the ID ones use (node 21758-23044).
+              void copyText(email, "Email address", "Email address copied");
+            }}
+          />
+        )}
+        {phone != null && (
+          <MenuItem
+            label="Copy phone number"
+            caption={phone}
+            slotLeft={slot("copy")}
+            onClick={() => {
+              menu.close();
+              void copyText(phone, "Phone number", "Phone number copied");
+            }}
+          />
+        )}
       </MenuItemGroup>
       {!locked && (
         <MenuItemGroup>
@@ -210,42 +217,46 @@ const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false 
         onClick={noop}
         slotRight={
           <>
-            <HoverTooltip
-              variant="slot"
-              content={
-                <span className={styles.contactTooltip}>
-                  Send email
-                  <br />
-                  {email}
-                </span>
-              }
-            >
-              <IconButton
-                icon="envelope"
-                variant="ghost"
-                size="md"
-                aria-label="Send email"
-                onClick={() => window.open(`mailto:${email}`)}
-              />
-            </HoverTooltip>
-            <HoverTooltip
-              variant="slot"
-              content={
-                <span className={styles.contactTooltip}>
-                  Call
-                  <br />
-                  {phone}
-                </span>
-              }
-            >
-              <IconButton
-                icon="phone"
-                variant="ghost"
-                size="md"
-                aria-label="Call"
-                onClick={() => window.open(`tel:${phone.replace(/[^+\d]/g, "")}`)}
-              />
-            </HoverTooltip>
+            {email != null && (
+              <HoverTooltip
+                variant="slot"
+                content={
+                  <span className={styles.contactTooltip}>
+                    Send email
+                    <br />
+                    {email}
+                  </span>
+                }
+              >
+                <IconButton
+                  icon="envelope"
+                  variant="ghost"
+                  size="md"
+                  aria-label="Send email"
+                  onClick={() => window.open(`mailto:${email}`)}
+                />
+              </HoverTooltip>
+            )}
+            {phone != null && (
+              <HoverTooltip
+                variant="slot"
+                content={
+                  <span className={styles.contactTooltip}>
+                    Call
+                    <br />
+                    {phone}
+                  </span>
+                }
+              >
+                <IconButton
+                  icon="phone"
+                  variant="ghost"
+                  size="md"
+                  aria-label="Call"
+                  onClick={() => window.open(`tel:${phone.replace(/[^+\d]/g, "")}`)}
+                />
+              </HoverTooltip>
+            )}
             <IconButton
               icon="ellipsis"
               variant="ghost"
@@ -1046,7 +1057,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 avatar={<AvatarUser size="xl" imageSrc={c.avatar} isPrimary={i === 0} />}
                 label={c.name}
                 caption={contactCaption(c)}
-                searchText={`${c.name} ${c.phone} ${c.email}`}
+                searchText={`${c.name} ${c.phone ?? ""} ${c.email ?? ""}`}
                 selected={pickedContact?.id === c.id}
                 onClick={() => pickContact(c)}
               />

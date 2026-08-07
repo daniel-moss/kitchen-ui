@@ -22,6 +22,7 @@ const CheckboxItem = forwardRef<HTMLInputElement, CheckboxItemProps>(function Ch
     icon,
     iconPack = "solid",
     content,
+    contentPadded = true,
     checked,
     defaultChecked,
     indeterminate = false,
@@ -145,7 +146,7 @@ const CheckboxItem = forwardRef<HTMLInputElement, CheckboxItemProps>(function Ch
               blanket preventDefault would also cancel nested native controls
               (e.g. the status radios). */}
           <div
-            className={styles.contentSlot}
+            className={clsx(styles.contentSlot, !contentPadded && styles.contentBare)}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();

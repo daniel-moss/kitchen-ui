@@ -205,6 +205,12 @@ interface SessionFormProps {
   session?: Session;
   /** Commits the completed form — the consumer adds (or updates) the session row. */
   onSave: (draft: SessionDraft) => void;
+  /**
+   * The day a NEW session starts on, instead of today. The Timesheet review
+   * form's per-day plus passes its own day (Figma 24598-41150: "opens the form
+   * with auto-populated 'Start time' date"). Ignored while editing.
+   */
+  startDate?: Date;
   mobile?: boolean;
 }
 
@@ -218,7 +224,7 @@ interface SessionFormProps {
 // End's date, the time stays (node Logic rule 2). End can't be earlier than
 // Start (date + time) — "Must be after Start time". Save commits the session
 // — Figma toast 24105-15803.
-export default function SessionForm({ open, onClose, session, onSave, mobile = false }: SessionFormProps) {
+export default function SessionForm({ open, onClose, session, onSave, startDate, mobile = false }: SessionFormProps) {
   const [category, setCategory] = useState("");
   const [start, setStart] = useState<TimeParts>({ date: null, clock: "", meridiem: "AM" });
   const [end, setEnd] = useState<TimeParts>({ date: null, clock: "", meridiem: "AM" });
@@ -241,10 +247,12 @@ export default function SessionForm({ open, onClose, session, onSave, mobile = f
       setEnd(parseParts(session.endDateLabel ?? session.dateLabel, session.endLabel));
       setEndEdited(true);
     } else {
-      const today = new Date();
+      // The caller's day when it named one (the Timesheet review's per-day
+      // plus), otherwise today.
+      const day = startDate ?? new Date();
       setCategory("");
-      setStart({ date: today, clock: "", meridiem: "AM" });
-      setEnd({ date: today, clock: "", meridiem: "AM" });
+      setStart({ date: day, clock: "", meridiem: "AM" });
+      setEnd({ date: day, clock: "", meridiem: "AM" });
       setEndEdited(false);
     }
     setStartTouched(false);
@@ -252,6 +260,7 @@ export default function SessionForm({ open, onClose, session, onSave, mobile = f
     setStartFocused(false);
     setEndFocused(false);
     setSubmitted(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, session]);
 
   // Node Logic rule 2: the user moves Start LATER than a filled End → End's

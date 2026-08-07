@@ -2,13 +2,24 @@ import { useEffect, useRef, useState } from "react";
 
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import { LIFECYCLE_META, LIFECYCLE_ORDER, LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
+import { INTERNAL_ON_HOLD } from "./PauseJobForm";
 import { isPastDue, Scheduling } from "./SchedulingForm";
 
 export type { LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
 
 // The job's lifecycle state for the prototype. `pastDue` is not stored — it is
 // derived from an `upcoming` job whose scheduled time has passed.
-export type JobStatus = "upcoming" | "active" | "cancelled" | "unscheduled" | "quickPaused" | "onHold";
+// `completed` = the work is done and the summary sent; `finalized` = it has
+// been marked as invoiced or estimated (Figma 24567-138760 / 24568-141430).
+export type JobStatus =
+  | "upcoming"
+  | "active"
+  | "cancelled"
+  | "unscheduled"
+  | "quickPaused"
+  | "onHold"
+  | "completed"
+  | "finalized";
 
 export interface JobState {
   status: JobStatus;
@@ -29,6 +40,10 @@ export interface JobState {
   cancelledAt?: string;
   /** When the job was unscheduled (Unscheduled on). */
   unscheduledAt?: string;
+  /** When the Complete flow was submitted ("Completed on"). */
+  completedAt?: string;
+  /** When the job was marked as invoiced / estimated ("Finalized on"). */
+  finalizedAt?: string;
 }
 
 export const defaultJob: JobState = { status: "upcoming", everStarted: false };
@@ -42,8 +57,13 @@ export const defaultJob: JobState = { status: "upcoming", everStarted: false };
 // ./JobLifecycleModule/lifecycleData.ts — five modules render this data and
 // they must all read it the same way.
 
-/** The statuses whose ROW is named by the sub-status ("Lunch", "Parts needed"). */
-const SUBSTATUS_ROWS = ["quickPaused", "onHold"];
+/**
+ * The statuses that can carry a sub-status ("Working", "Lunch", "Parts
+ * needed"). Figma "Statuses" 24575-150808: when the company HAS sub-statuses
+ * for one of these, the row is named by the sub-status; without one it keeps
+ * the general status name.
+ */
+const SUBSTATUS_ROWS = ["active", "quickPaused", "onHold"];
 
 /**
  * Tracks how long the job spends in each status, live.
@@ -62,12 +82,24 @@ export function useJobLifecycle(job: JobState, scheduling: Scheduling) {
   const [endedAt, setEndedAt] = useState<number | null>(null);
 
   const display = displayStatus(job, scheduling);
-  const isCancelled = display === "cancelled";
-  // A paused job's row is its sub-status; without one it falls back to the
-  // status label, so the row is never nameless.
-  const statusKind = SUBSTATUS_ROWS.includes(job.status) ? job.status : display;
-  const label = SUBSTATUS_ROWS.includes(job.status) ? (job.subStatus ?? LABELS[display]) : LABELS[display];
-  const key = SUBSTATUS_ROWS.includes(job.status) ? `${statusKind}:${label}` : statusKind;
+  // The two ENDS of the lifecycle. Cancelled stops it, and so does Finalized —
+  // the doc calls Finalized "a moment, not a span", so the running stretch
+  // closes and no new row opens. "Completed" is NOT an end: the job sits in it
+  // until it is invoiced / estimated, so it gets a normal row (Daniel,
+  // 2026-08-07).
+  const isEnded = display === "cancelled" || display === "finalized";
+  // The sub-status names its own row; without one the row keeps the general
+  // status name, so the row is never nameless.
+  const sub = SUBSTATUS_ROWS.includes(job.status) ? (job.subStatus || undefined) : undefined;
+  // An "On hold" that waits on something INSIDE the company is a brown row.
+  const statusKind =
+    job.status === "onHold" && sub != null && INTERNAL_ON_HOLD.includes(sub)
+      ? "onHoldInternal"
+      : SUBSTATUS_ROWS.includes(job.status)
+        ? job.status
+        : display;
+  const label = sub ?? LABELS[display];
+  const key = sub != null ? `${statusKind}:${sub}` : statusKind;
 
   // A 1-second tick: the open stretch, the lifecycle total and the past-due
   // flip all move on their own.
@@ -76,11 +108,11 @@ export function useJobLifecycle(job: JobState, scheduling: Scheduling) {
     return () => window.clearInterval(t);
   }, []);
 
-  // Close the running stretch and open one for the new status. Cancelled ends
-  // the lifecycle: the last stretch closes and nothing new opens.
+  // Close the running stretch and open one for the new status. Cancelled and
+  // Finalized end the lifecycle: the last stretch closes and nothing new opens.
   useEffect(() => {
     const at = Date.now();
-    setEndedAt(isCancelled ? at : null);
+    setEndedAt(isEnded ? at : null);
     setRows((prev) => {
       // Close whatever is still running (there is at most one).
       const closed = prev.map((row) =>
@@ -88,7 +120,7 @@ export function useJobLifecycle(job: JobState, scheduling: Scheduling) {
           ? { ...row, periods: row.periods.map((p) => (p.end === null ? { ...p, end: at } : p)) }
           : row,
       );
-      if (isCancelled) return closed;
+      if (isEnded) return closed;
       const existing = closed.find((row) => row.key === key);
       if (existing != null) {
         return closed.map((row) => (row === existing ? { ...row, periods: [...row.periods, { start: at, end: null }] } : row));
@@ -96,24 +128,30 @@ export function useJobLifecycle(job: JobState, scheduling: Scheduling) {
       return [...closed, { key, label, periods: [{ start: at, end: null }] }];
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, isCancelled]);
+  }, [key, isEnded]);
 
   const secondsOf = (periods: LifecyclePeriod[]) =>
     periods.reduce((acc, p) => acc + Math.max(0, (p.end ?? now) - p.start), 0) / 1000;
 
-  // Listed in the designed status order; several sub-statuses of one kind keep
-  // the order they first appeared in.
+  // Listed in the designed status order; several sub-statuses of one status are
+  // sorted A→Z (Figma "Statuses" 24575-150808).
   const breakdown: LifecycleRow[] = rows
     .map((row) => {
       const kind = row.key.split(":")[0];
       const meta = LIFECYCLE_META[kind] ?? { icon: "circle-dashed", color: "var(--gray-a9)" };
       return { ...row, ...meta, totalSec: secondsOf(row.periods) };
     })
-    .sort((a, b) => LIFECYCLE_ORDER.indexOf(a.key.split(":")[0]) - LIFECYCLE_ORDER.indexOf(b.key.split(":")[0]));
+    .sort((a, b) => {
+      const byStatus = LIFECYCLE_ORDER.indexOf(a.key.split(":")[0]) - LIFECYCLE_ORDER.indexOf(b.key.split(":")[0]);
+      return byStatus !== 0 ? byStatus : a.label.localeCompare(b.label);
+    });
 
   return {
     breakdown,
-    billableSec: breakdown.find((r) => r.key === "active")?.totalSec ?? 0,
+    // Every "Active" row counts — the job can hold several active sub-statuses.
+    billableSec: breakdown
+      .filter((r) => r.key.split(":")[0] === "active")
+      .reduce((acc, r) => acc + r.totalSec, 0),
     lifecycleSec: Math.max(0, (endedAt ?? now) - createdAt) / 1000,
   };
 }
@@ -148,8 +186,7 @@ const LABELS: Record<BadgeJobStatusStatus, string> = {
   quickPaused: "Quick-paused",
   onHoldExternal: "On hold",
   onHoldInternal: "On hold",
-  uninvoiced: "Uninvoiced",
-  unestimated: "Unestimated",
+  completed: "Completed",
   finalized: "Finalized",
   cancelled: "Cancelled",
 };

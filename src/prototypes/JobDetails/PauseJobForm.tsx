@@ -23,6 +23,15 @@ export const PAUSE_SUB_STATUSES: Record<string, string[]> = {
   "on-hold": ["Waiting on parts", "Waiting on approval", "Waiting on access"],
 };
 
+/**
+ * Which "On hold" sub-statuses wait on something INSIDE the company. The Job
+ * lifecycle module colours those rows brown instead of crimson (the DS
+ * `BadgeJobStatus` on-hold variants). The others wait on the client and stay
+ * crimson. DEMO data — the real app stores the internal/external kind on the
+ * sub-status itself.
+ */
+export const INTERNAL_ON_HOLD = ["Waiting on parts"];
+
 interface PauseJobFormProps {
   open: boolean;
   onClose: () => void;

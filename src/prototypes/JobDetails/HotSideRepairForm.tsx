@@ -128,7 +128,7 @@ export default function HotSideRepairForm({
   const bodyRef = useRef<HTMLDivElement>(null);
   const equipmentPop = useSelectPopover(mobile);
   // The ⋯ menu of one file card (its field key + file index).
-  const cardMenu = useAnchoredMenu(!mobile, "end");
+  const cardMenu = useAnchoredMenu(!mobile);
   const [menuTarget, setMenuTarget] = useState<{ key: string; index: number } | null>(null);
 
   useEffect(() => {

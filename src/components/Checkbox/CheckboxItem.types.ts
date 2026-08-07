@@ -19,6 +19,12 @@ export interface CheckboxItemProps extends Omit<InputHTMLAttributes<HTMLInputEle
 
   /** Optional content slot — shown below a divider when a card is selected. */
   content?: ReactNode;
+  /**
+   * The content slot's own 16px padding. Set false when the content brings its
+   * own spacing — e.g. a full-bleed Divider between a field and a list. Default
+   * true.
+   */
+  contentPadded?: boolean;
 
   checked?: boolean;
   defaultChecked?: boolean;

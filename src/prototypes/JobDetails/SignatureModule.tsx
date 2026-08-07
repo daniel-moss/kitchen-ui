@@ -45,7 +45,22 @@ export interface SignatureData {
   date: Date;
   /** Why the signature was skipped (the `skipped` state only). */
   skipReason?: string;
+  /**
+   * The ink the customer actually drew, as a PNG data URL. Without it the
+   * module falls back to the placeholder squiggle below — which is what it
+   * always showed before the Complete flow was wired up.
+   */
+  ink?: string;
 }
+
+/**
+ * What the Complete-job flow's Signature step produced. It travels from the
+ * form up to the shell and back down into this module, which is what makes the
+ * module leave "Not collected" once a job is completed (Daniel, 2026-08-07).
+ */
+export type SignatureResult =
+  | { state: "collected"; signedBy: string; date: Date; ink?: string }
+  | { state: "skipped"; skipReason: string; date: Date };
 
 // The app-wide date rule: weekday + month + day, and the year ONLY when the
 // date is not in the current year.
@@ -69,7 +84,9 @@ export default function SignatureModule({ state, data }: { state: SignatureState
         content={
           <div className={styles.collectedBody}>
             <div className={styles.inkBox}>
-              <SignatureInk />
+              {/* The real ink when the Complete flow captured one; the drawn
+                  placeholder only when it did not (demo / story data). */}
+              {data.ink != null ? <img className={styles.inkImage} src={data.ink} alt="Customer signature" /> : <SignatureInk />}
             </div>
             <ValueDisplayGroup>
               <ValueDisplay orientation="horizontal" kind="text" label="Signed by" value={data.signedBy} />

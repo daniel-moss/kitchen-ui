@@ -44,9 +44,13 @@ interface SelectListBaseProps {
   footer?: ReactNode;
   /**
    * Single-select (default) closes the list automatically when an option is
-   * clicked. Multi-select keeps it open. (On reopen, the consumer should
-   * stack the selected options in their own group at the top of the list —
-   * never reorder while the list stays open.)
+   * clicked. Multi-select keeps it open.
+   *
+   * A multi-select list with ONE group stacks the options that were selected
+   * when it opened at the top, above a divider (never reordering while it
+   * stays open). With MORE THAN ONE group the groups carry meaning — where an
+   * option comes from — so they are left exactly as written and nothing is
+   * pinned on top (Daniel, 2026-08-07).
    */
   multiSelect?: boolean;
   /**

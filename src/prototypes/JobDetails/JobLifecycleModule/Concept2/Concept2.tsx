@@ -13,12 +13,13 @@ import styles from "../Concept.module.scss";
 // open: there are no sub-logs and no carets, so the module only ever answers
 // "how long in each status", never "in which stretches".
 //
-// The "Statuses break down" group label still collapses the whole list.
+// The "Time in statuses" group label still collapses the whole list, and is
+// COLLAPSED by default (Figma 24575-146246: "collapsed by default").
 export default function Concept2({
   billableSec,
   lifecycleSec,
   breakdown,
-  defaultOpen = true,
+  defaultOpen = false,
   mobile = false,
 }: LifecycleConceptProps) {
   return (
@@ -30,7 +31,7 @@ export default function Concept2({
           <TopData billableSec={billableSec} lifecycleSec={lifecycleSec} mobile={mobile} />
           <Divider />
           <div className={styles.logBody}>
-            <ActivityLogGroup label="Statuses break down" defaultOpen={defaultOpen}>
+            <ActivityLogGroup label="Time in statuses" defaultOpen={defaultOpen}>
               {breakdown.map((row) => (
                 // No children ⇒ ActivityLogItem renders no accordion / caret.
                 <ActivityLogItem

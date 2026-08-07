@@ -13,6 +13,9 @@ import { Scheduling } from "./SchedulingForm";
 //   active           → Status + Started on + Active on (+ Status message)
 //   cancelled        → Status + [Started on] + Cancelled on (+ Status message)
 //   unscheduled      → Status + Unscheduled on
+//   completed        → Status + Started on + Completed on  (Figma 21779-28494)
+//   finalized        → Status + Started on + Finalized on  (Figma 21779-28759)
+// Neither completed nor finalized shows a Status message row.
 export default function StatusModule({ job, scheduling }: { job: JobState; scheduling: Scheduling }) {
   const ds = displayStatus(job, scheduling);
 
@@ -45,6 +48,12 @@ export default function StatusModule({ job, scheduling }: { job: JobState; sched
     rows.push(<ValueDisplay key="cancelledOn" label="Cancelled on" value={job.cancelledAt ?? STATUS_TS} />);
   } else if (job.status === "unscheduled") {
     rows.push(<ValueDisplay key="unscheduledOn" label="Unscheduled on" value={job.unscheduledAt ?? STATUS_TS} />);
+  } else if (job.status === "completed") {
+    rows.push(<ValueDisplay key="startedOn" label="Started on" value={job.startedAt ?? STATUS_TS} />);
+    rows.push(<ValueDisplay key="completedOn" label="Completed on" value={job.completedAt ?? STATUS_TS} />);
+  } else if (job.status === "finalized") {
+    rows.push(<ValueDisplay key="startedOn" label="Started on" value={job.startedAt ?? STATUS_TS} />);
+    rows.push(<ValueDisplay key="finalizedOn" label="Finalized on" value={job.finalizedAt ?? STATUS_TS} />);
   }
 
   // The status message (start / cancel / pause reason) — a clamped vertical value.

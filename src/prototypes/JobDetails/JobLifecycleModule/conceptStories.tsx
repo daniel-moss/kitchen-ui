@@ -39,6 +39,10 @@ type Story = StoryObj;
  * `full` is the concept's own full-history sample: Concepts 1–4 aggregate per
  * status, Concept 5 lists every stretch in time order, so it passes the
  * chronological rows instead.
+ *
+ * Every story sets `defaultOpen` itself: the product module starts COLLAPSED
+ * (Figma 24575-146246), but the four filled states exist to compare the lists,
+ * so they open them.
  */
 export const conceptStates = (Component: ComponentType<LifecycleConceptProps>, full: LifecycleRow[]) => ({
   /**
@@ -50,7 +54,7 @@ export const conceptStates = (Component: ComponentType<LifecycleConceptProps>, f
     name: "Fresh job",
     render: () => (
       <Frame width={608}>
-        <Component billableSec={0} lifecycleSec={8 * 60} breakdown={FRESH_ROWS} />
+        <Component billableSec={0} lifecycleSec={8 * 60} breakdown={FRESH_ROWS} defaultOpen />
       </Frame>
     ),
   } as Story,
@@ -63,7 +67,7 @@ export const conceptStates = (Component: ComponentType<LifecycleConceptProps>, f
     name: "In progress",
     render: () => (
       <Frame width={608}>
-        <Component billableSec={hours(3) + 25 * 60} lifecycleSec={days(2) + hours(7)} breakdown={IN_PROGRESS_ROWS} />
+        <Component billableSec={hours(3) + 25 * 60} lifecycleSec={days(2) + hours(7)} breakdown={IN_PROGRESS_ROWS} defaultOpen />
       </Frame>
     ),
   } as Story,
@@ -73,13 +77,13 @@ export const conceptStates = (Component: ComponentType<LifecycleConceptProps>, f
     name: "Full history",
     render: () => (
       <Frame width={608}>
-        <Component billableSec={hours(3) + 45 * 60} lifecycleSec={days(19)} breakdown={full} />
+        <Component billableSec={hours(3) + 45 * 60} lifecycleSec={days(19)} breakdown={full} defaultOpen />
       </Frame>
     ),
   } as Story,
 
   /**
-   * The list closed: Concepts 1 and 2 collapse the whole "Statuses break down"
+   * The list closed: Concepts 1 and 2 collapse the whole "Time in statuses"
    * group, Concepts 3 and 4 close every row, Concept 5 truncates behind
    * "Show N more".
    */
@@ -97,7 +101,7 @@ export const conceptStates = (Component: ComponentType<LifecycleConceptProps>, f
     name: "Mobile",
     render: () => (
       <Frame width={343}>
-        <Component billableSec={hours(3) + 45 * 60} lifecycleSec={days(19)} breakdown={full} mobile />
+        <Component billableSec={hours(3) + 45 * 60} lifecycleSec={days(19)} breakdown={full} defaultOpen mobile />
       </Frame>
     ),
   } as Story,

@@ -31,9 +31,11 @@ export interface LifecycleRow {
 
 /**
  * Row look per status, and the ORDER the aggregating concepts list them in
- * (Figma 24560-133878). "uninvoiced" / "unestimated" come after a job is
- * finalized — neither exists in the prototype yet, so they simply never get
- * stretches from the live hook.
+ * (the documented order, Figma "Statuses" 24575-150808: "statuses should be
+ * shown in this exact order"). "completed" comes after the work is done and
+ * before the job is finalized (it replaced the old "uninvoiced" / "unestimated"
+ * pair, Daniel 2026-08-07); it does not exist in the prototype yet, so it never
+ * gets stretches from the live hook.
  *
  * Every glyph is the SOLID pack (Daniel, 2026-08-07): the concept nodes mix
  * solid and alpha tokens inconsistently, and solid matches the Badge / Avatar
@@ -41,6 +43,10 @@ export interface LifecycleRow {
  *
  * NOTE: "cancelled" has NO designed row, so a cancelled job records no stretch
  * for it — the lifecycle just stops. Flagged to Daniel.
+ *
+ * The "On hold" colours follow the DS `BadgeJobStatus`: EXTERNAL (waiting on
+ * the client) is crimson, INTERNAL is brown. The lifecycle doc node has the two
+ * labels swapped — Daniel confirmed the DS is right (2026-08-07).
  */
 export const LIFECYCLE_META: Record<string, { icon: string; color: string; rotate?: boolean }> = {
   unscheduled: { icon: "circle-dashed", color: "var(--violet-9)" },
@@ -48,9 +54,11 @@ export const LIFECYCLE_META: Record<string, { icon: string; color: string; rotat
   pastDue: { icon: "circle-exclamation", color: "var(--tomato-9)" },
   active: { icon: "circle-play", color: "var(--jade-9)" },
   quickPaused: { icon: "circle-pause", color: "var(--amber-9)" },
+  // The general status and its EXTERNAL sub-statuses; internal ones are brown.
   onHold: { icon: "circle-stop", color: "var(--crimson-9)" },
-  uninvoiced: { icon: "circle-check", color: "var(--orange-9)" },
-  // Only the chronological concept reaches these two (Figma 24556-122708).
+  onHoldInternal: { icon: "circle-stop", color: "var(--brown-9)" },
+  completed: { icon: "circle-check", color: "var(--orange-9)" },
+  // Only the chronological concept reaches finalized (Figma 24556-122708).
   finalized: { icon: "circle-check", color: "var(--jade-9)" },
 };
 export const LIFECYCLE_ORDER = Object.keys(LIFECYCLE_META);
@@ -80,9 +88,29 @@ export const formatSpan = (sec: number) => {
   return parts.length > 0 ? parts.join(" ") : "0m";
 };
 
-/** "19 days" — the Lifecycle highlight. Whole days, never negative. */
-export const formatDays = (sec: number) => {
-  const days = Math.floor(Math.max(0, sec) / 86400);
+/**
+ * "3 hr 45 min" / "1 hr" / "1 min" / "0 min" — a highlight number
+ * (Figma "Billable Time" 24575-149387). The same shape as the timesheet's
+ * `formatHrMin`, with ONE difference: an empty value reads "0 min", not
+ * "0 hr" — so the module keeps its own copy instead of sharing that helper.
+ */
+export const formatHighlight = (sec: number) => {
+  const totalMin = Math.round(Math.max(0, sec) / 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0) return `${m} min`;
+  if (m === 0) return `${h} hr`;
+  return `${h} hr ${m} min`;
+};
+
+/**
+ * The Lifecycle time highlight (Figma "Lifecycle" 24575-150196): hours and
+ * minutes up to 23 hr 59 min, then WHOLE DAYS — "1 day" / "2 days" / "19 days".
+ */
+export const formatLifecycle = (sec: number) => {
+  const totalMin = Math.round(Math.max(0, sec) / 60);
+  if (totalMin < 24 * 60) return formatHighlight(sec);
+  const days = Math.floor(totalMin / (24 * 60));
   return `${days} ${days === 1 ? "day" : "days"}`;
 };
 
@@ -199,7 +227,7 @@ export const FULL_ROWS: LifecycleRow[] = [
   row("active", "active", "Active", [stretch(days(5) + hours(2), hours(3) + 14 * 60)]),
   row("quickPaused", "quickPaused:Lunch", "Lunch", [stretch(days(5) + hours(6), 42 * 60)]),
   row("onHold", "onHold:Parts needed", "Parts needed", [stretch(days(6), days(5) + 23 * 60)]),
-  row("uninvoiced", "uninvoiced", "Uninvoiced", [stretch(days(12), hours(1) + 15 * 60)]),
+  row("completed", "completed", "Completed", [stretch(days(12), hours(1) + 15 * 60)]),
 ];
 
 /**
@@ -219,7 +247,7 @@ export const FULL_CHRONO_ROWS: LifecycleRow[] = [
     stretch(days(17) + hours(7), hours(1) + 30 * 60),
   ]),
   row("onHold", "onHold:Parts needed", "Parts needed", [stretch(days(14) + hours(6) + 15 * 60, days(3) + 45 * 60)]),
-  row("uninvoiced", "uninvoiced", "Uninvoiced", [stretch(days(17) + hours(8) + 30 * 60, hours(15))]),
+  row("completed", "completed", "Completed", [stretch(days(17) + hours(8) + 30 * 60, hours(15))]),
   // A moment, not a span: zero length, and `terminal` drops the duration.
   row("finalized", "finalized", "Finalized", [stretch(days(17) + hours(23) + 30 * 60, 0)], true),
 ];

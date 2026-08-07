@@ -23,7 +23,9 @@ export const slot = (icon: string, pack?: IconPack) => <Icon icon={icon} pack={p
 // `title` overrides the success copy: the ID toasts quote the label ('"Job ID"
 // copied', node 21136-58182) but the CONTACT ones do not ("Email address
 // copied", node 21758-23044) — two designed formats, so the caller picks.
-export const copyText = async (text: string, label: string, title?: string) => {
+// `errorTitle` does the same for the failure toast (Send-summary's reads
+// "Could not copy summary link", node 24577-160713).
+export const copyText = async (text: string, label: string, title?: string, errorTitle?: string) => {
   try {
     if (navigator.clipboard != null) {
       await navigator.clipboard.writeText(text);
@@ -41,7 +43,7 @@ export const copyText = async (text: string, label: string, title?: string) => {
     toast({
       type: "error",
       variant: "detailed",
-      title: `Could not copy "${label}"`,
+      title: errorTitle ?? `Could not copy "${label}"`,
       caption: "Something went wrong. Please try again.",
     });
   }

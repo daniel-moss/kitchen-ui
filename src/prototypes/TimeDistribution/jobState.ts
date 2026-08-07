@@ -55,8 +55,7 @@ const LABELS: Record<BadgeJobStatusStatus, string> = {
   quickPaused: "Quick-paused",
   onHoldExternal: "On hold",
   onHoldInternal: "On hold",
-  uninvoiced: "Uninvoiced",
-  unestimated: "Unestimated",
+  completed: "Completed",
   finalized: "Finalized",
   cancelled: "Cancelled",
 };

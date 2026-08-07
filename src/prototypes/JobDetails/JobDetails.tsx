@@ -34,11 +34,12 @@ import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 import { semanticIcons } from "../../styles/semanticIcons";
-import { users } from "../../data/users";
+import { User, users } from "../../data/users";
 import ActionBar from "./ActionBar";
 import CancelJobForm from "./CancelJobForm";
 import ChangePauseStatusForm from "./ChangePauseStatusForm";
 import CompleteJobForm from "./CompleteJobForm";
+import SendSummaryForm from "./SendSummaryForm";
 import Dialog from "../../components/Dialog/Dialog";
 import ActivityPanel from "./ActivityPanel";
 import {
@@ -62,9 +63,12 @@ import { defaultServiceValues, ServiceValues } from "./ServiceForm";
 import ServicePanel from "./ServicePanel";
 import { Equipment, EQUIPMENT_POOL, INITIAL_JOB_EQUIPMENT } from "./equipment";
 import { EquipmentFormValues } from "./EquipmentForm";
-import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource } from "./JobPropertiesForm";
+import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource, sourceRequiresId } from "./JobPropertiesForm";
 import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
 import SummaryPanel from "./SummaryPanel";
+import TimesheetForm from "./TimesheetForm";
+import { FormsLog } from "./FormsModule";
+import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import StartJobForm from "./StartJobForm";
 import SubStatusForm from "./SubStatusForm";
@@ -170,7 +174,6 @@ const JobContextMenuItems = ({ onClose }: { onClose: () => void }) => (
         downloadPdf();
       }}
     />
-    <MenuItem label="Send job summary" slotLeft={slot("paper-plane")} onClick={onClose} />
   </MenuItemGroup>
 );
 
@@ -188,26 +191,93 @@ interface JobActions {
   onReschedule: () => void;
   onUnschedule: () => void;
   onCancel: () => void;
+  // Completed-job actions (Figma 24567-138760).
+  onMarkInvoiced: () => void;
+  onMarkEstimated: () => void;
+  onResendSummary: () => void;
+  /** Create invoice / estimate / recall — nothing opens yet (Daniel,
+   *  2026-08-07), but each still writes its Activity log. */
+  onCreateInvoice: () => void;
+  onCreateEstimate: () => void;
+  onCreateRecall: () => void;
+}
+
+/** A menu anchored to one of the action-bar buttons. */
+interface MenuTrigger {
+  onActions: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  open: boolean;
 }
 
 // The primary-actions row: overflow ellipsis on the LEFT, then a full-width
 // primary button (Figma). The buttons depend on the job's state:
 //   upcoming/pastDue → Start job    unscheduled → Schedule
 //   active           → Pause + Complete   (cancelled hides the whole bar)
+//   completed        → ⋯ + "Mark as" + "Create"   (Figma 24567-138762)
+//   finalized        → "Resend summary" + "Create recall", NO ⋯
+//                      (Figma 24568-141432)
 const ActionButtons = ({
   status,
   onMenu,
   menuPressed,
   actions,
+  markAsMenu,
+  createMenu,
 }: {
   status: JobStatus;
   onMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   menuPressed: boolean;
   actions: JobActions;
+  markAsMenu: MenuTrigger;
+  createMenu: MenuTrigger;
 }) => {
   const ellipsis = (
     <IconButton icon="ellipsis" size="lg" variant="ghost" aria-label="More actions" isPressed={menuPressed} noDebounce onClick={onMenu} />
   );
+  if (status === "completed") {
+    // Both buttons OPEN A MENU, so each holds its pressed look while its menu
+    // shows (the NavSidebar Create-button pattern).
+    return (
+      <>
+        {ellipsis}
+        <Button
+          size="lg"
+          variant="subtle"
+          rightIcon="angle-down"
+          className={styles.grow}
+          isPressed={markAsMenu.open}
+          noDebounce
+          onClick={markAsMenu.onActions}
+        >
+          Mark as
+        </Button>
+        <Button
+          size="lg"
+          variant="solid"
+          rightIcon="angle-down"
+          className={styles.grow}
+          isPressed={createMenu.open}
+          noDebounce
+          onClick={createMenu.onActions}
+        >
+          Create
+        </Button>
+      </>
+    );
+  }
+  if (status === "finalized") {
+    // Two subtle buttons and no overflow menu — everything else about a
+    // finalized job is done.
+    return (
+      <>
+        <Button size="lg" variant="subtle" leftIcon="paper-plane" className={styles.grow} onClick={actions.onResendSummary}>
+          Resend summary
+        </Button>
+        <Button size="lg" variant="subtle" leftIcon="clock-rotate-left" className={styles.grow} onClick={actions.onCreateRecall}>
+          Create recall
+        </Button>
+      </>
+    );
+  }
   if (status === "unscheduled") {
     return (
       <>
@@ -253,6 +323,22 @@ const ActionButtons = ({
   );
 };
 
+// The two groups a completed job shows in THREE places each: inside the
+// overflow menu, and on their own behind the "Create" / "Mark as" buttons
+// (Figma 24590-204304 / 24590-203981). One definition, so they cannot drift.
+const createMenuItems = (actions: JobActions) => (
+  <MenuItemGroup>
+    <MenuItem label="Create invoice" slotLeft={slot("circle-dollar")} onClick={actions.onCreateInvoice} />
+    <MenuItem label="Create estimate" slotLeft={slot("clock")} onClick={actions.onCreateEstimate} />
+  </MenuItemGroup>
+);
+const markAsMenuItems = (actions: JobActions) => (
+  <MenuItemGroup>
+    <MenuItem label="Mark as invoiced" slotLeft={slot("circle-dollar")} onClick={actions.onMarkInvoiced} />
+    <MenuItem label="Mark as estimated" slotLeft={slot("clock")} onClick={actions.onMarkEstimated} />
+  </MenuItemGroup>
+);
+
 // The action-bar overflow menu — items depend on the job's state.
 // IMPORTANT: call this as a FUNCTION ({jobActionMenuItems(...)}), not as a
 // component — Menu's withGroupDividers can only see the MenuItemGroups when it
@@ -264,6 +350,21 @@ const jobActionMenuItems = ({ status, actions }: { status: JobStatus; actions: J
       <MenuItem label="Cancel job" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
     </MenuItemGroup>
   );
+  // A completed job (Figma 24567-138778): the two Create actions, the two
+  // Mark-as actions, then recall / resend / resume. No Cancel item.
+  if (status === "completed") {
+    return (
+      <>
+        {createMenuItems(actions)}
+        {markAsMenuItems(actions)}
+        <MenuItemGroup>
+          <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
+          <MenuItem label="Resend summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
+          <MenuItem label="Resume job" slotLeft={slot("circle-play")} onClick={actions.onResume} />
+        </MenuItemGroup>
+      </>
+    );
+  }
   if (status === "unscheduled") {
     return (
       <>
@@ -490,11 +591,22 @@ const JOB_GLYPH = {
   quickPaused: { icon: "circle-pause", color: "var(--amber-9)" },
   onHold: { icon: "circle-stop", color: "var(--crimson-9)" },
   cancelled: { icon: "circle-xmark", color: "var(--gray-a8)" },
+  completed: { icon: "circle-check", color: "var(--orange-9)" },
+  finalized: { icon: "circle-check", color: "var(--jade-9)" },
 } satisfies Record<string, JobGlyph>;
 
 // The pause logs name the SUB-STATUS when the company has them; without any,
 // they fall back to the pause type's own name (Daniel, 2026-08-05).
 const pauseGlyph = (type: string) => (type === "quick-pause" ? JOB_GLYPH.quickPaused : JOB_GLYPH.onHold);
+
+// Not every log has a person behind it. FINALIZING is the system's doing — the
+// user only creates an object from the job, or marks it as invoiced /
+// estimated (Daniel, 2026-08-07; Figma 24567-140255 signs that log "Roopairs").
+const SYSTEM_USER: User = { id: -1, firstName: "Roopairs", lastName: "", name: "Roopairs", avatar: "" };
+
+// A MODULE glyph: regular weight, plain gray — `color: ""` is what tells the
+// renderer this is not a job status. Used by the "created from" and Forms logs.
+const moduleGlyph = (icon: string): JobGlyph => ({ icon, color: "" });
 const pauseStatusName = (type: string, subStatus: string) =>
   subStatus !== "" ? subStatus : type === "quick-pause" ? "Quick-pause" : "On-hold";
 
@@ -573,7 +685,9 @@ const SessionBar = ({
   onSwitchStatus: (status: string) => void;
 }) => {
   // Active bar's ellipsis → the Time Session Context Menu (Figma 24358-37623).
-  const menu = useAnchoredMenu(true, "end");
+  // Left-aligned like every other menu; against the screen edge the placement
+  // helper flips it to the trigger's right edge.
+  const menu = useAnchoredMenu(true);
   return (
     <div className={styles.timerBar}>
       <div className={styles.timerRow}>
@@ -684,13 +798,13 @@ const SessionPill = ({
   </button>
 );
 
-// The mobile "Time tracker" dialog (Figma 24178-58902, 2026-07-27 update) —
-// opened by tapping the active pill. Title header + close, body = the current
-// STATUS caption + big red timer + a labeled "Status" SELECT showing the
-// current status with its icon (a draft pick — opens the status list drawer);
-// footer = Cancel, ghost "Check out" (→ the prompt) and solid "Update", which
-// commits a status switch. Dismissing (scrim / X) with an unsaved pick shows
-// the Dialog's standard "Discard changes?" prompt.
+// The mobile "Time tracker" dialog (Figma 24178-58902, 2026-08-07 update) —
+// opened by tapping the active pill. The header is the DRAG HANDLE ONLY (no
+// title row, no close button): the drawer is dismissed by dragging it down or
+// tapping the scrim. Body = the current STATUS caption + big red timer + the
+// "Your status" card radios (a draft pick); footer = subtle "Check out" (→ the
+// prompt) and solid "Update", which commits a status switch. Dismissing with an
+// unsaved pick shows the Dialog's standard "Discard changes?" prompt.
 const SessionDrawer = ({
   open,
   elapsed,
@@ -717,6 +831,7 @@ const SessionDrawer = ({
       open={open}
       onClose={onClose}
       title="Time tracker"
+      drawerHeader="dragHandle"
       breakpoint="mobile"
       confirmOnDismiss={dirty}
       footer={
@@ -852,6 +967,9 @@ const EQUIPMENT_DATE = new Intl.DateTimeFormat("en-US", { month: "long", day: "n
 function useJobShell(isDesktop: boolean) {
   const menu = useAnchoredMenu(isDesktop); // top-bar ellipsis (Copy URL / …)
   const actionMenu = useAnchoredMenu(isDesktop); // action-bar ellipsis
+  // A completed job's two action-bar buttons each open their own menu.
+  const markAsMenu = useAnchoredMenu(isDesktop);
+  const createMenu = useAnchoredMenu(isDesktop);
   // This prototype has exactly two assignees — Lorne (the viewer) + Thiago.
   const [scheduling, setScheduling] = useState<Scheduling>(() => defaultScheduling());
   // Assignees are their OWN module since 2026-08-05, so they are their own
@@ -915,20 +1033,34 @@ function useJobShell(isDesktop: boolean) {
   const [pauseOpen, setPauseOpen] = useState(false);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
+  // Opens the moment the Complete flow finishes (Figma 24576-152451), and again
+  // from "Resend summary" on a completed / finalized job.
+  const [sendSummaryOpen, setSendSummaryOpen] = useState(false);
+  // The two "This action can not be undone" confirmations a completed job shows
+  // (Figma 24567-139607 / 24567-140732). Both finalize the job.
+  const [markInvoicedOpen, setMarkInvoicedOpen] = useState(false);
+  const [markEstimatedOpen, setMarkEstimatedOpen] = useState(false);
+  // What the Complete flow's Signature step collected — it fills the Summary
+  // tab's Signature module.
+  const [signature, setSignature] = useState<SignatureResult | undefined>();
   const [changeActiveOpen, setChangeActiveOpen] = useState(false);
   const [changePauseOpen, setChangePauseOpen] = useState(false);
   // Time-session form (add / edit) + which session it edits (none = add), and
   // the session queued for deletion (drives the confirm Prompt).
   const [sessionFormOpen, setSessionFormOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | undefined>();
+  // The day a NEW session should start on — the Timesheet review's per-day plus
+  // names one; every other entry point leaves it as today.
+  const [sessionStartDate, setSessionStartDate] = useState<Date | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Session | undefined>();
   // Check-in state: a running session ticks `elapsed` once a second.
   const [checkedIn, setCheckedIn] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [sessions, setSessions] = useState<StoredSession[]>([]);
-  // Check-out flow: the confirm prompt (no Time review in this concept —
-  // confirming logs the session directly).
+  // Check-out flow: the confirm prompt, then the Timesheet review form that
+  // every check-out ends in (Figma 24598-41150 / 24598-41148).
   const [checkOutPromptOpen, setCheckOutPromptOpen] = useState(false);
+  const [timesheetOpen, setTimesheetOpen] = useState(false);
 
   // The viewing tech (the logged-in user, "Lorne Riddle") — only their Timesheet
   // group gets the add-plus + row edit/delete, and the Complete review is theirs.
@@ -941,7 +1073,9 @@ function useJobShell(isDesktop: boolean) {
     { id: 1, kind: "created", date: new Date(), user: viewer },
   ]);
   // Appends one activity log — the viewer is always the actor, the moment is now.
-  const pushEvent = (event: Omit<ActivityEvent, "id" | "date" | "user">) =>
+  // The viewer is the actor unless the event names one — the only log that does
+  // is the system's "Roopairs finalized the job".
+  const pushEvent = (event: Omit<ActivityEvent, "id" | "date" | "user"> & { user?: User }) =>
     setActivityEvents((prev) => [...prev, { id: prev.length + 1, date: new Date(), user: viewer, ...event }]);
 
   // The job's lifecycle logs (Figma 24512-62842). Every one is "{user} <did
@@ -1107,9 +1241,14 @@ function useJobShell(isDesktop: boolean) {
   // upcoming, unscheduled or cancelled (item 11).
   // Time tracking is SEPARATE from the job lifecycle (Daniel 2026-07-28,
   // Figma 24358-37516 / 24358-37529): the check in/out UI and the Timesheet
-  // "+" show on every status EXCEPT Unscheduled and Cancelled (and Completed,
-  // once that status exists in the prototype).
-  const canTrackTime = job.status !== "unscheduled" && job.status !== "cancelled";
+  // "+" show on every status EXCEPT Unscheduled and Cancelled.
+  //
+  // A COMPLETED or FINALIZED job is the one-way case (Daniel, 2026-08-07):
+  // completing does NOT check the tech out, so the bar/pill stay while their
+  // session runs — that is how they reach Check out. Once they do, both
+  // disappear for good: nobody checks IN to a job whose work is done.
+  const isDone = job.status === "completed" || job.status === "finalized";
+  const canTrackTime = job.status !== "unscheduled" && job.status !== "cancelled" && (!isDone || checkedIn);
   const canAddSessions = canTrackTime;
   // The job's assignees — the Timesheet tab shows a group per assignee.
   const assigneeUsers = assignees
@@ -1240,6 +1379,93 @@ function useJobShell(isDesktop: boolean) {
       pushEvent({ kind: "checkin", status });
     }
   };
+  // Complete: the work is done, so the job leaves Active for "Completed" and
+  // its sub-status goes with it. The tech STAYS CHECKED IN — completing the job
+  // does not stop their timer, they check out by hand (Daniel, 2026-08-07).
+  const completeJob = (result: SignatureResult) => {
+    setJob((j) => ({
+      ...j,
+      status: "completed",
+      subStatus: undefined,
+      statusMessage: undefined,
+      completedAt: formatStatusTimestamp(new Date()),
+    }));
+    setSignature(result);
+    pushJobStatus(JOB_GLYPH.completed, { text: " completed the job" });
+  };
+  // "Mark as invoiced" / "Mark as estimated" write TWO logs (Figma 24592-40478
+  // + 24567-140255): the user's own action, then the SYSTEM's — the user never
+  // finalizes the job, marking it is what makes the system finalize it.
+  const finalizeJob = (how: "invoiced" | "estimated") => {
+    setJob((j) => ({ ...j, status: "finalized", finalizedAt: formatStatusTimestamp(new Date()) }));
+    pushEvent({
+      kind: "createdFrom",
+      jobStatus: { ...moduleGlyph(how === "invoiced" ? "circle-dollar" : "clock"), text: ` marked as ${how}` },
+    });
+    pushEvent({
+      kind: "jobStatus",
+      user: SYSTEM_USER,
+      jobStatus: { ...JOB_GLYPH.finalized, text: " finalized the job" },
+    });
+    toast({ type: "success", title: `Marked as ${how}` });
+  };
+  // "Create invoice" / "Create estimate" / "Create recall" open nothing yet
+  // (Daniel, 2026-08-07) — but each still writes its log, naming the object it
+  // would have made (Figma 24592-40478).
+  const CREATED_FROM = {
+    invoice: { icon: "circle-dollar", text: " created a related invoice ", value: "INV-10001" },
+    estimate: { icon: "clock", text: " created a related estimate ", value: "EST-10001" },
+    recall: { icon: "clock-rotate-left", text: " created a recall ", value: "JOB-10001" },
+  };
+  const logCreatedFrom = (what: keyof typeof CREATED_FROM) => {
+    const it = CREATED_FROM[what];
+    pushEvent({
+      kind: "createdFrom",
+      jobStatus: { ...moduleGlyph(it.icon), text: it.text, value: it.value, valueLink: true },
+    });
+  };
+
+  // The "Forms" module's logs (Figma 24592-40934). The module owns its forms,
+  // so it reports each change and the sentence is assembled here — every one on
+  // the same regular `clipboard-list` glyph.
+  const logForms = (log: FormsLog) => {
+    const forms = moduleGlyph("clipboard-list");
+    if (log.kind === "added") {
+      pushEvent({
+        kind: "forms",
+        jobStatus: { ...forms, text: ` added ${log.names.length === 1 ? "a form" : "forms"} `, value: log.names.join(", ") },
+      });
+    } else if (log.kind === "removed") {
+      // The removed names are struck through, like every value that is gone.
+      pushEvent({
+        kind: "forms",
+        jobStatus: { ...forms, text: ` removed ${log.names.length === 1 ? "a form" : "forms"} `, strikeValue: log.names.join(", ") },
+      });
+    } else if (log.kind === "visibility") {
+      pushEvent({
+        kind: "forms",
+        jobStatus: {
+          ...forms,
+          text: " updated ",
+          value: log.name,
+          tailText: " visibility to ",
+          tailValue: log.visibility === "private" ? "Private" : "Public",
+        },
+      });
+    } else if (log.kind === "renamed") {
+      pushEvent({ kind: "forms", jobStatus: { ...forms, text: " renamed a form: ", strikeValue: log.from, value: log.to } });
+    } else {
+      const verb = log.kind === "completed" ? " completed a form " : " saved changes to a form ";
+      pushEvent({ kind: "forms", jobStatus: { ...forms, text: verb, value: log.name } });
+    }
+  };
+
+  // Work summary / Notes to dispatcher(s): one TextArea property each, so they
+  // take the general update-log shape (Figma 24489-50029) — the same accordion
+  // Service and Job properties use for a single long-text field.
+  const logTextProperty = (label: string, oldValue: string, newValue: string) =>
+    pushEvent({ kind: "updated", changes: [{ label, oldValue, newValue, longText: true }] });
+
   // Change the active sub-status / status message (stays active).
   const doChangeActive = (subStatus: string, reason: string) => {
     setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined }));
@@ -1306,6 +1532,8 @@ function useJobShell(isDesktop: boolean) {
     endActiveSession();
     toast({ type: "success", title: "Time session saved" });
     pushEvent({ kind: "checkout" });
+    // Every check-out ends in the Timesheet review (Figma 24598-41150).
+    setTimesheetOpen(true);
   };
   // "Check out" (bar / pill drawer / Timesheet row): an ACTIVE job opens the
   // confirm prompt first (Figma 24184-59897); any other status logs the
@@ -1322,8 +1550,9 @@ function useJobShell(isDesktop: boolean) {
   };
 
   // Time-session form actions (the Timesheet plus + the ended-row menu).
-  const openAddSession = () => {
+  const openAddSession = (startDate?: Date) => {
     setEditingSession(undefined);
+    setSessionStartDate(startDate);
     setSessionFormOpen(true);
   };
   const openEditSession = (session: Session) => {
@@ -1482,6 +1711,14 @@ function useJobShell(isDesktop: boolean) {
     logScheduling(was, next);
   };
 
+  // A completed job's items live in THREE menus (the overflow + the two button
+  // menus), so every one of its actions closes all three.
+  const closeActionMenus = () => {
+    actionMenu.close();
+    markAsMenu.close();
+    createMenu.close();
+  };
+
   const actions: JobActions = {
     onStart: () => {
       actionMenu.close();
@@ -1497,7 +1734,7 @@ function useJobShell(isDesktop: boolean) {
       setPauseOpen(true);
     },
     onResume: () => {
-      actionMenu.close();
+      closeActionMenus();
       setResumeOpen(true);
     },
     onChangeActive: () => {
@@ -1533,11 +1770,37 @@ function useJobShell(isDesktop: boolean) {
       actionMenu.close();
       setCancelOpen(true);
     },
+    onMarkInvoiced: () => {
+      closeActionMenus();
+      setMarkInvoicedOpen(true);
+    },
+    onMarkEstimated: () => {
+      closeActionMenus();
+      setMarkEstimatedOpen(true);
+    },
+    onResendSummary: () => {
+      closeActionMenus();
+      setSendSummaryOpen(true);
+    },
+    onCreateInvoice: () => {
+      closeActionMenus();
+      logCreatedFrom("invoice");
+    },
+    onCreateEstimate: () => {
+      closeActionMenus();
+      logCreatedFrom("estimate");
+    },
+    onCreateRecall: () => {
+      closeActionMenus();
+      logCreatedFrom("recall");
+    },
   };
 
   return {
     menu,
     actionMenu,
+    markAsMenu,
+    createMenu,
     scheduling,
     setScheduling,
     serviceValues,
@@ -1584,6 +1847,17 @@ function useJobShell(isDesktop: boolean) {
     setResumeOpen,
     completeOpen,
     setCompleteOpen,
+    sendSummaryOpen,
+    setSendSummaryOpen,
+    markInvoicedOpen,
+    setMarkInvoicedOpen,
+    markEstimatedOpen,
+    setMarkEstimatedOpen,
+    completeJob,
+    finalizeJob,
+    signature,
+    logForms,
+    logTextProperty,
     changeActiveOpen,
     setChangeActiveOpen,
     changePauseOpen,
@@ -1600,6 +1874,9 @@ function useJobShell(isDesktop: boolean) {
     checkOutPromptOpen,
     setCheckOutPromptOpen,
     confirmCheckOut,
+    timesheetOpen,
+    setTimesheetOpen,
+    sessionStartDate,
     checkInOpen,
     setCheckInOpen,
     doCheckIn,
@@ -1640,9 +1917,34 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
     <CompleteJobForm
       open={s.completeOpen}
       onClose={() => s.setCompleteOpen(false)}
+      // Completing moves the job to "Completed" (stamping "Completed on"),
+      // files the signature into the Summary tab's Signature module, and hands
+      // straight over to the Send-summary form (Daniel, 2026-08-07).
+      onCompleted={(signature) => {
+        s.setCompleteOpen(false);
+        s.completeJob(signature);
+        s.setSendSummaryOpen(true);
+      }}
       equipmentIds={s.equipmentIds}
       onEquipmentIdsChange={s.changeEquipmentIds}
       equipmentPool={s.equipmentPool}
+      // The Signature step recaps the job: Type / Recall to / Service belong to
+      // the Service module, Source ID to Job properties (and only shows when
+      // the source provides one).
+      jobFacts={{
+        jobId: s.jobProperties.jobId,
+        sourceId: sourceRequiresId(s.jobSources, s.jobProperties.source) ? s.jobProperties.sourceId : undefined,
+        isRecall: s.serviceValues.type === "recall",
+        recallTo: s.serviceValues.recallTo,
+        service: s.serviceValues.service,
+      }}
+      mobile={mobile}
+    />
+    {/* Send job summary — opens right after the job is completed
+        (Figma 24576-152451). */}
+    <SendSummaryForm
+      open={s.sendSummaryOpen}
+      onClose={() => s.setSendSummaryOpen(false)}
       mobile={mobile}
     />
     {/* Schedule job dialog (Figma 24222-20585) — the Scheduling form with
@@ -1659,7 +1961,9 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       mobile={mobile}
     />
     {/* Resume job (Figma 24096-19684): the Start-job form shape — sub-status,
-        optional Resume reason, and the Check in card (no banner). */}
+        optional Resume reason, and the Check in card. Resuming a PAUSED job has
+        no banner; resuming a COMPLETED one warns that the signature is void
+        (Figma 24567-140277). */}
     <StartJobForm
       open={s.resumeOpen}
       onClose={() => s.setResumeOpen(false)}
@@ -1668,7 +1972,38 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       submitLabel="Resume job"
       reasonLabel="Resume reason"
       toastTitle={`"${JOB_ID}" resumed`}
+      banner={
+        s.job.status === "completed"
+          ? "Resuming this job will return it to Active status. A new signature will need to be collected to complete this job."
+          : undefined
+      }
       mobile={mobile}
+    />
+    {/* The two "Mark as" confirmations — both finalize the job
+        (Figma 24567-139607 / 24567-140732). */}
+    <Prompt
+      open={s.markInvoicedOpen}
+      title="Mark the job as invoiced?"
+      body="This action can not be undone"
+      actionLabel="Mark as invoiced"
+      onAction={() => {
+        s.setMarkInvoicedOpen(false);
+        s.finalizeJob("invoiced");
+      }}
+      onCancel={() => s.setMarkInvoicedOpen(false)}
+      breakpoint={mobile ? "mobile" : "desktop"}
+    />
+    <Prompt
+      open={s.markEstimatedOpen}
+      title="Mark the job as estimated?"
+      body="This action can not be undone"
+      actionLabel="Mark as estimated"
+      onAction={() => {
+        s.setMarkEstimatedOpen(false);
+        s.finalizeJob("estimated");
+      }}
+      onCancel={() => s.setMarkEstimatedOpen(false)}
+      breakpoint={mobile ? "mobile" : "desktop"}
     />
     <SubStatusForm
       open={s.changeActiveOpen}
@@ -1690,7 +2025,26 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onSubmit={s.doChangePause}
       mobile={mobile}
     />
-    <SessionForm open={s.sessionFormOpen} onClose={() => s.setSessionFormOpen(false)} session={s.editingSession} onSave={s.saveSession} mobile={mobile} />
+    <SessionForm
+      open={s.sessionFormOpen}
+      onClose={() => s.setSessionFormOpen(false)}
+      session={s.editingSession}
+      startDate={s.sessionStartDate}
+      onSave={s.saveSession}
+      mobile={mobile}
+    />
+    {/* The Timesheet review — opens on EVERY check-out (Figma 24598-41150 /
+        24598-41148). It confirms nothing: "It's correct", Cancel and the ✕ all
+        just close it; the session was already logged by the check-out. */}
+    <TimesheetForm
+      open={s.timesheetOpen}
+      onClose={() => s.setTimesheetOpen(false)}
+      sessions={s.displaySessions}
+      onAddSession={(dayLabel) => s.openAddSession(dayLabel != null ? new Date(dayLabel) : undefined)}
+      onEditSession={s.openEditSession}
+      onDeleteSession={s.setDeleteTarget}
+      mobile={mobile}
+    />
     {/* Check-in dialog (Figma 24194-74433 / 74815): pick a status, check in. */}
     <CheckInDialog open={s.checkInOpen} onClose={() => s.setCheckInOpen(false)} onCheckIn={s.doCheckIn} mobile={mobile} />
     {/* Check-out confirm (Figma 24184-59897) — the danger action logs the
@@ -1768,7 +2122,12 @@ const DesktopShell = () => {
               </div>
             ) : tab === "summary" ? (
               <div className={styles.mainContent}>
-                <SummaryPanel jobEquipment={s.jobEquipment} />
+                <SummaryPanel
+                  jobEquipment={s.jobEquipment}
+                  signature={s.signature}
+                  onFormsLog={s.logForms}
+                  onTextLog={s.logTextProperty}
+                />
               </div>
             ) : tab === "activity" ? (
               <div className={styles.mainContent}>
@@ -1792,7 +2151,14 @@ const DesktopShell = () => {
             {!s.locked && (
               <div className={styles.sidebarHeader}>
                 <ActionBar placement="top">
-                  <ActionButtons status={s.job.status} onMenu={s.actionMenu.onActions} menuPressed={s.actionMenu.open} actions={s.actions} />
+                  <ActionButtons
+                    status={s.job.status}
+                    onMenu={s.actionMenu.onActions}
+                    menuPressed={s.actionMenu.open}
+                    actions={s.actions}
+                    markAsMenu={s.markAsMenu}
+                    createMenu={s.createMenu}
+                  />
                 </ActionBar>
                 {/* Time tracking is separate from the job lifecycle: the bar
                     shows on every status except Unscheduled / Cancelled, in
@@ -1834,6 +2200,21 @@ const DesktopShell = () => {
         <div ref={s.actionMenu.cardRef} className={styles.contextMenu} style={{ left: s.actionMenu.pos.left, top: s.actionMenu.pos.top }}>
           <Menu open={s.actionMenu.open} onClose={s.actionMenu.close} breakpoint="desktop">
             {jobActionMenuItems({ status: s.job.status, actions: s.actions })}
+          </Menu>
+        </div>
+      )}
+      {/* A completed job's two button menus (Figma 24590-203979 / 24590-204302). */}
+      {s.markAsMenu.pos != null && (
+        <div ref={s.markAsMenu.cardRef} className={styles.contextMenu} style={{ left: s.markAsMenu.pos.left, top: s.markAsMenu.pos.top }}>
+          <Menu open={s.markAsMenu.open} onClose={s.markAsMenu.close} breakpoint="desktop">
+            {markAsMenuItems(s.actions)}
+          </Menu>
+        </div>
+      )}
+      {s.createMenu.pos != null && (
+        <div ref={s.createMenu.cardRef} className={styles.contextMenu} style={{ left: s.createMenu.pos.left, top: s.createMenu.pos.top }}>
+          <Menu open={s.createMenu.open} onClose={s.createMenu.close} breakpoint="desktop">
+            {createMenuItems(s.actions)}
           </Menu>
         </div>
       )}
@@ -2043,7 +2424,13 @@ const MobileShell = () => {
             mobile
           />
             ) : t === "summary" ? (
-              <SummaryPanel mobile jobEquipment={s.jobEquipment} />
+              <SummaryPanel
+                mobile
+                jobEquipment={s.jobEquipment}
+                signature={s.signature}
+                onFormsLog={s.logForms}
+                onTextLog={s.logTextProperty}
+              />
             ) : t === "activity" ? (
               <ActivityPanel
             mobile
@@ -2077,7 +2464,14 @@ const MobileShell = () => {
       )}
       {!s.locked && (
         <ActionBar placement="bottom">
-          <ActionButtons status={s.job.status} onMenu={s.actionMenu.onActions} menuPressed={s.actionMenu.open} actions={s.actions} />
+          <ActionButtons
+            status={s.job.status}
+            onMenu={s.actionMenu.onActions}
+            menuPressed={s.actionMenu.open}
+            actions={s.actions}
+            markAsMenu={s.markAsMenu}
+            createMenu={s.createMenu}
+          />
         </ActionBar>
       )}
       <SessionDrawer
@@ -2106,6 +2500,24 @@ const MobileShell = () => {
         breakpoint="mobile"
       >
         {jobActionMenuItems({ status: s.job.status, actions: s.actions })}
+      </Menu>
+      {/* A completed job's two button menus become drawers on mobile, under the
+          same job header as the overflow menu (Figma 24590-203977 / 24590-204300). */}
+      <Menu
+        open={s.markAsMenu.open}
+        onClose={s.markAsMenu.close}
+        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        breakpoint="mobile"
+      >
+        {markAsMenuItems(s.actions)}
+      </Menu>
+      <Menu
+        open={s.createMenu.open}
+        onClose={s.createMenu.close}
+        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        breakpoint="mobile"
+      >
+        {createMenuItems(s.actions)}
       </Menu>
       <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} mobile />
       <CancelJobForm open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} mobile />

@@ -272,7 +272,7 @@ export default function Dialog(props: DialogProps) {
     );
   } else {
     // ---- default: 608px card (desktop) / drawer (mobile) ----
-    const { footer, subHeader, cardStyle: cardStyleOverride } = props;
+    const { footer, subHeader, cardStyle: cardStyleOverride, drawerHeader = "bodyOnly" } = props;
     const footerRegion =
       isStateView || !(errorSlot || footer) ? undefined : (
         <>
@@ -287,11 +287,17 @@ export default function Dialog(props: DialogProps) {
     const subHeaderRegion = isStateView ? null : subHeader;
 
     if (!isDesktop) {
+      // "dragHandle" drops the title row entirely — the drawer is dismissed by
+      // dragging it down or tapping the scrim (Figma 24178-58902).
       const header = (
         <>
-          <DrawerHeader variant="bodyOnly" close onClose={attemptDismiss}>
-            {titleContent}
-          </DrawerHeader>
+          {drawerHeader === "dragHandle" ? (
+            <DrawerHeader variant="dragHandle" />
+          ) : (
+            <DrawerHeader variant="bodyOnly" close onClose={attemptDismiss}>
+              {titleContent}
+            </DrawerHeader>
+          )}
           {subHeaderRegion}
         </>
       );

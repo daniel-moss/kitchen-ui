@@ -17,8 +17,7 @@ const STATUSES: AvatarJobStatus[] = [
   "quickPaused",
   "onHoldExternal",
   "onHoldInternal",
-  "uninvoiced",
-  "unestimated",
+  "completed",
   "finalized",
   "cancelled",
 ];

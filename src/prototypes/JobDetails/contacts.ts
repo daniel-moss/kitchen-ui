@@ -21,24 +21,29 @@ export interface JobContact {
   id: number;
   name: string;
   avatar: string;
-  email: string;
-  phone: string;
+  /** A contact may have no e-mail (Figma's Send-summary list: Ismaeel Landry). */
+  email?: string;
+  /** A contact may have no phone (Figma's Send-summary list: Kate Charles). */
+  phone?: string;
 }
 
-const contact = (userId: number, email: string, phone: string): JobContact => {
+const contact = (userId: number, email?: string, phone?: string): JobContact => {
   const user = usersById.get(userId) as User;
   return { id: userId, name: user.name, avatar: user.avatar, email, phone };
 };
 
 // One entry per person: the same contact can sit in two groups (Seb Phillips
 // and Ismaeel Landry do in Figma), and picking either row selects the person.
+// Kate has no phone and Ismaeel no e-mail — Figma's Send-summary lists show
+// exactly those two gaps, and the Send-summary form needs contacts that are
+// missing a channel to show its warning state (Daniel, 2026-08-07).
 export const CONTACTS = {
   lorne: contact(1, "lorne.riddle@mcdonalds.com", "(415) 555-0118"),
   amy: contact(3, "amy.lowery@mcdonalds.com", "(415) 555-0142"),
-  kate: contact(4, "kate.charles@mcdonalds.com", "(415) 555-0167"),
+  kate: contact(4, "kate.charles@mcdonalds.com", undefined),
   angel: contact(6, "angel.leblanc@mcdonalds.com", "(415) 555-0193"),
   dirk: contact(5, "dirk.horton@mcdonalds.com", "(415) 555-0224"),
-  ismaeel: contact(8, "ismaeel.landry@mcdonalds.com", "(415) 555-0251"),
+  ismaeel: contact(8, undefined, "(415) 555-0251"),
   seb: contact(7, "seb.phillips@mcdonalds.com", "(415) 555-0286"),
   scott: contact(19, "scott.lyons@chipotle.com", "(415) 555-0310"),
 };
@@ -71,5 +76,17 @@ export const BILLING_CLIENT_CONTACTS: JobContact[] = [CONTACTS.scott, CONTACTS.s
 export const INITIAL_REPORTER = CONTACTS.angel;
 export const INITIAL_SUPERVISOR = CONTACTS.kate;
 
-/** The item caption: phone ・ e-mail (Figma separator is U+30FB). */
-export const contactCaption = (c: JobContact) => `${c.phone} ・ ${c.email}`;
+/** The item caption: phone ・ e-mail (Figma separator is U+30FB). A contact
+ *  missing one of them shows only the other. */
+export const contactCaption = (c: JobContact) => [c.phone, c.email].filter(Boolean).join(" ・ ");
+
+/** The channel a summary is delivered through — its own contact detail. */
+export type ContactChannel = "text" | "email";
+
+/** The channel's value on a contact, or undefined when the contact lacks it. */
+export const channelValue = (c: JobContact, channel: ContactChannel) => (channel === "text" ? c.phone : c.email);
+
+/** The Send-summary caption: only the channel's own detail, or what is missing
+ *  (Figma "No Phone number" / "No Email address"). */
+export const channelCaption = (c: JobContact, channel: ContactChannel) =>
+  channelValue(c, channel) ?? (channel === "text" ? "No Phone number" : "No Email address");

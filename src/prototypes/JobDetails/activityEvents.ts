@@ -80,7 +80,14 @@ export interface ActivityEvent {
     // Both are MODULE logs: a plain regular gray-12 glyph, not the job-status
     // colours.
     | "scheduling"
-    | "assignees";
+    | "assignees"
+    // What the job was turned into once it was completed — the invoice /
+    // estimate / recall it spawned and the two "marked as" actions
+    // (Figma 24592-40478). Module logs too.
+    | "createdFrom"
+    // The "Forms" module (Figma 24592-40934): add / remove / rename /
+    // visibility / complete / save, all on the `clipboard-list` glyph.
+    | "forms";
   date: Date;
   user: User;
   /** Update events only — the changed fields, in form order. */
@@ -132,6 +139,12 @@ export interface JobStatusLog {
   /** The value that is GONE — struck through (an old duration, a cleared slot). */
   strikeValue?: string;
   value?: string;
+  /**
+   * Render `value` as a LINK to the object it names — underlined (Figma
+   * 24592-40478 writes INV-10001 / EST-10001 / JOB-10001 that way). Those
+   * objects do not exist in the prototype, so it does not navigate.
+   */
+  valueLink?: boolean;
   tailText?: string;
   tailValue?: string;
   /** Render `tailValue` struck through (the unassigned half of an Assignees log). */

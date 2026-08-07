@@ -213,18 +213,38 @@ export const fmtClockMin = (min: number): string => {
 // A tech cannot be in two sessions at the same time, so two of their ENDED
 // sessions that intersect get the warning state: the warning avatar on both
 // rows, plus the amber time — the EARLIER session's END and the LATER
-// session's START (Daniel's rule, 2026-08-05). Touching edges (one session
-// ends exactly when the next begins) are NOT an overlap, active (running)
-// sessions are not checked, and the overlap never blocks saving.
+// session's START (Daniel's rule, 2026-08-05). Active (running) sessions are
+// not checked, and the overlap never blocks saving.
+//
+// The comparison is in WHOLE MINUTES, off the labels the row shows, and needs a
+// FULL minute of overlap to warn (Daniel, 2026-08-07). Two reasons:
+//   * touching sessions must not warn — one ending at 9:00 AM and the next
+//     starting at 9:00 AM share an instant, not a minute;
+//   * a checked-out session's `durationSec` carries SECONDS, so deriving the
+//     end from it put a session that reads "→ 9:00 AM" a few seconds past 9:00
+//     and flagged the pair. The end now comes from `endLabel` — the time the
+//     user actually sees — so the warning can never contradict the row.
+const OVERLAP_MIN_MS = 60_000;
 
-// A session's absolute start/end in ms. The start date label carries the day,
-// so a cross-day session (end = start + duration) compares correctly too.
+// A session's start/end in ms, snapped to the minute its labels show. A
+// cross-day session carries its own end date; without one the end falls on the
+// start's day, and an end that reads earlier than the start means it wrapped
+// past midnight.
 const sessionSpan = (s: Session): { start: number; end: number } | null => {
   const startMin = parseClockMin(s.startLabel);
   const day = new Date(s.dateLabel).getTime();
   if (startMin == null || Number.isNaN(day)) return null;
   const start = day + startMin * 60_000;
-  return { start, end: start + s.durationSec * 1000 };
+
+  const endMin = s.endLabel != null ? parseClockMin(s.endLabel) : null;
+  if (endMin == null) {
+    // No end label (demo rows): fall back to the duration, rounded to the
+    // minute so it lines up with everything else.
+    return { start, end: start + Math.round(s.durationSec / 60) * 60_000 };
+  }
+  const endDay = s.endDateLabel != null ? new Date(s.endDateLabel).getTime() : day;
+  const end = (Number.isNaN(endDay) ? day : endDay) + endMin * 60_000;
+  return { start, end: end < start ? end + 86_400_000 : end };
 };
 
 // One tech's sessions → the overlap flags per session id (absent = no warning).
@@ -242,9 +262,17 @@ export const overlapFlags = (sessions: Session[]): Map<number, SessionOverlap> =
   };
   for (let i = 0; i < spans.length; i++) {
     for (let j = i + 1; j < spans.length; j++) {
-      // Sorted by start: once one session begins at or after `a` ends, every
-      // later one does too — nothing else can overlap `a`.
-      if (spans[j].span.start >= spans[i].span.end) break;
+      // Sorted by start, so `b` starts no earlier than `a`. STOP once `a` has
+      // under a minute left after `b` begins — every later session starts later
+      // still, so none can reach a full minute either. This bound uses only
+      // a.end and b.start, which is what makes it monotone; the shared stretch
+      // itself is not (a short session in the middle would cut the scan off
+      // early and hide a real overlap behind it).
+      if (spans[i].span.end - spans[j].span.start < OVERLAP_MIN_MS) break;
+      // Inside the bound, only a session shorter than a minute can still fall
+      // through — skip it and keep looking.
+      const shared = Math.min(spans[i].span.end, spans[j].span.end) - spans[j].span.start;
+      if (shared < OVERLAP_MIN_MS) continue;
       mark(spans[i].id, "end");
       mark(spans[j].id, "start");
     }
@@ -412,7 +440,7 @@ const ActiveSessionRow = ({
   onStop: () => void;
   onSwitchStatus?: (status: string) => void;
 }) => {
-  const menu = useAnchoredMenu(!mobile, "end");
+  const menu = useAnchoredMenu(!mobile);
   const startLabel = session.startLabel;
   const menuBody = (
     <>
@@ -510,7 +538,7 @@ const ActiveSessionRow = ({
 // Ended session (Figma 21803-49132): start → end, calendar avatar, total logged,
 // and a context-menu button (Edit / Delete) — desktop card / mobile drawer.
 const EndedSessionRow = ({ session, mobile, editable, overlap, onEdit, onDelete }: { session: Session; mobile: boolean; editable: boolean; overlap?: SessionOverlap; onEdit: () => void; onDelete: () => void }) => {
-  const menu = useAnchoredMenu(!mobile, "end");
+  const menu = useAnchoredMenu(!mobile);
   // Concept 7: NO 15-min rounding — the row shows the ACTUAL recorded range
   // and duration (Daniel removed the rounding for this prototype).
   const rangeText = `${session.startLabel} → ${session.endLabel}`;
@@ -629,7 +657,7 @@ const EndedSessionRow = ({ session, mobile, editable, overlap, onEdit, onDelete 
   );
 };
 
-const SessionRow = ({
+export const SessionRow = ({
   session,
   mobile,
   editable,

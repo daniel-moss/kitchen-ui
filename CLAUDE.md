@@ -276,6 +276,10 @@ Roughly, as of this handoff:
   Toggle, ToggleItem), `SelectInput/` (assembly + Field + Body + Counter;
   fit-content width, `isFullWidth`), `SearchField` (field / bar types; renamed
   from SearchInput 2026-07-29 with the Figma-parameter fixes + docs page).
+  CheckboxItem/RadioItem card `content` slot: 16px padding by default,
+  `contentPadded={false}` hands the spacing to the caller (2026-08-07, Daniel:
+  the slot must adapt to the case) — needed whenever the content holds a
+  full-bleed Divider.
 - **Containers:** `Card`, `DisplayModule` (default/accordion/bodyOnly + status
   ring/banner/error), `GroupLabel` (primary/secondary; counter/caption;
   accordion).
@@ -304,7 +308,12 @@ Roughly, as of this handoff:
   LANDSCAPE gets the desktop presentation, so the breakpoint is NOT the
   signal; the input modality is. Daniel, 2026-07-29); a
   DRAWER with a search always fills the full
-  height — a content-hugging sheet would jump on every keystroke),
+  height — a content-hugging sheet would jump on every keystroke; **"selected
+  on top" depends on the GROUP COUNT** (Daniel, 2026-08-07): a multi-select
+  list with ONE group flattens it and pins the options that were selected on
+  open above a divider, but with MORE THAN ONE group the groups carry meaning
+  and are left exactly as the consumer wrote them. Counted on the original
+  children, so a search that empties a group does not flip the behaviour),
   `SelectListHeader` (search), `SelectListItem` (+ Content/Copy; default/object),
   `SelectListItemGroup` (pairs with GroupLabel: primary ↔ object items,
   secondary ↔ default items), `SelectListFooter` (menuItem/actionBar).

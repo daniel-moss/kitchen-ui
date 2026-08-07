@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import Button from "../../components/Button/Button";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
@@ -10,9 +10,9 @@ import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
 import ChargesTab from "./ChargesTab";
 import { Equipment } from "./equipment";
-import FormsModule from "./FormsModule";
+import FormsModule, { FormsLog } from "./FormsModule";
 import NotesForm from "./NotesForm";
-import SignatureModule, { SignatureData, SignatureState } from "./SignatureModule";
+import SignatureModule, { SignatureData, SignatureResult, SignatureState } from "./SignatureModule";
 import WorkSummaryForm from "./WorkSummaryForm";
 import useSummaryGenerator from "./summaryGenerator";
 
@@ -26,15 +26,17 @@ const EditButton = ({ label, onClick }: { label: string; onClick: () => void }) 
   </HoverTooltip>
 );
 
-// The Signature module is filled by the Complete-job flow, whose Signature step
-// is not built yet — so the tab shows "Not collected". The other two states are
-// built and take over once that step exists (Daniel, 2026-08-06).
-const SIGNATURE_STATE: SignatureState = "notCollected";
-const SIGNATURE_DATA: SignatureData = {
-  signedBy: "Daniel Moss",
-  date: new Date(new Date().getFullYear(), 0, 1),
-  skipReason:
-    "The kitchen manager left before the repair was finished and no one else on site was authorised to sign off on the work.",
+// The Signature module is filled by the COMPLETE-JOB flow: signing the pad
+// gives the `collected` state, "Skip and complete" the `skipped` one with its
+// reason. Until the job is completed there is nothing to show (Daniel,
+// 2026-08-07 — it used to be pinned to "Not collected", which is why signing
+// never reached the module).
+const signatureView = (result?: SignatureResult): { state: SignatureState; data?: SignatureData } => {
+  if (result == null) return { state: "notCollected" };
+  if (result.state === "collected") {
+    return { state: "collected", data: { signedBy: result.signedBy, date: result.date, ink: result.ink } };
+  }
+  return { state: "skipped", data: { signedBy: "", date: result.date, skipReason: result.skipReason } };
 };
 
 // The "Summary" tab (Figma 23824-25409): a segmented Tech work / Charges /
@@ -43,10 +45,27 @@ const SIGNATURE_DATA: SignatureData = {
 export default function SummaryPanel({
   mobile = false,
   jobEquipment = [],
+  signature,
+  onFormsLog,
+  onTextLog,
 }: {
   mobile?: boolean;
   /** The job's live Equipment-module list — the Service call form reads it. */
   jobEquipment?: Equipment[];
+  /**
+   * What the Complete-job flow collected. Without it the module reads
+   * "Not collected" — completing the job is the only thing that fills it
+   * (Daniel, 2026-08-07).
+   */
+  signature?: SignatureResult;
+  /** One Activity log per Forms-module change (Figma 24592-40934). */
+  onFormsLog?: (log: FormsLog) => void;
+  /**
+   * Work summary / Notes to dispatcher(s) edits. Both are single TextArea
+   * properties, so they take the general update-log shape (Figma 24489-50029):
+   * "{user} updated {property}" over the old → new diff.
+   */
+  onTextLog?: (property: string, oldValue: string, newValue: string) => void;
 }) {
   const [sub, setSub] = useState("tech-work");
 
@@ -74,16 +93,29 @@ export default function SummaryPanel({
 
   // Saving (from the form or the inline Generate) marks the summary current.
   const acceptSummary = (text: string) => {
+    if (text !== summary) onTextLog?.("Work summary", summary, text);
     setSummary(text);
     setSummaryRevision(formsRevision);
     setBannerDismissed(false);
   };
 
+  // Generating writes straight into the saved summary, one character per tick.
+  // So the log cannot be written per write — the text before the run is kept
+  // here and logged once, when the typewriter finishes (phase back to idle).
+  const genFrom = useRef<string | null>(null);
   const generateInline = () => {
+    genFrom.current = summary;
     inlineGen.generate();
     setSummaryRevision(formsRevision);
     setBannerDismissed(false);
   };
+  useEffect(() => {
+    if (inlineGen.phase !== "idle" || genFrom.current == null) return;
+    const before = genFrom.current;
+    genFrom.current = null;
+    if (before !== summary) onTextLog?.("Work summary", before, summary);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inlineGen.phase]);
 
   // The forms moved on after the summary was written (Figma 24268-68841).
   const formsMovedOn = summary !== "" && formsRevision !== summaryRevision && !bannerDismissed;
@@ -93,8 +125,8 @@ export default function SummaryPanel({
   const summaryBody =
     summary !== "" ? (
       <p className={styles.paragraph}>{summary}</p>
-    ) : formsDone.all ? (
-      // Every form completed → offer the AI generation.
+    ) : formsDone.any ? (
+      // ONE completed form is enough to generate from (Daniel, 2026-08-07).
       <div className={styles.generateBody}>
         <Button
           variant="subtle"
@@ -124,7 +156,7 @@ export default function SummaryPanel({
       {sub === "charges" ? (
         <ChargesTab mobile={mobile} />
       ) : sub === "signature" ? (
-        <SignatureModule state={SIGNATURE_STATE} data={SIGNATURE_DATA} />
+        <SignatureModule {...signatureView(signature)} />
       ) : (
         <>
           {/* Forms (Figma 21816-30805) — the full module: Public/Private
@@ -135,6 +167,7 @@ export default function SummaryPanel({
             jobEquipment={jobEquipment}
             onCompletionChange={setFormsDone}
             onFormsRevision={handleFormsRevision}
+            onLog={onFormsLog}
           />
 
           {/* Work summary — 4 states (filled / generate / incomplete forms /
@@ -174,10 +207,19 @@ export default function SummaryPanel({
             onClose={() => setSummaryOpen(false)}
             value={summary}
             onSave={acceptSummary}
-            canGenerate={formsDone.all}
+            canGenerate={formsDone.any}
             mobile={mobile}
           />
-          <NotesForm open={notesOpen} onClose={() => setNotesOpen(false)} value={notes} onSave={setNotes} mobile={mobile} />
+          <NotesForm
+            open={notesOpen}
+            onClose={() => setNotesOpen(false)}
+            value={notes}
+            onSave={(next) => {
+              if (next !== notes) onTextLog?.("Notes to dispatcher(s)", notes, next);
+              setNotes(next);
+            }}
+            mobile={mobile}
+          />
         </>
       )}
     </div>

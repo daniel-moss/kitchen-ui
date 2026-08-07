@@ -50,6 +50,31 @@ import styles from "./FormsModule.module.scss";
 
 type FormState = "notStarted" | "requiredService" | "requiredEquipment" | "inProgress" | "progressSaved" | "completed";
 
+/** What another step needs to LIST a form read-only (the Signature step). */
+/**
+ * One "Forms" module Activity log (Figma 24592-40934). Every shape the node
+ * draws, and nothing else:
+ *   added / removed  — one or several names, the removed ones struck through
+ *   visibility       — "updated {name} visibility to Public|Private"
+ *   renamed          — "renamed a form: ~~old~~ → new"
+ *   completed / saved — "completed a form {name}" / "saved changes to a form {name}"
+ */
+export type FormsLog =
+  | { kind: "added"; names: string[] }
+  | { kind: "removed"; names: string[] }
+  | { kind: "visibility"; name: string; visibility: "public" | "private" }
+  | { kind: "renamed"; from: string; to: string }
+  | { kind: "completed"; name: string }
+  | { kind: "saved"; name: string };
+
+export interface FormSummary {
+  id: number;
+  name: string;
+  completed: boolean;
+  /** "Completed by Name S. on Jan 1 at 12:00 PM" — empty until completed. */
+  caption: string;
+}
+
 interface JobForm {
   id: number;
   name: string;
@@ -150,7 +175,7 @@ const caption = (f: JobForm) => {
 // Icons per the 2026-07-23 List-Items update: circle-dashed (not started /
 // required), circle-half-stroke ROTATED 180° (in progress / saved — the fill
 // moves to the RIGHT half), check-circle (completed).
-const FormAvatar = ({ state }: { state: FormState }) => {
+export const FormAvatar = ({ state }: { state: FormState }) => {
   const active = state === "inProgress" || state === "progressSaved";
   const kind = state === "completed" ? styles.avatarCompleted : active ? styles.avatarActive : styles.avatarDefault;
   const icon = state === "completed" ? "check-circle" : active ? "circle-half-stroke" : "circle-dashed";
@@ -254,7 +279,7 @@ const FormRow = ({
   onToggleVisibility: () => void;
   onRemove: () => void;
 }) => {
-  const menu = useAnchoredMenu(!mobile, "end");
+  const menu = useAnchoredMenu(!mobile);
   const completed = form.state === "completed";
   const inProgress = form.state === "inProgress";
   // A union CONST (not an inline ternary spread) — TS must keep the two
@@ -267,40 +292,45 @@ const FormRow = ({
     menu.close,
   );
 
+  const rowProps = {
+    variant: "titleCaption" as const,
+    title: form.name,
+    caption: caption(form),
+    avatar: <FormAvatar state={form.state} />,
+    disabled,
+    ...dragProps,
+    slotRight: (
+      <span className={styles.rowRight}>
+        {inProgress && (
+          // Live avatars exist ONLY in md/lg/xl — this one is lg (32px).
+          // Hover = the DisplayModule editing-state tooltip (item 1).
+          <HoverTooltip text={LIVE_EDITOR_TOOLTIP}>
+            <Avatar type="live" content="image" size="lg" ringColor="orange" imageSrc={LIVE_EDITOR.avatar} />
+          </HoverTooltip>
+        )}
+        <IconButton
+          icon="ellipsis"
+          variant="ghost"
+          size="md"
+          aria-label={`${form.name} actions`}
+          isPressed={menu.open}
+          noDebounce
+          onClick={menu.onActions}
+        />
+      </span>
+    ),
+  };
+
   return (
     <>
-      <ListItem
-        variant="titleCaption"
-        title={form.name}
-        caption={caption(form)}
-        avatar={<FormAvatar state={form.state} />}
-        disabled={disabled}
-        isClickable
-        // A completed form opens its PREVIEW; the menu's Edit still opens the
-        // form itself (Daniel, 2026-08-06).
-        onClick={completed ? onPreview : onOpen}
-        {...dragProps}
-        slotRight={
-          <span className={styles.rowRight}>
-            {inProgress && (
-              // Live avatars exist ONLY in md/lg/xl — this one is lg (32px).
-              // Hover = the DisplayModule editing-state tooltip (item 1).
-              <HoverTooltip text={LIVE_EDITOR_TOOLTIP}>
-                <Avatar type="live" content="image" size="lg" ringColor="orange" imageSrc={LIVE_EDITOR.avatar} />
-              </HoverTooltip>
-            )}
-            <IconButton
-              icon="ellipsis"
-              variant="ghost"
-              size="md"
-              aria-label={`${form.name} actions`}
-              isPressed={menu.open}
-              noDebounce
-              onClick={menu.onActions}
-            />
-          </span>
-        }
-      />
+      {/* A form SOMEONE ELSE is editing is not clickable — there is nothing to
+          open (Daniel, 2026-08-07); its ⋯ menu still works. A completed form
+          opens its PREVIEW; the menu's Edit still opens the form itself. */}
+      {inProgress ? (
+        <ListItem {...rowProps} />
+      ) : (
+        <ListItem {...rowProps} isClickable onClick={completed ? onPreview : onOpen} />
+      )}
       {mobile ? (
         <Menu
           open={menu.open}
@@ -412,6 +442,9 @@ export default function FormsModule({
   stepVariant = false,
   onCompletionChange,
   onFormsRevision,
+  onFormsChange,
+  registerPreview,
+  onLog,
 }: {
   mobile?: boolean;
   /** The job's live Equipment-module list (the Service call form reads it). */
@@ -422,8 +455,12 @@ export default function FormsModule({
    * header. Everything else (rows, menus, fillable forms, Add list) is identical.
    */
   stepVariant?: boolean;
-  /** Reports the forms' completion (Complete flow gates Next + the Generate button). */
-  onCompletionChange?: (state: { all: boolean; any: boolean }) => void;
+  /**
+   * Reports the forms' completion (Complete flow gates Next + the Generate
+   * button). `count` is how many forms the job has at all — with none, the
+   * Summary step hides Generate entirely (Figma 24395-36289).
+   */
+  onCompletionChange?: (state: { all: boolean; any: boolean; count: number }) => void;
   /**
    * Fires whenever a form's ANSWERS or completion state change (not a rename
    * or a visibility switch). The Work summary module compares this against the
@@ -431,6 +468,20 @@ export default function FormsModule({
    * (Figma 24268-68841 "Forms updated. Update the summary?").
    */
   onFormsRevision?: (revision: number) => void;
+  /** Reports the job's forms, so another step can list them read-only. */
+  onFormsChange?: (forms: FormSummary[]) => void;
+  /**
+   * Hands the caller a function that opens a form's read-only preview. The
+   * Complete-job Signature step uses it: its Forms list is rendered there, but
+   * the preview panel lives here, next to the answers it shows.
+   */
+  registerPreview?: (open: (id: number) => void) => void;
+  /**
+   * Writes one Activity log per change (Figma 24592-40934). The module owns its
+   * own forms state, so the shell can only learn about a change this way.
+   * Duplicating a form has NO designed log, so it writes none — flagged.
+   */
+  onLog?: (log: FormsLog) => void;
 }) {
   const [forms, setForms] = useState<JobForm[]>(INITIAL_FORMS);
   const [nextId, setNextId] = useState(100);
@@ -472,8 +523,16 @@ export default function FormsModule({
     onCompletionChange?.({
       all: forms.length > 0 && forms.every((f) => f.state === "completed"),
       any: forms.some((f) => f.state === "completed"),
+      count: forms.length,
     });
   }, [forms, onCompletionChange]);
+
+  // The same list, in a shape another step can render read-only.
+  useEffect(() => {
+    onFormsChange?.(
+      forms.map((f) => ({ id: f.id, name: f.name, completed: f.state === "completed", caption: caption(f) })),
+    );
+  }, [forms, onFormsChange]);
 
   // The forms' CONTENT revision: the completion states plus the stored answers.
   // A rename or a visibility switch also rewrites `forms`, so the states are
@@ -511,13 +570,22 @@ export default function FormsModule({
     }
     return null;
   };
+  // Another step can open the preview through this (the Signature step lists
+  // the forms but the preview panel belongs here, with the answers).
+  useEffect(() => {
+    registerPreview?.((id: number) => setPreviewForm(forms.find((f) => f.id === id) ?? null));
+  }, [registerPreview, forms]);
+
   // The panel keeps its content through the close animation.
   const lastPreview = useRef<JobForm | null>(null);
   if (previewForm != null) lastPreview.current = previewForm;
   const shownPreview = previewForm ?? lastPreview.current;
   const preview = shownPreview != null ? previewAnswersOf(shownPreview) : null;
 
-  const rename = (form: JobForm, name: string) => setForms((prev) => prev.map((f) => (f.id === form.id ? { ...f, name } : f)));
+  const rename = (form: JobForm, name: string) => {
+    setForms((prev) => prev.map((f) => (f.id === form.id ? { ...f, name } : f)));
+    if (name !== form.name) onLog?.({ kind: "renamed", from: form.name, to: name });
+  };
   // Duplicate = a fresh not-started copy right after the original (cleared fields).
   const duplicate = (form: JobForm) => {
     setForms((prev) => {
@@ -532,10 +600,14 @@ export default function FormsModule({
     const toPrivate = form.visibility === "public";
     setForms((prev) => prev.map((f) => (f.id === form.id ? { ...f, visibility: toPrivate ? "private" : "public" } : f)));
     detailedToast(toPrivate ? "The form is now private" : "The form is now public", form.name);
+    onLog?.({ kind: "visibility", name: form.name, visibility: toPrivate ? "private" : "public" });
   };
   // Remove just deletes the copy — its template returns to the Add list
   // (the list shows every template the job does NOT have).
-  const remove = (form: JobForm) => setForms((prev) => prev.filter((f) => f.id !== form.id));
+  const remove = (form: JobForm) => {
+    setForms((prev) => prev.filter((f) => f.id !== form.id));
+    onLog?.({ kind: "removed", names: [form.name] });
+  };
 
   // ---- Add-list staging -------------------------------------------------------
   // Only templates the job does not already have are offered.
@@ -563,6 +635,9 @@ export default function FormsModule({
     ]);
     setNextId((n) => n + names.length);
     setAddTarget(null);
+    // ONE log for the whole Add, however many copies it commits — the node
+    // writes "added forms A, B", not a log per form.
+    onLog?.({ kind: "added", names });
   };
 
   // Reorder within one visibility group (forms keep their added order otherwise).
@@ -582,16 +657,23 @@ export default function FormsModule({
   // failure path here, so it stays unwired).
   const confirmRemove = () => {
     if (removeTarget == null) return;
+    // `remove` writes the log itself, so this path adds only the toast.
     remove(removeTarget);
     detailedToast("The form removed", removeTarget.name);
     setRemoveTarget(null);
   };
 
   // ---- the HVAC PM questionnaire flows --------------------------------------
-  const setFillableState = (template: FillableTemplate, state: FormState) =>
+  // Both write the log too: a form is identified by its TEMPLATE here, but the
+  // log names it as the user sees it — the name a rename may have changed.
+  const setFillableState = (template: FillableTemplate, state: FormState) => {
     setForms((prev) =>
       prev.map((f) => (f.template === template ? { ...f, state, statusBy: shortName(VIEWER), statusAt: formatStatusTimestamp(new Date()) } : f)),
     );
+    const name = forms.find((f) => f.template === template)?.name ?? template;
+    if (state === "completed") onLog?.({ kind: "completed", name });
+    if (state === "progressSaved") onLog?.({ kind: "saved", name });
+  };
   // Save progress: keep whatever was filled, no validation. An untouched form
   // stays notStarted (no toast) — saving nothing is not progress.
   const saveStepProgress = (draft: HvacPmStepDraft) => {

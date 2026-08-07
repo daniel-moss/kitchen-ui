@@ -25,87 +25,16 @@
   width: 100%;
 }
 
-// ===== "Job total time" widget (Figma 24401-45608) ==========================
-// A header-less DisplayModule card; centered label + big value + span caption.
-.totalTime {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-4); // 16px
-  align-items: center;
-  width: 100%;
-  text-align: center;
-}
-
-.totalLabel {
-  @include font("body-400-compact"); // Inter Regular 14/20
-  color: var(--text-subtle);
-}
-
-.totalValueBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-0_5); // 2px
-  align-items: center;
-  width: 100%;
-}
-
-.totalValue {
-  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
-  font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
-  color: var(--text-strong);
-}
-
-.totalCaption {
-  font-family: var(--font-family-base);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 20px;
-  color: var(--text-subtle);
-}
-
 // ===== Charges module (Figma 24395-36688) ===================================
 // The line rows sit flush to the module edges (cancel DisplayModule's 16px
-// content padding — same approach as ChargesTab), then a group-total footer.
+// content padding — same approach as ChargesTab).
 .chargeBody {
   display: flex;
   flex-direction: column;
   margin: calc(-1 * var(--size-4));
 }
 
-// gray-a2 rounded box, right-aligned (Figma footer), inset 8px from the edges.
-.subtotalRow {
-  box-sizing: border-box;
-  display: flex;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  justify-content: flex-end;
-  margin: 0 var(--size-2) var(--size-2); // 0 8px 8px
-  padding: var(--size-3) var(--size-4); // 12px 16px
-  border-radius: var(--border-radius-1_5); // 6px
-  background: var(--gray-a2);
-  text-align: right;
-}
-
-.subtotalLabel {
-  @include font("body-400-compact"); // Inter Regular 14/20
-  color: var(--text-subtle);
-  white-space: nowrap;
-}
-
-.subtotalValue {
-  @include font("body-500-compact"); // Inter Medium 14/20
-  color: var(--text-strong);
-  white-space: nowrap;
-}
-
-// Empty (zero) subtotal value — muted, like the Figma Discounts total.
-.subtotalMuted {
-  @include font("body-500-compact");
-  color: var(--text-placeholder);
-  white-space: nowrap;
-}
-
-// ===== Job subtotal (Figma 24401-45..) ======================================
+// ===== Job subtotal (Figma 24429-51526) =====================================
 // A right-aligned block below the modules: subtle label + big Inter value.
 .jobSubtotal {
   display: flex;
@@ -122,7 +51,49 @@
 }
 
 .jobSubtotalValue {
-  font: var(--font-weight-medium) 2rem / 2.5rem var(--font-family-base); // Inter Medium 32/40
+  font: var(--font-weight-semibold) 2rem / 2.5rem var(--font-family-base); // Inter SemiBold 32/40
   font-feature-settings: "ss01" 1, "cv08" 1, "case" 1;
   color: var(--text-strong);
+}
+
+// ===== Signature step (Figma 24395-37211) ===================================
+// The read-only recap, then a divider, then the Signature form module.
+.signatureStep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8); // 32px
+  width: 100%;
+}
+
+// Client header + modules + subtotal, 24px apart.
+.recap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  width: 100%;
+}
+
+.client {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px
+  width: 100%;
+}
+
+.clientName {
+  @include font("heading-h2"); // Inter SemiBold 18/28
+  color: var(--text-strong);
+}
+
+.clientAddress {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+
+// The Work summary recap paragraph — the same body text the module uses.
+.paragraph {
+  margin: 0;
+  @include font("body-400-spacious");
+  color: var(--text-strong);
+  white-space: pre-wrap;
 }

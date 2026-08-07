@@ -22,6 +22,7 @@ const RadioItem = forwardRef<HTMLInputElement, RadioItemProps>(function RadioIte
     iconColor,
   iconPack = "solid",
     content,
+    contentPadded = true,
     checked,
     defaultChecked,
     onChange,
@@ -129,7 +130,7 @@ const RadioItem = forwardRef<HTMLInputElement, RadioItemProps>(function RadioIte
               radio and steal focus (e.g. from a SelectList search that just opened —
               the "focuses only on the 2nd try" bug). Keep clicks out of the label. */}
           <div
-            className={styles.contentSlot}
+            className={clsx(styles.contentSlot, !contentPadded && styles.contentBare)}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();

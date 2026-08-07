@@ -8,10 +8,15 @@ export interface AnchoredMenuPos {
 
 // Owns the open state + trigger wiring for a Menu anchored to a trigger
 // button. Desktop: the Menu card renders in a fixed wrapper 4px below the
-// trigger, aligned to its start or end edge; outside clicks close it (same
+// trigger, aligned to its start edge by default; outside clicks close it (same
 // pattern as NavSidebar's Create menu). Mobile (`outsideClose` FALSE): the
 // drawer dismisses via its own scrim — a document-level pointerdown closer
 // fires BEFORE the tap's click and kills every menu-item tap (see MOBILE.md).
+//
+// Placement rule (Daniel, 2026-08-07): the menu hangs from the trigger's LEFT
+// edge; only when it does not fit does it try the other edge, and clamping to
+// the viewport is the last resort. Vertically it flips above the trigger when
+// there is no room below.
 export function useAnchoredMenu(outsideClose: boolean, align: "start" | "end" = "start") {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<AnchoredMenuPos | null>(null);
@@ -33,8 +38,16 @@ export function useAnchoredMenu(outsideClose: boolean, align: "start" | "end" = 
     const below = r.bottom + 4;
     const flipUp = mh > 0 && below + mh > window.innerHeight - m && r.top - 4 - mh >= m;
     const top = flipUp ? r.top - 4 - mh : below;
-    let left = align === "end" ? r.right - mw : r.left;
-    if (mw > 0) left = Math.min(Math.max(m, left), window.innerWidth - mw - m);
+    // Preferred edge first; if the card does not fit there, try the opposite
+    // edge; if neither fits, clamp inside the viewport.
+    const preferred = align === "end" ? r.right - mw : r.left;
+    const alternate = align === "end" ? r.left : r.right - mw;
+    let left = preferred;
+    if (mw > 0) {
+      const fits = (x: number) => x >= m && x + mw <= window.innerWidth - m;
+      if (!fits(preferred) && fits(alternate)) left = alternate;
+      left = Math.min(Math.max(m, left), window.innerWidth - mw - m);
+    }
     setPos({ top, left });
   };
 

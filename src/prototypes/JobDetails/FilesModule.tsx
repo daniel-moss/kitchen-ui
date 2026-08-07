@@ -91,7 +91,7 @@ const FileEntry = ({
   onToggleVisibility: (file: JobFile) => void;
   onDelete: (file: JobFile) => void;
 }) => {
-  const menu = useAnchoredMenu(!mobile, "end");
+  const menu = useAnchoredMenu(!mobile);
 
   // Private → "Make public"; Public → "Make private" (Figma file menus).
   const menuBody = (

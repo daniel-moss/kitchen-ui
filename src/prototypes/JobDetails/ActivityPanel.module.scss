@@ -8,3 +8,11 @@
   width: 100%;
   padding: var(--size-4);
 }
+
+// An object the job spawned (INV-10001 / EST-10001 / JOB-10001) inside a log
+// sentence — underlined like a link (Figma 24592-40478). It does not navigate:
+// none of those objects exists in the prototype.
+.link {
+  text-decoration: underline;
+  text-underline-position: from-font;
+}

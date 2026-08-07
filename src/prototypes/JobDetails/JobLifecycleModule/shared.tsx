@@ -4,9 +4,8 @@ import { Icon } from "../../../components/Icon/Icon";
 import { IconSize } from "../../../components/Icon/Icon.types";
 import HintTrigger from "../../../components/Hint/HintTrigger";
 import HoverHint from "../../../components/Hint/HoverHint";
-import { formatHrMin } from "../TimesheetPanel";
 
-import { formatDays, LifecycleRow } from "./lifecycleData";
+import { formatHighlight, formatLifecycle, LifecycleRow } from "./lifecycleData";
 
 import styles from "./shared.module.scss";
 
@@ -27,11 +26,14 @@ export interface LifecycleConceptProps {
   mobile?: boolean;
 }
 
-/** One "Value" box of the Top Data row. */
+/**
+ * One "Value" box of the Top Data row. An empty value ("0 min") is written in
+ * the placeholder colour (Figma "Billable Time" 24575-150179).
+ */
 const Highlight = ({ title, value }: { title: string; value: string }) => (
   <div className={styles.value}>
     <span className={styles.valueTitle}>{title}</span>
-    <span className={styles.valueNumber}>{value}</span>
+    <span className={clsx(styles.valueNumber, value === "0 min" && styles.valueEmpty)}>{value}</span>
   </div>
 );
 
@@ -46,8 +48,8 @@ export const TopData = ({
   mobile?: boolean;
 }) => (
   <div className={clsx(styles.highlights, mobile && styles.stacked)}>
-    <Highlight title="Billable time" value={formatHrMin(billableSec)} />
-    <Highlight title="Lifecycle" value={formatDays(lifecycleSec)} />
+    <Highlight title="Billable time" value={formatHighlight(billableSec)} />
+    <Highlight title="Lifecycle time" value={formatLifecycle(lifecycleSec)} />
   </div>
 );
 

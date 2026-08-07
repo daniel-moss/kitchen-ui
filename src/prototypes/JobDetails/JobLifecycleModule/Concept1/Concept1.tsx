@@ -12,14 +12,15 @@ import styles from "../Concept.module.scss";
 // CONCEPT 1 — the built one (Figma 24560-134494). The break-down is an
 // ActivityLog: one accordion row per status on a connected timeline, each
 // expanding into its separate stretches. The whole list sits under one
-// collapsible "Statuses break down" group label.
+// collapsible "Time in statuses" group label, COLLAPSED by default (Figma
+// 24575-146246: "collapsed by default").
 //
 // This is the concept the Job Details Activity tab uses.
 export default function Concept1({
   billableSec,
   lifecycleSec,
   breakdown,
-  defaultOpen = true,
+  defaultOpen = false,
   mobile = false,
 }: LifecycleConceptProps) {
   return (
@@ -31,7 +32,7 @@ export default function Concept1({
           <TopData billableSec={billableSec} lifecycleSec={lifecycleSec} mobile={mobile} />
           <Divider />
           <div className={styles.logBody}>
-            <ActivityLogGroup label="Statuses break down" defaultOpen={defaultOpen}>
+            <ActivityLogGroup label="Time in statuses" defaultOpen={defaultOpen}>
               {breakdown.map((row) => (
                 <ActivityLogItem
                   key={row.key}
