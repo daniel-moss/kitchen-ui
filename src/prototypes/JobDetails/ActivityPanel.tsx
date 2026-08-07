@@ -8,9 +8,9 @@ import { Icon } from "../../components/Icon/Icon";
 import { ActivityEvent, ValueIcon } from "./activityEvents";
 import ActivityUpdateLog, { Muted, PeopleValue, PersonValue, ReasonSubLog, ValueGlyph } from "./ActivityUpdateLog";
 // The Activity tab renders CONCEPT 1 of the Job lifecycle module; the other
-// four live beside it in src/prototypes/JobLifecycle/ and take the same props,
-// so any of them can be swapped in here to try it (Daniel, 2026-08-07).
-import Concept1 from "../JobLifecycle/Concept1";
+// four live beside it in ./JobLifecycleModule/ and take the same props, so
+// any of them can be swapped in here to try it (Daniel, 2026-08-07).
+import Concept1 from "./JobLifecycleModule/Concept1/Concept1";
 import { LifecycleRow } from "./jobState";
 import { categoryIcon } from "./TimesheetPanel";
 

@@ -1,10 +1,10 @@
 import clsx from "clsx";
 
-import { Icon } from "../../components/Icon/Icon";
-import { IconSize } from "../../components/Icon/Icon.types";
-import HintTrigger from "../../components/Hint/HintTrigger";
-import HoverHint from "../../components/Hint/HoverHint";
-import { formatHrMin } from "../JobDetails/TimesheetPanel";
+import { Icon } from "../../../components/Icon/Icon";
+import { IconSize } from "../../../components/Icon/Icon.types";
+import HintTrigger from "../../../components/Hint/HintTrigger";
+import HoverHint from "../../../components/Hint/HoverHint";
+import { formatHrMin } from "../TimesheetPanel";
 
 import { formatDays, LifecycleRow } from "./lifecycleData";
 

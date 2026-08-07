@@ -1,12 +1,12 @@
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
-import ItemGroup from "../../components/ItemGroup/ItemGroup";
-import ListItem from "../../components/ListItem/ListItem";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
+import ItemGroup from "../../../../components/ItemGroup/ItemGroup";
+import ListItem from "../../../../components/ListItem/ListItem";
+import ListItemTextRight from "../../../../components/ListItem/ListItemTextRight";
 
-import { formatSpan, momentLabel, periodSec, stretchLabel, toEvents } from "./lifecycleData";
-import { LifecycleConceptProps, SectionTitle, StatusAvatar, TopData } from "./shared";
+import { formatSpan, momentLabel, periodSec, stretchLabel, toEvents } from "../lifecycleData";
+import { LifecycleConceptProps, SectionTitle, StatusAvatar, TopData } from "../shared";
 
-import styles from "./Concept.module.scss";
+import styles from "../Concept.module.scss";
 
 /** How many rows show before the "Show N more" button (ItemGroup truncation). */
 const VISIBLE_ROWS = 5;

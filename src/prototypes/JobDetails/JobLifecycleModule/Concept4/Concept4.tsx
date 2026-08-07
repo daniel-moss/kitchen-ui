@@ -1,14 +1,14 @@
-import ActivityLog from "../../components/ActivityLog/ActivityLog";
-import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
-import ItemGroup from "../../components/ItemGroup/ItemGroup";
-import ListItem from "../../components/ListItem/ListItem";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import ActivityLog from "../../../../components/ActivityLog/ActivityLog";
+import ActivityLogItem from "../../../../components/ActivityLog/ActivityLogItem";
+import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
+import ItemGroup from "../../../../components/ItemGroup/ItemGroup";
+import ListItem from "../../../../components/ListItem/ListItem";
+import ListItemTextRight from "../../../../components/ListItem/ListItemTextRight";
 
-import { formatSpan, periodSec, stretchLabel } from "./lifecycleData";
-import { LifecycleConceptProps, SectionTitle, StatusAvatar, StatusGlyph, TopData } from "./shared";
+import { formatSpan, periodSec, stretchLabel } from "../lifecycleData";
+import { LifecycleConceptProps, SectionTitle, StatusAvatar, StatusGlyph, TopData } from "../shared";
 
-import styles from "./Concept.module.scss";
+import styles from "../Concept.module.scss";
 
 // CONCEPT 4 — one ItemGroup of ACCORDION ListItems (Figma 24558-129868). Each
 // status is a 60px row: a caret on the left, the status glyph on a tinted

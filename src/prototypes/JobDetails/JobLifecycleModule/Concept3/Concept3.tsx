@@ -1,13 +1,13 @@
-import ActivityLog from "../../components/ActivityLog/ActivityLog";
-import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
-import GroupLabel from "../../components/GroupLabel/GroupLabel";
-import ItemGroup from "../../components/ItemGroup/ItemGroup";
+import ActivityLog from "../../../../components/ActivityLog/ActivityLog";
+import ActivityLogItem from "../../../../components/ActivityLog/ActivityLogItem";
+import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
+import GroupLabel from "../../../../components/GroupLabel/GroupLabel";
+import ItemGroup from "../../../../components/ItemGroup/ItemGroup";
 
-import { formatSpan, periodSec, stretchLabel } from "./lifecycleData";
-import { LifecycleConceptProps, SectionTitle, StatusGlyph, TopData } from "./shared";
+import { formatSpan, periodSec, stretchLabel } from "../lifecycleData";
+import { LifecycleConceptProps, SectionTitle, StatusGlyph, TopData } from "../shared";
 
-import styles from "./Concept.module.scss";
+import styles from "../Concept.module.scss";
 
 // CONCEPT 3 — one ItemGroup ACCORDION per status (Figma 24559-131861). Each
 // status is its own group: a primary GroupLabel header carrying the status

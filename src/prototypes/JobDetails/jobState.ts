@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
-import { LIFECYCLE_META, LIFECYCLE_ORDER, LifecyclePeriod, LifecycleRow } from "../JobLifecycle/lifecycleData";
+import { LIFECYCLE_META, LIFECYCLE_ORDER, LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
 import { isPastDue, Scheduling } from "./SchedulingForm";
 
-export type { LifecyclePeriod, LifecycleRow } from "../JobLifecycle/lifecycleData";
+export type { LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
 
 // The job's lifecycle state for the prototype. `pastDue` is not stored — it is
 // derived from an `upcoming` job whose scheduled time has passed.
@@ -39,8 +39,8 @@ export const defaultJob: JobState = { status: "upcoming", everStarted: false };
 // row and the list grows as the job is driven (Daniel: honest live-only).
 //
 // The SHAPE and the per-status look live with the concepts, in
-// src/prototypes/JobLifecycle/lifecycleData.ts — five modules render this data
-// and they must all read it the same way.
+// ./JobLifecycleModule/lifecycleData.ts — five modules render this data and
+// they must all read it the same way.
 
 /** The statuses whose ROW is named by the sub-status ("Lunch", "Parts needed"). */
 const SUBSTATUS_ROWS = ["quickPaused", "onHold"];

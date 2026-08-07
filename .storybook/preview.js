@@ -677,8 +677,12 @@ const preview = {
           "Prototypes",
           [
             "Job Details",
-            ["Desktop", "Mobile"],
-            "Job Lifecycle",
+            [
+              "Desktop",
+              "Mobile",
+              '"Job Lifecycle" Module',
+              ["Concept 1", "Concept 2", "Concept 3", "Concept 4", "Concept 5"],
+            ],
             "Time Tracker",
             [
               "Concept 3",

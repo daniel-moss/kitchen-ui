@@ -1,12 +1,12 @@
-import ActivityLogGroup from "../../components/ActivityLog/ActivityLogGroup";
-import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
-import { Divider } from "../../components/Divider/Divider";
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
+import ActivityLogGroup from "../../../../components/ActivityLog/ActivityLogGroup";
+import ActivityLogItem from "../../../../components/ActivityLog/ActivityLogItem";
+import { Divider } from "../../../../components/Divider/Divider";
+import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
 
-import { formatSpan } from "./lifecycleData";
-import { LifecycleConceptProps, StatusGlyph, TopData } from "./shared";
+import { formatSpan } from "../lifecycleData";
+import { LifecycleConceptProps, StatusGlyph, TopData } from "../shared";
 
-import styles from "./Concept.module.scss";
+import styles from "../Concept.module.scss";
 
 // CONCEPT 2 — Concept 1 with the rows FLATTENED (Daniel, 2026-08-07). Same
 // ActivityLog timeline and the same one row per status, but a status does not

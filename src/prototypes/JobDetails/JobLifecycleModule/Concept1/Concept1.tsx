@@ -1,13 +1,13 @@
-import ActivityLogGroup from "../../components/ActivityLog/ActivityLogGroup";
-import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
-import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
-import { Divider } from "../../components/Divider/Divider";
-import DisplayModule from "../../components/DisplayModule/DisplayModule";
+import ActivityLogGroup from "../../../../components/ActivityLog/ActivityLogGroup";
+import ActivityLogItem from "../../../../components/ActivityLog/ActivityLogItem";
+import ActivityLogSubItem from "../../../../components/ActivityLog/ActivityLogSubItem";
+import { Divider } from "../../../../components/Divider/Divider";
+import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
 
-import { formatSpan, periodSec, stretchLabel } from "./lifecycleData";
-import { LifecycleConceptProps, StatusGlyph, TopData } from "./shared";
+import { formatSpan, periodSec, stretchLabel } from "../lifecycleData";
+import { LifecycleConceptProps, StatusGlyph, TopData } from "../shared";
 
-import styles from "./Concept.module.scss";
+import styles from "../Concept.module.scss";
 
 // CONCEPT 1 — the built one (Figma 24560-134494). The break-down is an
 // ActivityLog: one accordion row per status on a connected timeline, each
