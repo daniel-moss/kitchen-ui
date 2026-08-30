@@ -6,6 +6,7 @@ import { DisplayModuleStatus, DisplayModuleVariant } from "./DisplayModule.types
 import Counter from "../Counter/Counter";
 import Badge from "../Badge/Badge";
 import Avatar from "../Avatar/Avatar";
+import AvatarLive from "../Avatar/AvatarLive";
 import IconButton from "../IconButton/IconButton";
 import Button from "../Button/Button";
 import HoverTooltip from "../Tooltip/HoverTooltip";
@@ -30,8 +31,8 @@ const frame: React.CSSProperties = { width: 440 };
 const STATUS_OPTIONS: DisplayModuleStatus[] = ["none", "info", "success", "warning", "error"];
 const STATUSES: DisplayModuleStatus[] = ["info", "success", "warning", "error"];
 
-const avatar = <Avatar type="object" content="image" size="md" />;
-const liveAvatar = <Avatar type="live" content="image" size="lg" ringColor="crimson" />;
+const avatar = <Avatar shape="square" content="image" size="md" />;
+const liveAvatar = <AvatarLive content="image" size="lg" color="crimson" />;
 const iconButton = <IconButton icon="ellipsis" size="md" variant="ghost" aria-label="More" />;
 
 // Right-slot actions are just IconButtons + a hover tooltip (not special props) —
@@ -50,7 +51,7 @@ const copyButton = (
 // avatar; hovering shows "<first name + last initial> is editing…".
 const editingAvatar = (
   <HoverTooltip text="Aisa D. is editing…">
-    <Avatar type="live" content="image" size="md" ringColor="crimson" />
+    <AvatarLive content="image" size="md" color="crimson" />
   </HoverTooltip>
 );
 

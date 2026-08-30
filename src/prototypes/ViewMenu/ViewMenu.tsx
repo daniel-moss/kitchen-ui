@@ -522,7 +522,7 @@ export default function ViewMenu({ mobile = false }: { mobile?: boolean }) {
           </div>
           <div className={styles.attrChips}>
             {ATTRIBUTES.map((a) => (
-              <Chip key={a.key} size="lg" active={activeAttrs.includes(a.key)} onClick={() => toggleAttr(a.key)}>
+              <Chip key={a.key} size="md" active={activeAttrs.includes(a.key)} onClick={() => toggleAttr(a.key)}>
                 {a.label}
               </Chip>
             ))}

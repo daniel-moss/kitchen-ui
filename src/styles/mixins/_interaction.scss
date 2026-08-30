@@ -34,6 +34,34 @@
     inset 0 0 0 (2px + $gap) $surface;
 }
 
+// The newer focus spec (SidebarNavItem Figma, 2026-08-27): the 2px gray-12
+// stroke at the row bounds, a 2px TRANSPARENT gap (the surface shows
+// through), then an inner fill with its own --border-radius-1 corners —
+// drawn as a ::before, so it can carry that radius (stacked inset shadows
+// cannot). CAREFUL reading the Figma node: its "4px padding" is measured
+// from the frame BOUNDS and the stroke overlays it, so the visible gap is
+// 4 − 2 = 2px and the content does not move (Daniel corrected a 4px
+// misread here). The fill is the row's HOVER fill; rows resting filled
+// pass the next step. z-index: 0 scopes the ::before's -1 to this row, so
+// the fill cannot slip behind an ancestor's background. $radius is the inner
+// fill's corner radius — --border-radius-1 (SidebarNavItem);
+// SidebarNavWorkspaceButton passes --border-radius-0_5.
+@mixin row-focus-ring-inset($fill: var(--gray-a3), $radius: var(--border-radius-1)) {
+  position: relative;
+  z-index: 0;
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gray-12);
+
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: 4px;
+    border-radius: $radius;
+    background: $fill;
+  }
+}
+
 // Disabled row: dimmed and inert. Most rows dim to 0.3; SelectListItem uses 0.4.
 @mixin row-disabled($opacity: 0.3) {
   opacity: $opacity;

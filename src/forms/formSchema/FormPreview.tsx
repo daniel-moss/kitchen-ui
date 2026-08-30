@@ -1,3 +1,5 @@
+import clsx from "clsx";
+
 import CardFile from "../../components/Card/CardFile";
 import FormModule from "../../components/FormModule/FormModule";
 import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
@@ -8,12 +10,21 @@ import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
 
 import { FileType } from "../../components/Card/CardFile.types";
 
-import { buildFormPreview } from "./answerText";
+import { buildFormPreview, buildPreviewSteps } from "./answerText";
 import { FormPreviewProps } from "./FormPreview.types";
-import { PreviewAnswer } from "./schema.types";
+import { FormMediaAnswer, PreviewAnswer, PreviewModule } from "./schema.types";
+
+import styles from "./FormPreview.module.scss";
 
 /** Only these kinds show their image in the card tile; the rest get the placeholder. */
 const isPreviewable = (type: FileType) => type === "image" || type === "gif" || type === "video";
+
+/**
+ * What the tile shows: the file itself for a picture, the POSTER frame for a
+ * video (the tile is an `<img>` — a video file cannot be its own thumbnail).
+ */
+const tileSrc = (file: FormMediaAnswer) =>
+  file.type === "video" ? file.poster : isPreviewable(file.type) ? file.src : undefined;
 
 // FormPreview — a completed form, read-only. The structure mirrors the form
 // one-to-one (Figma "Mapping / FormModuleGroup -> Preview" 24470-39311):
@@ -21,6 +32,12 @@ const isPreviewable = (type: FileType) => type === "image" || type === "gif" || 
 // caption) → ValueDisplayGroup (answers 12px apart, Divider between each) →
 // a vertical ValueDisplay per answer. A form with NO modules (Hot Side -
 // Repair) previews as one flat ValueDisplayGroup, without a FormModule.
+//
+// A STEPPER form (PM - HVAC) adds one level above that (Figma "Mapping / Step
+// -> Preview" 24631-58494): the steps are stacked 64px apart, each step's NAME
+// sits above its content as an h2, 32px above it, and the content below is the
+// step's own modules — FormModules when it has them, the flat answer list when
+// it does not.
 //
 // What the form shows and the preview does NOT: the AlertBanner, help texts,
 // the "(optional)" tags and the title's hint icon.
@@ -62,7 +79,7 @@ export default function FormPreview({ schema, answers, onFileMenuClick, openFile
                 key={`${file.name}-${index}`}
                 name={file.name}
                 fileType={file.type}
-                previewSrc={isPreviewable(file.type) ? file.src : undefined}
+                previewSrc={tileSrc(file)}
                 onMenuClick={
                   onFileMenuClick ? (event) => onFileMenuClick(file, answer.key, index, event) : undefined
                 }
@@ -97,17 +114,33 @@ export default function FormPreview({ schema, answers, onFileMenuClick, openFile
     }
   };
 
-  return (
-    <FormModuleGroup className={className}>
-      {modules.map((module) => {
-        const body = <ValueDisplayGroup key={module.id}>{module.answers.map(renderAnswer)}</ValueDisplayGroup>;
-        if (module.title == null) return body;
-        return (
-          <FormModule key={module.id} title={module.title} caption={module.caption}>
-            {body}
-          </FormModule>
-        );
-      })}
-    </FormModuleGroup>
-  );
+  // One module: a FormModule (title + caption) around its answers, or the bare
+  // answer list when the module has no title.
+  const renderModule = (module: PreviewModule) => {
+    const body = <ValueDisplayGroup key={module.id}>{module.answers.map(renderAnswer)}</ValueDisplayGroup>;
+    if (module.title == null) return body;
+    return (
+      <FormModule key={module.id} title={module.title} caption={module.caption}>
+        {body}
+      </FormModule>
+    );
+  };
+
+  // A stepper form: the step's name over the step's content. A single untitled
+  // module is the flat answer list — FormModuleGroup adds nothing then (no
+  // divider without a second module), so the same call covers both shapes.
+  if (modules.some((module) => module.step != null)) {
+    return (
+      <div className={clsx(styles.steps, className)}>
+        {buildPreviewSteps(modules).map((step) => (
+          <section key={step.title} className={styles.step}>
+            <h2 className={styles.stepTitle}>{step.title}</h2>
+            <FormModuleGroup>{step.modules.map(renderModule)}</FormModuleGroup>
+          </section>
+        ))}
+      </div>
+    );
+  }
+
+  return <FormModuleGroup className={className}>{modules.map(renderModule)}</FormModuleGroup>;
 }

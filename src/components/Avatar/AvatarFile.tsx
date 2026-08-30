@@ -31,13 +31,13 @@ const VARIANT: Record<
 export default function AvatarFile({ size = "md", type = "generic", imageSrc, className }: AvatarFileProps) {
   const inner =
     type === "image" ? (
-      <Avatar type="object" content="image" imageSrc={imageSrc ?? objectPlaceholder} size={size} />
+      <Avatar shape="square" content="image" imageSrc={imageSrc ?? objectPlaceholder} size={size} />
     ) : (
       (() => {
         const v = VARIANT[type];
         return (
           <Avatar
-            type="object"
+            shape="square"
             content="icon"
             icon={v.icon}
             iconPack={v.pack ?? "solid"}

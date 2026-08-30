@@ -1,8 +1,14 @@
-// MenuItemGroup — items stack + optional divider.
+// MenuItemGroup — header (padded GroupLabel) + items stack + optional divider.
 .group {
   display: flex;
   flex-direction: column;
   width: 100%;
+}
+
+.header {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--size-2) var(--size-2) 0; // 8px top/sides, none below
 }
 
 .items {

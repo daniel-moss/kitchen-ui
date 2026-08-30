@@ -17,7 +17,7 @@ const STATUS: Record<AlertBannerStatus, { scheme: LinkButtonColorScheme; icon: s
   error: { scheme: "tomato", icon: "circle-xmark" },
 };
 
-// An inline alert coloured entirely by `status`. Reuses Icon (status glyph),
+// An inline alert colored entirely by `status`. Reuses Icon (status glyph),
 // LinkButton (CTA), and a muted IconButton (dismiss). See
 // Kitchen UI/components/alert-banner.md.
 export default function AlertBanner({

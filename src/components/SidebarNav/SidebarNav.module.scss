@@ -1,0 +1,83 @@
+// SidebarNav — the desktop navigation sidebar. Values from Figma "SidebarNav":
+// 280px column, medium divider on the right edge, 60px header, 12px side
+// padding.
+
+.sidebar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  width: 281px; // 280 + the 1px edge divider
+  height: 100%;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 100%;
+  min-height: 0;
+}
+
+// Sticks on top: it simply sits outside the scroll container.
+.header {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  gap: var(--size-2); // the minimum workspace ↔ profile gap
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 var(--size-3); // 12px sides
+}
+
+// A long workspace name gives way (truncates) instead of pushing the profile.
+.workspace {
+  min-width: 0;
+}
+
+// The ScrollArea wrapper — takes the flex slot below the header.
+.scrollWrap {
+  flex: 1 1 0;
+}
+
+// Everything below the header scrolls when the height runs out; while it
+// fits, the bottom block pins to the bottom (space-between). Scrolling and
+// the overlay thumb come from ScrollArea (the thumb sits in the 12px right
+// padding, so rows keep their full width).
+.scroll {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // keeps ≥8px between top and bottom when overflowing
+  justify-content: space-between;
+  padding: 0 var(--size-3) var(--size-3); // 12px sides + bottom
+}
+
+// Create ↔ the items stack (Search + nav rows).
+.top {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+  width: 100%;
+}
+
+.items {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-0_25); // 1px between rows (the SidebarNavItemGroup rhythm)
+  width: 100%;
+}
+
+.edge {
+  flex: none;
+  height: 100%;
+}
+
+// The desktop Create menu: a body portal fixed to the right of the button,
+// tops aligned (left/top measured from the button).
+.createMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

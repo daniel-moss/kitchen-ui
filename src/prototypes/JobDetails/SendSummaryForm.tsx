@@ -175,7 +175,7 @@ function ChannelCard({ channel, pop, checked, onCheckedChange, picks, onPicksCha
                       avatar={
                         missing ? (
                           <Avatar
-                            type="object"
+                            shape="square"
                             content="icon"
                             icon="warning"
                             size="xl"
@@ -276,10 +276,17 @@ function ContactsList({
 interface SendSummaryFormProps {
   open: boolean;
   onClose: () => void;
+  /**
+   * The form opened on its own, right after the job was completed — it is a
+   * step of that flow, so the leading button says "Skip" instead of "Cancel"
+   * (Figma 24576-152454). Opening it by hand ("Resend summary") leaves it
+   * "Cancel". Both do the same thing: close the dialog.
+   */
+  afterCompletion?: boolean;
   mobile?: boolean;
 }
 
-export default function SendSummaryForm({ open, onClose, mobile = false }: SendSummaryFormProps) {
+export default function SendSummaryForm({ open, onClose, afterCompletion = false, mobile = false }: SendSummaryFormProps) {
   const [channels, setChannels] = useState<Record<ContactChannel, boolean>>({ text: false, email: false });
   const [picks, setPicks] = useState<Record<ContactChannel, number[]>>({ text: [], email: [] });
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
@@ -353,7 +360,7 @@ export default function SendSummaryForm({ open, onClose, mobile = false }: SendS
         <PopoverFooter
           leadingButton={
             <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
+              {afterCompletion ? "Skip" : "Cancel"}
             </Button>
           }
         >

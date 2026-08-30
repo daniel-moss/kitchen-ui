@@ -1,0 +1,48 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidebarNavItemGroupStories from "./SidebarNavItemGroup.stories";
+
+<Meta of={SidebarNavItemGroupStories} />
+
+# SidebarNavItemGroup
+
+We use **SidebarNavItemGroup** for grouping
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitem--docs" target="_top">SidebarNavItems</a>.
+
+<Canvas of={SidebarNavItemGroupStories.Hero} />
+
+```tsx
+<SidebarNavItemGroup icon="wrench-simple" label="Jobs" defaultOpen>
+  <SidebarNavItem type="stackItem" href="/requests">Requests</SidebarNavItem>
+  <SidebarNavItem type="stackItem" href="/jobs" active>Jobs</SidebarNavItem>
+  <SidebarNavItem type="stackItem" href="/series">Series</SidebarNavItem>
+</SidebarNavItemGroup>
+```
+
+↳&nbsp;&nbsp;[Overview](#overview)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Overview
+
+Clicking or tapping the group header expands and collapses the group. The
+header is a `stackHeader`
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitem--docs" target="_top">SidebarNavItem</a>
+(built from `icon` + `label`), the children are `stackItem` items. The header
+and the items stack `--size-0_25` (1px) apart. The examples are live — click
+the headers.
+
+<Canvas of={SidebarNavItemGroupStories.Collapsed} />
+
+While the group is expanded, the header carries the active emphasis (solid
+icon, strong label, caret turned down) — without a fill at rest.
+
+<Canvas of={SidebarNavItemGroupStories.Expanded} />
+
+`headerActive` is separate from the open state: it gives a closed header the
+same emphasis when its stack holds the current page.
+
+<Canvas of={SidebarNavItemGroupStories.WithActiveItem} />
+
+## Props
+
+<ArgTypes of={SidebarNavItemGroupStories} />

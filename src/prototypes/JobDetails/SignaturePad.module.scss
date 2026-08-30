@@ -28,7 +28,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  // The ink colour; the canvas reads it back with getComputedStyle.
+  // The ink color; the canvas reads it back with getComputedStyle.
   color: var(--text-strong);
   // Without this the first drag scrolls the dialog instead of drawing.
   touch-action: none;

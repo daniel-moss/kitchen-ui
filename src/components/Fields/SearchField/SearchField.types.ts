@@ -3,7 +3,7 @@ import { InputHTMLAttributes } from "react";
 export type SearchFieldType = "field" | "bar";
 
 export interface SearchFieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "size" | "value" | "defaultValue"> {
-  /** field = a bordered 32px box; bar = a filled 36px row with a 1px Divider below. Default "field". */
+  /** field = a bordered 36px box with a `--gray-a2` fill; bar = a bare 40px row (no fill, no border, no divider). Default "field". */
   type?: SearchFieldType;
 
   /** Controlled value. */

@@ -19,7 +19,7 @@ type StoryArgs = {
 };
 
 const avatarEl = (choice: AvatarChoice) => {
-  if (choice === "generic") return <Avatar type="object" content="icon" size="xl" />;
+  if (choice === "generic") return <Avatar shape="square" content="icon" size="xl" />;
   if (choice === "user") return <AvatarUser size="xl" content="image" />;
   if (choice === "bill") return <AvatarBill size="xl" status="paid" />;
   return undefined;

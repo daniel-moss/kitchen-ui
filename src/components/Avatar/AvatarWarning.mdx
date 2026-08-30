@@ -1,0 +1,47 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as AvatarWarningStories from "./AvatarWarning.stories";
+
+<Meta of={AvatarWarningStories} />
+
+# AvatarWarning
+
+We use **AvatarWarning** to mark something that needs attention. It is based on
+the <a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+component — an object avatar filled `--amber-a3`, holding the solid
+`triangle-exclamation` icon in `--amber-a11`.
+
+<Canvas of={AvatarWarningStories.Default} />
+
+```tsx
+<AvatarWarning size="xl" />
+```
+
+↳&nbsp;&nbsp;[Sizes](#sizes)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Sizes
+
+Supports the same sizes as an Avatar component (`size`): `xxs` (16px), `xs`
+(20px), `sm` (24px), `md` (28px), `lg` (32px) and `xl` (36px). Default `md`.
+
+Everything that follows from the size comes from Avatar: the icon grows with
+the box (8, 10, 12, 12, 14, 16px), and the corners are `--border-radius-1`
+(4px) on `xxs` and `xs`, `--border-radius-1_5` (6px) from `sm` up.
+
+<Canvas of={AvatarWarningStories.Sizes} />
+
+## Loading
+
+Utilizes the generic avatar loading state (`isLoading`) — the pulsing
+`--gray-a3` shape that
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+shows, in the same box and with the same corners. The amber fill and the icon
+are not shown while loading.
+
+<Canvas of={AvatarWarningStories.Loading} />
+
+## Props
+
+<ArgTypes of={AvatarWarningStories} />

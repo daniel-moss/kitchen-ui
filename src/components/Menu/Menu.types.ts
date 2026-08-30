@@ -26,6 +26,16 @@ export interface MenuProps {
    * Mobile: a custom ROOT drawer header (a DrawerHeader element), replacing
    * the title-based one — e.g. the profile button's avatar + name + email.
    * Sub-menu headers still take over while a sub-menu is open.
+   * (Renamed from `header` on 2026-08-17, when `header` took the MenuHeader —
+   * the name now says which of the two headers it is.)
+   */
+  drawerHeader?: ReactNode;
+  /**
+   * A MenuHeader (search bar), pinned above the items — Figma's Menu
+   * `header=true`. It never scrolls with them, and it belongs to the ROOT menu
+   * only: a sub-menu (drawer level or desktop card) does not show it. On mobile
+   * a menu WITH a header always fills the drawer height, so the sheet does not
+   * resize on every keystroke — the same rule as SelectList.
    */
   header?: ReactNode;
   /** Presentation: auto (viewport) / desktop / mobile. Default "auto". */

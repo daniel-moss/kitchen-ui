@@ -1,0 +1,161 @@
+// ARCHIVE — the styles the Job Details "Summary" module used before
+// 2026-08-11, copied here verbatim from TimesheetPanel.module.scss when the
+// module was replaced. Frozen: nothing else imports them.
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+}
+
+// Three summary cards in a row (Time / Days / Techs) — label left, value right.
+.summaryCards {
+  display: flex;
+  gap: var(--size-3);
+}
+// Mobile: the three cards stack vertically (Figma node 21803-50077).
+.summaryCardsMobile {
+  flex-direction: column;
+}
+.card {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-2);
+  min-height: var(--size-11); // 44px
+  padding: var(--size-2_5) var(--size-3);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a2);
+}
+.cardLabel {
+  font: var(--font-body-400-compact);
+  color: var(--text-subtle);
+}
+.cardValue {
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.cardValueEmpty {
+  color: var(--text-placeholder);
+}
+
+// ---- chart sections ---------------------------------------------------------
+.chartSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+.chartTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--size-1_5);
+  font: var(--font-body-500-compact);
+  color: var(--text-strong);
+}
+
+// The bar: top labels (avatar / date chip), the segmented bar, then values —
+// each column flex-grows by its share so the three rows stay aligned.
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+.chartRow {
+  display: flex;
+  gap: var(--size-0_5);
+}
+.chartCell {
+  min-width: 0;
+  display: flex;
+  justify-content: center; // avatar / date-glyph / value centered over their segment
+}
+.chartSeg {
+  min-width: 0;
+  height: 3px;
+  border-radius: var(--border-radius-full);
+}
+.chartValue {
+  font: var(--font-body-500-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+
+// ---- the work-timeline calendar glyph ---------------------------------------
+.calGlyph {
+  box-sizing: border-box;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a3);
+}
+.calGlyphMonth {
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font: var(--font-weight-semibold) 0.5rem / 0.5rem var(--font-family-base); // SemiBold 8/8
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--gray-a9);
+}
+.calGlyphDateWrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  padding: 0 var(--size-0_5) var(--size-0_5); // px-2 pb-2
+}
+.calGlyphDate {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 0 5px 5px;
+  background: var(--surface-level-second);
+  font: var(--font-weight-semibold) 0.75rem / 1 var(--font-family-base); // SemiBold 12
+  color: var(--gray-a9);
+}
+
+// ---- legend -----------------------------------------------------------------
+.legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1);
+}
+.legendRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+  padding: var(--size-2_5) var(--size-3);
+  border-radius: var(--border-radius-1_5);
+  background: var(--gray-a2);
+}
+.legendDot {
+  flex: none;
+  width: var(--size-2);
+  height: var(--size-2);
+  border-radius: var(--border-radius-full);
+}
+.legendName {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+}
+.legendValue {
+  font: var(--font-body-400-compact);
+  color: var(--text-strong);
+  white-space: nowrap;
+}
+.legendPct {
+  color: var(--text-subtle);
+}

@@ -1,0 +1,108 @@
+// TopBarNav — values from Figma "TopBarNav" (node 22250-61596): 60px inner
+// row + bottom Divider, 16px side padding, 16px gaps between the clusters
+// (left elements ↔ tabs ↔ right elements). The bar itself is transparent —
+// the app background shows through. The mobile details tabs get their own
+// 60px bar row.
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.inner {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-4); // 16px
+  align-items: center;
+  height: 60px;
+  padding: 0 var(--size-4); // 16px
+  width: 100%;
+}
+
+// The navigation cluster: [left elements] 16px [tabs, filling].
+.navigation {
+  display: flex;
+  flex: 1 1 0;
+  gap: var(--size-4); // 16px
+  align-items: center;
+  min-width: 0;
+}
+
+.leftElements {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-width: 0;
+}
+
+// Tabs scroll horizontally, scrollbar hidden; the fade masks mark where the
+// tabs continue behind the container — 40px (Figma "TabGroup Mask").
+.tabsScroller {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.fadeRight {
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.fadeLeft {
+  mask-image: linear-gradient(to right, transparent, #000 40px);
+}
+
+.fadeBoth {
+  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+// Mobile details: the tabs get their own 60px bar row (px 16), scrolling
+// horizontally WITHOUT a fade (the doc).
+.tabsBar {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding: 0 var(--size-4);
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Mobile details hide-on-scroll (always on — the doc's YouTube-like rule):
+// the bar sticks to the top of its scroll container; the TOP ROW always
+// stays, the TABS ROW collapses while scrolling down and returns on
+// scrolling up. The sticky bar needs its own surface, or content shows
+// through.
+.sticky {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-level-first);
+}
+
+// The collapsible tabs row: bottom-anchored inside a height-animated clip,
+// so shrinking the height looks like the row sliding up behind the top row.
+.tabsCollapse {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 61px; // the 60px row + its divider
+  overflow: hidden;
+  transition: height 200ms ease;
+}
+
+.tabsCollapsed {
+  height: 0;
+}

@@ -1,0 +1,13 @@
+// A fixed 32×32 box — the same footprint as an md IconButton and
+// ListItemSlotIcon, so a 16px ring lines up with the other right-slot
+// instances instead of sitting tight against its neighbors.
+.box {
+  flex: none;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: var(--size-8); // 32px
+  height: var(--size-8);
+}

@@ -1,0 +1,160 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TopBarViewStories from "./TopBarView.stories";
+
+<Meta of={TopBarViewStories} />
+
+# TopBarView
+
+We use **TopBarView** to provide access to view controls.
+
+<Canvas of={TopBarViewStories.Hero} />
+
+```tsx
+<TopBarView
+  views={[
+    { value: "all", label: "All" },
+    { value: "my-jobs", label: "My jobs" },
+  ]}
+  view={view}
+  onViewChange={setView}
+  search={search}
+  onSearchChange={setSearch}
+  onFiltersClick={openFilters}
+  onViewMenuClick={openViewMenu}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Views](#views)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Keyword search](#keyword-search)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["View" button](#view-button)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Filters" button](#filters-button)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+### Desktop
+
+Fills the width. The height is fixed. Contains a
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+component at the bottom. Contains a
+<a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
+on the left and a group of
+<a href="/?path=/story/components-button--playground" target="_top">Buttons</a>
+on the right.
+
+The content row is 60px tall with `--size-4` (16px) side padding and a
+`--size-4` (16px) gap between the tabs area and the buttons. The tabs are
+TabGroup `default` / `lg`. The buttons are ghost `lg` Buttons — "Search",
+"Filters" and "View", with `regular` icons — `--size-2` (8px) apart. The bar
+itself has no fill: the app background shows through.
+
+<Canvas of={TopBarViewStories.AnatomyDesktop} />
+
+### Mobile
+
+Fills the width. The height is fixed. Contains a Divider component at the
+bottom. Contains a view selector on the left and a group of
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButtons</a>
+on the right. The view selector shows the name of the selected view.
+
+The row keeps the desktop measurements (60px, `--size-4` sides). The view
+selector is the view's name (`body-500-compact`, `--text-strong`) with an
+`angles-up-down` 14px `regular` icon (`--gray-a9`) `--size-2` (8px) after it.
+The IconButtons are ghost `lg` (36px) — search, bars-filter and sliders —
+`--size-2` (8px) apart.
+
+<Canvas of={TopBarViewStories.AnatomyMobile} />
+
+## Behavior
+
+### Views
+
+#### Scroll
+
+TabGroup scrolls when there is not enough room. A fade-out effect marks the
+side where the tabs continue behind the container. The fade is 40px on each
+affected side and follows the scroll position: at the start only the right
+edge fades, in the middle both do, at the end only the left. A plain mouse
+wheel also scrolls the tabs. The example below is live — drag or wheel-scroll
+the tabs:
+
+<Canvas of={TopBarViewStories.TabsScroll} />
+
+#### View selector
+
+Due to the lack of space on mobile, TabGroup turns into a view selector. The
+view selector triggers the select list with the list of available views. The
+<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">select list</a>
+opens inline on mobile, `--size-1` (4px) below the selector and left-aligned
+with it. Picking a view closes the list. The selector dims to 75% on hover
+and 50% while pressed, and holds the pressed look while its list is open.
+
+<Canvas of={TopBarViewStories.ViewSelectorOpen} />
+
+The name of the view truncates if it does not fit the width.
+
+<Canvas of={TopBarViewStories.ViewNameTruncation} />
+
+### Keyword search
+
+#### Desktop
+
+The keyword search is triggered by a "Search" button. Clicking on the button
+turns the button into a
+<a href="/?path=/docs/components-fields-searchfield--docs" target="_top">SearchField</a>
+(`field` type, `--size-64` / 256px wide) and focuses it. The field turns back
+into the button when the value is cleared and there is no focus on the field —
+clearing with the × alone keeps the focused field; clicking away from the
+empty field collapses it.
+
+<Canvas of={TopBarViewStories.SearchDesktop} />
+
+#### Mobile
+
+Tapping on the "Search" button hides the "Search" button and shows the search
+bar. The search bar shows up as a separate bar (SearchField `bar` type, 40px,
+with its own Divider below) below the TopBarView, and the input is focused so
+the keyboard opens right away. The search bar stays as long as there is
+either a value or focus on the field. If there is neither a value nor focus,
+the field turns back into the "Search" button.
+
+<Canvas of={TopBarViewStories.SearchMobile} />
+
+Hovering over the IconButton triggers a
+<a href="/?path=/story/components-tooltip--playground" target="_top">tooltip</a>.
+
+<Canvas of={TopBarViewStories.SearchTooltip} />
+
+### "View" button
+
+The "View" button opens the view menu. The view menu is
+<a href="/?path=/story/prototypes-view-menu--desktop" target="_top">documented here</a>.
+Hovering over the IconButton triggers a tooltip. **TopBarView does not open
+the menu by itself** — it reports the click through `onViewMenuClick`; the
+menu is your wiring.
+
+<Canvas of={TopBarViewStories.ViewButton} />
+
+### "Filters" button
+
+The "Filters" button opens the "Filters" menu. The filters are
+<a href="https://www.figma.com/design/54dNq5bLwhXf3fXwts0Jvx/Filters---Next-Update?node-id=1950-34790" target="_blank" rel="noreferrer">documented here</a>.
+Hovering over the IconButton triggers a tooltip. **TopBarView does not open
+the menu by itself** — it reports the click through `onFiltersClick`; the
+menu is your wiring.
+
+<Canvas of={TopBarViewStories.FiltersButton} />
+
+The IconButton on mobile turns into a Button if there are applied filters.
+The Button copy shows the number of applied filters. When the user clears all
+the filters, the Button turns back to the IconButton. The count comes from
+the `filtersCount` prop.
+
+<Canvas of={TopBarViewStories.FiltersButtonStates} />
+
+## Props
+
+<ArgTypes of={TopBarViewStories} />

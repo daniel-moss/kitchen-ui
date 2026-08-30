@@ -1,0 +1,47 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as BottomBarNavItemStories from "./BottomBarNavItem.stories";
+
+<Meta of={BottomBarNavItemStories} />
+
+# BottomBarNavItem
+
+We use **BottomBarNavItem** inside the
+<a href="/?path=/docs/components-bottombarnav-bottombarnav--docs" target="_top">BottomBarNav</a>
+to navigate the app on mobile.
+
+<Canvas of={BottomBarNavItemStories.Hero} />
+
+```tsx
+<BottomBarNavItem icon="house" label="Home" href="/home" active />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The component carries an Icon only — the item is icon-only, so `label` is
+required as the accessible name. The height is fixed (`--size-11`, 44px) and
+it has a max width (112px). The icon is 18px — regular `--gray-a11` at rest,
+solid `--gray-12` when active — and the corner radius is
+`--border-radius-full`. In a bar the items stretch to share the width, but
+never past the max width.
+
+<Canvas of={BottomBarNavItemStories.Stretched} />
+
+## Behavior
+
+Works as a link — it leads to a related part of the app. With `href` the item
+renders a real `<a>`; without it, a `<button>`.
+
+The states: hover fills the pill with `--gray-a4`, press with `--gray-a5`;
+keyboard focus draws the 2px `--gray-12` ring with a 2px gap and an inner
+`--gray-a4` fill; disabled dims the item to 30% without a fill.
+
+<Canvas of={BottomBarNavItemStories.States} />
+
+## Props
+
+<ArgTypes of={BottomBarNavItemStories} />

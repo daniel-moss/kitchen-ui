@@ -4,7 +4,6 @@ import clsx from "clsx";
 import { Icon } from "../../Icon/Icon";
 import IconButton from "../../IconButton/IconButton";
 import HoverTooltip from "../../Tooltip/HoverTooltip";
-import { Divider } from "../../Divider/Divider";
 import { Skeleton } from "../../Skeleton/Skeleton";
 
 import styles from "./SearchField.module.scss";
@@ -12,8 +11,9 @@ import { SearchFieldProps } from "./SearchField.types";
 
 // SearchField — a text search input with a leading search icon and a trailing
 // "Clear" (×) button that appears once there is a value (hidden while
-// disabled). `field` is a bordered 32px box (Clear = xs/24); `bar` is a filled
-// 36px row with a bottom divider (Clear = sm/28). See Figma "SearchField".
+// disabled). `field` is a bordered 36px box with a `--gray-a2` fill
+// (Clear = sm/28); `bar` is a bare 40px row — no fill, no border and no
+// divider (Clear = md/32). See Figma "SearchField" (node 24657-19070).
 const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function SearchField(
   { type = "field", value, defaultValue, placeholder, disabled = false, loading = false, onClear, onChange, className, ...rest },
   ref,
@@ -41,7 +41,7 @@ const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function Sear
   };
 
   if (loading) {
-    return <Skeleton width="100%" height={type === "bar" ? 37 : 32} borderRadius={type === "bar" ? 0 : "var(--border-radius-1_5)"} />;
+    return <Skeleton width="100%" height={type === "bar" ? 40 : 36} borderRadius={type === "bar" ? 0 : "var(--border-radius-1_5)"} />;
   }
 
   const row = (
@@ -78,7 +78,7 @@ const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function Sear
             iconClassName={styles.clearIcon}
             icon="circle-xmark"
             iconPack="solid"
-            size={type === "bar" ? "sm" : "xs"}
+            size={type === "bar" ? "md" : "sm"}
             variant="muted"
             aria-label="Clear"
             onClick={handleClear}
@@ -88,12 +88,7 @@ const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function Sear
     </div>
   );
 
-  return (
-    <div className={clsx(styles.wrapper, disabled && styles.disabled, className)}>
-      {row}
-      {type === "bar" && <Divider />}
-    </div>
-  );
+  return <div className={clsx(styles.wrapper, disabled && styles.disabled, className)}>{row}</div>;
 });
 
 export default SearchField;

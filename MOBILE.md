@@ -86,6 +86,41 @@ Hard-won constraints — do NOT change these without device-testing:
   `.drawer:has(input:not([readonly]):focus, textarea:not([readonly]):focus)`,
   NOT `:focus-within`. A `SelectInput` (role=button div) or `DateInput` (readOnly
   input) must not collapse it, or their tap drops the footer behind the indicator.
+- **Keyboard, the two PLACEMENTS** (2026-08-19). Popover measures the keyboard
+  differently depending on where the sheet lives, because the scrim it measures
+  is a different thing in each case:
+  - **body-portaled** — the scrim is `fixed` and IS the screen, so the lift is
+    `scrim.offsetHeight − (vv.offsetTop + vv.height)`. Unchanged; tuned on a real
+    device, do not touch it.
+  - **inside a `[data-drawer-root]`** — every device-frame story, so every phone
+    prototype. The scrim is `absolute` and only fills the frame, so its height
+    says nothing about the keyboard. Measured from the scrim's RECT instead:
+    `rect.bottom − (vv.offsetTop + vv.height)`, i.e. how far the frame's bottom
+    reaches past the last visible pixel. This case used to be skipped entirely,
+    so a drawer in a device frame got NO keyboard handling and the keyboard sat
+    on top of its footer.
+    **Do NOT cross-check that against `documentElement.clientHeight`** (tried,
+    reverted on a real iPhone): with `interactive-widget=resizes-content` the
+    layout viewport shrinks along with the keyboard, so `clientHeight −
+    keyboardTop` reports a keyboard far smaller than it is, and taking the min
+    of the two under-lifts the sheet — the footer ends up behind the keyboard's
+    accessory bar. The phantom-keyboard case it was meant to guard (a frame
+    taller than the browser window) is handled by a `(hover: hover)` check
+    instead: only a device with no fine pointer has an on-screen keyboard.
+  Only the first case existed until Assignee's search started auto-focusing on
+  mobile, which made the second one visible on every open.
+- **A footer button tapped while the keyboard is up** (real iPhone, 2026-08-19).
+  iOS blurs the focused field as the DEFAULT ACTION of `mousedown`; the blur
+  dismisses the keyboard, the sheet grows back to full height, and the footer
+  moves DOWN out from under the finger — so the click iOS synthesizes ~300ms
+  later carries a stale hit-test and never reaches the button. The tap then only
+  closed the keyboard. `PopoverFooter` prevents that one default (**`mousedown`,
+  not `pointerdown` — preventing a touch `pointerdown` can suppress the
+  compatibility mouse events including the click**), and only while a real
+  `input:not([readonly])` / `textarea` holds focus. Option ROWS never had this:
+  `SelectListItem` and `ListItem` activate on `pointerup` for the same reason.
+  Any new tappable thing that shares a sheet with a text field needs one of the
+  two treatments.
 - Drawer open/close animations are **fade + 32px shift** (`SHEET_SHIFT` in
   Popover), not a full slide-off — a full slide visibly clips at the
   invisible seam. Don't reintroduce big travel distances.

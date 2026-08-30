@@ -37,7 +37,7 @@ export default function AvatarClient({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content={effectiveContent}
       icon={TYPE_ICON[type]}
       imageSrc={effectiveContent === "image" ? (imageSrc ?? objectPlaceholder) : undefined}

@@ -59,7 +59,7 @@
   --timeline-view: "solid-timeline-view"; /* [custom pack] */
 
   /* priority */
-  --priority-none: "hyphen";
+  --priority-none: "solid-priority-none"; /* [custom pack] */
   --priority-high: "solid-priority-high"; /* [custom pack] */
   --priority-urgent: "fire";
 

@@ -78,7 +78,7 @@ export interface ActivityEvent {
     | "jobStatus"
     // The Scheduling (Figma 24522-89331) and Assignees (24522-89736) modules.
     // Both are MODULE logs: a plain regular gray-12 glyph, not the job-status
-    // colours.
+    // colors.
     | "scheduling"
     | "assignees"
     // What the job was turned into once it was completed — the invoice /
@@ -128,7 +128,7 @@ export interface JobStatusLog {
   /** The status glyph: circle-play / circle-pause / circle-stop / … */
   icon: string;
   /**
-   * The glyph's own colour token — every JOB STATUS has one (Figma
+   * The glyph's own color token — every JOB STATUS has one (Figma
    * 24512-62842) and renders solid. `""` = a module log: regular weight,
    * plain gray-12 (Scheduling / Assignees).
    */

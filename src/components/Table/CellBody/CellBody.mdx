@@ -1,0 +1,216 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as CellBodyStories from "./CellBody.stories";
+
+<Meta of={CellBodyStories} />
+
+# CellBody
+
+We use **CellBody** for showing data within the tables.
+
+<Canvas of={CellBodyStories.Anatomy} />
+
+```tsx
+<CellBody width={190}>Walk-in cooler repair</CellBody>
+
+<CellBody width={110} content="number" colorScheme="error">
+  $1,240.00
+</CellBody>
+
+<CellBody width={140} content="badge">
+  <Badge>Refrigeration</Badge>
+  <Badge>Warranty</Badge>
+</CellBody>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Content](#content)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Text](#text)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Badge](#badge)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Assignee](#assignee)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Number](#number)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The component only defines alignment within the cell and side paddings —
+`--size-4` (16px) left and right. **The cell does not have the height.** The
+height is defined by the
+<a href="/?path=/docs/components-table-tablerow--docs" target="_top">TableRow</a>,
+and the cell simply fills it. The cell's content is centre-aligned vertically.
+
+<Canvas of={CellBodyStories.Anatomy} />
+
+The cell has **no divider and no bottom border** either. The line you see under
+every preview on this page belongs to the `TableRow` wrapping the cells, not to
+the cell — the previews need a real row, because a cell has no height of its
+own. The row renders the divider as its own 1px element below the cells, which
+is what stops it breaking in the middle when a single cell forgets it, and what
+lets it be heavier under a header row (`--gray-a6`) than between body rows
+(`--gray-a3`).
+
+Alignment is a **column** decision — set the same value on the column's
+<a href="/?path=/docs/components-table-cellheader--docs" target="_top">CellHeader</a>.
+
+<Canvas of={CellBodyStories.Alignment} />
+
+The cell supports a right slot. The right slot supports an
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
+only now.
+
+<Canvas of={CellBodyStories.SlotRight} />
+
+### Pinned boundary
+
+`isLastPinned` draws the boundary of the frozen region on the cell's right
+edge. Set it on the cells of the **last pinned column** only — and on that
+column's CellHeader too, so the line runs unbroken from the header down through
+every row. It uses `--gray-a6`, deliberately heavier than the row divider
+(`--gray-a3`), so the frozen edge does not read as an ordinary row line.
+
+<Canvas of={CellBodyStories.LastPinned} />
+
+## Content
+
+### Text
+
+Typography variable is determined and can not be changed: `body-400-compact`
+(Regular 14/20).
+
+<Canvas of={CellBodyStories.Text} />
+
+The copy truncates, if does not fit the width. We show a tooltip by hovering
+over the **cell** with truncated copy. The tooltip contains the full copy. The
+tooltip text is left-aligned by default. The tooltip default position is on top.
+
+<Canvas of={CellBodyStories.TextTruncated} />
+
+The cell may trigger the tooltip **without** the text being truncated. The
+tooltip may provide additional data. The tooltip content, and whether the
+tooltip is triggered or not, is defined per column in designs — that is the
+`tooltip` prop. The tooltip text is left-aligned by default. The tooltip default
+position is on top.
+
+<Canvas of={CellBodyStories.TextTooltip} />
+
+Supports a left slot. The left slot supports an icon and an avatar. The icon
+parameters are flexible. By default, inherits the default parameters. The avatar
+size is unchangeable, but the slot supports any avatar.
+
+<Canvas of={CellBodyStories.TextSlotLeft} />
+
+Supports several color schemes. **The icon inherits the color on all variants
+except the `default` and the `subtle`.**
+
+<Canvas of={CellBodyStories.ColorSchemes} />
+
+- `default` — `--text-strong`
+- `subtle` — `--text-placeholder`
+- `success` — `--text-success`
+- `warning` — `--text-warning`
+- `caution` — `--text-caution`
+- `error` — `--text-error`
+
+`colorScheme` is a closed set of six values. Nothing outside this set may be
+used — the colours carry meaning in a table, so an open palette would let the
+same state read differently on different screens.
+
+When the cell does not have any value, we show a placeholder — the **—** in
+`--text-placeholder`, in the cell's own alignment. Leaving the placeholder to
+each caller is how a right-aligned money column ends up with a left-aligned
+dash.
+
+<Canvas of={CellBodyStories.Empty} />
+
+While loading, we replace the content with a typography skeleton. The skeleton
+fills the width.
+
+<Canvas of={CellBodyStories.Loading} />
+
+### Badge
+
+The badge size is fixed. The cell supports any badge —
+<a href="/?path=/story/components-badge--playground" target="_top">Badge</a>,
+BadgeColor, BadgeStatus.
+
+<Canvas of={CellBodyStories.BadgeContent} />
+
+The cell shows up to two badges without truncation. If it's more than two
+badges, we only show the first one and replace the rest with a **+N** badge. The
++N badge shows the number of hidden badges.
+
+If the badges are truncated, we show the tooltip by hovering over the **cell**.
+The tooltip contains the list of all badges including the first one. Each badge
+copy starts on its own line. The text is left-aligned. The tooltip default
+position is on top.
+
+<Canvas of={CellBodyStories.BadgeOverflow} />
+
+The cell may trigger the tooltip **without** the badges being truncated, to
+provide additional data — the same `tooltip` prop, defined per column in
+designs.
+
+<Canvas of={CellBodyStories.BadgeTooltip} />
+
+When the cell does not have any value, we show a placeholder.
+
+<Canvas of={CellBodyStories.BadgeEmpty} />
+
+While loading, we show only one badge in loading state.
+
+<Canvas of={CellBodyStories.BadgeLoading} />
+
+### Assignee
+
+The avatar size is fixed. We show a tooltip with an avatar and the assignee name
+by hovering over the **cell**. The tooltip default position is on top.
+
+<Canvas of={CellBodyStories.AssigneeContent} />
+
+The cell supports an
+<a href="/?path=/story/components-avatargroup--playground" target="_top">AvatarGroup</a>
+for multi-assigned objects. **We show as many avatars as fit the width** — the
+cell measures itself, so the caller does not set a limit. The avatars that do
+not fit are replaced by the counter.
+
+If the avatars are truncated, we show the tooltip by hovering over the cell. The
+tooltip contains an AvatarGroup with the list of all assignees. The tooltip
+default position is on top.
+
+<Canvas of={CellBodyStories.AssigneeGroup} />
+
+When the cell does not have assignees, we show the placeholder. The tooltip is
+also being shown by hovering over the cell — it reads "No assignees". The
+tooltip default position is on top.
+
+<Canvas of={CellBodyStories.AssigneeEmpty} />
+
+While loading, we only show a single avatar in loading state.
+
+<Canvas of={CellBodyStories.AssigneeLoading} />
+
+### Number
+
+The content is right-aligned. Typography variable is determined and can not be
+changed. Use `content="number"` and the cell takes both, plus tabular
+(fixed-width) numerals so the digits line up down the column.
+
+<Canvas of={CellBodyStories.NumberContent} />
+
+Supports a left slot. The left slot supports an **icon only**. The icon
+parameters are flexible. By default, inherits the default parameters.
+
+<Canvas of={CellBodyStories.NumberSlotLeft} />
+
+Supports several color schemes. The icon inherits the color on all variants
+except the `default` and the `subtle`.
+
+<Canvas of={CellBodyStories.NumberColorSchemes} />
+
+When the cell does not have any value, we show a placeholder, and while loading
+we replace the content with a typography skeleton that fills the width — the
+same as a text cell.
+
+## Props
+
+<ArgTypes of={CellBodyStories} />

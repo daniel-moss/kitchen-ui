@@ -1,0 +1,93 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidebarNavItemStories from "./SidebarNavItem.stories";
+
+<Meta of={SidebarNavItemStories} />
+
+# SidebarNavItem
+
+We use **SidebarNavItem** inside the
+<a href="/?path=/docs/components-sidebarnav-sidebarnav--docs" target="_top">SidebarNav</a>
+to navigate within the app.
+
+<Canvas of={SidebarNavItemStories.Hero} />
+
+```tsx
+<SidebarNavItem icon="house" href="/home" active>
+  Home
+</SidebarNavItem>
+
+<SidebarNavItem type="stackHeader" icon="wrench-simple" open={open} onOpenChange={setOpen}>
+  Jobs
+</SidebarNavItem>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains an Icon and the text label. The height is fixed — `--size-9` (36px)
+on every breakpoint.
+
+The row fills its container's width. Side padding is `--size-2_5` (10px), the
+icon and the label sit `--size-2` (8px) apart, and the corner radius is
+`--border-radius-1_5` (6px). The icon is a 16px box with a 14px glyph —
+regular weight, solid when active. The label is `body-500-compact`
+(Inter Medium 14/20) and truncates with an ellipsis.
+
+<Canvas of={SidebarNavItemStories.Anatomy} />
+
+### Modifiers
+
+A modifier is an optional element on the right side of the component. There
+are two types of modifiers — a hot key caption and a notification dot icon.
+
+The hot key is `caption-sm-400` (Inter Regular 12/16) in `--text-subtle`, and
+it keeps that color in every state. It is display only — the item does not
+listen for the key. The notification dot is a 10px box with an 8px
+`circle-small` glyph in `--tomato-9`. `notificationDot` is ignored when
+`hotKey` is set.
+
+<Canvas of={SidebarNavItemStories.Modifiers} />
+
+## Behavior
+
+### Default item
+
+Used outside of an item stack. Works as a link — it leads to a related part
+of the application. With `href` the item renders a real `<a>`; without it, a
+`<button>`.
+
+<Canvas of={SidebarNavItemStories.DefaultItemStates} />
+
+### Stack header
+
+Used within an item stack as its header. It expands and collapses the stack.
+It is not a link — it does not lead anywhere.
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitemgroup--docs" target="_top">Learn
+more about item stacks →</a>
+
+When the stack is expanded, the caret turns down and the header carries the
+active emphasis (solid icon, strong label) — without a fill at rest.
+
+<Canvas of={SidebarNavItemStories.StackHeaderStates} />
+
+### Stack item
+
+Used within an item stack as a navigation item. Works as a link — it leads to
+a related part of the application. It has no icon; its left padding (34px)
+aligns the label with the default items' labels.
+
+<Canvas of={SidebarNavItemStories.StackItemStates} />
+
+The header toggles its stack items — in the sidebar,
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitemgroup--docs" target="_top">SidebarNavItemGroup</a>
+owns this wiring. The example below is live — click the header:
+
+<Canvas of={SidebarNavItemStories.Stack} />
+
+## Props
+
+<ArgTypes of={SidebarNavItemStories} />

@@ -51,7 +51,7 @@ const FormRow = ({ mobile, name }: { mobile: boolean; name: string }) => {
       <ListItem
         variant="title"
         title={name}
-        avatar={<Avatar type="object" content="icon" icon="list" size="xl" />}
+        avatar={<Avatar shape="square" content="icon" icon="list" size="xl" />}
         slotRight={
           <IconButton
             icon="ellipsis"

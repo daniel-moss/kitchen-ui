@@ -1,0 +1,16 @@
+// TopBarNavLiveUsers — the mobile tap trigger is a bare button around the
+// avatar stack; the drawer body holds the stack, 16px padded.
+
+.trigger {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.drawerBody {
+  box-sizing: border-box;
+  padding: var(--size-4);
+}

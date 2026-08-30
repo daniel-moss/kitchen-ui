@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
+import AvatarLive from "../../components/Avatar/AvatarLive";
 import Button from "../../components/Button/Button";
 import Counter from "../../components/Counter/Counter";
 import Dialog from "../../components/Dialog/Dialog";
@@ -167,7 +168,7 @@ const FormRow = ({
         slotRight={
           <span className={styles.rowRight}>
             {form.state === "inProgress" && (
-              <Avatar type="live" content="image" size="sm" ringColor="orange" imageSrc={LIVE_EDITOR.avatar} />
+              <AvatarLive content="image" size="md" color="orange" imageSrc={LIVE_EDITOR.avatar} />
             )}
             <IconButton
               icon="ellipsis"
@@ -185,7 +186,7 @@ const FormRow = ({
         <Menu
           open={menu.open}
           onClose={menu.close}
-          header={
+          drawerHeader={
             <DrawerHeader>
               <PopoverHeaderContent avatar={<FormAvatar state={form.state} />}>
                 <PopoverHeaderText variant="title" title={form.name} />

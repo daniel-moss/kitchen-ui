@@ -95,7 +95,7 @@
   --letter-spacing-heading-h2: normal;
   --feature-settings-heading-h2: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
 
-  --font-heading-h3: var(--font-weight-semibold) 0.9375rem/1.5rem var(--font-family-base);
+  --font-heading-h3: var(--font-weight-semibold) 1rem/1.5rem var(--font-family-base); /* 16/24 — Figma updated h3 from 15px (Daniel, 2026-08-27) */
   --letter-spacing-heading-h3: normal;
   --feature-settings-heading-h3: "kern" on, "case" on, "liga" on, "calt" on, "ss01" on, "cv08" on;
 

@@ -1,0 +1,136 @@
+@import "../../../styles/mixins/font";
+
+// The cell owns its horizontal padding and alignment ONLY. Height comes from
+// the row (align-self: stretch), and the row also draws the divider — so a cell
+// never sets a height or a bottom border.
+.cell {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  align-self: stretch;
+
+  display: flex;
+  gap: var(--size-4);
+  align-items: center;
+
+  min-width: 0;
+  padding: 0 var(--size-4);
+
+  // Sticky (pinned) cells float above the cells scrolling underneath, so the
+  // fill has to be opaque. It comes from the row.
+  background-color: inherit;
+}
+
+// The value fills the cell so alignment has something to push against.
+.content {
+  display: flex;
+  flex: 1 1 0;
+  gap: var(--size-2); // slotLeft ↔ value
+  align-items: center;
+  min-width: 0;
+}
+
+// Badges sit closer together than an icon does to its label.
+.badgeContent .content {
+  gap: var(--size-1_5);
+}
+
+// The badge cell's tooltip body: every badge's COPY, one per line, left
+// aligned. Not the badges themselves — the doc lists them as plain lines of
+// text inside the tooltip.
+.badgeTooltip {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+// The left slot, so a colour scheme can reach the icon inside it.
+.slotLeft {
+  display: flex;
+  flex: none;
+  align-items: center;
+}
+
+.left .content {
+  justify-content: flex-start;
+}
+
+.right .content {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+// ---- string content ----
+// The cell truncates its own copy — the tooltip that reveals the full string
+// is triggered by the CELL, so the text no longer carries one of its own.
+.text {
+  @include font("body-400-compact");
+
+  color: var(--cell-text-color, var(--text-strong));
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tabular {
+  @include font("body-400-compact-tabular");
+}
+
+// A colour scheme paints the value AND the left slot's icon — except on
+// "default" and "subtle", where the icon keeps whatever colour the caller gave
+// it (the doc's rule). Those two schemes simply set no icon colour.
+.success .slotLeft,
+.warning .slotLeft,
+.caution .slotLeft,
+.error .slotLeft {
+  color: var(--cell-text-color);
+}
+
+.default {
+  --cell-text-color: var(--text-strong);
+}
+
+.subtle {
+  --cell-text-color: var(--text-placeholder);
+}
+
+.success {
+  --cell-text-color: var(--text-success);
+}
+
+.warning {
+  --cell-text-color: var(--text-warning);
+}
+
+.caution {
+  --cell-text-color: var(--text-caution);
+}
+
+.error {
+  --cell-text-color: var(--text-error);
+}
+
+// ---- pinned boundary ----
+// Sits on the trailing edge of the LAST pinned column, so it travels with the
+// sticky region. --gray-a6 is deliberately heavier than the row divider
+// (--gray-a3): the frozen edge must not read as an ordinary row line.
+.lastPinned::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  width: var(--size-px);
+
+  background-color: var(--gray-a6);
+}
+
+// ---- loading ----
+.skeleton {
+  flex: 1 1 0;
+  min-width: 0;
+}

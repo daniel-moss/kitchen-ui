@@ -10,9 +10,10 @@ export interface ListItemBodyProps extends ListItemContentProps {
   /**
    * Right slot — up to 3 instances, 8px apart, vertically centered on the
    * 40px row. Supported instances: ListItemSlotIcon (open / open-in-tab),
-   * IconButton (md), Button (subtle lg), TabGroup (contained lg), SelectField
-   * (width adapts to its value), Toggle, AvatarUser (lg), a live Avatar, or an
-   * AvatarGroup (lg). TextField / DateField / ProgressIndicator come later.
+   * ListItemSlotProgress (a ProgressRing in its 32px box), IconButton (md),
+   * Button (subtle lg), TabGroup (contained lg), SelectField (width adapts to
+   * its value), Toggle, AvatarUser (lg), AvatarLive, or an AvatarGroup (lg).
+   * TextField / DateField come later.
    */
   slotRight?: ReactNode;
 }

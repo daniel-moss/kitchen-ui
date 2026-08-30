@@ -14,7 +14,7 @@ completely separate from:
 
 Why it exists (Daniel's goals):
 1. Build components his dev team can adopt into the real codebase.
-2. A simple, safe place to test new looks and behaviours without the complexity
+2. A simple, safe place to test new looks and behaviors without the complexity
    of the real repo.
 3. Build and share prototypes of features that are not built yet.
 4. Stay fully separate, so nothing here can break production.
@@ -183,92 +183,130 @@ Roughly, as of this handoff:
   error/offline states; `confirmOnDismiss`; `subHeader` + `cardStyle`), `Prompt`
   (non-dismissible confirm), `EmptyState`, `AlertBanner`. All overlays: Escape /
   focus trap / focus restore via the shared hooks.
-- **NavSidebar (`NavSidebar/`):** `NavSidebarItem` — one sidebar row, 3 types:
-  default (icon + label + optional `hotKey` text or `notificationDot`
+- **SidebarNav (`SidebarNav/`):** `SidebarNavItem` (RENAMED from
+  NavSidebarItem 2026-08-27 per the redesigned Figma component + doc page,
+  22582-17938; the REST of the family keeps its Nav* names until Daniel's
+  family-wide rename, "covered in the next updates") — one sidebar row, 3
+  types: default (icon + label + optional `hotKey` text or `notificationDot`
   modifier; a link), stackHeader (toggles a stack; caret left→down via `open`,
   which is SPLIT from `active` on purpose — Figma couples them, Daniel OK'd
-  the split), stackItem (no icon, pl 34 aligns labels; a link). Desktop 32 /
-  mobile 36 (breakpoint auto via useIsDesktop), fills container width.
-  Active = solid icon + strong text (+ gray-a3 fill except stackHeader);
-  hover/press strengthen colors and fill a3/a4 (active default/stackItem step
-  to a4/a5); focus/disabled from the interaction mixins. Renders `<a href>`
-  or `<button>`. `NavSidebarItemGroup` = the item stack (a Figma template):
-  stackHeader (icon+label props) + children stackItems 2px apart, open/close
-  via the collapse mixin; `headerActive` separate from `open`; breakpoint
-  flows to everything inside via `NavSidebarBreakpointContext` (context, not
-  prop cloning — fragments would swallow cloned props). An OPEN stackHeader is
-  emphasized like active (Daniel confirmed the Figma coupling).
-  `NavSidebarProfileButton`: 36px circular avatar button (AvatarUser md);
-  opens the profile Menu — desktop card 4px below left-aligned (name/e-mail
-  section as the card's first block, swallows Menu's injected divider prop);
-  mobile drawer with avatar+name+e-mail in the DrawerHeader (via Menu's new
-  `header` prop for a custom root drawer header). The button STAYS PRESSED
-  (gray-a4) while the menu is open; wrap is position:relative on desktop ONLY
-  (a positioned wrapper would trap the mobile drawer's scrim).
-  `NavSidebarWorkspaceButton`: 28px object avatar (image or first-letter
-  fallback) + name (truncates w/ tooltip) + angles-up-down; opens a
-  SelectList (desktop inline 4px below / mobile drawer) with xs avatars +
-  selected check; picking closes; stays pressed while open; with ONE
-  workspace it renders non-interactive without the angles icon.
-  `NavSidebar`: the full sidebar — 280px column + right-edge vertical
-  Divider; 52px header (workspace + profile, sticks on top, long names
-  truncate with a min 8px gap); below it ONE scroll container (top items pin
-  up, bottom block pins down via space-between; everything but the header
-  scrolls on overflow); built-in Search item (`onSearchClick`; hotKey ⌘K/Ctrl
-  K by OS, display-only) and Create button (`createMenu`; NavSidebarItem
-  `strong` + `isPressed` adjustments — strong rest colors, held pressed while
-  its Menu shows; desktop menu = body-portal card right of the button,
-  bottoms aligned, 4px gap; mobile = drawer titled "Create"). MenuItem gained
-  `subMenuTitle` (mobile sub-drawer title, e.g. "Create job" over "Job").
-  Provides NavSidebarBreakpointContext to everything inside.
-- **NavBottomBar (`NavBottomBar/`):** `NavBottomBarItem` — the mobile bottom
-  bar's icon-only pill: 68×44 radius-full (stretches in a row up to max 112;
-  `flex: 1 1 auto` on purpose — a length basis would hijack the height in
-  column layouts), icon 18 regular gray-a11 → SOLID gray-12 + gray-a3 fill
-  when active; hover a4 / press a5 / focus ring with a4 fill / disabled 0.3;
-  requires `label` (aria-label — icon-only); renders `<a href>` or button;
-  `strong` = dark icon at rest (the bar's Create adjustment). `NavBottomBar`:
-  the bar — top Divider, 8px padding, items 2px apart sharing the width
-  (capped 112, centered on wide screens), min-width 320, surface-level-first
-  fill, safe-area padding-bottom from the shared drawer inset var; the
-  consumer fixes it to the screen bottom; only ONE item active at a time.
-  **Breakpoint-exclusive (Daniel's rule): NavBottomBar renders ONLY on
-  mobile (≤1024), NavSidebar renders ONLY on desktop — each returns null on
-  the other breakpoint (`breakpoint` prop forces for stories/tests).**
-- **NavTopBar (`NavTopBar/`, being built in slices):** `NavTopBarTitle` —
-  the title combination: optional `slotLeft` (Icon 14 solid gray-12, or any
-  md/28 avatar — gap 8 after an icon, 10 after an avatar, detected by
-  element type like Chip) + title (body-500-compact strong, ellipsis) +
-  optional `dropdown` (angles-up-down 14 regular gray-a9, 8px gap).
-  `NavTopBarLeftElements` — [back IconButton?] 8px [NavTopBarTitle as
-  children] 8px [ellipsis IconButton?]; buttons are md/32 ghost, shown when
-  `onBack`/`onActions` are set. `NavTopBarRightElements` — format-dependent
-  (breakpoint auto): [live avatars (AvatarGroup inline lg)][search IconButton
-  — DESKTOP ONLY][create: desktop = solid md Button "New" w/ plus, mobile =
-  solid plus IconButton], gap 8.
-  `NavTopBarLiveUsers` (used by RightElements + the details bar): the live
-  stack — inline lg AvatarGroup capped at 3 avatars desktop / 2 mobile
-  (beyond → "+N" counter); desktop hover = tooltip with ALL users; mobile
-  tap = drawer with the lg stack. `NavTopBar` — the bar: 52px inner (px 16,
-  gap 16) + bottom Divider; `variant="list"` (children = LeftElements
-  assembly; right = live users + onSearch/onCreate via RightElements) or
-  `variant="details"` (children + `tabs` TabGroup element + live users
-  only; desktop tabs scroll horizontally with DYNAMIC edge fades — right at
-  start, both mid-scroll, left at end; mobile tabs move to a second 52px
-  bar row, no fade, "Details" first by convention). Tabs wheel-scroll with
-  a plain vertical wheel (native non-passive listener). `hideOnScroll` prop
-  (mobile): the top row stays sticky; the TABS ROW collapses on scroll-down
-  and returns on scroll-up (height-animated bottom-anchored clip; guards:
-  overflow-anchor none on the scroll container + a 250ms echo-ignore window
-  — the layout change otherwise feeds back through scroll anchoring /
-  scrollTop clamping and oscillates). NavTopBarTitle `subPages` opens an inline SelectList on
-  title click (forced inline on mobile too, per the doc; the interactive
-  title dims to 75% on hover / 50% on press). Search/create icon
-  buttons carry tooltips ("Object search" / createLabel).
+  the split), stackItem (no icon, pl 34 aligns labels; a link; pr 10 like the
+  other types). Height FIXED 36px on every breakpoint (Daniel 2026-08-27 —
+  the old desktop-32 size is gone, and the item no longer reads the
+  breakpoint context/prop). Fills container width. Active = solid icon +
+  strong text (+ gray-a3 fill except stackHeader); hover/press/FOCUS
+  strengthen colors and fill a3/a4 (active default/stackItem step to a4/a5);
+  hot key stays `--text-subtle` in every state; focus = the NEW
+  `row-focus-ring-inset` mixin (see the mixins bullet), stepping the inner
+  fill to a4 on active default/stackItem; disabled from the mixins. Renders
+  `<a href>` or `<button>`. Docs page `SidebarNavItem.mdx` from the Figma doc;
+  its props table is HAND-declared in the stories meta (union props type —
+  the ListItem gotcha). `SidebarNavItemGroup` (RENAMED from
+  NavSidebarItemGroup 2026-08-27, Figma 7740-32728 + doc 22623-10525) = the
+  item stack, now a real Figma component: stackHeader (icon+label props) +
+  children stackItems **1px apart** (`--size-0_25`, the doc's "Gap"
+  annotation — was 2px), open/close via the collapse mixin; `headerActive`
+  separate from `open`; its `breakpoint` prop is REMOVED (items have a fixed
+  height now, so nothing inside the group reads the breakpoint context —
+  `SidebarNavBreakpointContext` still serves the profile/workspace buttons).
+  Docs page `SidebarNavItemGroup.mdx`. An OPEN stackHeader is emphasized like
+  active (Daniel confirmed the Figma coupling).
+  `SidebarNavProfileButton` (RENAMED from NavSidebarProfileButton
+  2026-08-27, Figma 1201-6562 + doc 22575-24855; docs page
+  `SidebarNavProfileButton.mdx`): 36px circular avatar button (AvatarUser
+  md/28); opens the profile Menu — desktop card 4px below left-aligned
+  (name/e-mail section as the card's first block, swallows Menu's injected
+  divider prop; the e-mail is `caption-medium-400` 13/20 — was
+  body-400-compact, fixed per the doc); mobile drawer with
+  avatar+name+e-mail in the DrawerHeader (via Menu's `header` prop). The
+  button STAYS PRESSED (gray-a4) while the menu is open; its focus ring is
+  the PLAIN 2px inset stroke (the doc shows no gap/fill on a circle); wrap
+  is position:relative on desktop ONLY (a positioned wrapper would trap the
+  mobile drawer's scrim).
+  `SidebarNavWorkspaceButton` (RENAMED from NavSidebarWorkspaceButton
+  2026-08-27, Figma 16203-27985 + doc 22568-14179; docs page
+  `SidebarNavWorkspaceButton.mdx`): 28px object avatar (image or
+  first-letter fallback) + name (truncates w/ tooltip) + angles-up-down
+  (a10 → gray-12 on hover/press/FOCUS); opens a SelectList (desktop inline
+  4px below / mobile drawer) with xs avatars + selected check; picking
+  closes; stays pressed while open; focus = `row-focus-ring-inset` with
+  `--border-radius-0_5` inner corners (the mixin's $radius param exists for
+  this); with ONE workspace it renders non-interactive without the angles
+  icon.
+  `SidebarNav` (RENAMED from NavSidebar 2026-08-27, Figma 485-6075 + doc
+  22562-12785 — this completed the FAMILY rename: the FOLDER is now
+  `src/components/SidebarNav/`, the context is `SidebarNavContext.ts` /
+  `SidebarNavBreakpointContext`, story group "Components/SidebarNav"; docs
+  page `SidebarNav.mdx`): the full sidebar — 280px column + right-edge
+  vertical Divider (contrast MEDIUM); 60px header (was 52; 12px sides —
+  workspace + profile, sticks on top, long names truncate with a min 8px
+  gap); below it ONE scroll container, 12px sides + bottom (top block pins
+  up, bottom items pin down via space-between; everything but the header
+  scrolls on overflow); the CREATE button sits at the TOP (moved from the
+  bottom 2026-08-27): icon circle-plus, SidebarNavItem `strong` (which now
+  means SOLID icon + strong label) + `isPressed` while its Menu shows —
+  desktop menu = body-portal card RIGHT of the button, TOPS aligned (was
+  bottoms), 4px gap; mobile = drawer titled "Create"; 8px below Create the
+  ITEMS stack (1px apart, the group rhythm) opens with the built-in Search
+  item (`onSearchClick`; hotKey ⌘K/Ctrl K by OS, display-only); bottomItems
+  = the pinned bottom stack (also 1px apart). MenuItem has `subMenuTitle`
+  (mobile sub-drawer title, e.g. "Create job" over "Job"). Provides
+  SidebarNavBreakpointContext to everything inside.
+- **BottomBarNav (`BottomBarNav/`, RENAMED from NavBottomBar 2026-08-27 —
+  folder, files, identifiers, story group; Figma item 1001-2260 + doc
+  25251-23640, bar 1502-14983 + doc 22589-5054; docs pages
+  `BottomBarNavItem.mdx` + `BottomBarNav.mdx`):** `BottomBarNavItem` — the
+  mobile bottom bar's icon-only pill: 68×44 radius-full (stretches in a row
+  up to max 112; `flex: 1 1 auto` on purpose — a length basis would hijack
+  the height in column layouts), icon 18 regular gray-a11 → SOLID gray-12 +
+  gray-a3 fill when active; hover a4 / press a5 / focus = the
+  `row-focus-ring-inset` mixin with `--border-radius-full` inner corners and
+  the a4 fill / disabled 0.3 WITHOUT a fill (the doc — active-disabled loses
+  its a3); requires `label` (aria-label — icon-only); renders `<a href>` or
+  button; `strong` = SOLID gray-12 icon at rest (the bar's Create
+  adjustment, circle-plus — same solid-icon rule as the sidebar's Create).
+  `BottomBarNav`: the bar — MEDIUM top Divider, 8px padding, items 0 apart
+  (was 2px) sharing the width (capped 112, centered on wide screens),
+  min-width 320, surface-level-first fill, safe-area padding-bottom from the
+  shared drawer inset var; the consumer fixes it to the screen bottom; only
+  ONE item active at a time. **Breakpoint-exclusive (Daniel's rule):
+  BottomBarNav renders ONLY on mobile (≤1024), SidebarNav renders ONLY on
+  desktop — each returns null on the other breakpoint (`breakpoint` prop
+  forces for stories/tests).**
+- **TopBarNav (`TopBarNav/`, REDESIGNED + renamed from NavTopBar 2026-08-27,
+  Figma 22250-61596):** the page top bar, now part of the TopBar family.
+  60px rows (was 52), px 16, 16px gaps between clusters. `TopBarNavTitle` —
+  title heading-h3 (16/24 Semibold — Daniel bumped the TOKEN from 15px on
+  2026-08-27, so Prompt/FormModule/PopoverHeaderTitle grew with it) strong,
+  ellipsis; optional `slotLeft` = an AVATAR only (fixed xl/36
+  slot, 10px gap — the old icon option is GONE); `subPages` opens an inline
+  SelectList (inline on mobile too); interactive title dims 75/50, NEW
+  keyboard focus ring (2px gray-12, 4px offset, radius 6).
+  `TopBarNavLeftElements` — [back?] 8px [Title] 8px [context menu?]; ghost
+  lg/36 IconButtons; back has a "Back" tooltip. `contextMenu` prop = the bar
+  OWNS the Menu (desktop card 4px below the button left-aligned; mobile
+  drawer whose header repeats the page title + avatar, read off the Title
+  child by introspection); legacy `onActions`/`actionsPressed` kept as a
+  report-only escape hatch. `TopBarNavRightElements` (list only) — [search
+  IconButton, DESKTOP ONLY, tooltip "Object search"][create: desktop = solid
+  lg Button "New" w/ plus, mobile = solid lg plus IconButton + tooltip], gap
+  8. NO live users on list pages anymore (Daniel). `TopBarNavLiveUsers`
+  (details only): xl (36) — ONE user renders AvatarLive, 2+ an inline xl
+  AvatarGroup capped 3 desktop / 2 mobile; desktop hover tooltip with ALL
+  users; mobile tap drawer. `TopBarNav` variants: `list` (title + optional
+  PHASE tabs inline on BOTH breakpoints + right elements), `details` (back +
+  title + context menu + tabs + live users; mobile tabs = second 60px bar
+  row, no fade, "Details" first, ALWAYS hide-on-scroll — the prop is gone;
+  same anchoring guards as before), `inner` (NEW: optional back + title
+  only). Tabs are TabGroup default/lg (36) — the bar provides the default
+  size via TabGroupDefaultSizeContext (context, not prop cloning: consumers
+  wrap their TabGroup in local components, which swallow cloned props); they
+  scroll with DYNAMIC 40px edge fades (was 32) and wheel-scroll with a
+  plain vertical wheel.
 - **Steppers:** `StepItem`, `StepGroup`. **Tabs (`Tabs/`):** `TabItem`, `TabGroup`
   (contained tabs are 4px shorter; `isFullWidth` stretches tabs equally).
   TabItem `warning` (2026-08-05) turns the icon + label `--text-warning` and
-  HOLDS that colour in every state (selected, hover, press) — built for
+  HOLDS that color in every state (selected, hover, press) — built for
   SidePanel's navigation, so it is scoped to the `default` + `container`
   variants; the amber `warning` icon is the caller's, not built in.
 - **Form controls:** `Checkbox/` (Checkbox, CheckboxBox, CheckboxItem,
@@ -313,7 +351,7 @@ Roughly, as of this handoff:
   list with ONE group flattens it and pins the options that were selected on
   open above a divider, but with MORE THAN ONE group the groups carry meaning
   and are left exactly as the consumer wrote them. Counted on the original
-  children, so a search that empties a group does not flip the behaviour),
+  children, so a search that empties a group does not flip the behavior),
   `SelectListHeader` (search), `SelectListItem` (+ Content/Copy; default/object),
   `SelectListItemGroup` (pairs with GroupLabel: primary ↔ object items,
   secondary ↔ default items), `SelectListFooter` (menuItem/actionBar).
@@ -363,7 +401,7 @@ Roughly, as of this handoff:
   and `suppressListItemTaps(350)` on finish for the trailing click).
   **Docs page + Figma alignment (2026-08-05):** `ListItem.mdx` follows the
   Figma Documentation page section-for-section. The caption's left slot
-  (`captionSlotLeft`, 20px box / centred / 8px before the text; the icon's
+  (`captionSlotLeft`, 20px box / centered / 8px before the text; the icon's
   size, style and color are the caller's) is wired through
   ListItemText → ListItemTextLeft. Two doc rules are now ENFORCED, not just
   written: (1) `slotBottom` is type-restricted to the STATIC row — clickable /
@@ -399,8 +437,15 @@ is why raw `.tsx` uploads there did nothing).
   element's border is added outside the box and changes dimensions.
 - **Interactive-row states come from mixins** (`src/styles/mixins/_interaction.scss`):
   `row-hover-fill` / `row-press-fill` / `row-focus-fill` (no ring) /
-  `row-focus-ring` (2px stroke + 2px gap + fill, stacked inset shadows — the DS
-  focus spec) / `row-disabled`. Components keep their own selectors (including
+  `row-focus-ring` (2px stroke + 2px gap + fill, stacked inset shadows — the
+  older DS focus spec) / `row-focus-ring-inset` (the NEWER focus spec, from
+  the SidebarNavItem Figma 2026-08-27: 2px stroke at the bounds, 2px
+  TRANSPARENT gap, then a `::before` inner fill with its own
+  `--border-radius-1` corners — a pseudo-element because stacked shadows
+  can't give the fill its own radius; content does not shift. GOTCHA that
+  caused a wrong 4px gap once: Figma measures a frame's padding from its
+  BOUNDS with the stroke overlaying it, so its "4px padding" is a 2px
+  visible gap — don't re-add the stroke width) / `row-disabled`. Components keep their own selectors (including
   `:not(:has(...))` slot exclusions) and include the fills. The accordion
   collapse (grid-template-rows 0fr→1fr) is `src/styles/mixins/_collapse.scss`.
 - **Controlled-or-uncontrolled state** is `src/hooks/useControllableState.ts` —
@@ -451,17 +496,17 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   `parameters: { layout: "fullscreen" }` — the frame owns the ONLY padding.
 - Page skeleton: `# Name` → one intro paragraph — always opens **We use
   `Name` …** → hero `<Canvas>` → a ` ```tsx ` usage snippet → ↳ TOC links
-  (`#anatomy` / `#behaviour` / `#props`) → `## Anatomy` (structure + the key
-  measurements) → `## Behaviour` (one `###` per rule) → `## Props` with
+  (`#anatomy` / `#behavior` / `#props`) → `## Anatomy` (structure + the key
+  measurements) → `## Behavior` (one `###` per rule) → `## Props` with
   `<ArgTypes of={Stories} />` (the table is fed by the JSDoc in `*.types.ts`
   — keep those comments good). The middle rule-section is ALWAYS titled
-  `## Behaviour` — never "States" or another synonym (Daniel, 2026-07-30).
+  `## Behavior` — never "States" or another synonym (Daniel, 2026-07-30).
   A component with two mount modes may instead split into named sections
   (e.g. CheckboxItem/RadioItem `## Inline` / `## Card`); that is the one
   sanctioned deviation. **Second sanctioned deviation (Daniel, 2026-08-05):**
   when the component's Figma Documentation page is itself split into several
   top-level sections, FOLLOW THE FIGMA SECTION NAMES instead of folding them
-  into one `## Behaviour` — ListItem.mdx does this (`Anatomy` / `Content` /
+  into one `## Behavior` — ListItem.mdx does this (`Anatomy` / `Content` /
   `Right elements` / `Bottom elements` / `Dragging` / `Interactivity` /
   `Accordion` / `Props`), and the TOC links mirror them.
 - **Props-table gotcha:** `<ArgTypes>` is fed by react-docgen, which CANNOT
@@ -484,7 +529,7 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
 - Behavior that is the CONSUMER's wiring (not the component's) gets a live
   interactive story (see `BannerDismissal`) plus an explicit "the component
   does not do this by itself" line.
-- The Storybook MANAGER (nav sidebar etc.) is themed to the NavSidebar look in
+- The Storybook MANAGER (nav sidebar etc.) is themed to the SidebarNav look in
   `.storybook/manager.js` + `manager-head.html` (light/dark literals of the
   DS tokens; follows the preview's theme toolbar). Manager file changes need a
   Storybook RESTART, not just HMR.
@@ -555,11 +600,47 @@ Conventions (established with the first one, View Menu):
   Menu prototype: `position: fixed` from the anchor's rect, re-measured on
   scroll/resize; mark the portal (`data-floating-list`) and exclude it from
   outside-click-close handlers.
-- **Sharing plan (agreed):** `npm run build-storybook` → upload
-  `storybook-static/` to any static host (Netlify Drop / Surge / GitHub Pages —
-  Daniel decides; NOT one repo per prototype). Share
-  `<site>/iframe.html?id=prototypes-<name>--<story>` for a clean full-screen
-  link. Not tried yet.
+- **User-testing builds (repo reorganised 2026-08-25).** Builds for testing
+  sessions are shared from a SECOND repository,
+  `github.com/daniel-moss/roopairs-user-testing`, published by GitHub Pages at
+  `https://daniel-moss.github.io/roopairs-user-testing/<folder>/`. It holds
+  BUILT Storybooks — no source, no build of its own — **one folder per testing
+  build** (`job-details-forms/` is the first). The repo ROOT holds nothing but
+  `.nojekyll`, so the bare site URL 404s on purpose: every link names a folder.
+  It exists so a link given to a customer cannot be changed by a design-system
+  update here — it only moves when someone publishes.
+  - A published build CANNOT be split or re-arranged by moving files: one
+    Storybook build is one bundle (a single `index.json`, shared code chunks in
+    `assets/`). Re-organising means re-BUILDING, which means today's source.
+    Only ever move a whole folder.
+  - The bundle is prototypes-ONLY: `npm run build-storybook:share` sets
+    `SHARE=1`, which narrows `.storybook/main.js` to
+    `src/prototypes/**/*.stories.@(ts|tsx)` — no components, no docs pages —
+    and writes `storybook-share/` (gitignored).
+  - Publish with `node scripts/publish-prototypes.mjs` (add `--push` to update
+    the site, `--dry-run` to see what would change). It builds, syncs the
+    output into a clone at `../roopairs-user-testing` (cloned on first run),
+    keeps `.nojekyll`, and commits. Pushing is a separate, deliberate step.
+  - Share `<site>/iframe.html?id=prototypes-<name>--<story>` for a clean
+    full-screen link. Story ids come from the story's `title` + export name, so
+    RENAMING a story title breaks every link already sent — don't.
+  - A root publish is all-or-nothing: every prototype in `src/prototypes/` goes
+    public together and REPLACES what is on the site. Never do that while
+    clients are testing a build that is already published.
+  - **User-testing builds get their own sub-folder** (Daniel, 2026-08-25):
+    `node scripts/publish-prototypes.mjs --only <Folder> --dir <url-name>`
+    builds ONLY that prototype folder (`SHARE_PROTOTYPE` in
+    `.storybook/main.js`) and syncs it into
+    `roopairs-user-testing/<url-name>/`. Nothing outside that sub-folder is
+    written, so every link already sent keeps serving the same files.
+  - A user-testing prototype is a **frozen COPY** of the prototype it comes
+    from (e.g. `src/prototypes/JobDetailsForms/` from `JobDetails/`), not a
+    variant of it — a testing build must not move when the original is worked
+    on. A change that belongs in both has to be made in both, on purpose.
+  - **Careful:** the kitchen-ui repo ALSO publishes its full Storybook to
+    `daniel-moss.github.io/kitchen-ui/` on every push to `main`. Links from
+    that site are NOT frozen — any push changes them. Customer links should
+    come from the share site.
 
 ## Read-only — production codebase
 

@@ -21,7 +21,7 @@ type StoryArgs = {
 
 const frame: React.CSSProperties = { width: 320 };
 
-const objectAvatar = <Avatar type="object" content="icon" size="xl" />;
+const objectAvatar = <Avatar shape="square" content="icon" size="xl" />;
 
 const meta: Meta<StoryArgs> = {
   title: "Components/ListItem/ListItemContent",

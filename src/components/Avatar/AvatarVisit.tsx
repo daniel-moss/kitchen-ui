@@ -7,6 +7,6 @@ import { AvatarVisitProps } from "./AvatarVisit.types";
 // icon. Icon-only — no statuses, no addOns.
 export default function AvatarVisit({ size = "md", className }: AvatarVisitProps) {
   return (
-    <Avatar type="object" content="icon" icon={semanticIcons.visit} size={size} className={className} />
+    <Avatar shape="square" content="icon" icon={semanticIcons.visit} size={size} className={className} />
   );
 }

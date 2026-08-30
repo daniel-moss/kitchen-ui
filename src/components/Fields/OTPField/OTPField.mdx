@@ -17,7 +17,7 @@ We use **OTPField** for entering a 6-digit code.
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
@@ -34,7 +34,7 @@ between `--size-56` (224px) and `--size-96` (384px):
 
 <Canvas of={OTPFieldStories.MinMaxWidth} />
 
-## Behaviour
+## Behavior
 
 ### Active by default
 
@@ -61,7 +61,7 @@ is kept for 2 seconds — then the input group resets automatically: the digits
 **and** the error state are cleared (the boxes return to normal). Only the error
 message stays, until the user starts typing again.
 
-The component owns this behaviour: the consumer only flips `isValid` (and
+The component owns this behavior: the consumer only flips `isValid` (and
 optionally `errorMessage`) when its check rejects the code; the shake, the
 2-second hold, and the reset happen on their own. Re-arm the next failure by
 setting `isValid` back to true when the user edits.

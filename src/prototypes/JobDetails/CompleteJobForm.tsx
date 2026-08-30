@@ -211,7 +211,7 @@ function ChargeModule({ group }: { group: ChargeGroup }) {
                 title: it.title,
                 caption: it.caption,
                 captionLines: 1 as const,
-                avatar: <Avatar type="object" content="icon" icon={group.icon} size="xl" />,
+                avatar: <Avatar shape="square" content="icon" icon={group.icon} size="xl" />,
                 right: <ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />,
                 slotRight: <IconButton icon="ellipsis" variant="ghost" size="md" aria-label="More actions" onClick={noop} />,
                 isClickable: true as const,
@@ -242,7 +242,7 @@ const ChargeSummaryModule = ({ group }: { group: ChargeGroup }) => (
               title={it.title}
               caption={it.caption}
               captionLines={1}
-              avatar={<Avatar type="object" content="icon" icon={group.icon} size="xl" />}
+              avatar={<Avatar shape="square" content="icon" icon={group.icon} size="xl" />}
               right={<ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />}
               slotRight={<ListItemSlotIcon icon="angle-right" />}
               isClickable

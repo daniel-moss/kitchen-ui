@@ -20,7 +20,7 @@ export default function AvatarOther({ size = "md", status = "none", className }:
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.other}
       size={size}

@@ -1,0 +1,96 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as AvatarUserStories from "./AvatarUser.stories";
+
+<Meta of={AvatarUserStories} />
+
+# User avatar
+
+We use **AvatarUser** to show a person. It is an avatar with user-based
+parameters: built on
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+with `shape="circle"`, so the sizes, the letter rules and the corner addOns all
+come from there.
+
+<Canvas of={AvatarUserStories.Image} />
+
+```tsx
+<AvatarUser size="md" imageSrc={user.avatar} isPrimary />
+```
+
+↳&nbsp;&nbsp;[Image](#image)<br />
+↳&nbsp;&nbsp;[Letters](#letters)<br />
+↳&nbsp;&nbsp;[User icon](#user-icon)<br />
+↳&nbsp;&nbsp;[Placeholder](#placeholder)<br />
+↳&nbsp;&nbsp;[Counter](#counter)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Add-ons](#add-ons)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Image
+
+There are 2 scenarios when an avatar is represented by an image:
+
+- the user uploaded an avatar image (relevant for Roopairs users only)
+- the user's email address is connected to a Gravatar account, so the image is
+  provided by Gravatar
+
+<Canvas of={AvatarUserStories.Image} />
+
+## Letters
+
+If an image is not uploaded and the email address is not connected to Gravatar,
+we show a variant with letter(s). The first letter is the first letter of the
+user's first name. The second letter is the first letter of the user's last
+name. For example, "Lorne Riddle" renders **LR**.
+
+Only one letter fits on `xxs` and `xs`, so those sizes show the first letter
+alone.
+
+<Canvas of={AvatarUserStories.Letters} />
+
+## User icon
+
+In cases when an image is not provided, the email is not connected to Gravatar
+and the user doesn't have a name, we use a variant with an icon. The glyph is
+locked — every circle avatar uses the same `user` icon.
+
+<Canvas of={AvatarUserStories.UserIcon} />
+
+## Placeholder
+
+We use this variant when we need to show an empty slot. For example, when a job
+is not assigned to any technician. It has no fill: just the dashed ring around
+the user icon.
+
+<Canvas of={AvatarUserStories.Placeholder} />
+
+## Counter
+
+Counter is used when a group of avatars is truncated — it shows how many are
+hidden. It is not used on `xxs`.
+
+<Canvas of={AvatarUserStories.Counter} />
+
+## Loading
+
+Since we do know that the avatar is going to be a user avatar, we use the icon
+variant for the loading state (`isLoading`) rather than an empty shape. It
+pulses while the data loads.
+
+<Canvas of={AvatarUserStories.Loading} />
+
+## Add-ons
+
+Add-ons are elements inserted into an avatar to provide more context — status,
+relativity, etc. They cut a real notch out of the avatar, so the gap ring shows
+the surface behind it.
+
+If a contact is a primary contact, the avatar has a crown icon (`isPrimary`).
+The crown is not used on `xxs`, which takes no icon addOn.
+
+<Canvas of={AvatarUserStories.Primary} />
+
+## Props
+
+<ArgTypes of={AvatarUserStories} />

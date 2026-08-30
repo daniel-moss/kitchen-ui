@@ -1,0 +1,74 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TopBarFilterStories from "./TopBarFilter.stories";
+
+<Meta of={TopBarFilterStories} />
+
+# TopBarFilter
+
+We use **TopBarFilter** to contain the applied filters on desktop
+
+<Canvas of={TopBarFilterStories.Hero} />
+
+```tsx
+<TopBarFilter addMenu={filterMenu} onClearAll={clearAllFilters}>
+  <FilterChip property="Property" condition="is" value="Value" … />
+</TopBarFilter>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Standard view](#standard-view)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Fixed filters](#fixed-filters)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Fills the width. Hugs the content vertically — the bar grows when the chips
+wrap, and the right slot stays vertically centered. Contains the
+<a href="/?path=/docs/components-topbarfilter-filterchipgroup--docs" target="_top">FilterChipGroup</a>
+component. The FilterChipGroup fills the width. The bar also contains the
+right slot — a
+<a href="/?path=/docs/components-button--docs" target="_top">Button</a>
+(`ghost`, `md`). The content paddings are `--size-4` (16px) on the sides and
+`--size-3_5` (14px) vertically; the gap between the FilterChipGroup and the
+right slot is `--size-4` (16px). A
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+(horizontal, medium contrast) sits under the bar. The bar exists only on
+desktop — on mobile it renders nothing.
+
+<Canvas of={TopBarFilterStories.Hero} />
+
+## Behavior
+
+The bar only exists if there are applied filters
+
+In code: with no FilterChip children the bar renders nothing — removing the
+last filter removes the bar. The consumer owns the filter state.
+
+### Standard view
+
+Contains the "Clear all" button which lets the user remove all the filters in
+one click. Clicking on the "Clear all" button removes the whole bar. In code,
+`onClearAll` renders the button; emptying the filters in that handler is the
+consumer's wiring.
+
+<Canvas of={TopBarFilterStories.StandardView} />
+
+### Fixed filters
+
+If a view has at least one fixed filter, we do not show the "Clear all"
+button. If the user hasn't added their own filters yet, the right slot is
+empty.
+
+<Canvas of={TopBarFilterStories.FixedFiltersEmpty} />
+
+If the user adds their own filters, we show the "Reset" button. It allows the
+user to reset the view to the default parameters. In code, `onReset` renders
+the button — never together with `onClearAll`.
+
+<Canvas of={TopBarFilterStories.FixedFiltersReset} />
+
+## Props
+
+<ArgTypes of={TopBarFilterStories} />

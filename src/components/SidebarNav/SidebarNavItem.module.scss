@@ -1,0 +1,201 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// SidebarNavItem — one sidebar row. All values from Figma "SidebarNavItem".
+
+.item {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  width: 100%;
+  height: var(--size-9); // 36px — fixed, same on every breakpoint (the doc)
+  padding: 0 var(--size-2_5); // 10px sides
+  border: none;
+  border-radius: var(--border-radius-1_5);
+  background: none;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+// Stack items have no icon — the padding aligns their label with the default
+// items' labels (10px + 16px icon + 8px gap = 34px).
+.stackItem {
+  padding-left: 34px;
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: var(--gray-a11);
+}
+
+.label {
+  @include font("body-500-compact");
+  color: var(--text-subtle);
+
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// The stack caret: points left closed, rotates to point down open.
+.chevron {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--gray-a10);
+  transition: transform 160ms ease;
+}
+
+.chevronOpen {
+  transform: rotate(-90deg);
+}
+
+// The hot key keeps this color in EVERY state (the doc).
+.hotKey {
+  @include font("caption-small-400");
+  color: var(--text-subtle);
+
+  flex: none;
+}
+
+.dot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 10px;
+  height: 10px;
+  color: var(--tomato-9);
+}
+
+// ---- states ----------------------------------------------------------------
+// Hover/press/focus strengthen the colors like `active` does (icon weight
+// stays regular — only `active` switches it to solid).
+
+@media (hover: hover) {
+  // .pressed (held while an opened menu shows) keeps its darker fill.
+  .item:hover:not(.disabled):not(.pressed):not(:focus-visible) {
+    @include row-hover-fill;
+
+    .icon,
+    .chevron {
+      color: var(--gray-12);
+    }
+
+    .label {
+      color: var(--text-strong);
+    }
+  }
+
+  // Active default/stackItem rest on gray-a3 — their hover steps up.
+  .active:not(.stackHeader):hover:not(.disabled):not(:focus-visible) {
+    background: var(--gray-a4);
+  }
+}
+
+.item:active:not(.disabled):not(:focus-visible) {
+  @include row-press-fill; // gray-a4
+
+  .icon,
+  .chevron {
+    color: var(--gray-12);
+  }
+
+  .label {
+    color: var(--text-strong);
+  }
+}
+
+.active:not(.stackHeader):active:not(.disabled):not(:focus-visible) {
+  background: var(--gray-a5);
+}
+
+// Active: strong colors + solid icon (set in the tsx); default/stackItem also
+// fill — an active stackHeader keeps a transparent rest (a header is no page).
+.active {
+  .icon,
+  .chevron {
+    color: var(--gray-12);
+  }
+
+  .label {
+    color: var(--text-strong);
+  }
+
+  &:not(.stackHeader) {
+    background: var(--gray-a3);
+  }
+}
+
+// The Create-button adjustment: solid icon + strong colors at rest, no fill
+// (the icon weight comes from the tsx).
+.strong {
+  .icon,
+  .chevron {
+    color: var(--gray-12);
+  }
+
+  .label {
+    color: var(--text-strong);
+  }
+}
+
+// Held pressed (e.g. while a menu the item opened is showing).
+.pressed:not(.disabled) {
+  @include row-press-fill;
+
+  .icon,
+  .chevron {
+    color: var(--gray-12);
+  }
+
+  .label {
+    color: var(--text-strong);
+  }
+}
+
+// Focus: ring at the row bounds, 4px gap, inner radius-4 fill = the row's
+// hover fill (active default/stackItem step to a4, like their hover). Last
+// among the states: the focus look wins over the fills below it.
+.item:focus-visible {
+  @include row-focus-ring-inset;
+
+  .icon,
+  .chevron {
+    color: var(--gray-12);
+  }
+
+  .label {
+    color: var(--text-strong);
+  }
+}
+
+// Focused rows drop their row-level fills (rest a3, held/press a4) — the 4px
+// gap must show the surface; the fill lives in the inner ::before instead.
+// Doubled-up selectors out-rank those fills' :not()/:active specificity.
+.item:focus-visible:active,
+.item.active:focus-visible,
+.item.pressed:focus-visible {
+  background: none;
+}
+
+.active:not(.stackHeader):focus-visible::before {
+  background: var(--gray-a4);
+}
+
+.disabled {
+  @include row-disabled; // opacity 0.3 + inert
+}

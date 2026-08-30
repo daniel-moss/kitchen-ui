@@ -65,9 +65,9 @@ export default function Badge({
 
         {slot === "avatar" &&
           (isLoading ? (
-            <Avatar type="user" size="xxs" isLoading />
+            <Avatar shape="circle" size="xxs" isLoading />
           ) : (
-            <Avatar type="user" content="image" size="xxs" imageSrc={avatarSrc} />
+            <Avatar shape="circle" content="image" size="xxs" imageSrc={avatarSrc} />
           ))}
 
         {isLoading ? (

@@ -24,7 +24,7 @@ interface SignaturePadProps {
    * Hands the caller a function that returns the drawn ink as a PNG data URL
    * (null when nothing is drawn). That is what the Signature module shows after
    * the job is completed — without it the module could only draw a placeholder.
-   * The stroke is painted in the theme's text colour AT CAPTURE TIME, so an ink
+   * The stroke is painted in the theme's text color AT CAPTURE TIME, so an ink
    * captured in light theme stays dark if the theme is switched afterwards.
    */
   registerCapture?: (capture: () => string | null) => void;

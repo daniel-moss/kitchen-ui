@@ -1,0 +1,139 @@
+@use "../../styles/mixins/font" as *;
+
+// TopBarView — values from Figma "TopBarView" (node 29570-31216): a 60px
+// content row (0 16px padding, 16px gap) over a bottom Divider. The bar
+// itself is transparent — the app background shows through (the app-shell
+// rule). Desktop = TabGroup left + Search/Filters/View right (8px apart);
+// mobile = view selector left + IconButtons right, with the search bar as
+// its own 40px row below the Divider.
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.inner {
+  box-sizing: border-box;
+  display: flex;
+  gap: var(--size-4); // 16px
+  align-items: center;
+  height: 60px;
+  padding: 0 var(--size-4); // 16px
+  width: 100%;
+}
+
+// Desktop: the tabs area takes the free width and scrolls horizontally,
+// scrollbar hidden. The fade masks mark the side where the tabs continue
+// behind the container — 40px, per Figma "TabGroup Mask" (Daniel confirmed
+// 40 for this bar; NavTopBar's older 32px fade stays as it is).
+.tabsScroller {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.fadeRight {
+  mask-image: linear-gradient(to right, #000 calc(100% - 40px), transparent);
+}
+
+.fadeLeft {
+  mask-image: linear-gradient(to right, transparent, #000 40px);
+}
+
+.fadeBoth {
+  mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+}
+
+// The right cluster — Search (button or field), Filters, View — 8px apart.
+.controls {
+  display: flex;
+  flex: none;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  justify-content: flex-end;
+}
+
+// Desktop expanded keyword search: a fixed-width SearchField in the cluster.
+.searchField {
+  width: var(--size-64); // 256px
+}
+
+// ---- mobile -------------------------------------------------------------
+
+// Mobile row: the selector hugs its name but may shrink (a long name
+// truncates); the icon buttons keep their size.
+.mobileInner {
+  justify-content: space-between;
+}
+
+.selectorWrap {
+  position: relative;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+// The view selector: the selected view's name + the angles icon, 8px apart.
+// Interaction is opacity-based (75% hover / 50% press) — the same pattern as
+// NavTopBarTitle's subpage trigger.
+.selector {
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  max-width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+  transition: opacity 120ms ease;
+}
+
+@media (hover: hover) {
+  .selector:hover {
+    opacity: 0.75;
+  }
+}
+
+.selector:active {
+  opacity: 0.5;
+}
+
+// Holds the pressed look while the view list is open — the DS rule every
+// list trigger follows (NavTopBar title, sidebar profile/workspace buttons).
+.selectorOpen,
+.selectorOpen:hover {
+  opacity: 0.5;
+}
+
+.selectorLabel {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.selectorIcon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  color: var(--gray-a9);
+}
+
+// The view list opens inline, 4px below the selector, left-aligned with it.
+.listAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1)); // 4px
+  left: 0;
+  z-index: var(--z-menu);
+}

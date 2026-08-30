@@ -126,7 +126,7 @@ function Drawer({
   // frame by frame). So keep the sheet anchored to the screen bottom (bottom: 0)
   // — its opaque background then fills all the way down, behind the keyboard — and
   // push the FOOTER up to the keyboard top with padding-bottom = keyboard height.
-  // The padding is inside the sheet, painted with its surface colour, so it
+  // The padding is inside the sheet, painted with its surface color, so it
   // covers the band no matter where the rising keyboard currently is.
   //
   // lift = scrim height − (offsetTop + vv.height) = gap from the sheet's bottom up
@@ -137,10 +137,23 @@ function Drawer({
   // mode. Cap max-height to the visible height (minus offsetTop + top inset) so the
   // header stays on screen when iOS scrolls the visual viewport (offsetTop > 0).
   // Snap (no CSS transition — a transition re-targets on every event and BOUNCES).
-  // Imperative (no React render lag). Body-portaled (fixed) scrim only.
+  // Imperative (no React render lag).
+  //
+  // TWO PLACEMENTS, two measurements (2026-08-19). A body-portaled sheet has a
+  // FIXED scrim that IS the screen, which is what the paragraph above assumes.
+  // A sheet inside a [data-drawer-root] — every device-frame story, and the
+  // phone prototypes with it — has an ABSOLUTE scrim that is just a box on the
+  // page, so `scrim.offsetHeight` is the frame's height and says nothing about
+  // where the keyboard is. That case used to be skipped outright, so a drawer in
+  // a device frame got no keyboard handling at all and the keyboard covered its
+  // footer. It is now measured from the scrim's RECT instead — see `frameLift`.
   useEffect(() => {
     const vv = window.visualViewport;
-    if (vv == null || drawerRoot !== document.body) return undefined;
+    if (vv == null) return undefined;
+    const isBodyPortal = drawerRoot === document.body;
+    // No fine pointer = the device that has an on-screen keyboard. Read once per
+    // open: it cannot change while a sheet is up.
+    const touch = !window.matchMedia("(hover: hover)").matches;
     // visualViewport EVENTS only fire at the start/end of the keyboard slide, and
     // iOS's keyboard even OVERSHOOTS and settles — so a CSS transition on the
     // footer follows a different curve than the keyboard and the gap between them
@@ -156,10 +169,47 @@ function Drawer({
       const scrimEl = scrimRef.current;
       if (sheet == null || scrimEl == null) return Number.NaN;
       const offsetTop = Math.round(vv.offsetTop);
-      const lift = Math.round(scrimEl.offsetHeight - vv.offsetTop - vv.height);
+      // The keyboard's top edge, in the coordinates getBoundingClientRect uses.
+      const keyboardTop = vv.offsetTop + vv.height;
+
+      if (isBodyPortal) {
+        const lift = Math.round(scrimEl.offsetHeight - vv.offsetTop - vv.height);
+        if (lift > 80) {
+          sheet.style.paddingBottom = `${lift}px`;
+          sheet.style.maxHeight = `calc(100% - ${offsetTop}px - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)))`;
+        } else {
+          sheet.style.paddingBottom = "";
+          sheet.style.maxHeight = "";
+        }
+        return lift;
+      }
+
+      // ---- inside a device frame ----
+      // How far the frame's bottom edge reaches past the keyboard's top. Both
+      // numbers are in the same space — getBoundingClientRect is relative to the
+      // LAYOUT viewport, and vv.offsetTop is the visual viewport's offset within
+      // it — so the subtraction is exact however the page has scrolled.
+      //
+      // It is NOT cross-checked against `documentElement.clientHeight` any more
+      // (first attempt, corrected on a real iPhone 2026-08-19). With
+      // `interactive-widget=resizes-content` the LAYOUT viewport shrinks with the
+      // keyboard too, so `clientHeight − keyboardTop` reports a keyboard far
+      // smaller than it is; taking the min of the two then under-lifted the sheet
+      // and left the footer behind the keyboard's accessory bar.
+      //
+      // What that cross-check was guarding — a frame TALLER than the browser
+      // window reading as a phantom keyboard — is handled by `touch` instead:
+      // only a device with no fine pointer raises an on-screen keyboard at all.
+      // Same signal SelectList uses to decide whether a search may auto-focus.
+      const rect = scrimEl.getBoundingClientRect();
+      const lift = touch ? Math.round(rect.bottom - keyboardTop) : 0;
       if (lift > 80) {
+        // Room for the sheet: from the frame's first VISIBLE pixel down to the
+        // keyboard, plus the padding that hides behind it (the sheet is
+        // border-box, so max-height counts that padding).
+        const room = Math.round(keyboardTop - Math.max(rect.top, vv.offsetTop)) + lift;
         sheet.style.paddingBottom = `${lift}px`;
-        sheet.style.maxHeight = `calc(100% - ${offsetTop}px - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)))`;
+        sheet.style.maxHeight = `calc(${room}px - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)))`;
       } else {
         sheet.style.paddingBottom = "";
         sheet.style.maxHeight = "";

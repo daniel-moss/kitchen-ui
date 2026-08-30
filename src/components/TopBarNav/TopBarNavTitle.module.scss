@@ -1,0 +1,90 @@
+@use "../../styles/mixins/font" as *;
+
+// TopBarNavTitle — values from Figma TopBarNav "#️⃣ Title": heading-h3
+// (Semibold 16/24) strong title, an optional fixed 36px avatar slot 10px
+// before it, and the dropdown icon (angles-up-down 14 regular --gray-a9)
+// 8px after it.
+
+.root {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Subpages: the title is a button opening the subpage select list.
+.wrap {
+  position: relative;
+  min-width: 0;
+  max-width: 100%;
+}
+
+// Interaction states are opacity-based: 75% on hover, 50% on press. NEW in
+// the TopBarNav redesign: a keyboard focus ring — 2px --gray-12, 4px outside
+// the title, radius 6 (Figma "isDropdown" state=focused).
+.trigger {
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius-1_5); // 6px — shapes the focus outline
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  touch-action: manipulation;
+  transition: opacity 120ms ease;
+
+  &:focus-visible {
+    outline: 2px solid var(--gray-12);
+    outline-offset: 4px;
+  }
+}
+
+@media (hover: hover) {
+  .trigger:hover {
+    opacity: 0.75;
+  }
+}
+
+.trigger:active {
+  opacity: 0.5;
+}
+
+// The title HOLDS the pressed look while its subpage list is open — the DS
+// rule every list trigger follows.
+.triggerOpen,
+.triggerOpen:hover {
+  opacity: 0.5;
+}
+
+// The subpage list sits 4px below the title, left-aligned with it.
+.listAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1));
+  left: 0;
+  z-index: var(--z-menu);
+}
+
+.title {
+  @include font("heading-h3"); // 16/24
+  color: var(--text-strong);
+
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// The avatar slot: fixed 36px (xl), 10px gap to the title.
+.slotLeft {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-right: var(--size-2_5); // 10px
+}
+
+.dropdown {
+  display: flex;
+  flex: none;
+  align-items: center;
+  padding-left: var(--size-2); // 8px
+  color: var(--gray-a9);
+}

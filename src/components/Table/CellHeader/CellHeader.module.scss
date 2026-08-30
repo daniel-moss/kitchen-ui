@@ -1,0 +1,115 @@
+@import "../../../styles/mixins/font";
+@import "../../../styles/mixins/interaction";
+
+// Like CellBody: the header cell owns its horizontal padding and alignment
+// only. Height and the divider under the row belong to TableRow.
+.header {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  align-self: stretch;
+
+  display: flex;
+  gap: var(--size-2);
+  align-items: center;
+
+  min-width: 0;
+  padding: 0 var(--size-4);
+
+  // Pinned header cells are sticky in both directions, so the fill must be
+  // opaque. It comes from the row.
+  background-color: inherit;
+
+  transition: background-color 120ms ease;
+}
+
+// ---- content ----
+.content {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  min-width: 0;
+}
+
+.left .content {
+  justify-content: flex-start;
+}
+
+.right .content {
+  justify-content: flex-end;
+}
+
+.label {
+  @include font("caption-medium-400");
+
+  color: var(--text-subtle);
+}
+
+.sortIcon {
+  flex: none;
+  margin-left: var(--size-2);
+  color: var(--gray-a9);
+}
+
+.pinIcon {
+  flex: none;
+  color: var(--text-subtle);
+}
+
+// ---- sorted emphasis ----
+// The column the table is sorted by is the only one that reads as "active":
+// medium weight, strong text, strong icon.
+.sorted {
+  .label {
+    @include font("caption-medium-500");
+
+    color: var(--text-strong);
+  }
+
+  .sortIcon {
+    color: var(--gray-12);
+  }
+}
+
+// ---- interaction (sortable columns only) ----
+// A non-sortable header never reaches these states — it is not interactive and
+// not focusable, so hovering it must not suggest otherwise.
+.sortable {
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      @include row-hover-fill;
+    }
+  }
+
+  &:active {
+    @include row-press-fill;
+  }
+
+  &:focus-visible {
+    @include row-focus-ring($gap: 2px);
+  }
+}
+
+// ---- pinned boundary ----
+// Same treatment and token as CellBody, so the line is continuous from the
+// header down through every row.
+.lastPinned::after {
+  content: "";
+
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  width: var(--size-px);
+
+  background-color: var(--gray-a6);
+}
+
+// ---- loading ----
+.skeleton {
+  flex: 1 1 0;
+  min-width: 0;
+}

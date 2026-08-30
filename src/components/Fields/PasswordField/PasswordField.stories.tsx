@@ -225,7 +225,7 @@ export const ConditionsLive: Story = {
   ),
 };
 
-// ---- the state ladders (Behaviour → States) ---------------------------------
+// ---- the state ladders (Behavior → States) ---------------------------------
 
 const ladder = (variant: PasswordFieldVariant, filled: boolean, invalid: boolean) => {
   const value = filled ? VALUE : undefined;

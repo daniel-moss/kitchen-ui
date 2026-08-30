@@ -277,7 +277,7 @@ const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false 
           open={menu.open}
           onClose={menu.close}
           breakpoint="mobile"
-          header={
+          drawerHeader={
             <DrawerHeader>
               <PopoverHeaderContent avatar={<AvatarUser size="xl" imageSrc={contact.avatar} />}>
                 <PopoverHeaderText variant="titleCaptionReversed" title={contact.name} caption={role} />
@@ -308,7 +308,7 @@ const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false 
 // an Add button (which restores the demo contact here).
 const EmptyContactRow = ({ label, onAdd, locked = false }: { label: string; onAdd: () => void; locked?: boolean }) => (
   <div className={styles.emptyContact}>
-    <Avatar type="user" content="placeholder" size="xl" />
+    <AvatarUser content="placeholder" size="xl" />
     <span className={styles.emptyContactLabel}>{label}</span>
     {!locked && (
       <Button size="lg" variant="subtle" leftIcon="plus" onClick={onAdd}>
@@ -411,7 +411,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   // for the JOB REPORTER only (Daniel, 2026-08-03 — the site supervisor is on
   // site, so a billing contact makes no sense there), and only when the
   // billing client is a DIFFERENT client than the service client (Figma
-  // behaviour note on node 24485-40395).
+  // behavior note on node 24485-40395).
   const showBillingGroup =
     pickerRole === "reporter" && billing.intention === "differentClient" && billing.clientId != null;
   // Every group's plus reads "Add contact" (Daniel, 2026-08-04) — the Figma
@@ -804,7 +804,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                   const stat = assigneeStats?.[u.id];
                   const tracked = stat?.trackedSec ?? 0;
                   // Anything that rounds to under a minute reads "0 min", not
-                  // formatHrMin's "0 hr" (node 24522-64672), and keeps the grey
+                  // formatHrMin's "0 hr" (node 24522-64672), and keeps the gray
                   // placeholder. Testing `tracked === 0` was not enough: a
                   // just-started session already has a few seconds on it and
                   // still rounds to zero.
@@ -824,7 +824,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                       // leaves it undetermined), so it needs the red class too.
                       captionSlotLeft={stat?.status != null ? <Icon icon={categoryIcon(stat.status)} size={14} className={styles.assigneeStatus} /> : undefined}
                       // Caption over value (Figma 24522-64635): "Total tracked"
-                      // then the running total — placeholder grey at zero.
+                      // then the running total — placeholder gray at zero.
                       right={
                         <ListItemTextRight
                           variant="titleCaptionReversed"

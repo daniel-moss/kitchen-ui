@@ -1,0 +1,77 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as BottomBarNavStories from "./BottomBarNav.stories";
+
+<Meta of={BottomBarNavStories} />
+
+# BottomBarNav
+
+We use **BottomBarNav** for navigation within the app on mobile. On desktop
+it renders nothing — the
+<a href="/?path=/docs/components-sidebarnav-sidebarnav--docs" target="_top">SidebarNav</a>
+takes over.
+
+<Canvas of={BottomBarNavStories.Hero} />
+
+```tsx
+<BottomBarNav>
+  <BottomBarNavItem icon="house" label="Home" href="/home" active />
+  <BottomBarNavItem icon="wrench-simple" label="Jobs" href="/jobs" />
+  <BottomBarNavItem icon="circle-plus" label="Create" strong onClick={openCreate} />
+  <BottomBarNavItem icon="magnifying-glass" label="Search" onClick={openSearch} />
+  <BottomBarNavItem icon="bars" label="Menu" onClick={openMenu} />
+</BottomBarNav>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The bar has a Divider (medium contrast) on top. The height is fixed: `--size-2`
+(8px) padding around the 44px items, which sit directly next to each other,
+over a `--surface-level-first` fill.
+
+### "Create" button
+
+The Create button is built on top of the
+<a href="/?path=/docs/components-bottombarnav-bottombarnavitem--docs" target="_top">BottomBarNavItem</a>
+component. It works the same way — the only difference is the icon: it has an
+updated color and weight (solid `--gray-12` at rest, the item's `strong`
+modifier).
+
+<Canvas of={BottomBarNavStories.Playground} />
+
+## Behavior
+
+### Fixed at the bottom
+
+The bar is fixed at the bottom of the screen — the consumer places it there.
+The safe area below the items (the iOS home-indicator zone) comes from the
+shared drawer inset variable.
+
+<Canvas of={BottomBarNavStories.FixedBottom} />
+
+### Links
+
+The items lead to different parts of the app.
+
+### Responsiveness
+
+The bar is used on mobile only. The bar fills the width; the items fill the
+width until they reach their max width (112px) and stay centered. The
+minimum width is 320px.
+
+<Canvas of={BottomBarNavStories.Responsiveness} />
+
+### Navigation items
+
+Only one item can be active at a time. Learn more about the item states on
+the
+<a href="/?path=/docs/components-bottombarnav-bottombarnavitem--docs" target="_top">BottomBarNavItem</a>
+page.
+
+## Props
+
+<ArgTypes of={BottomBarNavStories} />

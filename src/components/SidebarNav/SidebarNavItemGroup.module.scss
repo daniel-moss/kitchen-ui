@@ -1,0 +1,31 @@
+@use "../../styles/mixins/collapse" as *;
+
+// SidebarNavItemGroup — header + collapsible stack, items 1px apart (the
+// doc's "Gap" annotation, --size-0_25).
+.group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// The 1px header ↔ items gap lives INSIDE the collapse (as the items'
+// padding-top), so a closed group has no dead space under the header.
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_25); // 1px between items
+  padding-top: var(--size-0_25); // 1px below the header
+  width: 100%;
+}
+
+.collapse {
+  @include collapse;
+}
+
+.collapseOpen {
+  @include collapse-open;
+}
+
+.collapseInner {
+  @include collapse-inner;
+}

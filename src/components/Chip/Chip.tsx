@@ -8,9 +8,12 @@ import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
 import styles from "./Chip.module.scss";
 import { ChipProps } from "./Chip.types";
 
-// Chip — a compact filter / selection control: md (28px) or lg (32px), an
-// optional left slot (Icon or any avatar — the avatar is strictly xxs/16px),
-// an `active` (selected) look, and a loading skeleton. See Figma "Chip".
+// Chip — a compact filter / selection control: sm (28px), md (32px) or lg
+// (36px), an optional left slot (an Icon, or an avatar sized xxs/16 in sm and
+// xs/20 in md and lg), an `active` (selected) look, and a loading skeleton.
+// The label + a default-colored Icon are `--text-subtle` on a resting inactive
+// chip and `--text-strong` everywhere else — the CSS drives both through
+// `color`. See Figma "Chip" (node 29520-29010).
 export default function Chip({
   size = "md",
   active,
@@ -23,9 +26,10 @@ export default function Chip({
   type = "button",
   ...rest
 }: ChipProps) {
-  // Loading also replaces the slot: a gray circle — 14px for an Icon, 16px
-  // for an avatar (both per Figma).
-  const slotSize = isValidElement(slotLeft) && slotLeft.type === Icon ? 14 : 16;
+  // Loading also replaces the slot with a gray circle — 14px for an Icon, and
+  // the avatar's own size (16 in sm, 20 in md/lg) for an avatar (per Figma).
+  const isIconSlot = isValidElement(slotLeft) && slotLeft.type === Icon;
+  const slotSize = isIconSlot ? 14 : size === "sm" ? 16 : 20;
   const slot = isLoading && slotLeft != null ? <Skeleton circle width={slotSize} height={slotSize} /> : slotLeft;
 
   return (
@@ -40,7 +44,7 @@ export default function Chip({
     >
       {slotLeft != null && <span className={styles.slotLeft}>{slot}</span>}
       {isLoading ? (
-        <SkeletonTypography variant={size === "lg" ? "bodyCompact" : "captionMD"} width={40} />
+        <SkeletonTypography variant={size === "sm" ? "captionMD" : "bodyCompact"} width={40} />
       ) : (
         <span className={styles.label}>{children}</span>
       )}

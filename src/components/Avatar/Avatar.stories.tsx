@@ -7,23 +7,11 @@ import { AvatarProps, AvatarSize } from "./Avatar.types";
 import { users, initials } from "../../data/users";
 
 const SIZES: AvatarSize[] = ["xxs", "xs", "sm", "md", "lg", "xl"];
-const RING_COLORS = [
-  "crimson",
-  "pink",
-  "plum",
-  "violet",
-  "indigo",
-  "blue",
-  "cyan",
-  "teal",
-  "orange",
-  "amber",
-] as const;
 
 /**
- * Avatar — object (square) and user (circle) shapes, with content variants
- * (icon, letters, image, counter, placeholder), corner addOns (statusDot, icon),
- * and a loading state. Stories are grouped by shape.
+ * Avatar — square and circle shapes, with content variants (icon, letters,
+ * image, counter), corner addOns (statusDot, icon), and a loading state.
+ * Live avatars are their own component (AvatarLive).
  */
 const meta: Meta<typeof Avatar> = {
   title: "Components/Avatar",
@@ -31,41 +19,28 @@ const meta: Meta<typeof Avatar> = {
   parameters: { layout: "centered" },
   args: {
     size: "md",
-    type: "object",
+    shape: "square",
     content: "icon",
     addOn: "none",
     icon: "diamonds-4",
-    letter: "AB",
+    characters: "AB",
     count: 2,
     isLoading: false,
   },
   argTypes: {
     size: { options: SIZES, control: { type: "select" } },
-    type: { options: ["object", "user", "live"], control: { type: "inline-radio" } },
-    ringColor: {
-      options: RING_COLORS,
-      control: { type: "select" },
-      if: { arg: "type", eq: "live" },
-    },
-    // Live has no loading state.
-    isLoading: { if: { arg: "type", neq: "live" } },
+    shape: { options: ["square", "circle"], control: { type: "inline-radio" } },
     content: {
-      options: ["icon", "letters", "image", "counter", "placeholder"],
+      options: ["icon", "letters", "image", "counter"],
       control: { type: "select" },
     },
-    // live supports no addOns. (Storybook `if` allows only one condition;
-    // counter/placeholder also ignore addOns, but the component enforces that.)
-    addOn: {
-      options: ["none", "statusDot", "icon"],
-      control: { type: "inline-radio" },
-      if: { arg: "type", neq: "live" },
-    },
+    addOn: { options: ["none", "statusDot", "icon"], control: { type: "inline-radio" } },
 
     // Content-specific controls: only show the ones relevant to the content.
     icon: { if: { arg: "content", eq: "icon" } },
     iconPack: { if: { arg: "content", eq: "icon" } },
     iconClassName: { if: { arg: "content", eq: "icon" } },
-    letter: { if: { arg: "content", eq: "letters" } },
+    characters: { if: { arg: "content", eq: "letters" } },
     imageSrc: { if: { arg: "content", eq: "image" } },
     imageAlt: { if: { arg: "content", eq: "image" } },
     count: { control: { type: "number" }, if: { arg: "content", eq: "counter" } },
@@ -85,7 +60,7 @@ const labelStyle: React.CSSProperties = {
   color: "var(--text-subtle)",
 };
 
-// A labelled matrix: content rows × size columns. `skip` blanks out cells that
+// A labeled matrix: content rows × size columns. `skip` blanks out cells that
 // are not valid for a row (e.g. counter on xxs), keeping the columns aligned.
 type MatrixRow = { label: string; props: Partial<AvatarProps>; skip?: AvatarSize[] };
 
@@ -122,7 +97,7 @@ function Matrix({ base, rows }: { base: Partial<AvatarProps>; rows: MatrixRow[] 
   );
 }
 
-// A labelled row of avatars at one size, each cell tagged with its own label.
+// A labeled row of avatars at one size, each cell tagged with its own label.
 function CellRow({
   label,
   cells,
@@ -149,22 +124,24 @@ function CellRow({
 /** Interactive — all controls. */
 export const Playground: Story = {};
 
-/** The size scale (16–36 px). live is md/lg/xl only. */
+/** The size scale (16–36 px), both shapes. */
 export const Sizes: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <Matrix
       base={{ content: "image", imageSrc: users[0].avatar }}
       rows={[
-        { label: "object", props: { type: "object" } },
-        { label: "user", props: { type: "user" } },
-        { label: "live", props: { type: "live" }, skip: ["xxs", "xs", "sm"] },
+        { label: "square", props: { shape: "square" } },
+        { label: "circle", props: { shape: "circle" } },
       ]}
     />
   ),
 };
 
-/** Every content variant (at xl), one per row, object and user side by side. */
+/**
+ * Every content variant (at xl), one per row. The circle's icon is locked to
+ * the `user` glyph — only the square takes a free icon.
+ */
 export const Content: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
@@ -172,65 +149,56 @@ export const Content: Story = {
       <CellRow
         label="image"
         cells={[
-          { tag: "object", props: { type: "object", content: "image" } },
-          { tag: "user", props: { type: "user", content: "image", imageSrc: users[0].avatar } },
-          { tag: "live", props: { type: "live", content: "image", imageSrc: users[1].avatar } },
+          { tag: "square", props: { shape: "square", content: "image" } },
+          { tag: "circle", props: { shape: "circle", content: "image", imageSrc: users[0].avatar } },
         ]}
       />
       <CellRow
         label="letters"
         cells={[
-          { tag: "object", props: { type: "object", content: "letters", letter: initials(users[2]) } },
-          { tag: "user", props: { type: "user", content: "letters", letter: initials(users[3]) } },
-          { tag: "live", props: { type: "live", content: "letters", letter: initials(users[4]) } },
+          { tag: "square", props: { shape: "square", content: "letters", characters: initials(users[2]) } },
+          { tag: "circle", props: { shape: "circle", content: "letters", characters: initials(users[3]) } },
         ]}
       />
       <CellRow
         label="icon"
         cells={[
-          { tag: "object", props: { type: "object", content: "icon" } },
-          { tag: "user", props: { type: "user", content: "icon" } },
+          { tag: "square", props: { shape: "square", content: "icon" } },
+          { tag: "circle", props: { shape: "circle", content: "icon" } },
         ]}
       />
       <CellRow
         label="counter"
         cells={[
-          { tag: "object", props: { type: "object", content: "counter" } },
-          { tag: "user", props: { type: "user", content: "counter" } },
+          { tag: "square", props: { shape: "square", content: "counter" } },
+          { tag: "circle", props: { shape: "circle", content: "counter" } },
         ]}
       />
-      <CellRow
-        label="placeholder"
-        cells={[{ tag: "user", props: { type: "user", content: "placeholder" } }]}
-      />
     </div>
   ),
 };
 
 /**
- * Live — circle with a collaboration ring (image content, xl). The ring color
- * can only be a `--live-collaboration-*` token; all ten are shown.
+ * Letters — one letter on xxs/xs, two from sm up. The rule and the font sizes
+ * are the same on both shapes.
  */
-export const Live: Story = {
+export const Letters: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--size-4)", maxWidth: 360 }}>
-      {RING_COLORS.map((c, i) => (
-        <div
-          key={c}
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--size-2)" }}
-        >
-          <Avatar type="live" content="image" size="xl" ringColor={c} imageSrc={users[i].avatar} />
-          <span style={labelStyle}>{c}</span>
-        </div>
-      ))}
-    </div>
+    <Matrix
+      base={{ content: "letters", characters: "AB" }}
+      rows={[
+        { label: "square", props: { shape: "square" } },
+        { label: "circle", props: { shape: "circle" } },
+      ]}
+    />
   ),
 };
 
 /**
- * AddOns (statusDot, icon) for both shapes, xs–xl. The notch is a real hole cut
- * by an SVG mask, so the gap ring shows the surface behind. Not on xxs.
+ * AddOns (statusDot, icon). The notch is a real hole cut by an SVG mask, so the
+ * gap ring shows the surface behind. The statusDot works at every size; the icon
+ * addOn is not used on xxs.
  */
 export const AddOns: Story = {
   name: "Add-ons",
@@ -242,8 +210,8 @@ export const AddOns: Story = {
         <Matrix
           base={{ content: "image", addOn: "statusDot" }}
           rows={[
-            { label: "object", props: { type: "object" }, skip: ["xxs"] },
-            { label: "user", props: { type: "user" }, skip: ["xxs"] },
+            { label: "square", props: { shape: "square" } },
+            { label: "circle", props: { shape: "circle" } },
           ]}
         />
       </div>
@@ -252,8 +220,8 @@ export const AddOns: Story = {
         <Matrix
           base={{ content: "image", addOn: "icon" }}
           rows={[
-            { label: "object", props: { type: "object" }, skip: ["xxs"] },
-            { label: "user", props: { type: "user" }, skip: ["xxs"] },
+            { label: "square", props: { shape: "square" }, skip: ["xxs"] },
+            { label: "circle", props: { shape: "circle" }, skip: ["xxs"] },
           ]}
         />
       </div>
@@ -261,7 +229,7 @@ export const AddOns: Story = {
   ),
 };
 
-/** States — the loading skeleton (both shapes, all sizes). */
+/** States — the loading shape (both shapes, all sizes). */
 export const States: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
@@ -270,8 +238,8 @@ export const States: Story = {
       <Matrix
         base={{ isLoading: true }}
         rows={[
-          { label: "object", props: { type: "object" } },
-          { label: "user", props: { type: "user" } },
+          { label: "square", props: { shape: "square" } },
+          { label: "circle", props: { shape: "circle" } },
         ]}
       />
     </div>

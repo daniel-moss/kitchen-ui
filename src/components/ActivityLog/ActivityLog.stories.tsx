@@ -192,7 +192,7 @@ export const Symbols: Story = {
         <div style={cap}>object avatar — the object the event is about</div>
         <ActivityLogItem
           position="single"
-          symbol={<Avatar type="object" content="image" size="xs" />}
+          symbol={<Avatar shape="square" content="image" size="xs" />}
           text={
             <>
               <Em>Cold storage unit</Em> was attached to the job

@@ -3,9 +3,10 @@ import { CSSProperties, ReactNode } from "react";
 import clsx from "clsx";
 
 import Avatar from "../../components/Avatar/Avatar";
+import AvatarLive from "../../components/Avatar/AvatarLive";
 import AvatarGroup from "../../components/Avatar/AvatarGroup";
 import AvatarUser from "../../components/Avatar/AvatarUser";
-import { AvatarRingColor } from "../../components/Avatar/Avatar.types";
+import { AvatarLiveColor } from "../../components/Avatar/AvatarLive.types";
 import Button from "../../components/Button/Button";
 import { Divider } from "../../components/Divider/Divider";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
@@ -76,8 +77,8 @@ interface LegendItem {
   pct: string;
 }
 
-const liveAvatar = (u: User, ring: AvatarRingColor) => (
-  <Avatar type="live" content="image" imageSrc={u.avatar} ringColor={ring} size="md" />
+const liveAvatar = (u: User, ring: AvatarLiveColor) => (
+  <AvatarLive content="image" imageSrc={u.avatar} color={ring} size="md" />
 );
 
 const TIME_DIST_SEGMENTS: Segment[] = [
@@ -231,7 +232,7 @@ const formatDuration = (sec: number) => {
 
 // Live-collaboration colors assigned in order to techs / days in the charts
 // (first tech = crimson, first day = plum — matching the Figma demo).
-const TECH_COLORS: AvatarRingColor[] = ["crimson", "teal", "amber", "plum", "violet", "blue", "orange", "cyan"];
+const TECH_COLORS: AvatarLiveColor[] = ["crimson", "teal", "amber", "plum", "violet", "blue", "orange", "cyan"];
 const DAY_COLORS = ["plum", "orange", "blue", "crimson", "teal", "amber", "violet", "cyan"];
 const liveVar = (name: string) => `var(--live-collaboration-${name})`;
 
@@ -504,7 +505,7 @@ export function SessionGroup({
   return <TechGroup user={user} total={formatHrMin(totalSec)} rows={rows} divider={false} canAdd={canAdd} onAdd={onAdd} accordion={accordion} />;
 }
 
-// A proportional segmented bar: top labels, the coloured bar, then the values.
+// A proportional segmented bar: top labels, the colored bar, then the values.
 const DistributionChart = ({ segments }: { segments: Segment[] }) => {
   const cell = (grow: number): CSSProperties => ({ flexGrow: grow, flexBasis: 0, minWidth: 0 });
   return (

@@ -534,7 +534,7 @@ export const AvatarStackLoading: Story = {
 
 // The Figma file-grid previews are 440px wide — the width where the 106–184px
 // cards wrap after three columns. The stories keep it so the documented wrap
-// behaviour is actually visible (the docs column alone is wider).
+// behavior is actually visible (the docs column alone is wider).
 const FILES_WIDTH = 440;
 
 /** The file grid — every file, no limit. */

@@ -90,7 +90,7 @@ export const equipmentCaptionText = (e: Equipment) => (
 export const EquipmentAvatar = ({ equipment, size = "xl" }: { equipment: Equipment; size?: AvatarSize }) =>
   equipmentIncomplete(equipment) ? (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon="triangle-exclamation"
       size={size}

@@ -5,12 +5,14 @@ import { Divider } from "../Divider/Divider";
 import styles from "./MenuItemGroup.module.scss";
 import { MenuItemGroupProps } from "./MenuItemGroup.types";
 
-// MenuItemGroup — groups MenuItems inside a menu: the items stack (4px
-// padding) and an optional bottom divider (16px inset) separating it from the
-// next group. See Figma "MenuItemGroup".
-export default function MenuItemGroup({ children, divider = false, className, ...rest }: MenuItemGroupProps) {
+// MenuItemGroup — groups MenuItems inside a menu: an optional padded
+// GroupLabel header (secondary), the items stack (4px padding), and an
+// optional bottom divider (16px inset) separating it from the next group.
+// See Figma "MenuItemGroup".
+export default function MenuItemGroup({ children, label, divider = false, className, ...rest }: MenuItemGroupProps) {
   return (
     <div role="group" className={clsx(styles.group, className)} {...rest}>
+      {label != null && <div className={styles.header}>{label}</div>}
       <div className={styles.items}>{children}</div>
       {divider && (
         <div className={styles.dividerWrap}>

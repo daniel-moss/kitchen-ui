@@ -1,4 +1,4 @@
-// "Time session" form (Figma node 24105-15772): two labelled InputGroups —
+// "Time session" form (Figma node 24105-15772): two labeled InputGroups —
 // Start time / End time — each fusing Date + Time + AM/PM. Inside a Dialog
 // (which adds no padding of its own).
 .form {
@@ -33,7 +33,7 @@
   margin-top: var(--size-3); // 12px below the field
 }
 // The grid stretches each Chip past its label. Chip is an inline-flex with no
-// justify-content, so the text would sit at the left edge — centre it here
+// justify-content, so the text would sit at the left edge — center it here
 // rather than in the DS (every other Chip hugs its content and is unaffected).
 .offsets > * {
   min-width: 0;

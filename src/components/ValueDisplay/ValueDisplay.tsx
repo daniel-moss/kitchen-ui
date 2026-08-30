@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useCardGridWidth } from "../../hooks/useCardGridWidth";
 
 import Avatar from "../Avatar/Avatar";
+import AvatarUser from "../Avatar/AvatarUser";
 import AvatarGroup from "../Avatar/AvatarGroup";
 import Card from "../Card/Card";
 import CardFile from "../Card/CardFile";
@@ -343,7 +344,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
         <Card padding="var(--size-1)" className={styles.objectCard}>
           <ListItem
             variant="titleCaption"
-            avatar={<Avatar type="object" size="xl" isLoading />}
+            avatar={<Avatar shape="square" size="xl" isLoading />}
             title={<SkeletonTypography variant="bodyCompact" />}
             caption={<SkeletonTypography variant="captionMD" />}
           />
@@ -388,7 +389,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
         <div className={clsx(styles.avatars, styles.avatarsLoading)}>
           {[0, 1, 2].map((i) => (
             <span key={i} className={styles.avatarLoadingRow}>
-              <Avatar type="user" size="xs" isLoading />
+              <Avatar shape="circle" size="xs" isLoading />
               <SkeletonTypography variant="bodyCompact" />
             </span>
           ))}
@@ -398,7 +399,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
       body = (
         <div className={styles.avatars}>
           <span className={styles.avatarEmptyRow}>
-            <Avatar type="user" size="xs" content="placeholder" />
+            <AvatarUser size="xs" content="placeholder" />
             <span className={styles.placeholderCompact}>{placeholder}</span>
           </span>
         </div>

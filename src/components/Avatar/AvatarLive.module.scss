@@ -1,0 +1,14 @@
+// The collaboration ring: a 2px stroke with a 2px gap around the avatar. Both
+// sit outside the inner avatar's box, so the outer box is inner + 8px — which
+// is why the avatar inside is two size steps smaller than the AvatarLive size.
+.ring {
+  box-sizing: border-box;
+
+  display: inline-flex;
+  flex-shrink: 0;
+
+  padding: var(--size-0_5); /* 2px gap between ring and avatar */
+
+  border: 2px solid var(--avatar-live-ring, var(--live-collaboration-crimson));
+  border-radius: var(--border-radius-full);
+}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 import Menu from "./Menu";
+import MenuHeader from "./MenuHeader";
 import MenuItem from "./MenuItem";
 import MenuItemGroup from "./MenuItemGroup";
 import IconButton from "../IconButton/IconButton";
@@ -156,4 +157,80 @@ export const Mobile: Story = {
 export const MobileWithTitle: Story = {
   parameters: { controls: { disable: true }, layout: "centered" },
   render: () => <MobileDemo title="Job actions" />,
+};
+
+// ---- header (a MenuHeader above the items) ----------------------------------
+
+const HEADER_ROWS = ["Assignees", "Client", "Date received", "Duration", "Labels", "Priority", "Status"];
+
+// The header owns the query and the consumer filters the items — Menu only
+// pins the header above them (it does not read the input).
+const HeaderDemo = ({ mobile }: { mobile: boolean }) => {
+  const [open, setOpen] = useState(true);
+  const [query, setQuery] = useState("");
+  const shown = HEADER_ROWS.filter((r) => r.toLowerCase().includes(query.trim().toLowerCase()));
+
+  const menu = (
+    <Menu
+      open={open}
+      onClose={() => setOpen(false)}
+      title={mobile ? "Filters" : undefined}
+      header={
+        <MenuHeader
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onClear={() => setQuery("")}
+          placeholder="Add filter..."
+        />
+      }
+      breakpoint={mobile ? "mobile" : "desktop"}
+      // EXPLICIT width, the node's 248. The card is `fit-content`, but a
+      // MenuItem title contributes nothing to it (min-width: 0) and the
+      // header's <input> contributes its own default intrinsic width — see the
+      // KNOWN LIMIT note in Menu.module.scss.
+      style={mobile ? undefined : { width: 248, minWidth: 248, maxWidth: 248 }}
+    >
+      <MenuItemGroup>
+        {shown.map((row) => (
+          <MenuItem key={row} label={row} slotLeft={icon("tag")} slotRight={icon("angle-right")} onClick={noop} />
+        ))}
+      </MenuItemGroup>
+    </Menu>
+  );
+
+  if (!mobile) {
+    return (
+      <div style={{ minHeight: 420, minWidth: 500, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 16 }}>
+        {menu}
+      </div>
+    );
+  }
+  return (
+    <DeviceFrame>
+      {!open && (
+        <div style={{ position: "absolute", top: STATUS_BAR + 40, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+          <IconButton icon="bars-filter" size="md" variant="muted" aria-label="Reopen menu" onClick={() => setOpen(true)} />
+        </div>
+      )}
+      {menu}
+    </DeviceFrame>
+  );
+};
+
+/**
+ * `header` pins a MenuHeader above the items (Figma's Menu `header=true`).
+ * Type to filter — the header owns the query, the consumer filters the items.
+ */
+export const WithHeader: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <HeaderDemo mobile={false} />,
+};
+
+/**
+ * A drawer WITH a header always fills the height, so the sheet does not resize
+ * as you type and the search bar never jumps — the same rule as SelectList.
+ */
+export const MobileWithHeader: Story = {
+  parameters: { controls: { disable: true }, layout: "centered" },
+  render: () => <HeaderDemo mobile />,
 };

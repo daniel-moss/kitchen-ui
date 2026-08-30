@@ -484,7 +484,7 @@ export default function ServiceCallForm({
                   {DURATION_PRESETS.map((p) => (
                     <Chip
                       key={p.label}
-                      size="lg"
+                      size="md"
                       active={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
                       onClick={() => setDraft((prev) => ({ ...prev, hours: p.hours, minutes: p.minutes }))}
                     >

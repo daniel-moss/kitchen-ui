@@ -2,8 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import ListItem from "./ListItem";
 import ListItemSlotIcon from "./ListItemSlotIcon";
+import ListItemSlotProgress from "./ListItemSlotProgress";
 import ListItemTextRight from "./ListItemTextRight";
 import Avatar from "../Avatar/Avatar";
+import AvatarFile from "../Avatar/AvatarFile";
 import AvatarGroup from "../Avatar/AvatarGroup";
 import AvatarLabor from "../Avatar/AvatarLabor";
 import AvatarUser from "../Avatar/AvatarUser";
@@ -79,7 +81,7 @@ const meta: Meta<typeof ListItem> = {
 
     // ---- slots ----
     avatar: slot("ReactNode", "Left slot — an Avatar (any type). The one strict parameter: the size must be xl (36px)."),
-    slotRight: slot("ReactNode", "Right slot — up to 3 instances, 8px apart, centred on the 40px first row: `ListItemSlotIcon`, IconButton, Button (subtle lg), TabGroup (contained lg), a field, AvatarUser (lg) or an AvatarGroup (lg)."),
+    slotRight: slot("ReactNode", "Right slot — up to 3 instances, 8px apart, centered on the 40px first row: `ListItemSlotIcon`, IconButton, Button (subtle lg), TabGroup (contained lg), a field, AvatarUser (lg) or an AvatarGroup (lg)."),
     slotBottom: slot("ReactNode", "Bottom slot — ONE instance stretched to the full row width, 8px below the body. Mobile-only, and only allowed on a static row (not clickable / draggable / accordion)."),
 
     // ---- clickable ----
@@ -114,7 +116,7 @@ type Story = StoryObj<typeof ListItem>;
 
 // ---- shared example pieces -------------------------------------------------
 
-const objectAvatar = <Avatar type="object" content="icon" size="xl" />;
+const objectAvatar = <Avatar shape="square" content="icon" size="xl" />;
 const laborAvatar = <AvatarLabor size="xl" />;
 const chevron = <ListItemSlotIcon icon="angle-right" />;
 
@@ -165,7 +167,7 @@ const ACCORDION_STATES: StateRow[] = [
 
 // ---- playground ------------------------------------------------------------
 
-/** The plain row. Switch the behaviours in the stories below. */
+/** The plain row. Switch the behaviors in the stories below. */
 export const Playground: Story = {
   render: (args) => (
     <One>
@@ -461,7 +463,26 @@ export const SlotAvatars: Story = {
         title="Title"
         caption="Caption"
         avatar={objectAvatar}
-        slotRight={<AvatarGroup size="lg" items={[{ name: "Avery Diaz" }, { content: "letters", letter: "MK", name: "Mira Kean" }]} />}
+        slotRight={<AvatarGroup size="lg" items={[{ name: "Avery Diaz" }, { content: "letters", characters: "MK", name: "Mira Kean" }]} />}
+      />
+    </Stack>
+  ),
+};
+
+/**
+ * A progress ring in the right slot — the upload case from the design: the
+ * file's avatar and size, with the ring showing how far the upload has gone.
+ */
+export const SlotProgress: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem
+        variant="title"
+        title="Image.jpeg"
+        avatar={<AvatarFile size="xl" type="image" />}
+        right={<ListItemTextRight variant="tag" tag="4 MB" />}
+        slotRight={<ListItemSlotProgress value={50} ariaLabel="Upload progress" />}
       />
     </Stack>
   ),

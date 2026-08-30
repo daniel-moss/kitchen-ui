@@ -40,13 +40,15 @@ export const MenuContext = createContext<MenuContextValue | null>(null);
 // height 1000) shown 4px from its trigger; a MenuItem with `subMenu` opens a
 // nested card on hover, 4px beside the item. Mobile = the Popover drawer; a
 // sub-menu replaces the drawer content, with a back button and the trigger's
-// label as the title. See Figma "Menu".
+// label as the title. `header` adds a MenuHeader (search bar) above the items
+// on both presentations — Figma's Menu `header=true`. See Figma "Menu".
 export default function Menu({
   children,
   open = true,
   onClose,
   title,
-  header: rootHeader,
+  drawerHeader: customDrawerHeader,
+  header,
   breakpoint = "auto",
   className,
   style,
@@ -84,10 +86,18 @@ export default function Menu({
 
   // Desktop: menus open by click, so focus moves into the card on open — that
   // is what lets the arrow keys reach the handler above.
+  //
+  // WITH a header the card must NOT take focus: the MenuHeader focuses its own
+  // search input on mount, and the card's focus lands a tick later (it waits
+  // for `visible`), so it would steal the caret straight back. Nothing is lost
+  // — the input sits inside the card, so its keydowns still bubble to the
+  // handler above and the arrow keys keep walking the items, exactly as they do
+  // from SelectList's search.
+  const hasHeader = header != null;
   const cardRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (isDesktop && visible) cardRef.current?.focus({ preventScroll: true });
-  }, [isDesktop, visible]);
+    if (isDesktop && visible && !hasHeader) cardRef.current?.focus({ preventScroll: true });
+  }, [isDesktop, visible, hasHeader]);
 
   if (isDesktop) {
     if (!mounted) return null;
@@ -101,6 +111,9 @@ export default function Menu({
           className={clsx(styles.card, visible && styles.cardOpen, className)}
           style={style}
         >
+          {/* The MenuHeader, sticky above the scrolling items — the card is a
+              flex column, so it must not shrink (see .header). */}
+          {header != null && <div className={styles.header}>{header}</div>}
           <ScrollArea wrapperClassName={styles.body}>{withGroupDividers(children)}</ScrollArea>
         </div>
       </MenuContext.Provider>
@@ -108,12 +121,12 @@ export default function Menu({
   }
 
   // Mobile drawer header: sub-menu = back + trigger label; root = the custom
-  // `header` when given, else an optional title; without either, just the
+  // `drawerHeader` when given, else an optional title; without either, just the
   // drag handle.
   const headerText = top ? top.label : title;
-  const header =
-    top == null && rootHeader != null ? (
-      rootHeader
+  const titleHeader =
+    top == null && customDrawerHeader != null ? (
+      customDrawerHeader
     ) : headerText != null ? (
       <DrawerHeader back={top != null} onBack={popSubMenu}>
         <PopoverHeaderContent>
@@ -123,10 +136,34 @@ export default function Menu({
     ) : (
       <DrawerHeader variant="dragHandle" />
     );
+  // The MenuHeader goes in the drawer's sticky header region, UNDER the title —
+  // the order the node draws (DrawerHeader, then MenuHeader, then the body).
+  // Root level only, so a sub-menu drawer shows just its back + title header.
+  const showHeader = hasHeader && top == null;
+  const sheetHeader = showHeader ? (
+    <>
+      {titleHeader}
+      {header}
+    </>
+  ) : (
+    titleHeader
+  );
 
   return (
     <MenuContext.Provider value={{ isDesktop: false, pushSubMenu, activeSub, setActiveSub }}>
-      <Popover drawer open={open} onClose={onClose} header={header} className={className} style={style}>
+      {/* A drawer WITH a header always fills the height (.drawerFull) — the
+          same rule as SelectList: a content-hugging sheet would resize on every
+          keystroke and make the header and search bar jump. The node draws it
+          the same way (Menu `variant=drawer, header=true` is 768 tall in an
+          812 frame — the screen minus the 44px top inset). */}
+      <Popover
+        drawer
+        open={open}
+        onClose={onClose}
+        header={sheetHeader}
+        className={clsx(className, showHeader && styles.drawerFull)}
+        style={style}
+      >
         <div role="menu" onKeyDown={handleMenuKeyDown}>
           {withGroupDividers(top ? top.content : children)}
         </div>

@@ -82,7 +82,7 @@ const maskClock = (raw: string, deleting = false) => {
 // minute 00–59.
 const isValidClock = (clock: string) => /^(0?[1-9]|1[0-2]):[0-5]\d$/.test(clock);
 
-// One labelled InputGroup fusing three segments — Date + masked Time (fixed
+// One labeled InputGroup fusing three segments — Date + masked Time (fixed
 // width) + AM/PM select (hugs). The group shows its error only once focus has
 // left the time input (never while typing).
 const TimeGroup = ({
@@ -171,7 +171,7 @@ interface SessionFormProps {
   mobile?: boolean;
 }
 
-// The "Time session" form (Figma node 24105-15772). Two labelled InputGroups —
+// The "Time session" form (Figma node 24105-15772). Two labeled InputGroups —
 // Start time / End time — each fusing Date + masked Time + AM/PM. Adding
 // prefills Start date with today and mirrors it into End date; End is disabled
 // until Start time is a valid clock; the End date picker can't precede the Start

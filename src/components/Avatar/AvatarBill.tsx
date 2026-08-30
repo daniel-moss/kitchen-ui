@@ -23,7 +23,7 @@ export default function AvatarBill({ size = "md", status = "none", className }: 
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.bill}
       size={size}

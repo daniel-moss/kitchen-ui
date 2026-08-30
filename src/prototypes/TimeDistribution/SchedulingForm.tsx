@@ -232,6 +232,7 @@ export default function SchedulingForm({ open, onClose, initial, onSave, mobile 
               {DURATION_PRESETS.map((p) => (
                 <Chip
                   key={p.label}
+                  size="sm"
                   active={activePreset(p)}
                   onClick={() => {
                     setHours(p.hours);

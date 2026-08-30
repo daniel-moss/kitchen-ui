@@ -3,7 +3,7 @@
   flex-direction: column;
   width: 100%;
   // The bar is pinned over scrolling content — it needs the app background
-  // color so content disappears behind it (same trick as NavTopBar's sticky
+  // color so content disappears behind it (same trick as TopBarNav's sticky
   // bar; not a new surface fill).
   background: var(--surface-level-first);
 }

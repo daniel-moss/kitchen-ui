@@ -104,7 +104,7 @@
   padding-bottom: var(--shell-safe-bottom);
 }
 
-// The scroll container the NavTopBar sticks to (hideOnScroll).
+// The scroll container the TopBarNav sticks to (hideOnScroll).
 .mobileScroll {
   flex: 1 1 0;
 }
@@ -314,7 +314,7 @@
   color: var(--gray-12);
 }
 
-// The real-time tab pager (swipe surface = the tab content only; NavTopBar and
+// The real-time tab pager (swipe surface = the tab content only; TopBarNav and
 // the ActionBar sit outside it). Horizontal overflow is clipped while the
 // track drags; `touch-action: pan-y` keeps vertical scrolling native and gives
 // horizontal moves to the pager. min-height keeps short tabs swipeable on the

@@ -56,7 +56,7 @@
 }
 
 // ---- the value change ------------------------------------------------------
-// Both sides are REGULAR here. Only the colour separates them — unlike the row
+// Both sides are REGULAR here. Only the color separates them — unlike the row
 // sentence, where the new value is medium.
 .shortValue {
   @include font("body-400-compact");
@@ -111,14 +111,14 @@
 }
 
 // A value's glyph sits inline with its text, 8px before it. It inherits the
-// value's colour unless it carries its own tint (the NEW side only — the old
-// side is muted, so it always inherits the placeholder grey).
+// value's color unless it carries its own tint (the NEW side only — the old
+// side is muted, so it always inherits the placeholder gray).
 //
 // ALIGNMENT: the icon is a `fixedHeight` box (14px tall, width follows the
 // glyph) while the text line is 20px, so on its own it would read as
-// top-aligned. This wrapper is exactly one line tall and centres the icon
+// top-aligned. This wrapper is exactly one line tall and centers the icon
 // inside it, then sits flush with the top of the line box — the glyph lands on
-// the line's optical centre by construction, with no magic offset, and stays
+// the line's optical center by construction, with no magic offset, and stays
 // right on whichever line it wraps onto.
 .valueIcon {
   display: inline-flex;
@@ -131,7 +131,7 @@
 
 // A contact's avatar sits inline with the name, exactly like a value's glyph:
 // same one-line-tall box, so the 16px (xxs) avatar lands on the line's optical
-// centre with no magic offset. inline-FLEX also keeps the OLD value's
+// center with no magic offset. inline-FLEX also keeps the OLD value's
 // strikethrough from crossing the photo.
 .valueAvatar {
   display: inline-flex;

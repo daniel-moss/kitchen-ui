@@ -9,7 +9,7 @@ import { User, usersById } from "../../data/users";
 //   1. Service client   — contacts of the client the job belongs to
 //   2. Service location — contacts of the job's service location
 //   3. Billing client   — ONLY when the billing client differs from the
-//                         service client (Figma behaviour note)
+//                         service client (Figma behavior note)
 // Every group's FIRST contact is its primary one (the crown on the avatar).
 //
 // The names are the Figma demo names. Their phone/e-mail are invented per

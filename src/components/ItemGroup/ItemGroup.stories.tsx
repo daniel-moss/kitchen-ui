@@ -43,7 +43,7 @@ const settingsItem = (key: number) => (
     variant="titleCaption"
     title="Title"
     caption="Caption"
-    avatar={<Avatar type="object" content="icon" size="xl" />}
+    avatar={<Avatar shape="square" content="icon" size="xl" />}
   />
 );
 
@@ -183,7 +183,7 @@ const DraggingDemo = () => {
             variant="titleCaption"
             title={title}
             caption="Caption"
-            avatar={<Avatar type="object" content="icon" size="xl" />}
+            avatar={<Avatar shape="square" content="icon" size="xl" />}
             isDraggable
           />
         ))}

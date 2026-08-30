@@ -1,0 +1,73 @@
+@use "../../styles/mixins/interaction" as *;
+
+// BottomBarNavItem — the bottom bar's icon pill. Values from Figma
+// "BottomBarNavItem": 68×44 base, stretches to max 112 in the bar, radius
+// full; fills step a3 (active rest) → a4 (hover) → a5 (press).
+
+.item {
+  box-sizing: border-box;
+  display: flex;
+  // Basis auto (not a length): a length would hijack the HEIGHT inside
+  // column layouts. In the bar (a row) the items share the width...
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 68px;
+  max-width: 112px; // ...but never wider than this
+  height: var(--size-11); // 44px
+  padding: 0 var(--size-1);
+  border: none;
+  border-radius: var(--border-radius-full);
+  background: none;
+  color: var(--gray-a11); // the (regular) icon at rest
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  .item:hover:not(:disabled):not(:focus-visible) {
+    background: var(--gray-a4);
+    color: var(--gray-12);
+  }
+}
+
+.item:active:not(:disabled):not(:focus-visible) {
+  background: var(--gray-a5);
+  color: var(--gray-12);
+}
+
+// Active section: gray-a3 fill + solid icon (the tsx switches the pack).
+.active {
+  background: var(--gray-a3);
+  color: var(--gray-12);
+}
+
+// The Create-button adjustment: a solid gray-12 icon at rest, no fill (the
+// icon weight comes from the tsx).
+.strong {
+  color: var(--gray-12);
+}
+
+// Focus: the newer inset spec — 2px ring at the pill bounds, 2px transparent
+// gap, then the gray-a4 inner fill with its own FULL radius. Last among the
+// states: the focus look wins over the fills above.
+.item:focus-visible {
+  @include row-focus-ring-inset($fill: var(--gray-a4), $radius: var(--border-radius-full));
+
+  color: var(--gray-12);
+}
+
+// A focused pill drops its own fill — the gap must show the surface (the
+// fill lives in the inner ::before). Doubled selectors out-rank the fills.
+.item.active:focus-visible,
+.item:focus-visible:active {
+  background: none;
+}
+
+// Disabled: dimmed and inert, WITHOUT the active fill (the doc's disabled
+// variants carry no fill, active or not).
+.disabled {
+  @include row-disabled; // opacity 0.3 + inert
+
+  background: none;
+}

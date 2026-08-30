@@ -23,7 +23,7 @@ export default function AvatarCreditNote({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.creditNote}
       size={size}

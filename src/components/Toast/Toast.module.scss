@@ -14,8 +14,8 @@
   background: var(--surface-level-third);
   border-radius: var(--border-radius-1_5);
   // A 1px per-type INNER stroke (inset shadow, so it never adds size) lifts the
-  // toast off a low-contrast background; the colour also signals the status.
-  // Default covers neutral + processing; the coloured types override below.
+  // toast off a low-contrast background; the color also signals the status.
+  // Default covers neutral + processing; the colored types override below.
   --toast-stroke: var(--gray-12);
   box-shadow:
     inset 0 0 0 1px var(--toast-stroke),

@@ -3,15 +3,27 @@
  * covers the full FA 7 classic + brand sets). The kit icons live in private-use
  * codepoints inside fa-kit-custom.woff2 / fa-kit-duotone.woff2 (kit ca85bd147f,
  * web download — codepoints verified against its css/custom-icons*.css).
+ *
+ * Re-synced 2026-08-24 from a fresh download of the same kit. Four icons were
+ * ADDED to the custom pack (\e00d–\e010) and nothing moved: every codepoint that
+ * was already here still points at the same glyph. The duotone pack is
+ * unchanged. Compare with the 2026-08-17 sync, which DROPPED
+ * `regular-calendar-circle-xmark` and handed its \e007 to `solid-priority-none`
+ * — so a re-sync has to be diffed, never assumed.
+ *
  * Same mechanism: .g-<name> sets --glyph; the pack class (.custom / .customDuotone on
  * the Icon) picks the matching font-family. Render by codepoint, never by name text. */
 
 /* Custom pack (font-family: "FA Custom") */
 .g-microsoft { --glyph: "\e002"; }
-.g-regular-calendar-circle-xmark { --glyph: "\e007"; }
+.g-regular-calendar-circle-arrow-left-bl { --glyph: "\e00f"; }
+.g-regular-calendar-circle-arrow-right { --glyph: "\e010"; }
+.g-regular-calendar-circle-arrow-right-bl { --glyph: "\e00e"; }
 .g-regular-collapse { --glyph: "\e003"; }
+.g-regular-text-location-pin { --glyph: "\e00d"; }
 .g-regular-timeline-view { --glyph: "\e004"; }
 .g-solid-priority-high { --glyph: "\e005"; }
+.g-solid-priority-none { --glyph: "\e007"; }
 .g-solid-timeline-view { --glyph: "\e006"; }
 
 /* Custom-duotone pack (font-family: "FA Custom Duotone").

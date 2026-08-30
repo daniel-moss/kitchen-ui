@@ -33,6 +33,11 @@ export interface FormMediaAnswer {
   name: string;
   type: FileType;
   src?: string;
+  /**
+   * A VIDEO's poster frame — the card tile is an `<img>`, so the video file
+   * itself cannot be the thumbnail. Without it a video gets the placeholder.
+   */
+  poster?: string;
   /** File size in bytes — the file menu shows it next to "Download". */
   size?: number;
 }
@@ -199,6 +204,13 @@ export type FormFieldSchema =
 export interface FormModuleSchema {
   id: string;
   /**
+   * The STEP this module belongs to, for a form built as a stepper (PM - HVAC).
+   * The preview groups the modules by step and puts the step's name above its
+   * content as a heading (Figma "Mapping / Step -> Preview" 24631-58494).
+   * Omit for a form with no steps.
+   */
+  step?: string;
+  /**
    * The module title. Omit for a FLAT form (Hot Side - Repair has no modules) —
    * the preview then renders the answers without a FormModule wrapper.
    */
@@ -238,7 +250,19 @@ export type PreviewAnswer =
 /** One previewed module. Modules with no answers are dropped before this. */
 export interface PreviewModule {
   id: string;
+  /** The step this module belongs to (stepper forms only). */
+  step?: string;
   title?: string;
   caption?: string;
   answers: PreviewAnswer[];
+}
+
+/**
+ * One previewed STEP of a stepper form (Figma "Mapping / Step -> Preview"
+ * 24631-58494): the step's name over the modules it holds. A step whose modules
+ * are all empty is dropped, exactly like an empty module.
+ */
+export interface PreviewStep {
+  title: string;
+  modules: PreviewModule[];
 }

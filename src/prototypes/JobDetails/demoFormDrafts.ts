@@ -8,11 +8,36 @@ import { ServiceCallDraft } from "./ServiceCallForm";
 // the Hot Side - Repair about the gas-heat air handler, which is the unit with
 // burners, a pilot and gas pressure.
 //
-// The demo photos carry no object URL (nothing was really picked), so their
-// cards show the file-type placeholder and Download does nothing — flagged.
+// The Hot Side photos and the recap video are REAL files (Daniel's, 2026-08-25),
+// served from public/forms/hot-side-repair/ — so the cards show the picture, not
+// the file-type placeholder. The path is relative on purpose (like the avatars),
+// so it also resolves under GitHub Pages' sub-path.
 
-const photo = (name: string, size: number): MediaItem => ({ name, type: "image", size });
-const video = (name: string, size: number): MediaItem => ({ name, type: "video", size });
+const HOT_SIDE_MEDIA = "forms/hot-side-repair/";
+
+/** A real demo photo: `file` is the name in public/forms/hot-side-repair/. */
+const photo = (name: string, file: string, size: number): MediaItem => ({
+  name,
+  type: "image",
+  src: HOT_SIDE_MEDIA + file,
+  size,
+});
+
+/**
+ * A real demo video. It needs a POSTER frame too — the card tile is an `<img>`,
+ * so the mp4 cannot be its own thumbnail (the poster was cut from the video's
+ * first frame).
+ */
+const video = (name: string, file: string, poster: string, size: number): MediaItem => ({
+  name,
+  type: "video",
+  src: HOT_SIDE_MEDIA + file,
+  poster: HOT_SIDE_MEDIA + poster,
+  size,
+});
+
+// PM - HVAC has NO demo draft on purpose (Daniel, 2026-08-25): the row starts
+// empty. Its preview exists, it is just reached by filling the form first.
 
 export const DEMO_SERVICE_CALL_DRAFT: ServiceCallDraft = {
   equipmentId: 5, // Walk-in Cooler ・ True Manufacturing
@@ -58,18 +83,27 @@ export const DEMO_HOT_SIDE_DRAFT: HotSideDraft = {
   partsPicture: "Yes",
   checkOut: "Marta Reyes, kitchen manager",
   media: {
-    dateTag: [photo("Date tag.jpg", 1_260_000)],
-    wideShot: [photo("Unit and surroundings.jpg", 3_640_000)],
-    controlPanel: [photo("Control panel.jpg", 2_180_000), photo("Error code E4.jpg", 1_940_000)],
-    amperage: [photo("Amperage reading.jpg", 2_050_000)],
-    gasSupply: [photo("Gas supply connection.jpg", 2_310_000)],
-    burnerFlame: [photo("Burner flame before.jpg", 2_780_000)],
-    thermostatVsActual: [photo("Thermostat vs actual.jpg", 1_720_000)],
-    gasPressure: [photo("Inlet pressure.jpg", 1_880_000), photo("Manifold pressure.jpg", 1_910_000)],
-    solenoid: [photo("Pilot and ignitor.jpg", 2_430_000)],
-    issuesMedia: [photo("Corroded pilot assembly.jpg", 3_120_000), photo("Coated flame sensor.jpg", 2_660_000)],
-    postFlame: [photo("Burner flame after.jpg", 2_540_000)],
-    postElectrical: [photo("Voltage after service.jpg", 1_990_000)],
-    finalVideo: [video("Final recap.mp4", 18_400_000)],
+    dateTag: [photo("Data tag.jpg", "data-tag.jpg", 188_974)],
+    wideShot: [photo("Unit and surroundings.jpg", "unit-and-surroundings.jpg", 188_189)],
+    controlPanel: [
+      photo("Control panel.jpg", "control-panel.jpg", 65_107),
+      photo("Error code.jpg", "error-code.jpg", 167_340),
+    ],
+    amperage: [photo("Amperage reading.jpg", "amperage-reading.jpg", 39_996)],
+    gasSupply: [photo("Gas supply connection.webp", "gas-supply-connection.webp", 73_238)],
+    burnerFlame: [photo("Burner flame quality.jpg", "burner-flame-quality.jpg", 16_449)],
+    thermostatVsActual: [photo("Thermostat vs actual temp.jpg", "thermostat-vs-actual-temp.jpg", 44_245)],
+    gasPressure: [
+      photo("Inlet pressure.jpg", "inlet-pressure.jpg", 23_262),
+      photo("Manifold pressure.jpg", "manifold-pressure.jpg", 36_508),
+    ],
+    solenoid: [photo("Pilot and ignitor.jpg", "pilot-and-ignitor.jpg", 46_907)],
+    issuesMedia: [
+      photo("Corroded pilot assembly.webp", "corroded-pilot-assembly.webp", 45_422),
+      photo("Coated flame sensor.webp", "coated-flame-sensor.webp", 36_952),
+    ],
+    postFlame: [photo("Burner flame after.jpg", "burner-flame-after.jpg", 42_512)],
+    postElectrical: [photo("Voltage after service.webp", "voltage-after-service.webp", 32_058)],
+    finalVideo: [video("Final video recap.mp4", "final-video-recap.mp4", "final-video-recap-poster.jpg", 1_010_617)],
   },
 };

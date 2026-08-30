@@ -296,7 +296,7 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                 event.kind === "createdFrom" ||
                 event.kind === "forms" ? (
                 // The job's lifecycle (Figma 24512-62842) — the status glyph is
-                // the symbol, SOLID and in the status's own colour, so the
+                // the symbol, SOLID and in the status's own color, so the
                 // sentence names the status without one. A typed reason turns
                 // the log into an accordion holding it.
                 <ActivityLogItem
@@ -304,8 +304,8 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   symbol={
                     <Icon
                       icon={event.jobStatus?.icon ?? "circle-dashed"}
-                      // A module log (no colour) keeps the regular gray glyph;
-                      // a job status is solid in its own colour.
+                      // A module log (no color) keeps the regular gray glyph;
+                      // a job status is solid in its own color.
                       pack={event.jobStatus?.color ? "solid" : "regular"}
                       size={14}
                       style={event.jobStatus?.color ? { color: event.jobStatus.color } : undefined}

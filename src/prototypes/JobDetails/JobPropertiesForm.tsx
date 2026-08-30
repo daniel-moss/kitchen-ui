@@ -69,7 +69,7 @@ export const sortSources = (list: JobSource[]): JobSource[] => [
 
 /** The source's logo, or nothing for "Direct" / a hand-made source. */
 export const sourceAvatar = (sources: JobSource[], name: string) =>
-  sources.find((s) => s.name === name)?.hasAvatar === true ? <Avatar type="object" content="image" size="xs" /> : undefined;
+  sources.find((s) => s.name === name)?.hasAvatar === true ? <Avatar shape="square" content="image" size="xs" /> : undefined;
 
 /** The users the "Received by" list offers (the 9 in node 23813-14792, A→Z). */
 const RECEIVED_BY_USERS: User[] = users
@@ -133,7 +133,7 @@ const NewSourceForm = ({
     setShowErrors(false);
   }, [open]);
 
-  // The field is labelled just "Name" (doc updated 2026-08-03, node
+  // The field is labeled just "Name" (doc updated 2026-08-03, node
   // 23982-18523) and is required — "Enter Name" comes from the label.
   const create = () => {
     if (name.trim() === "") {
@@ -451,7 +451,7 @@ export default function JobPropertiesForm({
             <SelectListItem
               key={s.name}
               label={s.name}
-              slotLeft={s.hasAvatar === true ? <Avatar type="object" content="image" size="xs" /> : undefined}
+              slotLeft={s.hasAvatar === true ? <Avatar shape="square" content="image" size="xs" /> : undefined}
               selected={s.name === source}
               onClick={() => {
                 setSource(s.name);

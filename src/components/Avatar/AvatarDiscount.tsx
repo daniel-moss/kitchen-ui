@@ -25,7 +25,7 @@ export default function AvatarDiscount({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.discount}
       size={size}

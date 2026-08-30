@@ -1,0 +1,77 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as AvatarDayStories from "./AvatarDay.stories";
+
+<Meta of={AvatarDayStories} />
+
+# AvatarDay
+
+We use **AvatarDay** to show a date as an avatar — a small calendar page with
+day and month info. It is not built on
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>,
+but it shares the avatar box, so it is used in the same places.
+
+<Canvas of={AvatarDayStories.Default} />
+
+```tsx
+<AvatarDay colorScheme="blue" month="JAN" day={1} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Color schemes](#color-schemes)<br />
+↳&nbsp;&nbsp;[Content](#content)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Exists in one size only. Contains two text layers — one for month data
+(`month`) and another for day data (`day`).
+
+The tile is `--size-9` (36px) square with `--border-radius-1_5` (6px) corners
+and a `<scheme>-a3` background. The **top part** is a fixed 14px strip with
+`--size-1` (4px) side padding, holding the month in Semibold 8/10 with 0.5px
+letter-spacing, always uppercase. The **bottom part** takes the rest of the
+height and keeps `--size-0_5` (2px) around the **day container**, which is
+filled with `--surface-level-second`, rounds its two bottom corners by 5px and
+holds the day in Semibold 12/12. Both text layers use the scheme's `-a11`
+color.
+
+The two text styles and the 5px corner are raw values — the design system has
+no typography token this small, and 5px is not on the radius scale.
+
+<Canvas of={AvatarDayStories.Default} />
+
+## Color schemes
+
+Supports several color schemes (`colorScheme`) — the 14 Radix scales. The
+scheme changes two things only: the tile background and the color of both text
+layers. The day container stays neutral in every scheme.
+
+<Canvas of={AvatarDayStories.ColorSchemes} />
+
+## Content
+
+Month data (`month`) renders the first 3 letters only, always uppercase — the
+strip fits no more. The casing you pass does not matter: `month="JAN"`,
+`month="Mar"` and `month="September"` render **JAN**, **MAR** and **SEP**.
+
+<Canvas of={AvatarDayStories.Months} />
+
+The day slot (`day`) supports 2 digits.
+
+<Canvas of={AvatarDayStories.Days} />
+
+## Loading
+
+Utilizes the generic avatar loading state (`isLoading`) — the same pulsing
+`--gray-a3` square that
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+shows, in the same box and with the same corners. The color scheme, month and
+day are not shown while loading.
+
+<Canvas of={AvatarDayStories.Loading} />
+
+## Props
+
+<ArgTypes of={AvatarDayStories} />

@@ -42,7 +42,7 @@ const stateProps = (state: StateOption) => ({
 
 /**
  * Radio — a 16px circle with a center dot on selected states. The bare circle
- * only — a labelled row is RadioItem. Used inside RadioItem and radio-like local
+ * only — a labeled row is RadioItem. Used inside RadioItem and radio-like local
  * components. Single-select (no indeterminate).
  */
 const meta: Meta<StoryArgs> = {

@@ -29,7 +29,7 @@ export interface SidePanelProps {
    * Defaults to "titleCaption" when a `caption` is set, else "title".
    */
   titleVariant?: PopoverHeaderTextVariant;
-  /** Extra class for the title line (e.g. a status colour). */
+  /** Extra class for the title line (e.g. a status color). */
   titleClassName?: string;
   /** Title slots — left takes an Icon, right an Icon or a HintTrigger. */
   titleLeftSlot?: ReactNode;

@@ -31,6 +31,33 @@
   transform: none;
 }
 
+// The optional sticky MenuHeader above the items. `flex: none` keeps it at its
+// own height — as a flex-column child it would otherwise shrink when the items
+// fill the card's max height.
+//
+// KNOWN LIMIT (2026-08-17), the same one as MenuItem's title: the card is
+// `width: fit-content`, and MenuHeader holds an `<input>`, whose default
+// intrinsic width (~166px on top of the bar's own padding) then DRIVES the
+// card width — while the items contribute nothing (their titles are
+// `min-width: 0`). So a menu WITH a header must get an explicit width from its
+// consumer, like Filters Concept 3 does with its 192px Figma card.
+.header {
+  flex: none;
+  width: 100%;
+  min-width: 0;
+}
+
+// A DRAWER with a header always fills the full available height — the same rule
+// (and the same declaration) as SelectList's `.drawerFull`. Otherwise the sheet
+// would resize on every keystroke as the items filter, making the header and
+// search bar jump. `100%` is the full scrim: it stays full-screen, because
+// Popover lifts the sheet above the keyboard rather than shrinking the scrim,
+// and caps this sheet's max-height inline to the space above it while the
+// keyboard is up — so no extra subtraction is needed here.
+.drawerFull {
+  height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
+}
+
 // The only scrolling region (a ScrollArea — overlay thumb, hidden native bar).
 .body {
   flex: 1 1 auto;

@@ -36,6 +36,18 @@ interface SelectListItemBaseProps extends HTMLAttributes<HTMLDivElement> {
   selected?: boolean;
   /** Dimmed, non-interactive. */
   disabled?: boolean;
+  /**
+   * Non-interactive, but READABLE: only the checkbox dims to 30% — the label,
+   * caption, avatar and tag keep their normal colours, and the row takes no
+   * hover, press or focus state. Use it to SHOW what is ticked when the user
+   * may not change it; `disabled` instead says the option is unavailable and
+   * dims the whole row.
+   *
+   * MULTI-SELECT only — Figma draws `state=readOnly` for `select=multi` in both
+   * variants and nowhere else (nodes 29462-25287 / 25291 / 25342 / 25345). On a
+   * single or counter row it is ignored, with a console warning.
+   */
+  readOnly?: boolean;
 
   /** Object only — caption ABOVE the title (Figma titleCaptionReversed). */
   reversed?: boolean;

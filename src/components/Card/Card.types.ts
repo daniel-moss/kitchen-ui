@@ -40,7 +40,7 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "onClick
   /** Lifted "dragging" look — 1px gray-12 border + a large lift shadow. Non-interactive. */
   dragging?: boolean;
 
-  /** Error behaviour — replaces the body with an error EmptyState (content failed to load). */
+  /** Error behavior — replaces the body with an error EmptyState (content failed to load). */
   error?: boolean;
   /** Retry handler for the error state's Reload button. */
   onRetry?: () => void;

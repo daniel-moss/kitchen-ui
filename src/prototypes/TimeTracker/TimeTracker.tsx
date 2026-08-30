@@ -13,9 +13,9 @@ import MenuItemGroup from "../../components/Menu/MenuItemGroup";
 import DrawerHeader from "../../components/Popover/DrawerHeader";
 import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent";
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
-import NavTopBar from "../../components/NavTopBar/NavTopBar";
-import NavTopBarLeftElements from "../../components/NavTopBar/NavTopBarLeftElements";
-import NavTopBarTitle from "../../components/NavTopBar/NavTopBarTitle";
+import TopBarNav from "../../components/TopBarNav/TopBarNav";
+import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import Prompt from "../../components/Prompt/Prompt";
 import ScrollArea from "../../components/ScrollArea/ScrollArea";
 import TabGroup from "../../components/Tabs/TabGroup";
@@ -497,17 +497,16 @@ export default function TimeTracker({ config }: { config: TimeTrackerConfig }) {
   return (
     <div className={styles.mobile}>
       <ScrollArea wrapperClassName={styles.scroll} className={styles.scrollInner}>
-        <NavTopBar
+        <TopBarNav
           variant="details"
           liveUsers={LIVE_USERS}
           tabs={<Tabs value={tab} onChange={setTab} />}
           breakpoint="mobile"
-          hideOnScroll
         >
-          <NavTopBarLeftElements onBack={noop} onActions={() => setTopMenuOpen(true)} actionsPressed={topMenuOpen}>
-            <NavTopBarTitle title={JOB_ID} slotLeft={<AvatarJob size="md" status={avatarStatus} />} />
-          </NavTopBarLeftElements>
-        </NavTopBar>
+          <TopBarNavLeftElements onBack={noop} onActions={() => setTopMenuOpen(true)} actionsPressed={topMenuOpen}>
+            <TopBarNavTitle title={JOB_ID} slotLeft={<AvatarJob size="xl" status={avatarStatus} />} />
+          </TopBarNavLeftElements>
+        </TopBarNav>
 
         {tab === "details" ? (
           <DetailsPanel mobile scheduling={scheduling} onSchedulingChange={setScheduling} job={panelJob} locked={false} />
@@ -541,7 +540,7 @@ export default function TimeTracker({ config }: { config: TimeTrackerConfig }) {
       <Menu
         open={topMenuOpen}
         onClose={() => setTopMenuOpen(false)}
-        header={<MenuHeader avatarStatus={avatarStatus} caption={caption} />}
+        drawerHeader={<MenuHeader avatarStatus={avatarStatus} caption={caption} />}
         breakpoint="mobile"
       >
         <TopMenuItems onClose={() => setTopMenuOpen(false)} />
@@ -551,7 +550,7 @@ export default function TimeTracker({ config }: { config: TimeTrackerConfig }) {
       <Menu
         open={actionMenuOpen}
         onClose={closeActionMenu}
-        header={<MenuHeader avatarStatus={avatarStatus} caption={caption} />}
+        drawerHeader={<MenuHeader avatarStatus={avatarStatus} caption={caption} />}
         breakpoint="mobile"
       >
         {actionMenuItems}

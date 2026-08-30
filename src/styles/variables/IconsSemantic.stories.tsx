@@ -16,10 +16,10 @@ const mono = "ui-monospace, SFMono-Regular, Menlo, monospace";
 // Names that live only in the kit custom fonts (need pack custom / custom-duotone).
 const CUSTOM = new Set([
   "solid-priority-high",
+  "solid-priority-none",
   "solid-timeline-view",
   "regular-timeline-view",
   "regular-collapse",
-  "regular-calendar-circle-xmark",
   "microsoft",
 ]);
 const DUOTONE = new Set(["duotone-solid-priority-low", "duotone-solid-priority-medium"]);

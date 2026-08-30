@@ -16,7 +16,7 @@ export interface LifecycleRow {
   label: string;
   /** The 14px solid timeline glyph. */
   icon: string;
-  /** The glyph's colour token. */
+  /** The glyph's color token. */
   color: string;
   /** The Upcoming glyph is drawn rotated so its fill sits on the right. */
   rotate?: boolean;
@@ -44,7 +44,7 @@ export interface LifecycleRow {
  * NOTE: "cancelled" has NO designed row, so a cancelled job records no stretch
  * for it — the lifecycle just stops. Flagged to Daniel.
  *
- * The "On hold" colours follow the DS `BadgeJobStatus`: EXTERNAL (waiting on
+ * The "On hold" colors follow the DS `BadgeJobStatus`: EXTERNAL (waiting on
  * the client) is crimson, INTERNAL is brown. The lifecycle doc node has the two
  * labels swapped — Daniel confirmed the DS is right (2026-08-07).
  */

@@ -176,7 +176,7 @@ export const FullWidth: Story = {
   ),
 };
 
-// States — one story per variant, each showing all 7 states (labelled, since
+// States — one story per variant, each showing all 7 states (labeled, since
 // processing / loading hide the button text).
 const STATES: { label: string; props: Partial<ButtonProps> }[] = [
   { label: "Default", props: {} },

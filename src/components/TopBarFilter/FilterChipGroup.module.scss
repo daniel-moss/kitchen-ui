@@ -1,0 +1,31 @@
+// FilterChipGroup — the container for FilterChips (Figma 29561-14722).
+// Desktop: a wrapping row, gap 8 on both axes, the "Add filter" IconButton
+// after the chips. Mobile: a column of full-width chips, no button.
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--size-2); // 8px, both axes
+  width: 100%;
+}
+
+.groupMobile {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+// Anchor for the "Add filter" button — the Menu card is body-portaled (like
+// SidebarNav's Create menu), so no positioning context is needed here, just a
+// measurable box.
+.addWrap {
+  display: inline-flex;
+  flex: none;
+}
+
+// The body-portaled Menu card: fixed, measured from the button — 4px below,
+// left edges aligned.
+.addMenuCard {
+  position: fixed;
+  z-index: var(--z-menu);
+}

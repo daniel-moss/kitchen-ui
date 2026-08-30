@@ -16,7 +16,7 @@ const cap: React.CSSProperties = { font: "var(--font-caption-medium-500)", color
 const frame: React.CSSProperties = { width: 309 };
 
 const iconSlot = <Icon icon="diamonds-4" pack="regular" size={14} container="square" />;
-const avatarSlot = <Avatar type="user" content="image" size="xs" />;
+const avatarSlot = <Avatar shape="circle" content="image" size="xs" />;
 const leftSlots: Record<LeftSlot, React.ReactNode> = { none: undefined, icon: iconSlot, avatar: avatarSlot };
 
 /**

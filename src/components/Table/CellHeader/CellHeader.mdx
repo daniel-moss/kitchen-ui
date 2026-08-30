@@ -1,0 +1,124 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as CellHeaderStories from "./CellHeader.stories";
+
+<Meta of={CellHeaderStories} />
+
+# CellHeader
+
+We use **CellHeader** for providing a column name and sorting.
+
+<Canvas of={CellHeaderStories.Anatomy} />
+
+```tsx
+<CellHeader
+  label="Service"
+  width={190}
+  isSortable
+  dataType="alphabetical"
+  sortOrder="ascending"
+  onClick={sortByService}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The cell defines only its alignment and its side paddings — `--size-4` (16px)
+left and right. **It does not have a height.** The height is defined by the
+<a href="/?path=/docs/components-table-tablerow--docs" target="_top">TableRow</a>,
+and the cell simply fills it. The content is centre-aligned vertically.
+
+Left to right: an optional **pin icon** (thumbtack, 10px, `--size-1_5` / 6px
+before the label), the **label**, and the **sort icon** (12px, `--size-2` /
+8px after the label).
+
+The label is `caption-small-400` (Regular 12/16) in `--text-subtle`, and the
+sort icon `--gray-a9`.
+
+<Canvas of={CellHeaderStories.Anatomy} />
+
+The cell has **no divider and no bottom border** either. The line you see under
+every preview on this page belongs to the `TableRow` wrapping the cells, not to
+the cell — the previews need a real row, because a cell has no height of its
+own. The row renders the divider as its own 1px element below the cells, and
+draws it heavier under a header row (`--gray-a6`) than between body rows
+(`--gray-a3`) so the head of the table separates from the data.
+
+## Behavior
+
+### Truncation
+
+The label truncates if it does not fit the width. When it is truncated,
+hovering the cell shows a tooltip with the full label. The tooltip text is
+left-aligned by default and its default position is on top.
+
+<Canvas of={CellHeaderStories.Truncation} />
+
+### Alignment
+
+Supports left and right alignment. Alignment is defined on a column level —
+the
+<a href="/?path=/docs/components-table-cellbody--docs" target="_top">CellBody</a>
+cells below must carry the same value, or the column's edge will not line up.
+
+<Canvas of={CellHeaderStories.Alignment} />
+
+### isPinned
+
+When the column is pinned, we show a thumbtack icon on left from the text.
+
+The **last** pinned column also draws the boundary of the frozen region on its
+right edge, with `isLastPinned`. It uses `--gray-a6` — deliberately heavier
+than the row divider (`--gray-a3`), so the frozen edge does not read as an
+ordinary row line. The body cells of that same column carry the flag too, so
+the line runs unbroken from the header down through the rows.
+
+<Canvas of={CellHeaderStories.Pinned} />
+
+### isSortable
+
+The column might either support the sorting or not. If the column is NOT
+sortable, CellHeader is non-interactive. A non-sortable header is not
+keyboard-focusable as well.
+
+If the column IS sortable, CellHeader is interactive and we show a sorting icon
+next to the text to indicate that — so sortability never has to be discovered
+by clicking.
+
+<Canvas of={CellHeaderStories.Sortable} />
+
+Clicking a sortable column header sorts the table by that column. The header of
+the column the table is sorted by is emphasised — the label becomes darker and
+switches to medium weight (`caption-small-500`, `--text-strong`), and the
+neutral up/down icon is replaced by the directional icon for that column's data
+type and sort order (`--gray-12`).
+
+<Canvas of={CellHeaderStories.Sorted} />
+
+Only one column can be sorted at a time.
+
+### Sort icon
+
+The sort icon varies depending on the column data type and sorting order.
+
+`dataType` only picks the icon pair — it is independent of the cell type the
+column renders. A duration column, for example, shows **text** in its body
+cells but still sorts **numerically**.
+
+<Canvas of={CellHeaderStories.SortIcons} />
+
+### Loading
+
+For both sortable and non-sortable, and for both left and right alignment, we
+use the same loading state: the label becomes a caption-sized skeleton and the
+cell stops being interactive.
+
+<Canvas of={CellHeaderStories.Loading} />
+
+## Props
+
+<ArgTypes of={CellHeaderStories} />

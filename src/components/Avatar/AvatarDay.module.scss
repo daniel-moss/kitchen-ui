@@ -1,0 +1,88 @@
+// AvatarDay — a calendar-page tile: colored month strip on top, light day
+// container below. One size only (36px), no states, not interactive.
+
+.base {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+
+  width: var(--size-9);
+  height: var(--size-9);
+
+  background: var(--avatar-day-bg);
+  border-radius: var(--border-radius-1_5);
+}
+
+// Month strip: fixed height, the day container takes the rest.
+.top {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+
+  height: 14px;
+  padding: 0 var(--size-1);
+
+  overflow: hidden;
+}
+
+// 8px/10px semibold is smaller than every typography token — the DS has no
+// composite token for it, so the values are local on purpose.
+.month {
+  flex: 1 0 0;
+  min-width: 0;
+
+  font: var(--font-weight-semibold) 8px/10px var(--font-family-base);
+  font-feature-settings: "ss01" on, "case" on, "cv08" on;
+  letter-spacing: 0.5px;
+  color: var(--avatar-day-fg);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bottom {
+  display: flex;
+  flex: 1 0 0;
+  min-height: 0;
+
+  padding: 0 var(--size-0_5) var(--size-0_5);
+}
+
+.dayContainer {
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+
+  padding: 0 var(--size-1);
+
+  background: var(--surface-level-second);
+  // Figma draws 5px here — it is not on our 4 / 6 radius scale, so it stays a
+  // raw value rather than a token that would lie about the number.
+  border-radius: 0 0 5px 5px;
+}
+
+// 12px/12px semibold: same size as heading-h6 but a tighter line, so it also
+// has no token.
+.day {
+  flex: 1 0 0;
+  min-width: 0;
+
+  font: var(--font-weight-semibold) 12px/12px var(--font-family-base);
+  font-feature-settings: "ss01" on, "cv08" on, "case" on;
+  color: var(--avatar-day-fg);
+  text-align: center;
+}
+
+// Per-scheme colors. All alpha scales, so the tile tints correctly on any
+// surface and flips in dark mode.
+$schemes: gray, brown, amber, orange, tomato, crimson, pink, plum, violet, indigo, blue, cyan, teal,
+  jade;
+
+@each $c in $schemes {
+  .#{$c} {
+    --avatar-day-bg: var(--#{$c}-a3);
+    --avatar-day-fg: var(--#{$c}-a11);
+  }
+}

@@ -1,0 +1,22 @@
+// The story page behind the archived Summary module — the app surface with the
+// module at the width it had in the Job Details content column.
+.page {
+  box-sizing: border-box;
+  min-height: 100vh;
+  padding: var(--size-4);
+  background: var(--surface-level-first);
+}
+
+.page > * {
+  max-width: 608px;
+  margin: 0 auto;
+}
+
+// Mobile: the 375px screen, so the module is 343 wide like the Figma frame.
+.pageMobile {
+  box-sizing: border-box;
+  min-height: 100vh;
+  max-width: 375px;
+  padding: var(--size-4);
+  background: var(--surface-level-first);
+}

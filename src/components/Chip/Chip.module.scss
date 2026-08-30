@@ -1,33 +1,40 @@
 @use "../../styles/mixins/font" as *;
 
-// Chip — a compact filter / selection control. The 1px border is an inset
-// box-shadow so it never adds size; hover and press drop the border + shadow
-// and only keep the fill. See Figma "Chip".
+// Chip — a compact filter / selection control. Every stroke is an inset
+// box-shadow so it never adds size (the Kitchen UI border pattern). Per Figma
+// (node 29520-29010) the fill is `--gray-a2` in every state except press, and
+// hover only strengthens the BORDER. There is no shadow.
+//
+// `color` is the label AND the left Icon (the Icon inherits it): an INACTIVE
+// chip is `--text-subtle` at rest and steps to `--text-strong` on hover, press
+// and focus; a selected chip is `--text-strong` in every state. An Icon the
+// caller gave its own color keeps that color — only the default follows.
 .chip {
   box-sizing: border-box;
-  position: relative;
   display: inline-flex;
   align-items: center;
   margin: 0;
   border: none;
   cursor: pointer;
-  color: var(--text-strong);
-  border-radius: var(--border-radius-1_5);
-  background: var(--surface-interactive-default);
-  box-shadow:
-    inset 0 0 0 1px var(--gray-a2),
-    var(--box-shadow-xs-down);
 
-@media (hover: hover) {
-&:hover:not(:disabled):not(.loading) {
-    background: var(--surface-interactive-hover);
-    box-shadow: none;
+  color: var(--text-subtle);
+  border-radius: var(--border-radius-1_5); // 6px
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-a7);
+
+  // Inactive hover: the fill does not move — the border strengthens and the
+  // text/icon step up to `--text-strong`.
+  @media (hover: hover) {
+    &:hover:not(:disabled):not(.loading) {
+      color: var(--text-strong);
+      box-shadow: inset 0 0 0 1px var(--gray-a8);
+    }
   }
-}
 
   &:active:not(:disabled):not(.loading) {
-    background: var(--surface-interactive-press);
-    box-shadow: none;
+    color: var(--text-strong);
+    background: var(--gray-a3);
+    box-shadow: inset 0 0 0 1px var(--gray-a8);
   }
 
   &:disabled {
@@ -38,78 +45,67 @@
   &.loading {
     cursor: progress;
   }
-
-  // focus: 2px ring + 2px gap + inner background block (radius 2) — the
-  // Button technique: a real 2px border (padding compensates) + a ::before
-  // block inset 2px behind the content.
-  &:focus-visible {
-    isolation: isolate;
-    outline: none;
-    background: transparent;
-    box-shadow: none;
-    border: 2px solid var(--gray-a12);
-  }
-
-  &:focus-visible::before {
-    content: "";
-
-    position: absolute;
-    inset: 2px;
-    z-index: -1;
-
-    border-radius: var(--border-radius-0_5);
-
-    background: var(--surface-interactive-hover);
-  }
 }
 
 // ---- active (selected) ----
+// The border becomes `--gray-12` instead of `--gray-a7`, and the text/icon are
+// `--text-strong` in EVERY state (a selected chip never dims). Per Figma the
+// selected chip does NOT react to hover; press is the one state that moves the
+// fill.
 .active {
-  background: var(--gray-a2);
+  color: var(--text-strong);
   box-shadow: inset 0 0 0 1px var(--gray-12);
 
-@media (hover: hover) {
-&:hover:not(:disabled):not(.loading) {
-    background: var(--gray-a3);
-    box-shadow: inset 0 0 0 1px var(--gray-12);
+  @media (hover: hover) {
+    &:hover:not(:disabled):not(.loading) {
+      box-shadow: inset 0 0 0 1px var(--gray-12);
+    }
   }
-}
 
   &:active:not(:disabled):not(.loading) {
-    background: var(--gray-a4);
-    box-shadow: inset 0 0 0 1px var(--gray-12);
-  }
-
-  // the inner block keeps the active look: hover fill + the 1px border
-  &:focus-visible::before {
     background: var(--gray-a3);
     box-shadow: inset 0 0 0 1px var(--gray-12);
   }
 }
 
 // ---- sizes ----
-.md {
+.sm {
   height: var(--size-7); // 28px
   padding: 0 var(--size-2); // 8px
   gap: var(--size-1_5); // 6px
 
   @include font("caption-medium-400");
-
-  &:focus-visible {
-    padding: 0 calc(var(--size-2) - 2px);
-  }
 }
 
-.lg {
+.md {
   height: var(--size-8); // 32px
   padding: 0 var(--size-2_5); // 10px
   gap: var(--size-2); // 8px
 
   @include font("body-400-compact");
+}
 
-  &:focus-visible {
-    padding: 0 calc(var(--size-2_5) - 2px);
-  }
+.lg {
+  height: var(--size-9); // 36px
+  padding: 0 var(--size-3); // 12px
+  gap: var(--size-2); // 8px
+
+  @include font("body-400-compact");
+}
+
+// ---- focus (keyboard only) ----
+// The same on both values: a 2px `--gray-12` stroke, no gap and no inner block,
+// and the text/icon at `--text-strong`. Written with the hover/press selectors'
+// specificity and declared last so focus always wins over them; the third
+// selector keeps the stroke on a loading chip (which the hover/press rules
+// skip).
+.chip:focus-visible:not(:disabled):not(.loading),
+.active:focus-visible:not(:disabled):not(.loading),
+.chip.loading:focus-visible {
+  outline: none;
+  color: var(--text-strong);
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 2px var(--gray-12);
 }
 
 .slotLeft {

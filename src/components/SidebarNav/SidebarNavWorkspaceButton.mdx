@@ -1,0 +1,87 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidebarNavWorkspaceButtonStories from "./SidebarNavWorkspaceButton.stories";
+
+<Meta of={SidebarNavWorkspaceButtonStories} />
+
+# SidebarNavWorkspaceButton
+
+We use **SidebarNavWorkspaceButton** to provide access to the list of
+workspaces.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.Hero} />
+
+```tsx
+<SidebarNavWorkspaceButton
+  workspaces={[
+    { id: "1", name: "Workspace 1", imageSrc: "/logo.png" },
+    { id: "2", name: "Workspace 2" },
+  ]}
+  value={workspaceId}
+  onChange={setWorkspaceId}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The workspace button uses an Avatar component: the square md (28px) workspace
+avatar, the name, and the `angles-up-down` icon. Padding is 4px around with
+`--size-2` (8px) on the right, the parts sit `--size-2` (8px) apart, and the
+corner radius is `--border-radius-1_5` (6px) — a 36px row that hugs its
+content. The name is `body-500-compact` in `--text-strong`; the icon is 14px
+regular in `--gray-a10`, turning `--gray-12` on hover, press, and focus.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.Hero} />
+
+## Behavior
+
+### Interaction states
+
+Hover fills the button with `--gray-a3`, press with `--gray-a4`; keyboard
+focus draws the 2px `--gray-12` ring with a 2px gap and an inner `--gray-a3`
+fill (radius `--border-radius-0_5`); disabled dims the button to 30%.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.States} />
+
+### Long workspace name
+
+The workspace name truncates if it does not fit one line. Hovering over the
+truncated name shows a tooltip with the full name.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.LongName} />
+
+### Single workspace
+
+If there is only one workspace in the list, the button is non-interactive (no
+hover, focus, or press states). The dropdown icon is not shown.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.SingleWorkspace} />
+
+### Workspace avatar
+
+If there is no uploaded image, the workspace avatar shows the first character
+of the name.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.AvatarFallback} />
+
+### Workspace list
+
+Clicking or tapping the button opens a
+<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>.
+The button stays pressed while the list is open. On desktop the select list
+opens `--size-1` (4px) below the button and has a max width; picking a
+workspace closes it.
+
+<Canvas of={SidebarNavWorkspaceButtonStories.ListDesktop} />
+
+On mobile the list is a drawer. The example is live — tap the button:
+
+<Canvas of={SidebarNavWorkspaceButtonStories.ListMobile} />
+
+## Props
+
+<ArgTypes of={SidebarNavWorkspaceButtonStories} />

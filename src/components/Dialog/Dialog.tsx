@@ -52,6 +52,22 @@ const STATE_CONTENT: Record<Exclude<DialogState, "content">, {
 // warning Prompt (opt-in via confirmOnDismiss — pass it only when there are
 // unsaved changes; Daniel 2026-07-27: no prompt when nothing changed), and the
 // body can show error / offline states. See Figma "Dialog".
+/**
+ * The element that actually scrolls the dialog body — Popover's ScrollArea
+ * `.scroller`. Found by walking up from the body to the first element with an
+ * `auto`/`scroll` overflow-y, so the two presentations (desktop card, mobile
+ * drawer) need no special case.
+ */
+const scrollerOf = (bodyEl: HTMLElement | null): HTMLElement | null => {
+  let sc: HTMLElement | null = bodyEl?.parentElement ?? null;
+  while (sc) {
+    const oy = getComputedStyle(sc).overflowY;
+    if (oy === "auto" || oy === "scroll") return sc;
+    sc = sc.parentElement;
+  }
+  return null;
+};
+
 export default function Dialog(props: DialogProps) {
   const {
     open,
@@ -77,12 +93,23 @@ export default function Dialog(props: DialogProps) {
   const [confirming, setConfirming] = useState(false);
   const layerRef = useRef<HTMLDivElement>(null);
 
-  // ---- focus "scroll to the end before Next" gating (opt-in) ----
+  // ---- focus steps: scrolling ----
   const focusStep = props.type === "focus" ? props.currentStep : -1;
   const gateNext = props.type === "focus" && !!props.requireScrollToEnd;
   const focusBodyRef = useRef<HTMLDivElement>(null);
   const [atEnd, setAtEnd] = useState(false);
 
+  // EVERY step starts at the top (Daniel, 2026-08-25): moving to another step
+  // shows new content, so the body must not keep the previous step's scroll
+  // position. This is unconditional — it used to happen only when Next was
+  // gated by `requireScrollToEnd`.
+  useEffect(() => {
+    if (focusStep < 0 || !visible) return;
+    const scroller = scrollerOf(focusBodyRef.current);
+    if (scroller) scroller.scrollTop = 0;
+  }, [focusStep, visible]);
+
+  // ---- focus "scroll to the end before Next" gating (opt-in) ----
   useEffect(() => {
     if (!gateNext || !visible) {
       setAtEnd(true); // no gating → never blocks
@@ -90,18 +117,9 @@ export default function Dialog(props: DialogProps) {
     }
     const bodyEl = focusBodyRef.current;
     if (!bodyEl) return;
-    // The scrolling ancestor is Popover's ScrollArea .scroller — find it by
-    // walking up to the first overflow-y auto/scroll element.
-    let sc: HTMLElement | null = bodyEl.parentElement;
-    while (sc) {
-      const oy = getComputedStyle(sc).overflowY;
-      if (oy === "auto" || oy === "scroll") break;
-      sc = sc.parentElement;
-    }
-    const scroller = sc ?? bodyEl;
-    // Each step starts at the top; Next stays disabled until the user reaches
-    // the bottom (or the content doesn't overflow).
-    scroller.scrollTop = 0;
+    // The effect above already put this step at the top; Next stays disabled
+    // until the user reaches the bottom (or the content doesn't overflow).
+    const scroller = scrollerOf(bodyEl) ?? bodyEl;
     const check = () => setAtEnd(scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight <= 4);
     check();
     scroller.addEventListener("scroll", check, { passive: true });

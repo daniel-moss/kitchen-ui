@@ -1,0 +1,64 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ChipGroupStories from "./ChipGroup.stories";
+
+<Meta of={ChipGroupStories} />
+
+# ChipGroup
+
+We use **ChipGroup** to hold a row of
+<a href="/?path=/docs/components-chip-chip--docs" target="_top">Chips</a>.
+It is layout only — it places the chips and lets them wrap.
+
+<Canvas of={ChipGroupStories.Hero} />
+
+```tsx
+<ChipGroup>
+  <Chip active={selected === "a"} onClick={() => setSelected("a")}>
+    Chip
+  </Chip>
+  <Chip active={selected === "b"} onClick={() => setSelected("b")}>
+    Chip
+  </Chip>
+</ChipGroup>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The group is one row of Chips with `--size-2` (8px) between them. It has no
+background, no border and no padding of its own — it takes the width of its
+container.
+
+<Canvas of={ChipGroupStories.Sizes} />
+
+Chips of any size can go in a group. Keep **one size inside one group**.
+
+## Behavior
+
+### Wrapping
+
+When the row runs out of width, the chips wrap onto the next line. The gap is
+the same on both axes — `--size-2` (8px) between chips and between lines.
+
+<Canvas of={ChipGroupStories.Wrapping} />
+
+### Selection
+
+**The group does not manage selection by itself.** Each Chip keeps its own
+`active` prop, so the consumer decides how many chips can be selected at once.
+
+Single-select — keep one value:
+
+<Canvas of={ChipGroupStories.SingleSelect} />
+
+Multi-select — keep a list of values:
+
+<Canvas of={ChipGroupStories.MultiSelect} />
+
+## Props
+
+<ArgTypes of={ChipGroupStories} />

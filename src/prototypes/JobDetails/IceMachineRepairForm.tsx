@@ -29,7 +29,7 @@ import {
   equipmentLabel,
   equipmentTitle,
 } from "./equipment";
-import { MediaItem, fileTypeOf, isPreviewable } from "./mediaItem";
+import { MediaItem, fileTypeOf, tileSrc } from "./mediaItem";
 import { noop, useAnchoredMenu } from "./shared";
 
 import styles from "./HotSideRepairForm.module.scss";
@@ -370,7 +370,7 @@ export default function IceMachineRepairForm({
         key={`${f.name}-${i}`}
         name={f.name}
         fileType={f.type}
-        previewSrc={isPreviewable(f.type) ? f.src : undefined}
+        previewSrc={tileSrc(f)}
         onMenuClick={(e) => {
           setMenuTarget({ key, index: i });
           cardMenu.onActions(e);

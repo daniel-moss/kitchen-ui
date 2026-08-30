@@ -30,7 +30,7 @@ export default function AvatarEstimate({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.estimate}
       size={size}

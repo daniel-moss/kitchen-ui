@@ -23,12 +23,12 @@ import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import Toaster, { toast } from "../../components/Toast/Toaster";
-import NavSidebar from "../../components/NavSidebar/NavSidebar";
-import NavSidebarItem from "../../components/NavSidebar/NavSidebarItem";
-import NavSidebarItemGroup from "../../components/NavSidebar/NavSidebarItemGroup";
-import NavTopBar from "../../components/NavTopBar/NavTopBar";
-import NavTopBarLeftElements from "../../components/NavTopBar/NavTopBarLeftElements";
-import NavTopBarTitle from "../../components/NavTopBar/NavTopBarTitle";
+import SidebarNav from "../../components/SidebarNav/SidebarNav";
+import SidebarNavItem from "../../components/SidebarNav/SidebarNavItem";
+import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup";
+import TopBarNav from "../../components/TopBarNav/TopBarNav";
+import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import ScrollArea from "../../components/ScrollArea/ScrollArea";
 import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
@@ -79,7 +79,7 @@ import { copyText, noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./JobDetails.module.scss";
 
-// Job Details — prototype shell (slice 1). Desktop: NavSidebar + NavTopBar
+// Job Details — prototype shell (slice 1). Desktop: SidebarNav + TopBarNav
 // (details) + a max-560px main content column + a 400px right sidebar with
 // the ActionBar pinned on top. Mobile: the right sidebar becomes the first
 // tab ("Details"), the ActionBar pins to the bottom, and the top bar hides
@@ -88,6 +88,14 @@ import styles from "./JobDetails.module.scss";
 export interface JobDetailsProps {
   /** Desktop / mobile shell. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;
+  /**
+   * The company setting that rounds logged time UP to the next 5 minutes.
+   * A real setting would live in Settings, which this prototype does not have,
+   * so it is a Storybook control (Daniel, 2026-08-11). It changes every
+   * duration the Timesheet tab shows; the exact values move into the charts'
+   * tooltips. Default false.
+   */
+  roundTo5min?: boolean;
 }
 
 // Real photos from the shared demo-users fixture; ring colors auto-assign
@@ -134,17 +142,16 @@ interface TopBarProps {
 }
 
 const TopBar = ({ mobile = false, hideOnScroll = false, onActions, actionsPressed = false, tab, onTabChange, avatarStatus }: TopBarProps) => (
-  <NavTopBar
+  <TopBarNav
     variant="details"
     liveUsers={LIVE_USERS}
     tabs={<Tabs withDetails={mobile} value={tab} onChange={onTabChange} />}
     breakpoint={mobile ? "mobile" : "desktop"}
-    hideOnScroll={hideOnScroll}
   >
-    <NavTopBarLeftElements onBack={noop} onActions={onActions} actionsPressed={actionsPressed}>
-      <NavTopBarTitle title={JOB_ID} slotLeft={<AvatarJob size="md" status={avatarStatus} />} />
-    </NavTopBarLeftElements>
-  </NavTopBar>
+    <TopBarNavLeftElements onBack={noop} onActions={onActions} actionsPressed={actionsPressed}>
+      <TopBarNavTitle title={JOB_ID} slotLeft={<AvatarJob size="xl" status={avatarStatus} />} />
+    </TopBarNavLeftElements>
+  </TopBarNav>
 );
 
 // ---- job context menu (the ellipsis next to the title) ---------------------
@@ -235,7 +242,7 @@ const ActionButtons = ({
   );
   if (status === "completed") {
     // Both buttons OPEN A MENU, so each holds its pressed look while its menu
-    // shows (the NavSidebar Create-button pattern).
+    // shows (the SidebarNav Create-button pattern).
     return (
       <>
         {ellipsis}
@@ -424,7 +431,7 @@ const jobActionMenuItems = ({ status, actions }: { status: JobStatus; actions: J
 };
 
 // The mobile overflow menu's drawer header: the job avatar + id + status caption.
-// The avatar is AvatarJob (the same wrench-glyph identity as the NavTopBar title)
+// The avatar is AvatarJob (the same wrench-glyph identity as the TopBarNav title)
 // at size xl (36px) — the size the Figma drawer header uses.
 const JobMenuHeader = ({ avatarStatus, caption }: { avatarStatus: BadgeJobStatusStatus; caption: string }) => (
   <DrawerHeader>
@@ -441,7 +448,7 @@ const Placeholder = ({ className }: { className?: string }) => (
   </div>
 );
 
-// ---- NavSidebar config (display only) ------------------------------------
+// ---- SidebarNav config (display only) ------------------------------------
 
 
 const profileMenu = (
@@ -509,43 +516,43 @@ const createMenu = (
 
 const navContent = (
   <>
-    <NavSidebarItem icon="house">Home</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.estimate}>Estimates</NavSidebarItem>
+    <SidebarNavItem icon="house">Home</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.estimate}>Estimates</SidebarNavItem>
     {/* The current page (a job's details) lives under Jobs — open + active. */}
-    <NavSidebarItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
-      <NavSidebarItem type="stackItem">Job requests</NavSidebarItem>
-      <NavSidebarItem type="stackItem" active>
+    <SidebarNavItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
+      <SidebarNavItem type="stackItem">Job requests</SidebarNavItem>
+      <SidebarNavItem type="stackItem" active>
         Jobs
-      </NavSidebarItem>
-      <NavSidebarItem type="stackItem">Job series</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItemGroup icon={semanticIcons.invoice} label="Invoices">
-      <NavSidebarItem type="stackItem">Invoices</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Credit notes</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItem icon={semanticIcons.purchaseOrder}>Purchase orders</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.bill}>Bills</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.vendor}>Vendors</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.client}>Clients</NavSidebarItem>
-    <NavSidebarItemGroup icon={semanticIcons.pricebook} label="Pricebook">
-      <NavSidebarItem type="stackItem">Labor</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Products</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Other</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Discounts</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Tax rates</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItemGroup icon={semanticIcons.reports} label="Reports">
-      <NavSidebarItem type="stackItem">Clients &amp; locations</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Jobs</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Inventory</NavSidebarItem>
-    </NavSidebarItemGroup>
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem">Job series</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItemGroup icon={semanticIcons.invoice} label="Invoices">
+      <SidebarNavItem type="stackItem">Invoices</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Credit notes</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
+    <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
+      <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Products</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItemGroup icon={semanticIcons.reports} label="Reports">
+      <SidebarNavItem type="stackItem">Clients &amp; locations</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Jobs</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Inventory</SidebarNavItem>
+    </SidebarNavItemGroup>
   </>
 );
 
 const bottomItems = (
   <>
-    <NavSidebarItem icon="circle-question">Help center</NavSidebarItem>
-    <NavSidebarItem icon="bullhorn">What&apos;s new</NavSidebarItem>
+    <SidebarNavItem icon="circle-question">Help center</SidebarNavItem>
+    <SidebarNavItem icon="bullhorn">What&apos;s new</SidebarNavItem>
   </>
 );
 
@@ -581,7 +588,7 @@ const longSlotLabel = (s: Scheduling) => (s.date != null ? `${weekdayDate(s.date
 /** A tech status as a log value: its icon in regular weight (Daniel, 2026-08-05). */
 const statusValueIcon = (status: string): ValueIcon => ({ icon: categoryIcon(status), pack: "regular" });
 
-// Each job status owns its activity-log glyph — solid, in its own colour
+// Each job status owns its activity-log glyph — solid, in its own color
 // (Figma 24512-62842).
 type JobGlyph = { icon: string; color: string };
 const JOB_GLYPH = {
@@ -1036,6 +1043,10 @@ function useJobShell(isDesktop: boolean) {
   // Opens the moment the Complete flow finishes (Figma 24576-152451), and again
   // from "Resend summary" on a completed / finalized job.
   const [sendSummaryOpen, setSendSummaryOpen] = useState(false);
+  // HOW it was opened: the Complete flow hands over to it (leading button
+  // "Skip" — it is a step of that flow), or the user asked for it themselves
+  // through "Resend summary" (leading button "Cancel").
+  const [sendSummaryAfterCompletion, setSendSummaryAfterCompletion] = useState(false);
   // The two "This action can not be undone" confirmations a completed job shows
   // (Figma 24567-139607 / 24567-140732). Both finalize the job.
   const [markInvoicedOpen, setMarkInvoicedOpen] = useState(false);
@@ -1081,7 +1092,7 @@ function useJobShell(isDesktop: boolean) {
   // The job's lifecycle logs (Figma 24512-62842). Every one is "{user} <did
   // something to the job>", optionally closing on its status — so they all go
   // through here. The timeline symbol is the job status's SOLID glyph in its own
-  // colour, and a typed reason becomes the log's single sub-log.
+  // color, and a typed reason becomes the log's single sub-log.
   const pushJobStatus = (glyph: JobGlyph, parts: Omit<JobStatusLog, "icon" | "color">) =>
     pushEvent({ kind: "jobStatus", jobStatus: { ...glyph, ...parts } });
   // "… the job" on its own, or "… the job with status <sub-status>".
@@ -1780,6 +1791,7 @@ function useJobShell(isDesktop: boolean) {
     },
     onResendSummary: () => {
       closeActionMenus();
+      setSendSummaryAfterCompletion(false);
       setSendSummaryOpen(true);
     },
     onCreateInvoice: () => {
@@ -1849,6 +1861,8 @@ function useJobShell(isDesktop: boolean) {
     setCompleteOpen,
     sendSummaryOpen,
     setSendSummaryOpen,
+    sendSummaryAfterCompletion,
+    setSendSummaryAfterCompletion,
     markInvoicedOpen,
     setMarkInvoicedOpen,
     markEstimatedOpen,
@@ -1923,6 +1937,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onCompleted={(signature) => {
         s.setCompleteOpen(false);
         s.completeJob(signature);
+        s.setSendSummaryAfterCompletion(true);
         s.setSendSummaryOpen(true);
       }}
       equipmentIds={s.equipmentIds}
@@ -1941,10 +1956,13 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       mobile={mobile}
     />
     {/* Send job summary — opens right after the job is completed
-        (Figma 24576-152451). */}
+        (Figma 24576-152451), and again from "Resend summary". The hand-over
+        from the Complete flow is a step of it, so its leading button says
+        "Skip"; opened by hand it says "Cancel". */}
     <SendSummaryForm
       open={s.sendSummaryOpen}
       onClose={() => s.setSendSummaryOpen(false)}
+      afterCompletion={s.sendSummaryAfterCompletion}
       mobile={mobile}
     />
     {/* Schedule job dialog (Figma 24222-20585) — the Scheduling form with
@@ -2076,14 +2094,14 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
 
 // ---- layouts --------------------------------------------------------------
 
-const DesktopShell = () => {
+const DesktopShell = ({ roundTo5min }: { roundTo5min: boolean }) => {
   const s = useJobShell(true);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
   const [tab, setTab] = useState("service");
   return (
     <div className={styles.desktop}>
-      <NavSidebar
+      <SidebarNav
         workspaces={[{ id: "1", name: "Workspace" }]}
         profileName="Lorne Riddle"
         profileEmail="email@address.com"
@@ -2094,7 +2112,7 @@ const DesktopShell = () => {
         breakpoint="desktop"
       >
         {navContent}
-      </NavSidebar>
+      </SidebarNav>
       <div className={styles.workArea}>
         <TopBar onActions={s.menu.onActions} actionsPressed={s.menu.open} avatarStatus={s.avatarStatus} tab={tab} onTabChange={setTab} />
         <div className={styles.contentRow}>
@@ -2118,6 +2136,7 @@ const DesktopShell = () => {
                   onAddSession={s.openAddSession}
                   canAddSessions={s.canAddSessions}
                   started={false}
+                  roundTo5min={roundTo5min}
                 />
               </div>
             ) : tab === "summary" ? (
@@ -2383,7 +2402,7 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = () => {
+const MobileShell = ({ roundTo5min }: { roundTo5min: boolean }) => {
   const s = useJobShell(false);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
@@ -2395,7 +2414,7 @@ const MobileShell = () => {
       <ScrollArea wrapperClassName={styles.mobileScroll} className={styles.mobileScrollInner}>
         <TopBar mobile hideOnScroll onActions={s.menu.onActions} actionsPressed={s.menu.open} tab={tab} onTabChange={setTab} avatarStatus={s.avatarStatus} />
         {/* Swipe-to-switch-tabs listens ONLY here (the tab content) — not on
-            the NavTopBar or the ActionBar (Daniel, 2026-07-22). */}
+            the TopBarNav or the ActionBar (Daniel, 2026-07-22). */}
         {/* Real-time swipe pager: drag the content to pull the next tab in. */}
         <SwipePager
           tab={tab}
@@ -2421,6 +2440,7 @@ const MobileShell = () => {
             onAddSession={s.openAddSession}
             canAddSessions={s.canAddSessions}
             started={false}
+            roundTo5min={roundTo5min}
             mobile
           />
             ) : t === "summary" ? (
@@ -2488,7 +2508,7 @@ const MobileShell = () => {
       <Menu
         open={s.menu.open}
         onClose={s.menu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         <JobContextMenuItems onClose={s.menu.close} />
@@ -2496,7 +2516,7 @@ const MobileShell = () => {
       <Menu
         open={s.actionMenu.open}
         onClose={s.actionMenu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         {jobActionMenuItems({ status: s.job.status, actions: s.actions })}
@@ -2506,7 +2526,7 @@ const MobileShell = () => {
       <Menu
         open={s.markAsMenu.open}
         onClose={s.markAsMenu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         {markAsMenuItems(s.actions)}
@@ -2514,7 +2534,7 @@ const MobileShell = () => {
       <Menu
         open={s.createMenu.open}
         onClose={s.createMenu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         {createMenuItems(s.actions)}
@@ -2527,7 +2547,7 @@ const MobileShell = () => {
   );
 };
 
-export default function JobDetails({ breakpoint = "auto" }: JobDetailsProps) {
+export default function JobDetails({ breakpoint = "auto", roundTo5min = false }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
-  return isDesktop ? <DesktopShell /> : <MobileShell />;
+  return isDesktop ? <DesktopShell roundTo5min={roundTo5min} /> : <MobileShell roundTo5min={roundTo5min} />;
 }

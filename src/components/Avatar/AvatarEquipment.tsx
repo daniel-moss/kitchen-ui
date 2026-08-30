@@ -22,7 +22,7 @@ export default function AvatarEquipment({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.equipment}
       size={size}

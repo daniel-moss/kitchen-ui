@@ -295,7 +295,7 @@ export const PhoneViewport = ({ children }: { children: ReactNode }) => {
       #storybook-root:has([data-drawer-root]),
       .sb-show-main:has([data-drawer-root]) { margin: 0 !important; padding: 0 !important; min-height: 0 !important; }
       /* Kill the iOS rubber-band bounce when dragging non-scrollable areas
-         (e.g. the NavSidebar): overscroll-behavior stops the chain/bounce
+         (e.g. the SidebarNav): overscroll-behavior stops the chain/bounce
          WITHOUT locking the document's scrollability — an overflow:hidden lock
          here would collapse the standalone layout viewport and re-break the
          home-indicator fix (see the height comment below). */

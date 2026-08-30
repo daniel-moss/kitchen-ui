@@ -33,6 +33,7 @@ export default function Tooltip({
   text = "Text",
   textAlign = "center",
   items = [],
+  avatarGroupSize = "xs",
   children,
   maxWidth = 240,
   className,
@@ -52,7 +53,7 @@ export default function Tooltip({
         style={{ maxWidth }}
       >
         {variant === "text" && text}
-        {variant === "avatarGroup" && <AvatarGroup variation="stack" size="xs" items={items} />}
+        {variant === "avatarGroup" && <AvatarGroup variation="stack" size={avatarGroupSize} items={items} />}
         {variant === "slot" && children}
 
         <span className={styles.arrow} aria-hidden="true" />

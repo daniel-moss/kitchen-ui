@@ -1,0 +1,69 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidebarNavProfileButtonStories from "./SidebarNavProfileButton.stories";
+
+<Meta of={SidebarNavProfileButtonStories} />
+
+# SidebarNavProfileButton
+
+We use **SidebarNavProfileButton** to provide access to the profile menu.
+
+<Canvas of={SidebarNavProfileButtonStories.Hero} />
+
+```tsx
+<SidebarNavProfileButton name="Lorne Riddle" email="email@address.com">
+  <MenuItemGroup>
+    <MenuItem label="Settings" slotLeft={<Icon icon="gear" container="square" />} />
+  </MenuItemGroup>
+  ...
+</SidebarNavProfileButton>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The profile button is built on top of the
+<a href="/?path=/docs/components-avatar-avataruser--docs" target="_top">AvatarUser</a>
+component: a `--size-9` (36px) circular button with the md (28px) user avatar
+centered inside.
+
+<Canvas of={SidebarNavProfileButtonStories.Hero} />
+
+## Behavior
+
+Clicking or tapping the profile button opens a
+<a href="/?path=/story/components-menu-menu--playground" target="_top">Menu</a>.
+
+The states: hover fills the circle with `--gray-a3`, press with `--gray-a4`;
+keyboard focus draws a 2px `--gray-12` ring at the bounds; disabled dims the
+button to 30%.
+
+<Canvas of={SidebarNavProfileButtonStories.States} />
+
+### Profile menu
+
+The profile button stays pressed while the Menu is open. On desktop the menu
+is a card `--size-1` (4px) below the button, left-aligned; the user's name
+and e-mail are the card's first block (name `body-500-compact` in
+`--text-strong`, e-mail `caption-medium-400` (13/20) in `--text-subtle`).
+
+<Canvas of={SidebarNavProfileButtonStories.MenuDesktop} />
+
+On mobile the menu is a drawer — the avatar, name, and e-mail sit in the
+drawer header. The example is live — tap the avatar:
+
+<Canvas of={SidebarNavProfileButtonStories.MenuMobile} />
+
+### Menu width
+
+The menu hugs the content. If the menu reaches its max width (384px), the
+user's name and e-mail truncate.
+
+<Canvas of={SidebarNavProfileButtonStories.Truncation} />
+
+## Props
+
+<ArgTypes of={SidebarNavProfileButtonStories} />

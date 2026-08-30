@@ -1,0 +1,9 @@
+// TopBarNavRightElements — values from Figma TopBarNav
+// "#️⃣ Right Elements List Desktop / Mobile": 8px gaps, right-aligned.
+
+.root {
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: center;
+  justify-content: flex-end;
+}

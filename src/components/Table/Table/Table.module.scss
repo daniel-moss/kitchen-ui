@@ -1,0 +1,30 @@
+// The table is the scroll container: it scrolls sideways when the columns are
+// wider than the viewport, and down through the rows. Owning both scrolls is
+// what lets the header stick to the top and (later) lets pinned columns stick
+// to the left — a sticky child needs its scrolling ancestor to be this element.
+.table {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  height: 100%;
+
+  overflow: auto;
+}
+
+// Sticky header. TableRow paints an opaque --surface-level-first, which is what
+// keeps the body rows from showing through as they scroll underneath.
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+
+  flex: none;
+}
+
+// The rows do not shrink — a short table keeps its natural height rather than
+// squeezing the rows to fit the container.
+.body {
+  flex: none;
+}

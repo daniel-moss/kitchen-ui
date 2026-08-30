@@ -80,7 +80,7 @@ to see it:
 
 Text can also be truncated after 2 or 3 lines, or wrapped entirely
 (`titleLines` / `captionLines`). It depends on the use case, and the specific
-behaviour is defined in the design files — if it is not defined, the default is
+behavior is defined in the design files — if it is not defined, the default is
 used. List item elements are top-aligned, so the avatar, the grip, the accordion
 caret, the right text and the right slot all stay on the first line while the
 text grows.
@@ -156,6 +156,15 @@ or an
 at lg (32px).
 
 <Canvas of={ListItemStories.SlotAvatars} />
+
+The slot supports a
+<a href="/?path=/docs/components-progress-progressring--docs" target="_top">ProgressRing</a>
+— for example, uploading files. Use `ListItemSlotProgress`: it centers the 16px
+ring in a 32px box, the same footprint as an IconButton, so it lines up with the
+other instances. Like the slot icon it is static, not a control, so hovering it
+does not cancel the row's own hover.
+
+<Canvas of={ListItemStories.SlotProgress} />
 
 ## Bottom elements
 

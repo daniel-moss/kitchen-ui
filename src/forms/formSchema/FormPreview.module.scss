@@ -1,0 +1,25 @@
+@use "../../styles/mixins/font" as *;
+
+// The STEP layer of a preview (Figma "Mapping / Step -> Preview" 24631-58494).
+// Steps sit 64px apart; inside a step the name is 32px above the content.
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-16); // 64px
+  width: 100%;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8); // 32px
+  width: 100%;
+}
+
+.stepTitle {
+  @include font("heading-h2");
+
+  margin: 0;
+  color: var(--text-strong);
+}

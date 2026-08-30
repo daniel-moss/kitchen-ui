@@ -201,7 +201,7 @@ const ContactRow = ({ user, role, email, phone, mobile, onRemove, locked = false
 // an Add button (which restores the demo contact here).
 const EmptyContactRow = ({ label, onAdd, locked = false }: { label: string; onAdd: () => void; locked?: boolean }) => (
   <div className={styles.emptyContact}>
-    <Avatar type="user" content="placeholder" size="xl" />
+    <AvatarUser content="placeholder" size="xl" />
     <span className={styles.emptyContactLabel}>{label}</span>
     {!locked && (
       <Button size="lg" variant="subtle" leftIcon="plus" onClick={onAdd}>
@@ -397,7 +397,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 </HoverTooltip>
               }
             />
-            <ValueDisplay label="Source" value="ServiceChannel" slotLeft={<Avatar type="object" content="image" size="xs" />} />
+            <ValueDisplay label="Source" value="ServiceChannel" slotLeft={<Avatar shape="square" content="image" size="xs" />} />
             <ValueDisplay
               label="Source ID"
               value="123456789"

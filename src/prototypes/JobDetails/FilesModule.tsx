@@ -170,7 +170,7 @@ const FileEntry = ({
         <Menu
           open={menu.open}
           onClose={menu.close}
-          header={
+          drawerHeader={
             <DrawerHeader>
               <PopoverHeaderContent avatar={<AvatarFile size="xl" type={file.type} />}>
                 <PopoverHeaderText variant="titleCaption" title={file.name} caption={FILE_META} />

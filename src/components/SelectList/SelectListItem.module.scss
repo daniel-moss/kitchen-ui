@@ -53,14 +53,14 @@
 
 @media (hover: hover) {
 // ---- row states ----
-.item:hover {
+.item:not(.readOnly):hover {
   @include row-hover-fill;
 }
 }
-.item:active {
+.item:not(.readOnly):active {
   @include row-press-fill;
 }
-.item:focus-visible {
+.item:not(.readOnly):focus-visible {
   @include row-focus-fill;
 }
 // Search "highlight first result": while typing, the first match is pre-lit like
@@ -68,8 +68,21 @@
 .item[data-highlight="true"] {
   @include row-hover-fill;
 }
+// disabled dims the WHOLE row to 30% (Figma node 24738-8711) — the checkbox
+// rides along at its default look, which is why it takes no `dimmed` of its own.
+// 0.3 is the mixin's default and the DS-wide value; this was 0.4 by mistake
+// (Daniel, 2026-08-19).
 .item.disabled {
-  @include row-disabled(0.4);
+  @include row-disabled;
+}
+// readOnly (Figma `state=readOnly`, multi-select only — nodes 29462-25287 /
+// 25291 for the default variant, 29462-25342 / 25345 for the object one). The
+// ROW is NOT dimmed: its label, caption, avatar and tag keep their normal
+// colours, so the user can still read what is ticked. Only the checkbox drops
+// to 30% (CheckboxBox's own `dimmed`), and the row answers to nothing — the
+// three state rules above exclude it, and the component attaches no handlers.
+.item.readOnly {
+  cursor: not-allowed;
 }
 
 // ---- parts ----

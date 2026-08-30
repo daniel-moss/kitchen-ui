@@ -1,0 +1,16 @@
+// The design system's loading pulse: 800ms, opacity 0.3 → 1, alternating.
+// Same timing as the Skeleton component; shared so avatars (Avatar's plain
+// loading shape, AvatarUser's loading user icon) cannot drift from it.
+@mixin skeleton-pulse {
+  animation: ku-skeleton-pulse 800ms ease-in-out infinite alternate;
+}
+
+@keyframes ku-skeleton-pulse {
+  from {
+    opacity: 0.3;
+  }
+
+  to {
+    opacity: 1;
+  }
+}

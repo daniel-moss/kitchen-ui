@@ -6,66 +6,54 @@ import { IconPack } from "../Icon/Icon.types";
 export type AvatarSize = "xxs" | "xs" | "sm" | "md" | "lg" | "xl";
 
 /**
- * Avatar shape. `object` is a square; `user` is a circle; `live` is a circle
- * with a collaboration ring (md/lg/xl only, image/letters only, no addOns).
+ * Avatar shape. `square` is a rounded square — `--border-radius-1` (4px) on
+ * xxs/xs, `--border-radius-1_5` (6px) from sm up. `circle` is a full circle at
+ * every size.
  */
-export type AvatarType = "object" | "user" | "live";
-
-/** Live-collaboration ring colors (the only colors the live ring may use). */
-export type AvatarRingColor =
-  | "crimson"
-  | "pink"
-  | "plum"
-  | "violet"
-  | "indigo"
-  | "blue"
-  | "cyan"
-  | "teal"
-  | "orange"
-  | "amber";
+export type AvatarShape = "square" | "circle";
 
 /**
- * Avatar content. `icon` shows an icon; `letters` shows a single letter;
- * `image` fills the shape with an image; `counter` shows a `+N` count;
- * `placeholder` is a dashed empty circle with the `user` icon (user only).
- * `counter` and `placeholder` support no addOns; `counter` is not used on `xxs`.
+ * Avatar content. `icon` shows an icon — free on `square`, locked to the `user`
+ * glyph on `circle`; `letters` shows one or two letters; `image` fills the
+ * shape; `counter` shows a `+N` count (not used on xxs).
  */
-export type AvatarContent = "icon" | "letters" | "image" | "counter" | "placeholder";
+export type AvatarContent = "icon" | "letters" | "image" | "counter";
 
 /**
  * AddOn in the bottom-right corner. Both cut a notch out of the avatar (SVG
  * mask) and sit in it — the notch is a real hole, so the gap ring shows the
  * surface behind the avatar. `statusDot` places a dot; `icon` places an icon.
- * Not allowed on `xxs` (ignored there).
+ * The `icon` addOn is not allowed on `xxs`; neither is allowed on `counter`
+ * content or while loading.
  */
 export type AvatarAddOn = "none" | "statusDot" | "icon";
 
 export interface AvatarProps extends Omit<HTMLAttributes<HTMLDivElement>, "content"> {
   /** Square size. Default "md". */
   size?: AvatarSize;
-  /** Shape. Default "object". */
-  type?: AvatarType;
+  /** Shape. Default "square". */
+  shape?: AvatarShape;
   /** What fills the avatar. Default "icon". */
   content?: AvatarContent;
   /** Corner addOn. Default "none". */
   addOn?: AvatarAddOn;
 
-  /** Icon name (content "icon"). Default "diamonds-4". */
+  /** Icon name (content "icon", `square` only). Default "diamonds-4". */
   icon?: string;
-  /** Icon pack / weight (content "icon"). Default "solid". */
+  /** Icon pack / weight (content "icon", `square` only). Default "solid". */
   iconPack?: IconPack;
   iconClassName?: string;
-  /** Icon color override for icon content (e.g. AvatarFile). Default per type. */
+  /** Icon color override for icon content (e.g. AvatarFile). Default per shape. */
   iconColor?: string;
 
   /** Background override for the avatar surface (e.g. AvatarFile scale-9 fill). */
   backgroundColor?: string;
 
   /**
-   * Letters (content "letters"), shown uppercase. Sliced to fit: object shows 1;
-   * user shows 1 on xxs/xs and 2 on sm–xl. Default "AB".
+   * Letters (content "letters"), shown uppercase. Sliced to fit: one letter on
+   * xxs/xs, two from sm up — the same on both shapes. Default "AB".
    */
-  letter?: string;
+  characters?: string;
 
   /** Image URL (content "image"). Defaults to a mesh-gradient placeholder. */
   imageSrc?: string;
@@ -75,12 +63,9 @@ export interface AvatarProps extends Omit<HTMLAttributes<HTMLDivElement>, "conte
   /** Count (content "counter"). Shown as `+N`, or `99+` above 99. Default 2. */
   count?: number;
 
-  /** Live ring color (type "live" only). Default "crimson". */
-  ringColor?: AvatarRingColor;
-
   /**
-   * Loading state. Overrides content and addOns with a pulsing skeleton shape
-   * while data loads. Default false.
+   * Loading state. Replaces the content and any addOn with the plain pulsing
+   * surface while data loads — the size, shape and corners stay. Default false.
    */
   isLoading?: boolean;
 

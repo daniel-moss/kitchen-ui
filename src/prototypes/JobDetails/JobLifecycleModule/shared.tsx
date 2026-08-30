@@ -28,7 +28,7 @@ export interface LifecycleConceptProps {
 
 /**
  * One "Value" box of the Top Data row. An empty value ("0 min") is written in
- * the placeholder colour (Figma "Billable Time" 24575-150179).
+ * the placeholder color (Figma "Billable Time" 24575-150179).
  */
 const Highlight = ({ title, value }: { title: string; value: string }) => (
   <div className={styles.value}>
@@ -70,7 +70,7 @@ export const SectionTitle = ({ children, hint = true }: { children: string; hint
 );
 
 /**
- * A status glyph, 14px solid in its status colour. "Upcoming" is the
+ * A status glyph, 14px solid in its status color. "Upcoming" is the
  * half-stroke circle turned so its fill sits on the RIGHT.
  */
 export const StatusGlyph = ({
@@ -87,7 +87,7 @@ export const StatusGlyph = ({
 
 /**
  * The 36px avatar the ListItem concepts use: the status glyph on a tinted
- * square. The tint is the glyph's own colour at low opacity, so one rule
+ * square. The tint is the glyph's own color at low opacity, so one rule
  * covers every status (the same shape FormAvatar uses for form states).
  */
 export const StatusAvatar = ({ row }: { row: Pick<LifecycleRow, "icon" | "color" | "rotate"> }) => (

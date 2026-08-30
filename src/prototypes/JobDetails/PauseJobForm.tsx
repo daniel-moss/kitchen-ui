@@ -25,7 +25,7 @@ export const PAUSE_SUB_STATUSES: Record<string, string[]> = {
 
 /**
  * Which "On hold" sub-statuses wait on something INSIDE the company. The Job
- * lifecycle module colours those rows brown instead of crimson (the DS
+ * lifecycle module colors those rows brown instead of crimson (the DS
  * `BadgeJobStatus` on-hold variants). The others wait on the client and stay
  * crimson. DEMO data — the real app stores the internal/external kind on the
  * sub-status itself.

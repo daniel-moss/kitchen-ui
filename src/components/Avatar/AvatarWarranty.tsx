@@ -22,7 +22,7 @@ export default function AvatarWarranty({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.warranty}
       size={size}

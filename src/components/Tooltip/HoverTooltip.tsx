@@ -1,7 +1,7 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { AvatarGroupItem } from "../Avatar/AvatarGroup.types";
+import { AvatarGroupItem, AvatarGroupSize } from "../Avatar/AvatarGroup.types";
 import Tooltip from "./Tooltip";
 import { TooltipAlign, TooltipVariant } from "./Tooltip.types";
 
@@ -33,12 +33,25 @@ interface HoverTooltipProps {
   tapToShow?: boolean;
   /** Tooltip text (variant "text"). */
   text?: string;
-  /** Avatars (variant "avatarGroup") — an xs stack, like the Tooltip itself. */
+  /** Avatars (variant "avatarGroup") — a stack, like the Tooltip itself. */
   items?: AvatarGroupItem[];
+  /** The avatar stack's size (variant "avatarGroup"). Default "xs". */
+  avatarGroupSize?: AvatarGroupSize;
   /** Arbitrary tooltip content (variant "slot"). */
   content?: ReactNode;
   /** Max body width. Default 240 (the Tooltip default). */
   maxWidth?: number | string;
+  /**
+   * Use an element the CALLER owns as the trigger, instead of the wrapper span
+   * this component renders by default. The tooltip then both listens on that
+   * element and is measured against it, so it appears above / below it.
+   *
+   * For triggers that cannot take a wrapper — a table cell is a flex child
+   * carrying its own width, so an `inline-flex` span around it would break the
+   * row. Passing a ref also makes the WHOLE element the hover area, padding
+   * included, rather than just the content inside it.
+   */
+  triggerRef?: RefObject<HTMLElement | null>;
   /** The trigger. */
   children: ReactNode;
   className?: string;
@@ -54,13 +67,18 @@ export default function HoverTooltip({
   textAlign = "center",
   text,
   items,
+  avatarGroupSize,
   content,
   maxWidth,
   tapToShow = false,
+  triggerRef,
   children,
   className,
 }: HoverTooltipProps) {
-  const ref = useRef<HTMLSpanElement>(null);
+  const ownRef = useRef<HTMLSpanElement>(null);
+  // The element the tooltip listens on and is measured against: the caller's
+  // when `triggerRef` is set, otherwise the wrapper span below.
+  const ref = (triggerRef ?? ownRef) as RefObject<HTMLElement | null>;
   // Touch devices emulate mouseenter on tap (and never end it) — a tooltip is
   // a hover affordance, so on touch it simply does not exist.
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
@@ -121,9 +139,74 @@ export default function HoverTooltip({
     };
   }, [tapMode, pos]);
 
+  // External trigger: React's onMouseEnter is not available on an element we do
+  // not render, so the listeners go on directly. `mouseenter`/`mouseleave` are
+  // the native non-bubbling pair, which is exactly the enter/leave semantics
+  // React synthesises — moving between children never re-fires them.
+  useEffect(() => {
+    const el = triggerRef?.current;
+    if (el == null || !canHover) return undefined;
+    el.addEventListener("mouseenter", show);
+    el.addEventListener("mouseleave", hide);
+    return () => {
+      el.removeEventListener("mouseenter", show);
+      el.removeEventListener("mouseleave", hide);
+    };
+  });
+
+  // Same marker the wrapper span sets, for a trigger we do not render.
+  useEffect(() => {
+    const el = triggerRef?.current;
+    if (el == null) return undefined;
+    if (pos != null) el.setAttribute("data-tooltip-open", "true");
+    else el.removeAttribute("data-tooltip-open");
+    return undefined;
+  }, [triggerRef, pos]);
+
+  const tip = pos && (
+    createPortal(
+      <span
+        style={{
+          position: "fixed",
+          left: pos.x,
+          top: pos.y,
+          // 8px = 4px gap + ~4px tongue protrusion → 4px between button and tongue tip.
+          transform: `translate(${X_SHIFT[pos.align]}, ${pos.placement === "top" ? "calc(-100% - 8px)" : "8px"})`,
+          zIndex: 9999,
+          pointerEvents: "none",
+        }}
+      >
+        <Tooltip
+          placement={pos.placement}
+          align={pos.align}
+          textAlign={textAlign}
+          variant={variant}
+          text={text}
+          items={items}
+          avatarGroupSize={avatarGroupSize}
+          maxWidth={maxWidth}
+        >
+          {content}
+        </Tooltip>
+      </span>,
+      document.body,
+    )
+  );
+
+  // With a caller-owned trigger there is no wrapper to render — the children
+  // are handed back untouched, so the trigger's own layout is never disturbed.
+  if (triggerRef != null) {
+    return (
+      <>
+        {children}
+        {tip}
+      </>
+    );
+  }
+
   return (
     <span
-      ref={ref}
+      ref={ownRef}
       className={className}
       style={{ display: "inline-flex" }}
       // Marks the trigger while the tooltip is open — a HintTrigger inside reads
@@ -137,27 +220,7 @@ export default function HoverTooltip({
       onBlur={tapMode ? undefined : hide}
     >
       {children}
-      {pos &&
-        createPortal(
-          <span
-            style={{
-              position: "fixed",
-              left: pos.x,
-              top: pos.y,
-              // 8px = 4px gap + ~4px tongue protrusion → 4px between button and tongue tip.
-              transform: `translate(${X_SHIFT[pos.align]}, ${
-                pos.placement === "top" ? "calc(-100% - 8px)" : "8px"
-              })`,
-              zIndex: 9999,
-              pointerEvents: "none",
-            }}
-          >
-            <Tooltip placement={pos.placement} align={pos.align} textAlign={textAlign} variant={variant} text={text} items={items} maxWidth={maxWidth}>
-              {content}
-            </Tooltip>
-          </span>,
-          document.body,
-        )}
+      {tip}
     </span>
   );
 }

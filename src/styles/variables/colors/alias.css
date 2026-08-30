@@ -14,7 +14,7 @@
   --live-collaboration-cyan: var(--cyan-9);
   --live-collaboration-teal: var(--teal-9);
   --live-collaboration-orange: var(--orange-9);
-  --live-collaboration-amber: var(--amber-10);
+  --live-collaboration-amber: var(--amber-9);
 }
 
 /* Text Colors — declared in every theme context so the referenced gray scales
@@ -31,6 +31,7 @@
   --text-info: var(--blue-a11);
   --text-success: var(--jade-a11);
   --text-warning: var(--amber-a11);
+  --text-caution: var(--orange-a11);
   --text-error: var(--tomato-a11);
 }
 

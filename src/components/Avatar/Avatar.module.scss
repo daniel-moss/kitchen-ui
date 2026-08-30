@@ -1,3 +1,5 @@
+@use "../../styles/mixins/skeleton" as *;
+
 .base {
   position: relative;
 
@@ -24,35 +26,12 @@
   justify-content: center;
 }
 
-// placeholder (user only): no fill, just the dashed ring + user icon.
-.placeholder {
-  background: transparent;
-}
-
-// dashed placeholder ring: fills the box, stroke color drives the dashes.
-.ring {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: var(--gray-a9);
-}
-
-// loading: the gray surface pulses (same 800ms skeleton pulse as elsewhere).
+// loading: the gray surface pulses (the shared design-system skeleton pulse).
 .loading {
-  animation: ku-avatar-skeleton 800ms ease-in-out infinite alternate;
+  @include skeleton-pulse;
 }
 
-@keyframes ku-avatar-skeleton {
-  from {
-    opacity: 0.3;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-// icon content. Object icon = gray-a8; user icon (locked) = gray-a9.
+// icon content. Square icon = gray-a8; circle icon (locked to `user`) = gray-a9.
 .iconContent {
   display: inline-flex;
   align-items: center;
@@ -60,7 +39,7 @@
   color: var(--gray-a8);
 }
 
-.iconUser {
+.iconCircle {
   color: var(--gray-a9);
 }
 
@@ -85,6 +64,7 @@
 .counter {
   font-family: "InterVariable", sans-serif;
   font-weight: 400;
+  font-feature-settings: "ss01" on, "cv08" on;
   line-height: normal;
   text-align: center;
   color: var(--gray-a11);
@@ -114,12 +94,7 @@
   color: var(--gray-12);
 }
 
-// ---- type ----
-.objectType {
-  // square; the corner radius is set per size bucket below.
-}
-
-// ---- sizes (square) ----
+// ---- sizes ----
 .xxsSize {
   width: var(--size-4); /* 16px */
   height: var(--size-4);
@@ -150,39 +125,20 @@
   height: var(--size-9);
 }
 
-// ---- object radius: --border-radius-1 (xxs–sm), --border-radius-1_5 (md–xl) ----
-.objectType.xxsSize .surface,
-.objectType.xsSize .surface,
-.objectType.smSize .surface {
+// ---- square radius: --border-radius-1 (xxs–xs), --border-radius-1_5 (sm–xl) ----
+.squareShape.xxsSize .surface,
+.squareShape.xsSize .surface {
   border-radius: var(--border-radius-1);
 }
 
-.objectType.mdSize .surface,
-.objectType.lgSize .surface,
-.objectType.xlSize .surface {
+.squareShape.smSize .surface,
+.squareShape.mdSize .surface,
+.squareShape.lgSize .surface,
+.squareShape.xlSize .surface {
   border-radius: var(--border-radius-1_5);
 }
 
-// ---- user radius: full circle at every size ----
-.userType .surface {
-  border-radius: var(--border-radius-full);
-}
-
-// ---- live: circle with a collaboration ring ----
-// Outer = the size value (border-box); 2px ring + 2px gap → inner circle size−8.
-.liveType {
-  box-sizing: border-box;
-  padding: var(--size-0_5); /* 2px gap between ring and avatar */
-  border: 2px solid var(--avatar-ring, var(--live-collaboration-crimson));
-  border-radius: var(--border-radius-full);
-}
-
-// The inner avatar sits in the content box (size−8), not the padding box, so it
-// flows normally instead of being absolutely positioned.
-.liveType .surface {
-  position: relative;
-  inset: auto;
-  width: 100%;
-  height: 100%;
+// ---- circle radius: full circle at every size ----
+.circleShape .surface {
   border-radius: var(--border-radius-full);
 }

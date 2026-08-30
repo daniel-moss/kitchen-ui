@@ -2,10 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import MenuItemGroup from "./MenuItemGroup";
 import MenuItem from "./MenuItem";
+import GroupLabel from "../GroupLabel/GroupLabel";
 import { Icon } from "../Icon/Icon";
 import { noop } from "../../stories/helpers";
 
 type StoryArgs = {
+  label: boolean;
   divider: boolean;
 };
 
@@ -17,8 +19,9 @@ const meta: Meta<StoryArgs> = {
   title: "Components/Menu/MenuItemGroup",
   component: MenuItemGroup,
   parameters: { layout: "centered" },
-  args: { divider: false },
+  args: { label: false, divider: false },
   argTypes: {
+    label: { control: { type: "boolean" } },
     divider: { control: { type: "boolean" } },
   },
 };
@@ -28,9 +31,9 @@ export default meta;
 type Story = StoryObj<StoryArgs>;
 
 export const Playground: Story = {
-  render: ({ divider }) => (
+  render: ({ label, divider }) => (
     <div style={frame}>
-      <MenuItemGroup divider={divider}>
+      <MenuItemGroup label={label ? <GroupLabel variant="secondary" label="Label" /> : undefined} divider={divider}>
         <MenuItem label="Action" slotLeft={icon("diamonds-4")} onClick={noop} />
         <MenuItem label="Action" slotLeft={icon("diamonds-4")} onClick={noop} />
       </MenuItemGroup>
@@ -47,7 +50,7 @@ export const Menu: Story = {
         <MenuItem label="Edit" slotLeft={icon("pen")} onClick={noop} />
         <MenuItem label="Duplicate" slotLeft={icon("copy")} onClick={noop} />
       </MenuItemGroup>
-      <MenuItemGroup divider>
+      <MenuItemGroup label={<GroupLabel variant="secondary" label="Settings" />} divider>
         <MenuItem label="Notifications" toggle defaultChecked />
         <MenuItem label="Share" slotLeft={icon("arrow-up-from-bracket")} slotRight={icon("angle-right")} onClick={noop} />
       </MenuItemGroup>

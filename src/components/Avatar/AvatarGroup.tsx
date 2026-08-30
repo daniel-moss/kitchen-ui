@@ -1,9 +1,9 @@
 import clsx from "clsx";
 import type { CSSProperties } from "react";
 
-import Avatar from "./Avatar";
+import AvatarLive from "./AvatarLive";
 import AvatarUser from "./AvatarUser";
-import { AvatarRingColor } from "./Avatar.types";
+import { AvatarLiveColor, AvatarLiveSize } from "./AvatarLive.types";
 import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
 // Circular at module level (Tooltip renders an AvatarGroup) — safe: all three
 // are hoisted function declarations, only called at render time.
@@ -27,7 +27,7 @@ const MASK: Record<AvatarGroupSize, [number, number, number]> = {
 // Distinct live ring colors, assigned in order (max 10 per group). Hues are
 // interleaved on purpose — neighbors must contrast (crimson next to pink was
 // too close to tell apart).
-const RING_PALETTE: AvatarRingColor[] = [
+const RING_PALETTE: AvatarLiveColor[] = [
   "crimson",
   "teal",
   "violet",
@@ -67,22 +67,24 @@ function isCounter(item: RenderItem): item is CounterItem {
 }
 
 function renderAvatar(item: RenderItem, size: AvatarGroupSize, isLoading: boolean) {
-  // Loading: a plain pulsing circle for every slot (kind/content unknown yet).
+  // Loading: the pulsing user avatar for every slot (kind/content unknown yet).
   if (isLoading) {
-    return <Avatar type="user" size={size} isLoading />;
+    return <AvatarUser size={size} isLoading />;
   }
   if (isCounter(item)) {
     return <AvatarUser size={size} content="counter" count={item.count} />;
   }
   if (item.kind === "live") {
+    // Live avatars exist at md/lg/xl only (see AvatarGroupLiveItem); a group
+    // sized below that falls back to the smallest live size.
+    const liveSize: AvatarLiveSize = size === "xs" || size === "sm" ? "md" : size;
     return (
-      <Avatar
-        type="live"
-        size={size}
+      <AvatarLive
+        size={liveSize}
         content={item.content ?? "image"}
         imageSrc={item.imageSrc}
-        letter={item.letter}
-        ringColor={item.ringColor}
+        characters={item.characters}
+        color={item.ringColor}
       />
     );
   }
@@ -91,7 +93,7 @@ function renderAvatar(item: RenderItem, size: AvatarGroupSize, isLoading: boolea
       size={size}
       content={item.content ?? "image"}
       imageSrc={item.imageSrc}
-      letter={item.letter}
+      characters={item.characters}
     />
   );
 }

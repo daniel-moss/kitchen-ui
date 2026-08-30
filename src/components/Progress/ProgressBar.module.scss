@@ -1,0 +1,32 @@
+@use "../../styles/mixins/skeleton" as *;
+
+// The track: height is fixed, width comes from the container, and the fill is
+// clipped to the rounded ends.
+.track {
+  position: relative;
+
+  width: 100%;
+  height: var(--size-1); /* 4px */
+
+  background: var(--gray-a4);
+  border-radius: var(--border-radius-full);
+
+  overflow: hidden;
+}
+
+// The progress line: anchored left, its width IS the value.
+.fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  height: 100%;
+
+  background: var(--gray-12);
+  border-radius: var(--border-radius-full);
+}
+
+// Loading: the empty track pulses (the shared design-system skeleton pulse).
+.loading {
+  @include skeleton-pulse;
+}

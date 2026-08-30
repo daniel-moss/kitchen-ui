@@ -1,0 +1,91 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// SidebarNavProfileButton — a 36px circular avatar button; the profile Menu
+// anchors 4px below it. All values from Figma "SidebarNavProfileButton".
+
+.wrap {
+  width: fit-content;
+}
+
+// Desktop only: the wrap anchors the menu card. On mobile it must stay
+// UNPOSITIONED — the drawer's scrim fills the nearest positioned ancestor,
+// which has to be the app container, not this 36px wrapper.
+.wrapDesktop {
+  position: relative;
+}
+
+.button {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-9); // 36px
+  height: var(--size-9);
+  padding: 0;
+  border: none;
+  border-radius: var(--border-radius-full);
+  background: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  // While the menu is open the pressed fill wins over hover.
+  .button:hover:not(:disabled):not(.open) {
+    background: var(--gray-a3);
+  }
+}
+
+.button:active:not(:disabled),
+.open {
+  background: var(--gray-a4); // pressed — and held while the menu is open
+}
+
+// The circular focus ring: a plain 2px stroke (drawn inward, no size change).
+.button:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gray-12);
+}
+
+.disabled {
+  @include row-disabled;
+}
+
+// The menu card sits 4px below the button, left-aligned with it.
+.menuAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1));
+  left: 0;
+  z-index: var(--z-menu);
+}
+
+// ---- the name + e-mail section at the top of the desktop card ----
+// Figma: 16px sides, 12px above, 8px below; both lines truncate at the
+// card's max width.
+.menuHeader {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+  padding: var(--size-3) var(--size-4) var(--size-2);
+}
+
+.menuName {
+  @include font("body-500-compact");
+  color: var(--text-strong);
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.menuEmail {
+  @include font("caption-medium-400"); // 13/20 (the doc — was body-400-compact)
+  color: var(--text-subtle);
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

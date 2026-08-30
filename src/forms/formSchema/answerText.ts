@@ -12,6 +12,7 @@ import {
   FormTextAnswer,
   PreviewAnswer,
   PreviewModule,
+  PreviewStep,
 } from "./schema.types";
 
 // The input → preview mapping (Figma "Mapping / Input -> Preview" 24469-37438).
@@ -168,7 +169,7 @@ export function answerText(field: FormFieldSchema, answers: FormAnswers): string
 /** One field as a preview answer, or `null` when it is hidden or empty. */
 function previewAnswer(field: FormFieldSchema, module: FormModuleSchema, answers: FormAnswers): PreviewAnswer | null {
   if (!isFieldVisible(field, answers)) return null;
-  // A label-less field is labelled by its module's title (Daniel, 2026-08-05).
+  // A label-less field is labeled by its module's title (Daniel, 2026-08-05).
   const label = field.label ?? module.title ?? "";
   const raw = answers[field.key];
 
@@ -201,6 +202,7 @@ export function buildFormPreview(schema: FormSchema, answers: FormAnswers): Prev
   return schema.modules
     .map((module) => ({
       id: module.id,
+      step: module.step,
       title: module.title,
       caption: module.caption,
       answers: module.fields.flatMap((field) => {
@@ -209,4 +211,22 @@ export function buildFormPreview(schema: FormSchema, answers: FormAnswers): Prev
       }),
     }))
     .filter((module) => module.answers.length > 0);
+}
+
+/**
+ * The same modules, grouped into the form's STEPS (Figma "Mapping / Step ->
+ * Preview" 24631-58494). Steps keep the schema's order — the order the stepper
+ * asks them in — and a step left with no module is dropped, like an empty
+ * module. Modules with no `step` are not grouped; they land under "".
+ */
+export function buildPreviewSteps(modules: PreviewModule[]): PreviewStep[] {
+  const steps: PreviewStep[] = [];
+  for (const module of modules) {
+    const title = module.step ?? "";
+    const last = steps[steps.length - 1];
+    // Consecutive modules of the same step share one heading.
+    if (last != null && last.title === title) last.modules.push(module);
+    else steps.push({ title, modules: [module] });
+  }
+  return steps;
 }

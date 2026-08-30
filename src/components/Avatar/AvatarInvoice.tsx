@@ -29,7 +29,7 @@ export default function AvatarInvoice({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.invoice}
       size={size}

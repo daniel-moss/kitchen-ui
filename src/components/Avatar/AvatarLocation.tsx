@@ -7,6 +7,6 @@ import { AvatarLocationProps } from "./AvatarLocation.types";
 // semantic icon. Icon-only — no statuses, no addOns.
 export default function AvatarLocation({ size = "md", className }: AvatarLocationProps) {
   return (
-    <Avatar type="object" content="icon" icon={semanticIcons.location} size={size} className={className} />
+    <Avatar shape="square" content="icon" icon={semanticIcons.location} size={size} className={className} />
   );
 }

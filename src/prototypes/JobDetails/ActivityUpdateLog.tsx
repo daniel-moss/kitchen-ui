@@ -59,7 +59,7 @@ export const ValueGlyph = ({ icon, muted = false }: { icon?: ValueIcon; muted?: 
 // 2026-08-04 — the same idea as a value's glyph; used by the job-contact logs
 // and by the Assignees list. xs was tried and reverted, it made the sentence
 // wrap too early).
-// The avatar keeps its full colour on the OLD side too: the struck-through
+// The avatar keeps its full color on the OLD side too: the struck-through
 // name already says the value was replaced, and a faded photo just looks
 // muddy. Like the glyph, it brings its own 6px gaps, so the sentence around it
 // carries no plain spaces.

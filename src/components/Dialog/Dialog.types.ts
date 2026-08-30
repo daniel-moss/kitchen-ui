@@ -127,6 +127,9 @@ export interface DialogFocusProps extends DialogBaseProps {
    * When true, the Next / final-action button is DISABLED until the body is
    * scrolled to the bottom (re-armed on each step). If a step's content does
    * not overflow, the button stays enabled. Default false.
+   *
+   * Not needed for the step-change scroll reset: a step change ALWAYS puts the
+   * body back at the top, gated or not.
    */
   requireScrollToEnd?: boolean;
 }

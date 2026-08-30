@@ -46,7 +46,7 @@ const stateProps = (state: StateOption) => ({
 
 /**
  * Checkbox — a 16px box with a check (checked) or hyphen (indeterminate)
- * glyph. The bare box only — a labelled row is CheckboxItem. Used inside
+ * glyph. The bare box only — a labeled row is CheckboxItem. Used inside
  * CheckboxItem and checkbox-like local components.
  */
 const meta: Meta<StoryArgs> = {

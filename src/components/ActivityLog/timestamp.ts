@@ -1,4 +1,4 @@
-// ActivityLog timestamp formatting. Both formats are DESIGN SYSTEM behaviour
+// ActivityLog timestamp formatting. Both formats are DESIGN SYSTEM behavior
 // (documented on the Figma ActivityLog documentation page), not product copy —
 // they live here so every activity log reads the same.
 

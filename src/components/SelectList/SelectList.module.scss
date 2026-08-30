@@ -1,7 +1,9 @@
 // SelectList — the inline card presentation. (dialog is built on Dialog;
 // drawer on the Popover drawer — both bring their own chrome.)
-// Same surface chrome as the Menu card: the width adapts to the content
-// within min 160 / max 384; height caps at 1000px and the body scrolls.
+// Same surface chrome as the Menu card, but WITHOUT Menu's 160px floor: the
+// width hugs the content up to max 384 (Daniel, 2026-08-27 — the TopBarNav
+// sub-pages and TopBarView views lists hug their short labels); height caps
+// at 1000px and the body scrolls.
 .card {
   box-sizing: border-box;
   display: flex;
@@ -9,7 +11,6 @@
   overflow: hidden;
 
   width: fit-content;
-  min-width: var(--size-40); // 160px
   max-width: var(--size-96); // 384px
   max-height: 1000px;
 
@@ -51,7 +52,10 @@
 // `100%` is the full scrim (it stays full-screen — Popover.tsx lifts the sheet
 // above the keyboard rather than shrinking the scrim). When the keyboard is up
 // Popover caps this sheet's max-height inline to the space above it, so this
-// full height is clamped to fit — no extra subtraction needed here.
+// full height is clamped to fit — no extra subtraction needed here. That holds
+// for a sheet in a device frame too since 2026-08-19; before then Popover only
+// measured body-portaled sheets, and a full-height list inside a phone frame
+// kept its footer behind the keyboard.
 .drawerFull {
   height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
 }

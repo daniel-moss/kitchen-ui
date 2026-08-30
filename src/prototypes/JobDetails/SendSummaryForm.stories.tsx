@@ -19,17 +19,29 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj;
 
-// The page behind the form: one button that opens it again after Cancel / Send.
+// The page behind the form: one button that opens it again after Skip / Send.
+// The FIRST open (on mount) stands for the hand-over from the Complete flow, so
+// its leading button says "Skip"; the button below reopens it by hand, the
+// "Resend summary" case, and the leading button says "Cancel".
 const Harness = ({ mobile }: { mobile: boolean }) => {
   const [open, setOpen] = useState(true);
+  const [afterCompletion, setAfterCompletion] = useState(true);
   return (
     <PhoneViewport>
       <div className={styles.storyPage}>
-        <Button size="lg" variant="subtle" leftIcon="paper-plane" onClick={() => setOpen(true)}>
+        <Button
+          size="lg"
+          variant="subtle"
+          leftIcon="paper-plane"
+          onClick={() => {
+            setAfterCompletion(false);
+            setOpen(true);
+          }}
+        >
           Open the form
         </Button>
       </div>
-      <SendSummaryForm open={open} onClose={() => setOpen(false)} mobile={mobile} />
+      <SendSummaryForm open={open} onClose={() => setOpen(false)} afterCompletion={afterCompletion} mobile={mobile} />
       <Toaster breakpoint={mobile ? "mobile" : "desktop"} />
     </PhoneViewport>
   );

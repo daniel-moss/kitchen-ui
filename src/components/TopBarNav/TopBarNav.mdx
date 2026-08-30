@@ -1,0 +1,223 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TopBarNavStories from "./TopBarNav.stories";
+
+<Meta of={TopBarNavStories} />
+
+# TopBarNav
+
+We use **TopBarNav** to provide navigation within the app.
+
+<Canvas of={TopBarNavStories.Hero} />
+
+```tsx
+<TopBarNav tabs={phaseTabs} onSearch={openSearch} onCreate={createJob}>
+  <TopBarNavLeftElements>
+    <TopBarNavTitle title="Jobs" subPages={subPages} />
+  </TopBarNavLeftElements>
+</TopBarNav>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Navigation elements](#navigation-elements)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Right elements](#right-elements)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["List" page](#list-page)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Tabs](#tabs)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Sub-pages](#sub-pages)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Details" page](#details-page)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Back" button](#back-button)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Context menu" button](#context-menu-button)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Tabs](#tabs-1)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Live users](#live-users)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Inner" page](#inner-page)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The bar contains a group of elements on the left, used primarily for
+navigation, and a group of elements on the right, which provides access to
+actions. The bar has a
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+component at the bottom. The height is fixed. The bar fills the width.
+
+The content row is 60px tall with `--size-4` (16px) side padding; the
+clusters (left elements ↔ tabs ↔ right elements) sit `--size-4` (16px)
+apart. The bar itself has no fill — the app background shows through. The
+title is Semibold 16/24 (`--text-strong`) and truncates with an ellipsis.
+
+<Canvas of={TopBarNavStories.Hero} />
+
+### Navigation elements
+
+The
+<a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
+(`default` / `lg`, 36px tabs) is optional.
+
+<Canvas of={TopBarNavStories.TabsOptional} />
+
+The component supports optional "Back" and "Context menu" buttons — ghost
+`lg` (36px)
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButtons</a>,
+`--size-2` (8px) from the title.
+
+<Canvas of={TopBarNavStories.BackAndContextMenu} />
+
+The title can be a
+<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>
+trigger. In this case, the title is interactive.
+
+<Canvas of={TopBarNavStories.TitleDropdown} />
+
+The title interaction states are opacity-based: 75% on hover, 50% while
+pressed (held while its list is open), 30% disabled. Keyboard focus draws a
+2px `--gray-12` ring 4px outside the title (radius `--border-radius-1_5` /
+6px). The dropdown icon is `angles-up-down` 14px `regular` (`--gray-a9`),
+`--size-2` (8px) after the title. The example is live — hover, press, or
+focus it with the keyboard:
+
+<Canvas of={TopBarNavStories.TitleStates} />
+
+The title supports a left slot. The left slot supports an Avatar component.
+The size of the Avatar is fixed — 36px (`xl`), `--size-2_5` (10px) before
+the title — but any avatar can be inserted.
+
+<Canvas of={TopBarNavStories.TitleAvatar} />
+
+### Right elements
+
+The right elements are optional.
+
+<Canvas of={TopBarNavStories.RightElementsOptional} />
+
+If used, the component supports a Button, an IconButton and an AvatarGroup —
+`--size-2` (8px) apart, right-aligned. The list bar carries the search
+IconButton and the create Button; the details bar carries the live users.
+
+<Canvas of={TopBarNavStories.DetailsDesktop} />
+
+## Behavior
+
+### "List" page
+
+The top bar in the list pages provides access to top-level navigation and
+actions. It contains the phase tabs, an optional "New" button and an
+optional "Object search" IconButton.
+
+<Canvas of={TopBarNavStories.Hero} />
+
+The "New" Button (solid `lg`) turns into an IconButton on mobile. The
+"Object search" IconButton does not exist on mobile. Hovering over the
+IconButtons triggers
+<a href="/?path=/story/components-tooltip--playground" target="_top">tooltips</a>
+("Object search" / the create label).
+
+<Canvas of={TopBarNavStories.ListMobile} />
+
+#### Tabs
+
+The TabGroup scrolls when there is not enough room. A fade-out effect (40px)
+marks the side where the tabs continue behind the container. A plain mouse
+wheel also scrolls the tabs. The example below is live:
+
+<Canvas of={TopBarNavStories.ListTabsScroll} />
+
+#### Sub-pages
+
+If the page belongs to the pages grouped together within the navigation
+sidebar, the user can switch between them by clicking on the title. In this
+case, the title triggers a SelectList with a list of sub-pages, `--size-1`
+(4px) below the title and left-aligned with it.
+
+<Canvas of={TopBarNavStories.TitleDropdown} />
+
+The SelectList pops up inline on mobile.
+
+<Canvas of={TopBarNavStories.SubPagesMobile} />
+
+### "Details" page
+
+The top bar in object details pages provides access to top-level navigation
+and actions.
+
+<Canvas of={TopBarNavStories.DetailsDesktop} />
+
+#### "Back" button
+
+An object details page usually has a "Back" button (`arrow-left`, ghost
+`lg`). It usually lets the user go back to the list of objects. But in some
+cases, an object details page might not have the "Back" button. Hovering
+over the button triggers a tooltip.
+
+<Canvas of={TopBarNavStories.BackOptional} />
+
+#### "Context menu" button
+
+The context menu button (`ellipsis`, ghost `lg`) only exists if there are
+related actions. If it exists, it triggers a
+<a href="/?path=/story/components-menu-menu--playground" target="_top">Menu</a>
+component with a list of available actions — a card `--size-1` (4px) below
+the button, left-aligned with it. The button holds its pressed look while
+the menu is open. **TopBarNav owns this menu** — pass the MenuItemGroup
+elements as `contextMenu`.
+
+<Canvas of={TopBarNavStories.ContextMenu} />
+
+The Menu pops up as a drawer on mobile. The drawer title corresponds to the
+title of the details page. If an object details page has an Avatar in front
+of the title, the same Avatar is shown in the Menu header.
+
+<Canvas of={TopBarNavStories.ContextMenuMobile} />
+
+#### Tabs
+
+The TabGroup scrolls when there is not enough room. A fade-out effect (40px)
+marks the side where the tabs continue behind the container.
+
+An object details page usually has many tabs, so the TabGroup goes to a
+separate bar on mobile — its own 60px row below the Divider ("Details" is
+the first tab by convention). The TabGroup scrolls horizontally if there is
+not enough space. The fade-out effect is not used in this case.
+
+<Canvas of={TopBarNavStories.DetailsMobile} />
+
+The TabGroup bar hides while scrolling down and reveals when the user starts
+scrolling up on mobile. It gives the page content more space. A very close
+example of this behavior is
+<a href="https://www.loom.com/share/87e48ad1f1e846fc8b4c1af2443197a8" target="_blank" rel="noreferrer">the YouTube mobile app</a>.
+The example below is live — scroll the content:
+
+<Canvas of={TopBarNavStories.HideOnScroll} />
+
+#### Live users
+
+The avatars of the users who are currently on the page show up on the right
+side of the bar. It does not show the current user's own avatar. We only
+show up to 3 user avatars on desktop. If there are more than 3 live users,
+we show the first 2 and hide the others under the counter.
+
+For showing user avatars we use either an AvatarLive component or an
+AvatarGroup, at `xl` (36px): 1 user — AvatarLive; 2+ — AvatarGroup. The
+AvatarGroup supports up to 3 slots on desktop; if there are more than 3, the
+group truncates. Hovering over the Avatar or AvatarGroup on desktop triggers
+the tooltip with the vertical AvatarGroup — the examples are live:
+
+<Canvas of={TopBarNavStories.LiveUsers} />
+
+The AvatarGroup supports up to 2 slots on mobile. Tapping on the Avatar or
+AvatarGroup on mobile triggers the
+<a href="/?path=/story/components-popover-popover--playground" target="_top">Popover</a>
+drawer with the vertical AvatarGroup:
+
+<Canvas of={TopBarNavStories.LiveUsersMobile} />
+
+### "Inner" page
+
+The top bar in inner pages provides the basic navigation and the title. Some
+inner pages do not have the "Back" button.
+
+<Canvas of={TopBarNavStories.Inner} />
+
+## Props
+
+<ArgTypes of={TopBarNavStories} />

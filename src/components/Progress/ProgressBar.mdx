@@ -1,0 +1,71 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ProgressBarStories from "./ProgressBar.stories";
+
+<Meta of={ProgressBarStories} />
+
+# ProgressBar
+
+We use **ProgressBar** to show progress as a horizontal line that fills from
+left to right. Its width adapts to the container, so it also works as the bar
+in simple charts.
+
+<Canvas of={ProgressBarStories.Anatomy} />
+
+```tsx
+<ProgressBar value={75} ariaLabel="Upload progress" />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Colors](#colors)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Two layers: the **container** and the **progress line** inside it.
+
+Height is fixed at `--size-1` (4px). Width is adaptive — the bar fills whatever
+container it sits in. Both layers use `--border-radius-full`, and the container
+clips the line so its ends stay round. The background color is constant
+(`--gray-a4`); only the line takes a color.
+
+<Canvas of={ProgressBarStories.Anatomy} />
+
+## Behavior
+
+The progress line grows from left to right until it fills the bar, which equals
+100%. At 0% no line is drawn.
+
+`value` accepts 0–100. Anything outside that range is clamped, so a bar can
+never overflow its track.
+
+<Canvas of={ProgressBarStories.Behavior} />
+
+## Colors
+
+The progress indicator supports any color — pass `color` as a CSS color, normally
+a token (`var(--jade-9)`). The container keeps its constant background.
+
+<Canvas of={ProgressBarStories.Colors} />
+
+## Loading
+
+The loading state (`isLoading`) uses the empty bar with the standard pulsing
+animation — the same pulse as
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+and Skeleton. The progress line is not drawn while loading.
+
+<Canvas of={ProgressBarStories.Loading} />
+
+### Charts and screen readers
+
+By default the bar announces itself as a progress bar with its percentage. When
+you use it as a **chart** bar it is not a task in progress, and "40% complete"
+would be wrong — pass `isDecorative` to drop the role and hide it from screen
+readers. Describe the data in the surrounding text instead.
+
+## Props
+
+<ArgTypes of={ProgressBarStories} />

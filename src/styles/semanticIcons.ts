@@ -3,8 +3,10 @@
 // `Icon` takes a name and builds a `.g-<name>` class, so it needs these as JS
 // values. Keep this in sync with icons-semantic.css.
 //
-// [custom pack]: timelineView and priorityHigh live only in the kit custom font
-// — render them with pack="custom".
+// [custom pack]: timelineView, priorityNone and priorityHigh live only in the
+// kit custom font — render them with pack="custom". Without it the Icon falls
+// back to the classic font, which has no glyph at that codepoint, and the row
+// shows a blank box.
 export const semanticIcons = {
   // navigation & app chrome
   menu: "bars",
@@ -60,7 +62,7 @@ export const semanticIcons = {
   timelineView: "solid-timeline-view", // [custom pack]
 
   // priority
-  priorityNone: "hyphen",
+  priorityNone: "solid-priority-none", // [custom pack]
   priorityHigh: "solid-priority-high", // [custom pack]
   priorityUrgent: "fire",
 

@@ -20,7 +20,7 @@ We use **SearchField** for typing in a search request.
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behaviour](#behaviour)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
@@ -29,29 +29,36 @@ We use **SearchField** for typing in a search request.
 
 Supports an icon on the left. When filled, it shows the "Clear" button.
 
-A `--size-8` (32px) box: radius `--border-radius-1_5` (6px), background
-`--gray-a2`, border `--gray-a7`, horizontal padding `--size-2_5` (10px). The
+A `--size-9` (36px) box: radius `--border-radius-1_5` (6px), background
+`--gray-a2`, border `--gray-a7`, horizontal padding `--size-3` (12px). The
 search icon is 14px regular `--gray-a9` with a `--size-2` (8px) gap to the
 text (body-400-compact; placeholder `--text-placeholder`, value
-`--text-strong`). The "Clear" button is an IconButton `muted` `xs` (24px) —
-`--size-1` (4px) from the right edge, at least `--size-2_5` (10px) from the
+`--text-strong`). The "Clear" button is an IconButton `muted` `sm` (28px) —
+`--size-1` (4px) from the right edge, at least `--size-3` (12px) from the
 value.
 
 <Canvas of={SearchFieldStories.AnatomyField} />
 
 ### Bar
 
-Supports an icon on the left. Contains a Divider at the bottom. When filled,
-it shows the "Clear" button.
+Supports an icon on the left. When filled, it shows the "Clear" button.
 
-A `--size-9` (36px) row over a 1px Divider (37px total): no border and no
-radius — the same `--gray-a2` background with horizontal padding `--size-4`
-(16px). The "Clear" button steps up to IconButton `muted` `sm` (28px) and
-keeps the full `--size-4` (16px) inset from the right edge.
+A bare `--size-10` (40px) row: no background, no border, no radius and no
+divider — only horizontal padding `--size-4` (16px), so it is transparent over
+whatever surface it sits on. The "Clear" button steps up to IconButton `muted`
+`md` (32px), sits `--size-2` (8px) from the right edge and keeps at least
+`--size-4` (16px) from the value.
+
+The line that separates the bar from a list below it belongs to the component
+that holds the bar —
+<a href="/?path=/story/components-selectlist-selectlistheader--playground" target="_top">SelectListHeader</a>
+and
+<a href="/?path=/story/components-menu-menuheader--playground" target="_top">MenuHeader</a>
+each draw their own 1px `medium` Divider under it.
 
 <Canvas of={SearchFieldStories.AnatomyBar} />
 
-## Behaviour
+## Behavior
 
 ### "Clear" button
 

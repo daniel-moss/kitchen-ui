@@ -22,7 +22,8 @@ interface WorkSummaryFormProps {
 
 // The "Work summary" edit form (Figma 24273-81702: desktop dialog 24273-81709 /
 // mobile drawer 24273-81713). A bare TextArea, and a footer with THREE buttons:
-// Cancel (ghost, left), then Generate (subtle, with the wand) and Save (solid).
+// Cancel (ghost, left), then Generate (GHOST with the wand — Daniel 2026-08-25,
+// the design's subtle) and Save (solid).
 export default function WorkSummaryForm({
   open,
   onClose,
@@ -66,7 +67,7 @@ export default function WorkSummaryForm({
         >
           <Button
             size="lg"
-            variant="subtle"
+            variant="ghost"
             leftIcon="wand-magic-sparkles"
             isDisabled={!canGenerate || gen.busy}
             isProcessing={gen.phase === "thinking"}

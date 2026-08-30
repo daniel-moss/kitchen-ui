@@ -1,4 +1,4 @@
-import { AvatarRingColor } from "./Avatar.types";
+import { AvatarLiveColor } from "./AvatarLive.types";
 
 export type AvatarGroupSize = "xs" | "sm" | "md" | "lg" | "xl";
 export type AvatarGroupVariation = "inline" | "stack";
@@ -8,7 +8,7 @@ export interface AvatarGroupUserItem {
   kind?: "user";
   content?: "image" | "letters";
   imageSrc?: string;
-  letter?: string;
+  characters?: string;
   /** Name shown in the stack variation. */
   name?: string;
 }
@@ -18,8 +18,8 @@ export interface AvatarGroupLiveItem {
   kind: "live";
   content?: "image" | "letters";
   imageSrc?: string;
-  letter?: string;
-  ringColor?: AvatarRingColor;
+  characters?: string;
+  ringColor?: AvatarLiveColor;
   name?: string;
 }
 

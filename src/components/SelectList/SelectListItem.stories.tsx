@@ -23,14 +23,15 @@ type StoryArgs = {
   selected: boolean;
   count: number;
   disabled: boolean;
+  readOnly: boolean;
   state: StateOption;
 };
 
 const frame: React.CSSProperties = { width: 367 };
 
 const iconSlot = <Icon icon="diamonds-4" pack="regular" size={14} container="square" />;
-const avatarSlot = <Avatar type="user" content="image" size="xs" />;
-const objectAvatar = <Avatar type="object" content="image" size="xl" />;
+const avatarSlot = <Avatar shape="circle" content="image" size="xs" />;
+const objectAvatar = <Avatar shape="square" content="image" size="xl" />;
 const leftSlots: Record<LeftSlot, React.ReactNode> = { none: undefined, icon: iconSlot, avatar: avatarSlot };
 
 // caption / tag are mutually exclusive — build the right prop.
@@ -41,7 +42,7 @@ const meta: Meta<StoryArgs> = {
   title: "Components/SelectList/SelectListItem",
   component: SelectListItem,
   parameters: { layout: "centered" },
-  args: { variant: "default", label: "Option", extra: "none", extraText: "Caption", leftSlot: "none", select: "single", selected: false, count: 1, disabled: false, state: "default" },
+  args: { variant: "default", label: "Option", extra: "none", extraText: "Caption", leftSlot: "none", select: "single", selected: false, count: 1, disabled: false, readOnly: false, state: "default" },
   argTypes: {
     variant: { options: ["default", "object"], control: { type: "inline-radio" } },
     label: { type: "string", control: { type: "text" } },
@@ -52,6 +53,8 @@ const meta: Meta<StoryArgs> = {
     selected: { control: { type: "boolean" } },
     count: { control: { type: "number", min: 0 }, if: { arg: "select", eq: "counter" } },
     disabled: { control: { type: "boolean" } },
+    // readOnly is multi-select only — Figma draws no such variant elsewhere.
+    readOnly: { control: { type: "boolean" }, if: { arg: "select", eq: "multi" } },
     state: { options: ["default", "hover", "press", "focus"], control: { type: "inline-radio" } },
   },
 };
@@ -61,8 +64,9 @@ export default meta;
 type Story = StoryObj<StoryArgs>;
 
 export const Playground: Story = {
-  render: ({ variant, label, extra, extraText, leftSlot, select, selected, count, disabled, state }) => {
+  render: ({ variant, label, extra, extraText, leftSlot, select, selected, count, disabled, readOnly, state }) => {
     const common = { variant, label, disabled, onClick: noop };
+    const pick = { selected, readOnly: select === "multi" && readOnly };
     return (
       <div className={PSEUDO_ALL[state]} style={frame}>
         {select === "counter" ? (
@@ -74,9 +78,9 @@ export const Playground: Story = {
           )
         ) : variant === "object" ? (
           // object always has an avatar and a title + caption.
-          <SelectListItem {...common} select={select} selected={selected} avatar={objectAvatar} caption={extraText || "Caption"} />
+          <SelectListItem {...common} select={select} {...pick} avatar={objectAvatar} caption={extraText || "Caption"} />
         ) : (
-          <SelectListItem {...common} select={select} selected={selected} {...extraProps(extra, extraText)} slotLeft={leftSlots[leftSlot]} />
+          <SelectListItem {...common} select={select} {...pick} {...extraProps(extra, extraText)} slotLeft={leftSlots[leftSlot]} />
         )}
       </div>
     );
@@ -93,18 +97,24 @@ const COLS: { label: string; select: SelectMode; selected: boolean }[] = [
   { label: "counter · selected", select: "counter", selected: true },
 ];
 // A matrix cell: counter columns derive selection from the count.
-const matrixItem = (c: (typeof COLS)[number], disabled: boolean | undefined, objectProps?: object) =>
-  c.select === "counter" ? (
-    <SelectListItem label={objectProps != null ? "Title" : "Option"} select="counter" count={c.selected ? 1 : 0} onDecrement={noop} disabled={disabled} onClick={noop} {...objectProps} />
+const matrixItem = (c: (typeof COLS)[number], s: (typeof STATES)[number], objectProps?: object) => {
+  // readOnly is multi-select only, so the other columns stay on their default
+  // row in that line — the same thing Figma draws (no readOnly variant there).
+  const readOnly = s.readOnly === true && c.select === "multi";
+  return c.select === "counter" ? (
+    <SelectListItem label={objectProps != null ? "Title" : "Option"} select="counter" count={c.selected ? 1 : 0} onDecrement={noop} disabled={s.disabled} onClick={noop} {...objectProps} />
   ) : (
-    <SelectListItem label={objectProps != null ? "Title" : "Option"} select={c.select} selected={c.selected} disabled={disabled} onClick={noop} {...objectProps} />
+    <SelectListItem label={objectProps != null ? "Title" : "Option"} select={c.select} selected={c.selected} disabled={s.disabled} readOnly={readOnly} onClick={noop} {...objectProps} />
   );
-const STATES: { label: string; pseudo?: string; disabled?: boolean }[] = [
+};
+const STATES: { label: string; pseudo?: string; disabled?: boolean; readOnly?: boolean }[] = [
   { label: "default" },
   { label: "hover", pseudo: "pseudo-hover-all" },
   { label: "press", pseudo: "pseudo-active-all" },
   { label: "focus", pseudo: "pseudo-focus-visible-all" },
   { label: "disabled", disabled: true },
+  // multi-select only — see the readOnly note in the types.
+  { label: "readOnly", readOnly: true },
 ];
 
 export const Overview: Story = {
@@ -122,7 +132,7 @@ export const Overview: Story = {
           <span style={cap}>{s.label}</span>
           {COLS.map((c) => (
             <div key={c.label} className={s.pseudo}>
-              {matrixItem(c, s.disabled)}
+              {matrixItem(c, s)}
             </div>
           ))}
         </Fragment>
@@ -147,7 +157,7 @@ export const Object: Story = {
           <span style={cap}>{s.label}</span>
           {COLS.map((c) => (
             <div key={c.label} className={s.pseudo}>
-              {matrixItem(c, s.disabled, { variant: "object", avatar: objectAvatar, caption: "Caption" })}
+              {matrixItem(c, s, { variant: "object", avatar: objectAvatar, caption: "Caption" })}
             </div>
           ))}
         </Fragment>

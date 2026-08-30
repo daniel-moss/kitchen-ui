@@ -1,6 +1,7 @@
 import { FormAnswers, FormMediaAnswer } from "../../forms/formSchema/schema.types";
 import { Equipment, EquipmentAvatar, equipmentCaption, equipmentLabel } from "./equipment";
 import { HotSideDraft } from "./HotSideRepairForm";
+import { HvacPmStepDraft } from "./HvacPmStepForm";
 import { IceMachineDraft } from "./IceMachineRepairForm";
 import { MediaItem } from "./mediaItem";
 import { ServiceCallDraft } from "./ServiceCallForm";
@@ -61,6 +62,26 @@ export const hotSideAnswers = (draft: HotSideDraft, equipment: Equipment[]): For
   checkOut: draft.checkOut,
   // Every MediaField answer, keyed exactly like the schema's media fields.
   ...Object.fromEntries(Object.entries(draft.media).map(([key, items]) => [key, files(items)])),
+});
+
+/**
+ * The stepper draft as flat answers. Its checklist answers are already keyed
+ * "<section>:<question>" like the schema's fields, so each one only splits into
+ * its two fields: the OK / Issue choice and the "#note" the Issue card reveals.
+ */
+export const hvacPmAnswers = (draft: HvacPmStepDraft): FormAnswers => ({
+  ...Object.fromEntries(
+    Object.entries(draft.answers).flatMap(([key, answer]) => [
+      [key, answer.choice],
+      [`${key}#note`, answer.issueNote],
+    ]),
+  ),
+  repair: draft.repair,
+  repairs: draft.repairs,
+  parts: draft.parts,
+  techs: draft.techs,
+  time: { hours: draft.hours, minutes: draft.minutes },
+  notes: draft.notes,
 });
 
 export const iceMachineAnswers = (draft: IceMachineDraft, equipment: Equipment[]): FormAnswers => ({

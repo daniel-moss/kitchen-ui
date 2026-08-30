@@ -1,0 +1,80 @@
+// "Time distribution" (Figma 24616-81424) and "Work timeline" (24616-81593) —
+// the Timesheet tab's two chart modules. The legend below each chart is a plain
+// ItemGroup of ListItems, so only the chart itself needs styles here.
+
+// The segment row: 16px padding, 8px between segments.
+//
+// Segments are TOP-aligned, not center-aligned: a segment whose time label did
+// not fit is 20px shorter, and centering would lift its bar off the others'
+// line. Figma's "Short Segment" node (24620-83443) aligns them at the top for
+// exactly that reason.
+//
+// It scrolls sideways once the segments no longer fit — each one keeps a 36px
+// minimum so the avatars can never overlap (Daniel, 2026-08-11). Figma does not
+// draw that case.
+.chart {
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-2); // 8px
+  width: 100%;
+  padding: var(--size-4); // 16px
+  overflow-x: auto;
+}
+
+// One segment: avatar, bar, time — 8px apart, centered over the bar. The width
+// is the share of the total (`flex-grow` is set per instance).
+.segment {
+  position: relative; // the hidden sizer anchors here
+  box-sizing: border-box;
+  flex-basis: 0;
+  flex-shrink: 0;
+  min-width: var(--size-9); // 36px — never narrower than the avatar
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-2); // 8px
+}
+
+.bar {
+  width: 100%;
+}
+
+.segmentValue {
+  width: 100%;
+  overflow: hidden;
+  font: var(--font-body-500-compact); // Inter Medium 14/20
+  color: var(--text-strong);
+  text-align: center;
+  white-space: nowrap;
+}
+
+// Measures the label's natural width without ever affecting layout — the
+// visible label is hidden when this one is wider than the segment.
+.segmentSizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  visibility: hidden;
+  pointer-events: none;
+  font: var(--font-body-500-compact);
+  white-space: nowrap;
+}
+
+// ---- tooltips ---------------------------------------------------------------
+
+// The floating body: `left`/`top` are the anchor point, the body centers on it
+// and sits 8px above (4px gap + the ~4px tongue).
+.tipOverlay {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  width: max-content;
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}
+
+// The legend row's rounded-time trigger. It sits inside ListItem's right block,
+// which hugs its content, so the wrapper must not add a box of its own.
+.cursorWrap {
+  display: block;
+}

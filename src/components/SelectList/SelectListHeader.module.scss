@@ -1,0 +1,16 @@
+// SelectListHeader — only the chip add-on has styles of its own; the
+// SearchField bar and the Divider bring their own.
+// See Figma "SelectListHeader" (node 29520-33028).
+
+// The chip row above the search: 16px around the chips, closing at 8px because
+// the search bar's own 40px row follows (node 29520-33056).
+.chips {
+  overflow: hidden;
+  padding: var(--size-4) var(--size-4) var(--size-2); // 16px 16px 8px
+}
+
+// Chips with NO search under them — the container closes at 16px instead, so
+// the chips sit evenly inside the header (node 29520-33230).
+.chipsOnly {
+  padding-bottom: var(--size-4); // 16px
+}

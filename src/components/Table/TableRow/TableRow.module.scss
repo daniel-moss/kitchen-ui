@@ -1,0 +1,69 @@
+@import "../../../styles/mixins/interaction";
+
+// The ROW owns the height and the divider. Cells fill the height and never
+// draw a bottom border — that is why the divider is one element per row
+// instead of one per cell.
+//
+// The divider sits BELOW the cells rather than inside their box, so the cell
+// height stays a round number:
+//   header  40 + 1 = 41
+//   body    48 + 1 = 49
+// Those totals are the row pitch a virtualizer must use.
+.row {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: max-content;
+  min-width: 100%;
+
+  // Pinned cells are sticky and float above the cells scrolling beneath them,
+  // so the row's fill must be OPAQUE — a transparent row would let the moving
+  // content show through the frozen columns. This is the one place the "app
+  // surfaces have no fill" rule does not apply, and pinning is the reason.
+  background-color: var(--surface-level-first);
+}
+
+.cells {
+  display: flex;
+  align-items: center;
+}
+
+.header .cells {
+  height: var(--size-10); // 40
+}
+
+.body .cells {
+  height: var(--size-12); // 48
+}
+
+.divider {
+  height: var(--size-px);
+  background-color: var(--gray-a3);
+}
+
+// The header's divider is heavier than the row dividers below it, so the head
+// of the table separates from the data rather than reading as one more row.
+.header .divider {
+  background-color: var(--gray-a6);
+}
+
+// ---- interaction (clickable body rows only) ----
+// A static row — one the user has no permission to open — must not highlight,
+// depress, or take keyboard focus.
+.clickable {
+  cursor: pointer;
+
+  @media (hover: hover) {
+    &:hover {
+      @include row-hover-fill;
+    }
+  }
+
+  &:active {
+    @include row-press-fill;
+  }
+
+  &:focus-visible {
+    @include row-focus-ring($gap: 2px);
+  }
+}

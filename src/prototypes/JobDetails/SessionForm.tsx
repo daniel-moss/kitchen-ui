@@ -115,7 +115,7 @@ const END_OFFSETS: { label: string; minutes: number }[] = [
   { label: "+4h", minutes: 240 },
 ];
 
-// One labelled InputGroup fusing three segments — Date + masked Time (fixed
+// One labeled InputGroup fusing three segments — Date + masked Time (fixed
 // width) + AM/PM select (hugs). The group shows its error only once focus has
 // left the time input (never while typing).
 const TimeGroup = ({
@@ -140,7 +140,7 @@ const TimeGroup = ({
   showError: boolean;
   errorMessage: string;
   minDate?: Date;
-  /** Extra content under the field, inside the labelled Input (the End-time chips). */
+  /** Extra content under the field, inside the labeled Input (the End-time chips). */
   below?: ReactNode;
   onDate: (date: Date | null) => void;
   onClock: (clock: string) => void;
@@ -216,7 +216,7 @@ interface SessionFormProps {
 
 // The "Time session" form (Figma 24105-15772, 2026-08-04 update). A required
 // "Your status" RadioGroup — the four tech statuses as VERTICAL card radios,
-// empty error "Choose your status" — over two labelled InputGroups — Start time / End time —
+// empty error "Choose your status" — over two labeled InputGroups — Start time / End time —
 // each fusing Date + masked Time + AM/PM (the DS dateTextSelect shape).
 // Adding prefills Start date with today (Daniel: keep) and mirrors it into
 // End date; End is disabled until Start time is a valid clock; the End date
@@ -428,7 +428,7 @@ export default function SessionForm({ open, onClose, session, onSave, startDate,
               {END_OFFSETS.map((o) => (
                 <Chip
                   key={o.label}
-                  size="lg"
+                  size="md"
                   active={offsetActive(o.minutes)}
                   isDisabled={endDisabled}
                   onClick={() => applyOffset(o.minutes)}

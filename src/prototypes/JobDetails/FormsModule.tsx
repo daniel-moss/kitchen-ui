@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 
 import Avatar from "../../components/Avatar/Avatar";
+import AvatarLive from "../../components/Avatar/AvatarLive";
 import Button from "../../components/Button/Button";
 import Counter from "../../components/Counter/Counter";
 import Dialog from "../../components/Dialog/Dialog";
@@ -30,10 +31,11 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 import FormPreviewPanel from "../../forms/formSchema/FormPreviewPanel";
 import { HOT_SIDE_REPAIR_SCHEMA } from "../../forms/formSchema/hotSideRepairSchema";
+import { HVAC_PM_SCHEMA } from "../../forms/formSchema/hvacPmSchema";
 import { ICE_MACHINE_REPAIR_SCHEMA } from "../../forms/formSchema/iceMachineRepairSchema";
 import { SERVICE_CALL_SCHEMA } from "../../forms/formSchema/serviceCallSchema";
 import { DEMO_HOT_SIDE_DRAFT, DEMO_SERVICE_CALL_DRAFT } from "./demoFormDrafts";
-import { hotSideAnswers, iceMachineAnswers, serviceCallAnswers } from "./formAnswers";
+import { hotSideAnswers, hvacPmAnswers, iceMachineAnswers, serviceCallAnswers } from "./formAnswers";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { users } from "../../data/users";
 import HotSideRepairForm, { HotSideDraft, hotSideDraftHasContent } from "./HotSideRepairForm";
@@ -94,47 +96,71 @@ interface JobForm {
 // HVAC PM stepper + Service call; the old one-page HVAC PM/v2 and the demo
 // rows are gone). Forms are NOT sorted — shown in added order.
 const INITIAL_FORMS: JobForm[] = [
-  { id: 6, name: "HVAC PM", template: "HVAC PM", visibility: "public", state: "notStarted" },
+  // PM - HVAC starts EMPTY (Daniel, 2026-08-25). It supports the preview, but
+  // the preview is reached by filling the form — not by a demo draft.
+  { id: 6, name: "PM - HVAC", template: "PM - HVAC", visibility: "public", state: "notStarted" },
   // Both schema-backed forms start COMPLETED and pre-filled (demoFormDrafts.ts)
   // so the read-only preview can be shown without filling a form first
   // (Daniel, 2026-08-06).
   { id: 9, name: "Service call", template: "Service call", visibility: "public", state: "completed", statusBy: "Lorne R." },
-  { id: 10, name: "Hot Side - Repair", template: "Hot Side - Repair", visibility: "public", state: "completed" },
+  { id: 10, name: "Repair - Hot Side", template: "Repair - Hot Side", visibility: "public", state: "completed", statusBy: "Thiago C." },
   // PUBLIC and EMPTY on purpose (Daniel, 2026-08-06): this is the row to walk
   // Not started → Progress saved → Completed by hand, so Private keeps one row.
-  { id: 4, name: "Ice Machine - Repair", template: "Ice Machine - Repair", visibility: "public", state: "notStarted" },
-  { id: 3, name: "RTU - PM", template: "RTU - PM", visibility: "private", state: "inProgress" },
+  { id: 4, name: "Repair - Ice Machine", template: "Repair - Ice Machine", visibility: "public", state: "notStarted" },
+  { id: 3, name: "PM - RTU", template: "PM - RTU", visibility: "private", state: "inProgress" },
 ];
 
 // The workspace's form templates = the "Add forms" list. STATIC — a template
 // never leaves the list; every row tap adds one MORE copy to the job (the job
-// can hold any number of copies). Includes the templates of the initial forms,
-// so their counts show right away. (Old legacy templates removed with the
-// legacy rows — Daniel 2026-07-27.)
+// can hold any number of copies). The templates of the forms already on the job
+// STAY on the list too (Daniel 2026-08-25): the list is the workspace's form
+// library, not "what is missing" — a form on the job was picked from here, so
+// hiding it made the list look wrong.
+//
+// NAMING (Daniel 2026-08-25): "<Service> - <Equipment>" — the work type first,
+// the equipment second. Sorted A→Z, that makes the list read as groups (every
+// "Inspection - …" together, every "PM - …", every "Repair - …") without a real
+// grouping. "Service call" is the one exception: it is not tied to a piece of
+// equipment, and it is the real Roopairs form name.
 const FORM_TEMPLATES = [
-  "HVAC PM",
+  "Audit - Walk-in Cooler",
+  "Claim - Warranty",
+  "Inspection - Fryer",
+  "Inspection - Gas Line",
+  "Inspection - Hood & Exhaust",
+  "Inspection - Safety",
+  "Intake - Equipment",
+  "PM - Combi Oven",
+  "PM - HVAC",
+  "PM - RTU",
+  "PM - Walk-in Cooler",
+  "Repair - Dishwasher",
+  "Repair - Hot Side",
+  "Repair - Ice Machine",
+  "Repair - Refrigeration",
+  "Request - Parts",
+  "Service - Espresso Machine",
+  "Service - Grease Trap",
   "Service call",
-  "Hot Side - Repair",
-  "RTU - PM",
-  "Ice Machine - Repair",
-  "Fryer Inspection",
-  "Walk-in Cooler - Audit",
-  "Equipment Intake",
-];
+  "Survey - Site",
+  // Sorted here, and sorted again at load — a new template can be appended
+  // anywhere above and the list stays A→Z.
+].sort((a, b) => a.localeCompare(b));
 
-// The forms with a real fillable questionnaire: "HVAC PM" = the 7-step
+// The forms with a real fillable questionnaire: "PM - HVAC" = the 7-step
 // stepper (Figma 24337-41981); "Service call" = the modules form (Figma
-// 24277-27279); "Hot Side - Repair" (23920-13390) and "Ice Machine - Repair"
+// 24277-27279); "Repair - Hot Side" (23920-13390) and "Repair - Ice Machine"
 // (24564-137511) = the flat WCE field lists. Identified by TEMPLATE so renames
 // keep working.
-type FillableTemplate = "HVAC PM" | "Service call" | "Hot Side - Repair" | "Ice Machine - Repair";
-const FILLABLE: FillableTemplate[] = ["HVAC PM", "Service call", "Hot Side - Repair", "Ice Machine - Repair"];
+type FillableTemplate = "PM - HVAC" | "Service call" | "Repair - Hot Side" | "Repair - Ice Machine";
+const FILLABLE: FillableTemplate[] = ["PM - HVAC", "Service call", "Repair - Hot Side", "Repair - Ice Machine"];
 const isFillable = (t: string): t is FillableTemplate => FILLABLE.includes(t as FillableTemplate);
 // The demo viewer filling the form (Lorne Riddle, the app-wide viewer).
 const VIEWER = users[0];
 
-// The colleague editing the "in progress" form (live avatar, orange ring).
-const LIVE_EDITOR = users[2];
+// The colleague editing the "in progress" form (live avatar, orange ring) —
+// Thiago Cummings, the job's second assignee (Daniel, 2026-08-25).
+const LIVE_EDITOR = users[1];
 // The live avatar's hover tooltip — the SAME copy convention as DisplayModule's
 // editing state ("<first name + last initial> is editing…", per the Figma
 // Live-Editing annotation + the DS DisplayModule story).
@@ -201,10 +227,12 @@ export interface FormMenuActions {
 
 /**
  * The form context menu (Figma 23899-17336 notStarted / 24225-20206 required /
- * 24255-67714 inProgress / 24255-68260 progressSaved / 24225-20518 completed):
- * every status gets the standard menu WITH Remove, completed adds Preview —
- * EXCEPT inProgress, which is reduced to ONLY Duplicate + the visibility toggle
- * (someone else is editing the form).
+ * 24255-68260 progressSaved / 24225-20518 completed): every status gets the
+ * standard menu WITH Remove, completed adds Preview.
+ *
+ * A form someone ELSE is editing (inProgress) has NO menu at all — its row
+ * carries only the live editor's avatar (Figma 24219-18867, Daniel confirmed
+ * 2026-08-10), so this function is never called for it.
  *
  * Shared so the row's ⋯ and the PREVIEW PANEL's ⋯ cannot drift apart (Daniel,
  * 2026-08-06). `includePreview` is false inside the panel — the preview is
@@ -217,7 +245,6 @@ export const formMenuItems = (
   includePreview = true,
 ) => {
   const completed = form.state === "completed";
-  const inProgress = form.state === "inProgress";
   const isPrivate = form.visibility === "private";
 
   const item = (label: string, icon: string, onClick: () => void, itemCaption?: string) => (
@@ -235,15 +262,15 @@ export const formMenuItems = (
   return (
     <>
       <MenuItemGroup>
-        {!inProgress && item("Edit", "pen", actions.onOpen)}
+        {item("Edit", "pen", actions.onOpen)}
         {completed && includePreview && item("Preview", "eye", actions.onPreview)}
-        {!inProgress && item("Rename", "text-size", actions.onRename)}
+        {item("Rename", "text-size", actions.onRename)}
         {item("Duplicate", "clone", actions.onDuplicate)}
         {isPrivate
           ? item("Make public", "globe", actions.onToggleVisibility, "Visible to your client")
           : item("Make private", "lock", actions.onToggleVisibility, "Visible to team members only")}
       </MenuItemGroup>
-      {!inProgress && <MenuItemGroup>{item("Remove", "xmark", actions.onRemove)}</MenuItemGroup>}
+      <MenuItemGroup>{item("Remove", "xmark", actions.onRemove)}</MenuItemGroup>
     </>
   );
 };
@@ -299,55 +326,46 @@ const FormRow = ({
     avatar: <FormAvatar state={form.state} />,
     disabled,
     ...dragProps,
-    slotRight: (
-      <span className={styles.rowRight}>
-        {inProgress && (
-          // Live avatars exist ONLY in md/lg/xl — this one is lg (32px).
-          // Hover = the DisplayModule editing-state tooltip (item 1).
-          <HoverTooltip text={LIVE_EDITOR_TOOLTIP}>
-            <Avatar type="live" content="image" size="lg" ringColor="orange" imageSrc={LIVE_EDITOR.avatar} />
-          </HoverTooltip>
-        )}
-        <IconButton
-          icon="ellipsis"
-          variant="ghost"
-          size="md"
-          aria-label={`${form.name} actions`}
-          isPressed={menu.open}
-          noDebounce
-          onClick={menu.onActions}
-        />
-      </span>
+    // A form SOMEONE ELSE is editing carries ONLY the live editor's avatar —
+    // no ⋯ button, because that form has no actions (Figma 24219-18867,
+    // Daniel 2026-08-10).
+    slotRight: inProgress ? (
+      // Live avatars exist ONLY in md/lg/xl — this one is lg (32px).
+      // Hover = the DisplayModule editing-state tooltip.
+      <HoverTooltip text={LIVE_EDITOR_TOOLTIP}>
+        <AvatarLive content="image" size="lg" color="orange" imageSrc={LIVE_EDITOR.avatar} />
+      </HoverTooltip>
+    ) : (
+      <IconButton
+        icon="ellipsis"
+        variant="ghost"
+        size="md"
+        aria-label={`${form.name} actions`}
+        isPressed={menu.open}
+        noDebounce
+        onClick={menu.onActions}
+      />
     ),
   };
 
+  // A form someone else is editing is not clickable either — there is nothing
+  // to open (Daniel, 2026-08-07). So the row stands alone, with no menu at all.
+  if (inProgress) return <ListItem {...rowProps} />;
+
   return (
     <>
-      {/* A form SOMEONE ELSE is editing is not clickable — there is nothing to
-          open (Daniel, 2026-08-07); its ⋯ menu still works. A completed form
-          opens its PREVIEW; the menu's Edit still opens the form itself. */}
-      {inProgress ? (
-        <ListItem {...rowProps} />
-      ) : (
-        <ListItem {...rowProps} isClickable onClick={completed ? onPreview : onOpen} />
-      )}
+      {/* A completed form opens its PREVIEW; the menu's Edit still opens the
+          form itself. */}
+      <ListItem {...rowProps} isClickable onClick={completed ? onPreview : onOpen} />
       {mobile ? (
         <Menu
           open={menu.open}
           onClose={menu.close}
-          header={
+          drawerHeader={
             // The drawer header mirrors the row: avatar + name + STATUS caption
-            // (Figma 23899-17336 etc.); the in-progress one also carries the
-            // live editor avatar on the right (24255-67714).
+            // (Figma 23899-17336 etc.).
             <DrawerHeader>
-              <PopoverHeaderContent
-                avatar={<FormAvatar state={form.state} />}
-                actions={
-                  inProgress ? (
-                    <Avatar type="live" content="image" size="lg" ringColor="orange" imageSrc={LIVE_EDITOR.avatar} />
-                  ) : undefined
-                }
-              >
+              <PopoverHeaderContent avatar={<FormAvatar state={form.state} />}>
                 <PopoverHeaderText variant="titleCaption" title={form.name} caption={caption(form)} />
               </PopoverHeaderContent>
             </DrawerHeader>
@@ -508,11 +526,6 @@ export default function FormsModule({
   useEffect(() => {
     if (addTarget == null) setStaged({});
   }, [addTarget]);
-  // The picker's title must SURVIVE the close: addTarget goes null the moment
-  // it closes, but the dialog stays mounted for its fade-out — without this,
-  // a closing "Private forms" flips to the default title mid-fade.
-  const lastTarget = useRef<"public" | "private">("public");
-  if (addTarget != null) lastTarget.current = addTarget;
 
   const publicForms = useMemo(() => forms.filter((f) => f.visibility === "public"), [forms]);
   const privateForms = useMemo(() => forms.filter((f) => f.visibility === "private"), [forms]);
@@ -555,17 +568,20 @@ export default function FormsModule({
   const detailedToast = (title: string, formName: string) => toast({ type: "success", variant: "detailed", title, caption: formName });
 
   // ---- the read-only preview -------------------------------------------------
-  // A preview needs a SCHEMA and stored answers, so only the two schema-backed
-  // forms have one: the HVAC PM stepper is out of scope and the demo rows carry
-  // no draft (both flagged to Daniel).
+  // A preview needs a SCHEMA and stored answers, so every FILLABLE form has one
+  // — including the PM - HVAC stepper since 2026-08-25 (Figma "Mapping / Step ->
+  // Preview" 24631-58494). A form with no draft yet has nothing to preview.
   const previewAnswersOf = (form: JobForm) => {
+    if (form.template === "PM - HVAC" && stepDraft != null) {
+      return { schema: HVAC_PM_SCHEMA, answers: hvacPmAnswers(stepDraft) };
+    }
     if (form.template === "Service call" && serviceDraft != null) {
       return { schema: SERVICE_CALL_SCHEMA, answers: serviceCallAnswers(serviceDraft, jobEquipment) };
     }
-    if (form.template === "Hot Side - Repair" && hotSideDraft != null) {
+    if (form.template === "Repair - Hot Side" && hotSideDraft != null) {
       return { schema: HOT_SIDE_REPAIR_SCHEMA, answers: hotSideAnswers(hotSideDraft, jobEquipment) };
     }
-    if (form.template === "Ice Machine - Repair" && iceMachineDraft != null) {
+    if (form.template === "Repair - Ice Machine" && iceMachineDraft != null) {
       return { schema: ICE_MACHINE_REPAIR_SCHEMA, answers: iceMachineAnswers(iceMachineDraft, jobEquipment) };
     }
     return null;
@@ -602,16 +618,16 @@ export default function FormsModule({
     detailedToast(toPrivate ? "The form is now private" : "The form is now public", form.name);
     onLog?.({ kind: "visibility", name: form.name, visibility: toPrivate ? "private" : "public" });
   };
-  // Remove just deletes the copy — its template returns to the Add list
-  // (the list shows every template the job does NOT have).
+  // Remove just deletes the copy. The Add list is unaffected — it always shows
+  // every template the workspace has.
   const remove = (form: JobForm) => {
     setForms((prev) => prev.filter((f) => f.id !== form.id));
     onLog?.({ kind: "removed", names: [form.name] });
   };
 
   // ---- Add-list staging -------------------------------------------------------
-  // Only templates the job does not already have are offered.
-  const availableTemplates = FORM_TEMPLATES.filter((t) => !forms.some((f) => f.template === t));
+  // EVERY template is offered, including the ones already on the job — a form
+  // can be added more than once.
   const stagedTotal = Object.values(staged).reduce((a, b) => a + b, 0);
   const stage = (template: string) => setStaged((prev) => ({ ...prev, [template]: (prev[template] ?? 0) + 1 }));
   // The minus: un-stage one copy (a misclick undo); at zero the tag disappears.
@@ -627,7 +643,7 @@ export default function FormsModule({
   // into the group whose plus opened the list.
   const commitAdd = () => {
     if (addTarget == null) return;
-    const names = availableTemplates.flatMap((t) => Array<string>(staged[t] ?? 0).fill(t));
+    const names = FORM_TEMPLATES.flatMap((t) => Array<string>(staged[t] ?? 0).fill(t));
     if (names.length === 0) return;
     setForms((prev) => [
       ...prev,
@@ -679,13 +695,13 @@ export default function FormsModule({
   const saveStepProgress = (draft: HvacPmStepDraft) => {
     setStepDraft(draft);
     if (!hvacStepDraftHasContent(draft)) return;
-    setFillableState("HVAC PM", "progressSaved");
-    detailedToast("The progress is saved", "HVAC PM");
+    setFillableState("PM - HVAC", "progressSaved");
+    detailedToast("The progress is saved", "PM - HVAC");
   };
   const submitStep = (draft: HvacPmStepDraft) => {
     setStepDraft(draft);
-    setFillableState("HVAC PM", "completed");
-    detailedToast("The form submitted", "HVAC PM");
+    setFillableState("PM - HVAC", "completed");
+    detailedToast("The form submitted", "PM - HVAC");
   };
   const saveServiceProgress = (draft: ServiceCallDraft) => {
     setServiceDraft(draft);
@@ -701,24 +717,24 @@ export default function FormsModule({
   const saveHotSideProgress = (draft: HotSideDraft) => {
     setHotSideDraft(draft);
     if (!hotSideDraftHasContent(draft)) return;
-    setFillableState("Hot Side - Repair", "progressSaved");
-    detailedToast("The progress is saved", "Hot Side - Repair");
+    setFillableState("Repair - Hot Side", "progressSaved");
+    detailedToast("The progress is saved", "Repair - Hot Side");
   };
   const submitHotSide = (draft: HotSideDraft) => {
     setHotSideDraft(draft);
-    setFillableState("Hot Side - Repair", "completed");
-    detailedToast("The form submitted", "Hot Side - Repair");
+    setFillableState("Repair - Hot Side", "completed");
+    detailedToast("The form submitted", "Repair - Hot Side");
   };
   const saveIceMachineProgress = (draft: IceMachineDraft) => {
     setIceMachineDraft(draft);
     if (!iceMachineDraftHasContent(draft)) return;
-    setFillableState("Ice Machine - Repair", "progressSaved");
-    detailedToast("The progress is saved", "Ice Machine - Repair");
+    setFillableState("Repair - Ice Machine", "progressSaved");
+    detailedToast("The progress is saved", "Repair - Ice Machine");
   };
   const submitIceMachine = (draft: IceMachineDraft) => {
     setIceMachineDraft(draft);
-    setFillableState("Ice Machine - Repair", "completed");
-    detailedToast("The form submitted", "Ice Machine - Repair");
+    setFillableState("Repair - Ice Machine", "completed");
+    detailedToast("The form submitted", "Repair - Ice Machine");
   };
 
   const rowActions = (f: JobForm) => ({
@@ -794,24 +810,24 @@ export default function FormsModule({
       )}
 
       {/* Add forms (Figma 24233-23359, reworked per Daniel 2026-07-23): opened
-          per group (title "Public forms" / "Private forms"), shows only
-          templates the job does NOT have yet. A row tap STAGES one more copy
-          (the tag = staged count + an md minus to un-stage); nothing is added
-          until the footer's Add commits the whole staging into the target
-          group. Footer = the standard PopoverFooter shape (ghost Cancel left,
-          solid Add right). `multiSelect` on the SelectList only keeps it OPEN
-          across taps (no checkboxes on the rows). */}
+          by either group's plus, titled "Forms" in both cases (Daniel
+          2026-08-25 — the group is already clear from where the plus was
+          tapped). Lists EVERY workspace template, the ones already on the job
+          included. A row tap STAGES one more copy (the tag = staged count + an
+          md minus to un-stage); nothing is added until the footer's Add commits
+          the whole staging into the target group. Footer = the standard
+          PopoverFooter shape (ghost Cancel left, solid Add right). `multiSelect`
+          on the SelectList only keeps it OPEN across taps (no checkboxes on the
+          rows). */}
       <SelectList
         variant={mobile ? "drawer" : "dialog"}
         breakpoint={mobile ? "mobile" : "desktop"}
-        title={lastTarget.current === "private" ? "Private forms" : "Public forms"}
+        title="Forms"
         open={addTarget != null}
         onClose={() => setAddTarget(null)}
         multiSelect
         searchable
         searchPlaceholder="Search by form name..."
-        state={availableTemplates.length === 0 ? "empty" : "default"}
-        emptyState={{ title: "Nothing here yet", caption: "Every form was already added to this job" }}
         footer={
           <SelectListFooter
             variant="actionBar"
@@ -830,7 +846,7 @@ export default function FormsModule({
         <SelectListItemGroup>
           {/* The DS counter rows (select="counter"): row tap stages one more
               copy, the built-in circle-minus un-stages one. */}
-          {availableTemplates.map((name) => (
+          {FORM_TEMPLATES.map((name) => (
             <SelectListItem
               key={name}
               label={name}
@@ -843,11 +859,11 @@ export default function FormsModule({
         </SelectListItemGroup>
       </SelectList>
 
-      {/* The "HVAC PM" stepper questionnaire (Figma 24337-41981). */}
+      {/* The "PM - HVAC" stepper questionnaire (Figma 24337-41981). */}
       <HvacPmStepForm
-        open={openFormTemplate === "HVAC PM"}
+        open={openFormTemplate === "PM - HVAC"}
         onClose={() => setOpenFormTemplate(null)}
-        title="HVAC PM"
+        title="PM - HVAC"
         initial={stepDraft}
         onSaveProgress={saveStepProgress}
         onSubmit={submitStep}
@@ -865,10 +881,11 @@ export default function FormsModule({
         mobile={mobile}
       />
 
-      {/* The "Hot Side - Repair" form (Figma 23920-13390). */}
+      {/* The "Repair - Hot Side" form (Figma 23920-13390). */}
       <HotSideRepairForm
-        open={openFormTemplate === "Hot Side - Repair"}
+        open={openFormTemplate === "Repair - Hot Side"}
         onClose={() => setOpenFormTemplate(null)}
+        title="Repair - Hot Side"
         equipment={jobEquipment}
         initial={hotSideDraft}
         onSaveProgress={saveHotSideProgress}
@@ -876,10 +893,11 @@ export default function FormsModule({
         mobile={mobile}
       />
 
-      {/* The "Ice Machine - Repair" form (Figma 24564-137511). */}
+      {/* The "Repair - Ice Machine" form (Figma 24564-137511). */}
       <IceMachineRepairForm
-        open={openFormTemplate === "Ice Machine - Repair"}
+        open={openFormTemplate === "Repair - Ice Machine"}
         onClose={() => setOpenFormTemplate(null)}
+        title="Repair - Ice Machine"
         equipment={jobEquipment}
         initial={iceMachineDraft}
         onSaveProgress={saveIceMachineProgress}

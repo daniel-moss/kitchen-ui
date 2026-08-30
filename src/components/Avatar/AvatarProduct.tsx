@@ -27,7 +27,7 @@ export default function AvatarProduct({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content={content}
       icon={semanticIcons.product}
       imageSrc={content === "image" ? (imageSrc ?? objectPlaceholder) : undefined}

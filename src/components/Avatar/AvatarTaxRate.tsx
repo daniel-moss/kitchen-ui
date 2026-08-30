@@ -20,7 +20,7 @@ export default function AvatarTaxRate({ size = "md", status = "none", className 
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.taxRate}
       size={size}

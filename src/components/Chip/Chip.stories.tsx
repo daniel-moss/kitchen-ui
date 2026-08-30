@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 import Chip from "./Chip";
+import type { ChipSize } from "./Chip.types";
 import { Icon } from "../Icon/Icon";
 import AvatarUser from "../Avatar/AvatarUser";
 import { docsFrame, noop } from "../../stories/helpers";
@@ -11,26 +12,31 @@ type ChipState = "default" | "focused" | "hovered" | "pressed" | "disabled";
 
 type StoryArgs = {
   text: string;
-  size: "md" | "lg";
+  size: ChipSize;
   active: boolean;
   slotLeft: Slot;
   isLoading: boolean;
   isDisabled: boolean;
 };
 
-const diamond = () => <Icon icon="diamonds-4" pack="solid" size={14} />;
-const SLOTS: Record<Exclude<Slot, "none">, React.ReactNode> = {
-  icon: diamond(),
-  avatar: <AvatarUser size="xxs" />,
+// The icon is the caller's in every parameter — Figma's default is a 14px
+// regular icon in the label color.
+const diamond = () => <Icon icon="diamonds-4" size={14} />;
+// The avatar size is fixed per chip size: xxs (16) in sm, xs (20) in md and lg.
+const avatar = (size: ChipSize) => <AvatarUser size={size === "sm" ? "xxs" : "xs"} />;
+
+const SLOTS: Record<Exclude<Slot, "none">, (size: ChipSize) => React.ReactNode> = {
+  icon: () => diamond(),
+  avatar: (size) => avatar(size),
 };
 
 /**
- * Chip — a compact filter / selection control: md (28px) or lg (32px), an
- * optional left slot (Icon or any avatar — strictly xxs/16px), an `active`
- * (selected) look, and a loading skeleton. Works as a toggle.
+ * Chip — a compact filter / selection control: sm (28px), md (32px) or lg
+ * (36px), an optional left slot (an Icon or an avatar), an `active` (selected)
+ * look, and a loading skeleton. Works as a toggle.
  */
 const meta: Meta<StoryArgs> = {
-  title: "Components/Chip",
+  title: "Components/Chip/Chip",
   component: Chip,
   // fullscreen — the docs stories' docsFrame provides the (only) padding.
   parameters: { layout: "fullscreen" },
@@ -57,6 +63,8 @@ const PSEUDO: Partial<Record<ChipState, string>> = {
   focused: "pseudo-focus-visible-all",
 };
 
+const SIZES: ChipSize[] = ["sm", "md", "lg"];
+
 const centeredColumn: React.CSSProperties = {
   ...docsFrame,
   display: "flex",
@@ -77,7 +85,7 @@ const Ladder = ({ active }: { active: boolean }) => (
   <div style={centeredColumn}>
     {STATES.map((state) => (
       <div key={state} className={PSEUDO[state]}>
-        <Chip size="lg" active={active} isDisabled={state === "disabled"} onClick={noop}>
+        <Chip size="md" active={active} isDisabled={state === "disabled"} onClick={noop}>
           {STATE_LABELS[state]}
         </Chip>
       </div>
@@ -85,7 +93,7 @@ const Ladder = ({ active }: { active: boolean }) => (
   </div>
 );
 
-const LoadingRow = ({ size }: { size: "md" | "lg" }) => (
+const LoadingRow = ({ size }: { size: ChipSize }) => (
   <div style={centeredRow}>
     <Chip size={size} isLoading>
       Chip
@@ -93,7 +101,7 @@ const LoadingRow = ({ size }: { size: "md" | "lg" }) => (
     <Chip size={size} slotLeft={diamond()} isLoading>
       Chip
     </Chip>
-    <Chip size={size} slotLeft={<AvatarUser size="xxs" />} isLoading>
+    <Chip size={size} slotLeft={avatar(size)} isLoading>
       Chip
     </Chip>
   </div>
@@ -101,7 +109,7 @@ const LoadingRow = ({ size }: { size: "md" | "lg" }) => (
 
 // --- stories -----------------------------------------------------------------
 
-/** md/lg; `active` = the selected look; the left slot takes an Icon or an avatar. */
+/** sm/md/lg; `active` = the selected look; the left slot takes an Icon or an avatar. */
 export const Playground: Story = {
   // The synthetic playground args/argTypes live on THIS story (not the meta) so
   // the docs-page ArgTypes table stays pure docgen from Chip.types.ts.
@@ -109,7 +117,7 @@ export const Playground: Story = {
   args: { text: "Chip", size: "md", active: false, slotLeft: "none", isLoading: false, isDisabled: false },
   argTypes: {
     text: { control: { type: "text" } },
-    size: { options: ["md", "lg"], control: { type: "inline-radio" } },
+    size: { options: SIZES, control: { type: "inline-radio" } },
     active: { control: { type: "boolean" } },
     slotLeft: { options: ["none", "icon", "avatar"], control: { type: "inline-radio" } },
     isLoading: { control: { type: "boolean" } },
@@ -119,7 +127,7 @@ export const Playground: Story = {
     <Chip
       size={size}
       active={active}
-      slotLeft={slotLeft === "none" ? undefined : SLOTS[slotLeft]}
+      slotLeft={slotLeft === "none" ? undefined : SLOTS[slotLeft](size)}
       isLoading={isLoading}
       isDisabled={isDisabled}
       onClick={noop}
@@ -133,7 +141,7 @@ export const Playground: Story = {
 const InteractiveChip = () => {
   const [selected, setSelected] = useState(false);
   return (
-    <Chip size="lg" active={selected} onClick={() => setSelected((v) => !v)}>
+    <Chip size="md" active={selected} onClick={() => setSelected((v) => !v)}>
       Chip
     </Chip>
   );
@@ -149,11 +157,14 @@ export const Interactive: Story = {
   ),
 };
 
-/** Two sizes: md (28px, caption 13/20) and lg (32px, body 14/20). Text only. */
+/** Three sizes: sm (28px, caption 13/20), md (32px) and lg (36px, both body 14/20). */
 export const Sizes: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={centeredRow}>
+      <Chip size="sm" onClick={noop}>
+        Small
+      </Chip>
       <Chip size="md" onClick={noop}>
         Medium
       </Chip>
@@ -164,37 +175,44 @@ export const Sizes: Story = {
   ),
 };
 
-/** Left slot: an Icon (solid 14, label color) or ANY avatar — strictly xxs (16px). */
-export const SlotLeft: Story = {
+/** Left slot with an Icon — size 14, and every icon parameter is editable. */
+export const SlotLeftIcon: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={centeredRow}>
-      <Chip size="md" slotLeft={diamond()} onClick={noop}>
-        Medium
-      </Chip>
-      <Chip size="md" slotLeft={<AvatarUser size="xxs" />} onClick={noop}>
-        Medium
-      </Chip>
-      <Chip size="lg" slotLeft={diamond()} onClick={noop}>
-        Large
-      </Chip>
-      <Chip size="lg" slotLeft={<AvatarUser size="xxs" />} onClick={noop}>
-        Large
-      </Chip>
+      {SIZES.map((size) => (
+        <Chip key={size} size={size} slotLeft={diamond()} onClick={noop}>
+          {size} Icon
+        </Chip>
+      ))}
     </div>
   ),
 };
 
-/** A chip is inactive or active; clicking / tapping switches between them. */
+/** Left slot with an avatar — the size is fixed (xxs in sm, xs in md and lg). */
+export const SlotLeftAvatar: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      {SIZES.map((size) => (
+        <Chip key={size} size={size} slotLeft={avatar(size)} onClick={noop}>
+          {size} Avatar
+        </Chip>
+      ))}
+    </div>
+  ),
+};
+
+/** A chip is selected or unselected; clicking / tapping switches between them. */
 export const ActiveInactive: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={centeredRow}>
-      <Chip size="lg" onClick={noop}>
-        Inactive
+      <Chip size="md" onClick={noop}>
+        Unselected
       </Chip>
-      <Chip size="lg" active onClick={noop}>
-        Active
+      <Chip size="md" active onClick={noop}>
+        Selected
       </Chip>
     </div>
   ),
@@ -212,14 +230,20 @@ export const ActiveStates: Story = {
   render: () => <Ladder active />,
 };
 
-/** lg loading — text only, with an icon, and with an avatar. */
-export const LoadingLg: Story = {
+/** sm loading — text only, with an icon, and with an avatar. */
+export const LoadingSm: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <LoadingRow size="lg" />,
+  render: () => <LoadingRow size="sm" />,
 };
 
 /** md loading — text only, with an icon, and with an avatar. */
 export const LoadingMd: Story = {
   parameters: { controls: { disable: true } },
   render: () => <LoadingRow size="md" />,
+};
+
+/** lg loading — text only, with an icon, and with an avatar. */
+export const LoadingLg: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <LoadingRow size="lg" />,
 };

@@ -40,13 +40,6 @@
   color: var(--jade-a9);
 }
 
-// Right slot: live editor avatar + the ellipsis button.
-.rowRight {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--size-2);
-}
-
 // Desktop context-menu card anchored to the row's ellipsis.
 .anchoredMenu {
   position: fixed;

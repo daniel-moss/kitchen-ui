@@ -1,6 +1,7 @@
-import { Children, cloneElement, CSSProperties, isValidElement, KeyboardEvent, MouseEvent, ReactElement, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { Children, cloneElement, CSSProperties, isValidElement, KeyboardEvent, MouseEvent, ReactElement, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import clsx from "clsx";
 
+import { TabGroupDefaultSizeContext } from "./TabGroupDefaultSizeContext";
 import { TabItemProps, TabItemVariant } from "./TabItem.types";
 
 import styles from "./TabGroup.module.scss";
@@ -24,7 +25,11 @@ type IndicatorRect = { x: number; y: number; w: number; h: number };
 // clicks to onChange, and adds roving-tabindex + arrow-key navigation. For the
 // contained / underlined styles a single shared indicator (the raised surface /
 // the bottom line) slides to the selected tab. See Figma "TabGroup".
-export default function TabGroup({ variant = "default", size = "md", orientation = "horizontal", value, defaultValue, onChange, children, isFullWidth = false, className, ...rest }: TabGroupProps) {
+export default function TabGroup({ variant = "default", size: sizeProp, orientation = "horizontal", value, defaultValue, onChange, children, isFullWidth = false, className, ...rest }: TabGroupProps) {
+  // An explicit size wins; else a container's default (TopBarNav provides
+  // "lg" for its bars); else "md".
+  const contextSize = useContext(TabGroupDefaultSizeContext);
+  const size = sizeProp ?? contextSize ?? "md";
   const isControlled = value !== undefined;
   const [internal, setInternal] = useState(defaultValue);
   const selectedValue = isControlled ? value : internal;

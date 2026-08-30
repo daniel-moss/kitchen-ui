@@ -155,7 +155,7 @@ const EquipmentRow = ({ equipment, mobile, onRemove }: { equipment: Equipment; m
         <Menu
           open={menu.open}
           onClose={menu.close}
-          header={
+          drawerHeader={
             <DrawerHeader>
               <PopoverHeaderContent avatar={<AvatarEquipment size="xl" />}>
                 <PopoverHeaderText variant="titleCaption" title={equipmentLabel(equipment)} caption={equipmentCaption(equipment)} />

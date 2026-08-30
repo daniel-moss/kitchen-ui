@@ -26,7 +26,12 @@ interface SelectListBaseProps {
   open?: boolean;
   /** Called when the list is dismissed (dialog close / scrim tap / swipe). */
   onClose?: () => void;
-  /** Header slot — a SelectListHeader (search). Pinned above the scrolling body. */
+  /**
+   * Header slot — a SelectListHeader in any of its three variants (search,
+   * chips, or chips over search). Pinned above the scrolling body. Use this
+   * for a header with chips; `searchable` below is the shortcut for the
+   * search-only one.
+   */
   header?: ReactNode;
   /**
    * Built-in search: SelectList renders its own search header, owns the query,
@@ -40,6 +45,12 @@ interface SelectListBaseProps {
   searchPlaceholder?: string;
   /** Caption under the title (dialog header / drawer header), e.g. a short instruction. */
   caption?: string;
+  /**
+   * The DRAWER header's bottom divider. Default true. Turn it off when what
+   * follows the title already draws its own line — a search header, a chips
+   * block — and two lines close together would read as a box.
+   */
+  drawerHeaderDivider?: boolean;
   /** Footer slot — a SelectListFooter. Pinned below the body. */
   footer?: ReactNode;
   /**

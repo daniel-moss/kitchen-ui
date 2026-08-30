@@ -42,7 +42,7 @@ const stateProps = (state: string) => ({
 });
 
 /**
- * Toggle — a 34×22 switch (on/off). The bare switch only; a labelled row is
+ * Toggle — a 34×22 switch (on/off). The bare switch only; a labeled row is
  * ToggleItem. Used inside ToggleItem and toggle-like local components.
  */
 const meta: Meta<StoryArgs> = {

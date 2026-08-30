@@ -1,0 +1,78 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as FilterChipGroupStories from "./FilterChipGroup.stories";
+
+<Meta of={FilterChipGroupStories} />
+
+# FilterChipGroup
+
+We use **FilterChipGroup** as a container for
+<a href="/?path=/docs/components-topbarfilter-filterchip--docs" target="_top">FilterChip</a>
+components
+
+<Canvas of={FilterChipGroupStories.Hero} />
+
+```tsx
+<FilterChipGroup
+  addMenu={
+    <MenuItemGroup>
+      <MenuItem label="Assignee" onClick={addAssigneeFilter} />
+      <MenuItem label="Status" onClick={addStatusFilter} />
+    </MenuItemGroup>
+  }
+>
+  <FilterChip property="Property" condition="is" value="Value" … />
+</FilterChipGroup>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Desktop](#desktop)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Mobile](#mobile)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Add filter" button](#add-filter-button)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Supports 2 variants: mobile and desktop
+
+### Desktop
+
+Fills the width. The chips are laid out horizontally from left to right. If
+the chips do not fit the width, they wrap. The gap between the chips is
+`--size-2` (8px) — in a row and between the wrapped rows. Chips are followed
+by the "Add filter"
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
+— `ghost`, `md` (32px), with a 14px `plus` icon.
+
+<Canvas of={FilterChipGroupStories.AnatomyDesktop} />
+
+### Mobile
+
+Fills the width. The chips are laid out vertically from top to bottom,
+`--size-2` (8px) apart. There is no "Add filter" button on mobile.
+
+<Canvas of={FilterChipGroupStories.AnatomyMobile} />
+
+## Behavior
+
+### "Add filter" button
+
+Hovering over the button triggers the tooltip. (The example below is live —
+hover the button.)
+
+<Canvas of={FilterChipGroupStories.AddFilterTooltip} />
+
+The button triggers a
+<a href="/?path=/story/components-menu-menu--playground" target="_top">Menu</a>
+component — it opens 4px below the button, left edges aligned, and the button
+stays pressed while the Menu is open. In code the Menu content comes from
+`addMenu` (MenuItemGroup elements) and the group opens and closes it by
+itself; for a follow-up that is not a Menu, pass `onAddClick` instead. (The
+example below is live — click the button.)
+
+<Canvas of={FilterChipGroupStories.AddFilterMenu} />
+
+## Props
+
+<ArgTypes of={FilterChipGroupStories} />

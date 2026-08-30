@@ -112,6 +112,7 @@ export default function SelectList({
   onClose,
   title,
   caption,
+  drawerHeaderDivider = true,
   header,
   searchable = false,
   searchPlaceholder,
@@ -366,7 +367,7 @@ export default function SelectList({
   const drawerHeader = (
     <>
       {title != null ? (
-        <DrawerHeader>
+        <DrawerHeader divider={drawerHeaderDivider}>
           <PopoverHeaderContent>
             <PopoverHeaderText variant={caption != null ? "titleCaption" : "title"} title={title} caption={caption} />
           </PopoverHeaderContent>

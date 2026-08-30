@@ -1,0 +1,33 @@
+@use "../../styles/mixins/skeleton" as *;
+
+// Fixed box on both axes — the ring has one size.
+.base {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  width: var(--size-4); /* 16px */
+  height: var(--size-4);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+// The full circle behind the progress. Note this is --gray-a6, one step
+// stronger than the bar's --gray-a4 track (that is what the design draws).
+.baseRing {
+  stroke: var(--gray-a6);
+}
+
+// The arc. Rotated -90° so it starts at 12 o'clock and grows clockwise; the
+// length comes from stroke-dashoffset, set inline per value.
+.progress {
+  stroke: var(--gray-12);
+}
+
+// Loading: the empty ring pulses (the shared design-system skeleton pulse).
+.loading {
+  @include skeleton-pulse;
+}

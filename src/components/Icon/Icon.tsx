@@ -15,7 +15,11 @@ export function Icon({
   icon,
   size = 14,
   pack = "regular",
-  container = "fixedHeight",
+  // `square` is the default (Daniel, 2026-08-17): every Icon instance in Figma
+  // is a fixed square box — 16px around a 14px glyph — so a glyph-width box was
+  // the divergence, not the other way round. `fixedHeight` stays for the cases
+  // that genuinely want the width to follow the glyph.
+  container = "square",
   spin = false,
   rotate,
   isLoading = false,

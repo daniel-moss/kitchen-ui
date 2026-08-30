@@ -19,6 +19,7 @@ import StepItemGroup from "../../components/StepItemGroup/StepItemGroup";
 import StepItem from "../../components/StepItemGroup/StepItem";
 import { StepItemProgress } from "../../components/StepItemGroup/StepItem.types";
 import { ChecklistAnswer, SECTIONS } from "./HvacPmForm";
+import { HVAC_PM_STEPS, HVAC_PM_TECHS_OPTIONS } from "../../forms/formSchema/hvacPmSchema";
 import { DURATION_PRESETS, MINUTE_OPTIONS } from "./SchedulingForm";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
 
@@ -28,13 +29,16 @@ import styles from "./HvacPmStepForm.module.scss";
 // The 5 checklist sections + Quote + Notes. Submit lives on Notes (the last
 // step); every step is freely reachable from the step bar.
 
-const STEP_LABELS = [...SECTIONS.map((s) => s.title), "Quote", "Notes"];
+// The step names come from the schema, so the stepper and the preview cannot
+// label the same step differently.
+const STEP_LABELS = HVAC_PM_STEPS;
 const QUOTE_STEP = SECTIONS.length; // 5
 const NOTES_STEP = SECTIONS.length + 1; // 6
 
 // Reduced to 1–5 + "5+" (Daniel 2026-07-27; the design's 1–10/"10+" set was
-// cut). Exported — ServiceCallForm uses the same set (Daniel's "keep 5+").
-export const TECHS_OPTIONS = ["1", "2", "3", "4", "5", "5+"];
+// cut). Owned by the schema now; re-exported because ServiceCallForm imports it
+// from here (Daniel's "keep 5+").
+export const TECHS_OPTIONS = HVAC_PM_TECHS_OPTIONS;
 
 // ---- the draft --------------------------------------------------------------
 
@@ -296,7 +300,7 @@ export default function HvacPmStepForm({
                 {TECHS_OPTIONS.map((t) => (
                   <Chip
                     key={t}
-                    size="lg"
+                    size="md"
                     className={styles.techChip}
                     active={t === draft.techs}
                     onClick={() => setDraft((prev) => ({ ...prev, techs: t }))}
@@ -337,7 +341,7 @@ export default function HvacPmStepForm({
               {DURATION_PRESETS.map((p) => (
                 <Chip
                   key={p.label}
-                  size="lg"
+                  size="md"
                   active={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
                   onClick={() => setDraft((prev) => ({ ...prev, hours: p.hours, minutes: p.minutes }))}
                 >

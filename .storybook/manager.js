@@ -1,5 +1,5 @@
 // Storybook MANAGER theme (the outer UI: nav sidebar, toolbar, addon panel),
-// styled to look like the DS NavSidebar — and following the SAME theme rule
+// styled to look like the DS SidebarNav — and following the SAME theme rule
 // as the preview: it listens to the preview's `theme` toolbar global
 // (auto/light/dark; auto follows the OS live) and swaps the manager theme to
 // match. The manager cannot read our CSS tokens, so both palettes are the

@@ -1,0 +1,11 @@
+// ChipGroup — the row that holds Chips: it wraps, and the gap is the same on
+// both axes. Figma nests this row in an extra wrapper frame that carries no
+// spacing of its own, so one element is enough here.
+// See Figma "ChipGroup" (node 29520-32986).
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  align-content: center;
+  gap: var(--size-2); // 8px, both axes
+}

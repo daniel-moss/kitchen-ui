@@ -3,6 +3,15 @@
 // ---- inline (overlapping cluster) ----
 .inline {
   position: relative;
+
+  // The slots carry z-index 0,1,2… so each avatar overlaps the one before it.
+  // Those values must not escape this group: `position: relative` alone does
+  // NOT open a stacking context (z-index is auto), so they used to compete
+  // with the rest of the page — a third avatar (z-index 2) painted OVER a
+  // sticky table header at z-index 1 while scrolling. `isolation` opens the
+  // context without giving the group a z-index of its own, so the stacking
+  // order inside is unchanged and nothing outside can be jumped again.
+  isolation: isolate;
 }
 
 .slot {

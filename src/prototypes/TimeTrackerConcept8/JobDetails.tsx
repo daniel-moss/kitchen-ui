@@ -22,12 +22,12 @@ import Input from "../../components/Input/Input";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import Toaster, { toast } from "../../components/Toast/Toaster";
-import NavSidebar from "../../components/NavSidebar/NavSidebar";
-import NavSidebarItem from "../../components/NavSidebar/NavSidebarItem";
-import NavSidebarItemGroup from "../../components/NavSidebar/NavSidebarItemGroup";
-import NavTopBar from "../../components/NavTopBar/NavTopBar";
-import NavTopBarLeftElements from "../../components/NavTopBar/NavTopBarLeftElements";
-import NavTopBarTitle from "../../components/NavTopBar/NavTopBarTitle";
+import SidebarNav from "../../components/SidebarNav/SidebarNav";
+import SidebarNavItem from "../../components/SidebarNav/SidebarNavItem";
+import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup";
+import TopBarNav from "../../components/TopBarNav/TopBarNav";
+import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import ScrollArea from "../../components/ScrollArea/ScrollArea";
 import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
@@ -55,7 +55,7 @@ import { copyText, noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./JobDetails.module.scss";
 
-// Job Details — prototype shell (slice 1). Desktop: NavSidebar + NavTopBar
+// Job Details — prototype shell (slice 1). Desktop: SidebarNav + TopBarNav
 // (details) + a max-560px main content column + a 400px right sidebar with
 // the ActionBar pinned on top. Mobile: the right sidebar becomes the first
 // tab ("Details"), the ActionBar pins to the bottom, and the top bar hides
@@ -117,17 +117,16 @@ interface TopBarProps {
 }
 
 const TopBar = ({ mobile = false, hideOnScroll = false, onActions, actionsPressed = false, tab, onTabChange, avatarStatus }: TopBarProps) => (
-  <NavTopBar
+  <TopBarNav
     variant="details"
     liveUsers={LIVE_USERS}
     tabs={<Tabs withDetails={mobile} value={tab} onChange={onTabChange} />}
     breakpoint={mobile ? "mobile" : "desktop"}
-    hideOnScroll={hideOnScroll}
   >
-    <NavTopBarLeftElements onBack={noop} onActions={onActions} actionsPressed={actionsPressed}>
-      <NavTopBarTitle title={JOB_ID} slotLeft={<AvatarJob size="md" status={avatarStatus} />} />
-    </NavTopBarLeftElements>
-  </NavTopBar>
+    <TopBarNavLeftElements onBack={noop} onActions={onActions} actionsPressed={actionsPressed}>
+      <TopBarNavTitle title={JOB_ID} slotLeft={<AvatarJob size="xl" status={avatarStatus} />} />
+    </TopBarNavLeftElements>
+  </TopBarNav>
 );
 
 // ---- job context menu (the ellipsis next to the title) ---------------------
@@ -310,7 +309,7 @@ const jobActionMenuItems = ({ status, actions }: { status: JobStatus; actions: J
 };
 
 // The mobile overflow menu's drawer header: the job avatar + id + status caption.
-// The avatar is AvatarJob (the same wrench-glyph identity as the NavTopBar title)
+// The avatar is AvatarJob (the same wrench-glyph identity as the TopBarNav title)
 // at size xl (36px) — the size the Figma drawer header uses.
 const JobMenuHeader = ({ avatarStatus, caption }: { avatarStatus: BadgeJobStatusStatus; caption: string }) => (
   <DrawerHeader>
@@ -327,7 +326,7 @@ const Placeholder = ({ className }: { className?: string }) => (
   </div>
 );
 
-// ---- NavSidebar config (display only) ------------------------------------
+// ---- SidebarNav config (display only) ------------------------------------
 
 
 const profileMenu = (
@@ -395,43 +394,43 @@ const createMenu = (
 
 const navContent = (
   <>
-    <NavSidebarItem icon="house">Home</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.estimate}>Estimates</NavSidebarItem>
+    <SidebarNavItem icon="house">Home</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.estimate}>Estimates</SidebarNavItem>
     {/* The current page (a job's details) lives under Jobs — open + active. */}
-    <NavSidebarItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
-      <NavSidebarItem type="stackItem">Job requests</NavSidebarItem>
-      <NavSidebarItem type="stackItem" active>
+    <SidebarNavItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
+      <SidebarNavItem type="stackItem">Job requests</SidebarNavItem>
+      <SidebarNavItem type="stackItem" active>
         Jobs
-      </NavSidebarItem>
-      <NavSidebarItem type="stackItem">Job series</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItemGroup icon={semanticIcons.invoice} label="Invoices">
-      <NavSidebarItem type="stackItem">Invoices</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Credit notes</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItem icon={semanticIcons.purchaseOrder}>Purchase orders</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.bill}>Bills</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.vendor}>Vendors</NavSidebarItem>
-    <NavSidebarItem icon={semanticIcons.client}>Clients</NavSidebarItem>
-    <NavSidebarItemGroup icon={semanticIcons.pricebook} label="Pricebook">
-      <NavSidebarItem type="stackItem">Labor</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Products</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Other</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Discounts</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Tax rates</NavSidebarItem>
-    </NavSidebarItemGroup>
-    <NavSidebarItemGroup icon={semanticIcons.reports} label="Reports">
-      <NavSidebarItem type="stackItem">Clients &amp; locations</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Jobs</NavSidebarItem>
-      <NavSidebarItem type="stackItem">Inventory</NavSidebarItem>
-    </NavSidebarItemGroup>
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem">Job series</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItemGroup icon={semanticIcons.invoice} label="Invoices">
+      <SidebarNavItem type="stackItem">Invoices</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Credit notes</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
+    <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
+      <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Products</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
+    </SidebarNavItemGroup>
+    <SidebarNavItemGroup icon={semanticIcons.reports} label="Reports">
+      <SidebarNavItem type="stackItem">Clients &amp; locations</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Jobs</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Inventory</SidebarNavItem>
+    </SidebarNavItemGroup>
   </>
 );
 
 const bottomItems = (
   <>
-    <NavSidebarItem icon="circle-question">Help center</NavSidebarItem>
-    <NavSidebarItem icon="bullhorn">What&apos;s new</NavSidebarItem>
+    <SidebarNavItem icon="circle-question">Help center</SidebarNavItem>
+    <SidebarNavItem icon="bullhorn">What&apos;s new</SidebarNavItem>
   </>
 );
 
@@ -1283,7 +1282,7 @@ const DesktopShell = ({ office = false }: { office?: boolean }) => {
   const [tab, setTab] = useState("service");
   return (
     <div className={styles.desktop}>
-      <NavSidebar
+      <SidebarNav
         workspaces={[{ id: "1", name: "Workspace" }]}
         profileName="Lorne Riddle"
         profileEmail="email@address.com"
@@ -1294,7 +1293,7 @@ const DesktopShell = ({ office = false }: { office?: boolean }) => {
         breakpoint="desktop"
       >
         {navContent}
-      </NavSidebar>
+      </SidebarNav>
       <div className={styles.workArea}>
         <TopBar onActions={s.menu.onActions} actionsPressed={s.menu.open} avatarStatus={s.avatarStatus} tab={tab} onTabChange={setTab} />
         <div className={styles.contentRow}>
@@ -1556,7 +1555,7 @@ const MobileShell = ({ office = false }: { office?: boolean }) => {
       <ScrollArea wrapperClassName={styles.mobileScroll} className={styles.mobileScrollInner}>
         <TopBar mobile hideOnScroll onActions={s.menu.onActions} actionsPressed={s.menu.open} tab={tab} onTabChange={setTab} avatarStatus={s.avatarStatus} />
         {/* Swipe-to-switch-tabs listens ONLY here (the tab content) — not on
-            the NavTopBar or the ActionBar (Daniel, 2026-07-22). */}
+            the TopBarNav or the ActionBar (Daniel, 2026-07-22). */}
         {/* Real-time swipe pager: drag the content to pull the next tab in. */}
         <SwipePager
           tab={tab}
@@ -1620,7 +1619,7 @@ const MobileShell = ({ office = false }: { office?: boolean }) => {
       <Menu
         open={s.menu.open}
         onClose={s.menu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         <JobContextMenuItems onClose={s.menu.close} />
@@ -1628,7 +1627,7 @@ const MobileShell = ({ office = false }: { office?: boolean }) => {
       <Menu
         open={s.actionMenu.open}
         onClose={s.actionMenu.close}
-        header={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
         breakpoint="mobile"
       >
         {jobActionMenuItems({ status: s.job.status, actions: s.actions })}

@@ -1,0 +1,25 @@
+// BottomBarNav — values from Figma "BottomBarNav": full width (min 320),
+// medium top divider, 8px padding, items 0 apart, surface-level-first fill.
+
+.bar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 320px;
+  background: var(--surface-level-first);
+  // The iOS home-indicator zone below the items (34px on device; DeviceFrame
+  // mocks it, PhoneViewport computes the real value) — same variable as the
+  // Popover drawers.
+  padding-bottom: var(--popover-drawer-bottom-inset, env(safe-area-inset-bottom, 0px));
+}
+
+.inner {
+  box-sizing: border-box;
+  display: flex;
+  gap: 0; // the items touch (the doc — was 2px)
+  align-items: center;
+  justify-content: center; // maxed-out items stay centered on wide screens
+  width: 100%;
+  padding: var(--size-2); // 8px
+}

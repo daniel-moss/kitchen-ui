@@ -6,9 +6,9 @@ import SearchField from "./SearchField";
 import { SearchFieldProps, SearchFieldType } from "./SearchField.types";
 
 /**
- * SearchField — a text search input. `field` is a bordered 32px box; `bar` is
- * a filled 36px row with a 1px Divider below. A "Clear" (×) button appears
- * once there is a value.
+ * SearchField — a text search input. `field` is a bordered 36px box with a
+ * `--gray-a2` fill; `bar` is a bare 40px row (no fill, no border, no divider).
+ * A "Clear" (×) button appears once there is a value.
  */
 const meta: Meta<typeof SearchField> = {
   title: "Components/Fields/SearchField",
@@ -74,7 +74,7 @@ export const AnatomyField: Story = {
   ),
 };
 
-/** Bar anatomy — empty and filled, with the bottom Divider. */
+/** Bar anatomy — empty and filled. */
 export const AnatomyBar: Story = {
   render: () => (
     <div style={docsFrame}>
@@ -169,5 +169,5 @@ const StateGrid = ({ type }: { type: SearchFieldType }) => (
 /** field — a bordered box. Border darkens on hover, gray-12 on focus. */
 export const Field: Story = { parameters: { controls: { disable: true }, layout: "padded" }, render: () => <StateGrid type="field" /> };
 
-/** bar — a filled row with a bottom divider. */
+/** bar — a bare row: no fill, no border, no divider. */
 export const Bar: Story = { parameters: { controls: { disable: true }, layout: "padded" }, render: () => <StateGrid type="bar" /> };

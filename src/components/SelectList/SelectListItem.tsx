@@ -1,9 +1,10 @@
-import { cloneElement, isValidElement, KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactElement, useContext, useRef } from "react";
+import { cloneElement, isValidElement, KeyboardEvent, MouseEvent, PointerEvent as ReactPointerEvent, ReactElement, useContext, useEffect, useRef } from "react";
 import clsx from "clsx";
 
 import { Icon } from "../Icon/Icon";
 import CheckboxBox from "../Checkbox/CheckboxBox";
 import IconButton from "../IconButton/IconButton";
+import { shieldSynthesizedClick } from "../../utils/tapShield";
 import { SelectListContext } from "./SelectList";
 import SelectListItemContent from "./SelectListItemContent";
 import { SelectListItemContentProps } from "./SelectListItemContent.types";
@@ -39,6 +40,7 @@ export default function SelectListItem({
   count,
   onDecrement,
   disabled = false,
+  readOnly = false,
   reversed = false,
   rightTitle,
   rightCaption,
@@ -54,6 +56,21 @@ export default function SelectListItem({
   const counterCount = isCounter ? (count ?? 0) : 0;
   // A counter row is "selected" while it holds at least one copy.
   const isSelected = isCounter ? counterCount > 0 : selected;
+  // readOnly exists for MULTI-SELECT only — Figma draws no such variant for a
+  // single or counter row, and neither has a checkbox to dim, so the state
+  // would have nothing to show. TypeScript cannot express "this prop only with
+  // that mode" here (the deprecated `multiSelect` alias also picks the mode), so
+  // it is a runtime check — the same approach as ListItem's
+  // CONTROLS_BLOCKING_CLICK warning.
+  const isReadOnly = readOnly && mode === "multi";
+  const readOnlyMisused = readOnly && !isReadOnly;
+  useEffect(() => {
+    if (readOnlyMisused) {
+      console.warn(`SelectListItem: \`readOnly\` is multi-select only — ignored on select="${mode}".`);
+    }
+  }, [readOnlyMisused, mode]);
+  // Both states switch the row off; only `disabled` also dims it.
+  const inert = disabled || isReadOnly;
   // Inside a SelectList, every option click is reported — a single-select
   // list closes itself in response (multi-select stays open).
   const selectListCtx = useContext(SelectListContext);
@@ -81,6 +98,10 @@ export default function SelectListItem({
     if (start == null || start.id !== e.pointerId) return;
     if (Math.abs(e.clientX - start.x) > 10 || Math.abs(e.clientY - start.y) > 10) return; // a scroll, not a tap
     suppressClicksUntil = Date.now() + 700;
+    // …and stop that same synthesized click from reaching anything ELSE. A
+    // single-select row closes its list, so the click would otherwise land on
+    // whatever the list was covering and activate it.
+    shieldSynthesizedClick();
     handleClick(e as unknown as MouseEvent<HTMLDivElement>);
   };
   const handleRowClick = (e: MouseEvent<HTMLDivElement>) => {
@@ -127,25 +148,33 @@ export default function SelectListItem({
     <div
       role="option"
       aria-selected={isSelected}
-      aria-disabled={disabled || undefined}
-      tabIndex={disabled ? undefined : 0}
+      // A read-only option cannot be chosen either, so it carries the same
+      // attribute — which is also what keeps SelectList's arrow keys and its
+      // "highlight the first match" from ever landing on it (both query
+      // `[role="option"]:not([aria-disabled="true"])`).
+      aria-disabled={inert || undefined}
+      tabIndex={inert ? undefined : 0}
       className={clsx(
         styles.item,
         isObject ? styles.object : styles.default,
         mode === "multi" ? styles.multi : mode === "counter" ? styles.counter : styles.single,
         isSelected && styles.selected,
         disabled && styles.disabled,
+        isReadOnly && styles.readOnly,
         className,
       )}
-      onClick={disabled ? undefined : handleRowClick}
-      onPointerDown={disabled ? undefined : handlePointerDown}
-      onPointerUp={disabled ? undefined : handlePointerUp}
-      onKeyDown={disabled ? undefined : handleKeyDown}
+      onClick={inert ? undefined : handleRowClick}
+      onPointerDown={inert ? undefined : handlePointerDown}
+      onPointerUp={inert ? undefined : handlePointerUp}
+      onKeyDown={inert ? undefined : handleKeyDown}
       {...rest}
     >
       {mode === "multi" && (
         <span className={styles.checkbox}>
-          <CheckboxBox checked={isSelected} interactive={false} />
+          {/* readOnly dims the CHECKBOX and nothing else — the copy stays
+              readable. `disabled` needs no `dimmed`: the whole row is already
+              at 40%, and dimming twice would darken the box against it. */}
+          <CheckboxBox checked={isSelected} interactive={false} dimmed={isReadOnly} />
         </span>
       )}
 

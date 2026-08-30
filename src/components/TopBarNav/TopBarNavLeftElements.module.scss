@@ -1,0 +1,39 @@
+// TopBarNavLeftElements — values from Figma TopBarNav "#️⃣ Left Elements":
+// [back button?] 8px [title] 8px [context-menu button?], centered. Both
+// buttons are ghost lg (36px) IconButtons.
+
+.root {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.slotLeft {
+  display: flex;
+  flex: none;
+  padding-right: var(--size-2); // 8px
+}
+
+.slotRight {
+  display: flex;
+  flex: none;
+  padding-left: var(--size-2); // 8px
+}
+
+// Desktop only: anchors the context Menu card — wraps the BUTTON alone (the
+// slot's 8px padding stays outside, so left: 0 is the button's left edge).
+// On mobile the wrap must stay UNPOSITIONED — the drawer's scrim fills the
+// nearest positioned ancestor.
+.menuWrap {
+  position: relative;
+  display: flex;
+}
+
+// The context Menu card sits 4px below the button, left-aligned with it.
+.menuAnchor {
+  position: absolute;
+  top: calc(100% + var(--size-1)); // 4px
+  left: 0;
+  z-index: var(--z-menu);
+}

@@ -13,7 +13,7 @@ export default meta;
 type Story = StoryObj;
 
 /**
- * Desktop shell: NavSidebar + details NavTopBar (static tabs), a max-560px
+ * Desktop shell: SidebarNav + details TopBarNav (static tabs), a max-560px
  * centered content column, and the 400px right sidebar with the ActionBar
  * pinned on top. Content areas are placeholders for now.
  */

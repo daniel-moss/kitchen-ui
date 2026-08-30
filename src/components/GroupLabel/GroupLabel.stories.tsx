@@ -28,7 +28,7 @@ type StoryArgs = {
 const frame: React.CSSProperties = { width: 355 };
 
 const iconSlot = <Icon icon="diamonds-4" pack="regular" size={14} container="square" />;
-const avatarSlot = <Avatar type="object" content="image" size="sm" />;
+const avatarSlot = <Avatar shape="square" content="image" size="sm" />;
 const leftSlots: Record<LeftSlot, React.ReactNode> = { none: undefined, icon: iconSlot, avatar: avatarSlot };
 const primaryAction = <IconButton icon="diamonds-4" size="md" variant="ghost" aria-label="Action" onClick={noop} />;
 const secondaryAction = <IconButton icon="diamonds-4" size="xs" variant="muted" aria-label="Action" onClick={noop} />;

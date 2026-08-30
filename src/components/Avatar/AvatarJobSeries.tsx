@@ -21,7 +21,7 @@ export default function AvatarJobSeries({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.jobSeries}
       size={size}

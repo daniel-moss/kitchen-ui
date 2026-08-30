@@ -1,0 +1,107 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SidebarNavStories from "./SidebarNav.stories";
+
+<Meta of={SidebarNavStories} />
+
+# SidebarNav
+
+We use **SidebarNav** for navigation within the app on desktop. On mobile it
+renders nothing — the BottomBarNav takes over.
+
+<Canvas of={SidebarNavStories.Hero} />
+
+```tsx
+<SidebarNav
+  workspaces={workspaces}
+  profileName="Lorne Riddle"
+  profileEmail="email@address.com"
+  profileMenu={profileMenu}
+  onSearchClick={openCommandPanel}
+  createMenu={createMenu}
+  bottomItems={bottomItems}
+>
+  <SidebarNavItem icon="house" href="/home" active>Home</SidebarNavItem>
+  <SidebarNavItemGroup icon="wrench-simple" label="Jobs">…</SidebarNavItemGroup>
+</SidebarNav>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The sidebar has a Divider (medium contrast) on the right side. The width is
+fixed — a 280px column plus the 1px divider. The sidebar is fixed on the
+left side of the screen; the consumer places it there.
+
+The header is 60px tall with `--size-3` (12px) side padding. The content
+below has `--size-3` (12px) side and bottom padding; rows stack
+`--size-0_25` (1px) apart, and the Create button sits `--size-2` (8px) above
+the items.
+
+The rows are
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitem--docs" target="_top">SidebarNavItems</a>;
+stacks of them are
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitemgroup--docs" target="_top">SidebarNavItemGroups</a>.
+
+<Canvas of={SidebarNavStories.Playground} />
+
+## Behavior
+
+### Overflow
+
+The content overflows when there is not enough space: the header is fixed on
+top and the rest of the content scrolls. While everything fits, the bottom
+items stay pinned to the bottom.
+
+<Canvas of={SidebarNavStories.Overflow} />
+
+### Header
+
+Contains a workspace selector
+(<a href="/?path=/docs/components-sidebarnav-sidebarnavworkspacebutton--docs" target="_top">SidebarNavWorkspaceButton</a>)
+and a user profile button
+(<a href="/?path=/docs/components-sidebarnav-sidebarnavprofilebutton--docs" target="_top">SidebarNavProfileButton</a>).
+It is fixed on top while scrolling.
+
+The workspace name truncates if it does not fit one line — there is a
+minimum `--size-2` (8px) gap between the workspace button and the profile
+button, so they never overlap.
+
+<Canvas of={SidebarNavStories.LongWorkspaceName} />
+
+### Search
+
+The Search nav item opens a command panel (`onSearchClick` — without it the
+item is not rendered). It is built on top of
+<a href="/?path=/docs/components-sidebarnav-sidebarnavitem--docs" target="_top">SidebarNavItem</a>
+and inherits the same interaction states. The hot key depends on the OS —
+"⌘K" on macOS, "Ctrl K" elsewhere (display only; `searchHotKey` overrides
+it).
+
+### "Create" button
+
+It lets the user create any object from anywhere. The button is built on top
+of SidebarNavItem with a few adjustments — in the default state the label is
+strong and the icon is solid (the item's `strong` modifier).
+
+The Create button opens a Menu and stays pressed while the menu is open. On
+desktop the menu is a card to the right of the button, tops aligned, 4px
+apart; on mobile it is a drawer titled "Create". Sub-menus (e.g. Job,
+Invoice, Pricebook item) are the Menu's own `subMenu` behavior — hover cards
+on desktop, drawer pushes on mobile. The example below is live — click
+Create:
+
+<Canvas of={SidebarNavStories.Playground} />
+
+### Minimal
+
+Search, the Create button, and the bottom items are all optional.
+
+<Canvas of={SidebarNavStories.Minimal} />
+
+## Props
+
+<ArgTypes of={SidebarNavStories} />

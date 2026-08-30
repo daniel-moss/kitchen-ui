@@ -1,0 +1,31 @@
+@use "../../styles/mixins/skeleton" as *;
+
+// Loading: the user-icon variant pulses. AvatarUser knows the avatar will be a
+// user, so it shows the user icon instead of Avatar's empty shape.
+.loading {
+  @include skeleton-pulse;
+}
+
+// placeholder: an empty slot — no fill, just the dashed ring around the (locked)
+// user icon. The Avatar inside gets a transparent background.
+.placeholder {
+  position: relative;
+
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+// The dashed ring fills the box; the stroke color drives the dashes. Drawn as
+// SVG so the 4/4 dash pattern is exact and flips with the theme via
+// currentColor (a CSS dashed border can do neither).
+.ring {
+  position: absolute;
+  inset: 0;
+
+  width: 100%;
+  height: 100%;
+
+  color: var(--gray-a9);
+
+  pointer-events: none;
+}

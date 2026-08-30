@@ -24,7 +24,7 @@ type StoryArgs = {
 };
 
 const icon = (name = "diamonds-4") => <Icon icon={name} pack="regular" size={14} container="square" />;
-const avatar = <Avatar type="user" content="image" size="xs" />;
+const avatar = <Avatar shape="circle" content="image" size="xs" />;
 const chevron = icon("angle-right");
 
 const leftSlots: Record<LeftSlot, React.ReactNode> = { none: undefined, icon: icon(), avatar };

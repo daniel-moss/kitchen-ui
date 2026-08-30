@@ -25,7 +25,7 @@ const col: React.CSSProperties = { display: "flex", flexDirection: "column", gap
 const label: React.CSSProperties = { font: "var(--font-caption-medium-500)", color: "var(--text-subtle)" };
 
 /**
- * AlertBanner — an inline alert coloured entirely by status. card = bordered
+ * AlertBanner — an inline alert colored entirely by status. card = bordered
  * tinted box; banner = same tint without border/radius. Horizontal keeps one
  * centered row and always has a CTA (required); vertical may omit the CTA and
  * drops it below the text. Dismiss is always optional.

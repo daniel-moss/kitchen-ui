@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 // The "AI" work-summary generation, shared by the Complete-job flow and the
 // Work summary module's edit form so both behave identically (Daniel,
-// 2026-08-06 — the behaviour was already built inside CompleteJobForm).
+// 2026-08-06 — the behavior was already built inside CompleteJobForm).
 //
 // There is no AI here: the button spins for a moment ("thinking"), then the
 // fixed demo summary is TYPED into the field character by character.

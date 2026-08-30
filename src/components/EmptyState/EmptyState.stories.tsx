@@ -15,7 +15,7 @@ type StoryArgs = {
 
 const noop = () => {};
 
-const avatarSlot = <Avatar type="object" content="icon" size="xl" />;
+const avatarSlot = <Avatar shape="square" content="icon" size="xl" />;
 
 // A framed box so you can see the EmptyState fill and center within a container.
 const Frame = ({ children }: { children: React.ReactNode }) => (

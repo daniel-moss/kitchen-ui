@@ -15,6 +15,7 @@ import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { MINUTE_OPTIONS } from "./SchedulingForm";
+import { HVAC_PM_SECTIONS } from "../../forms/formSchema/hvacPmSchema";
 import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
 
 import styles from "./HvacPmForm.module.scss";
@@ -22,96 +23,11 @@ import styles from "./HvacPmForm.module.scss";
 // ---- the questionnaire (Figma "CSI – HVAC PM", node 24273-69208; copy
 // re-extracted 2026-07-23 after Daniel's typo pass) ---------------------------
 
-// Exported for HvacPmStepForm — the stepper variant shares the same lists
-// (copy re-verified against the stepper design 24337-41981, 2026-07-27).
-export const SECTIONS: { title: string; questions: string[] }[] = [
-  {
-    title: "A/C",
-    questions: [
-      "Clean evap / coils",
-      "Flush pan, p-trap, drain lines",
-      "Check for burnt wires",
-      "Check for pitted contacts",
-      "Check for carbon buildup",
-      "Check electrical connections",
-      "Check compressor terminals",
-      "Lubricate fan motors / bearings",
-      "Verify proper supply / voltage",
-      "Check fan motor amp draw",
-      "Check compressor amp draw",
-      "Check suction pressures",
-      "Check discharge pressures",
-      "Verify T-Stats set points",
-      "Verify T-Stats programming",
-      "Replace belt(s) per PMA",
-      "Replace filters(s) per PMA",
-    ],
-  },
-  {
-    title: "Heat / Gas",
-    questions: [
-      "Verify gas pressure",
-      "Check gas valve / burner",
-      "Check safety control",
-      "Check heat exchanger cracks",
-      "Check gas line / unit for leaks",
-      "Check for proper combustion",
-      "Clean burners / orifices",
-      "Verify T-Stats set points",
-      "Verify T-Stats programming",
-      "Check operation of heat mode",
-      "Check for combustion gases",
-      "Clean flame sensors as required",
-      "Replace belt(s) per PMA",
-      "Replace filters(s) per PMA",
-    ],
-  },
-  {
-    title: "Electric",
-    questions: [
-      "Check electrical connections",
-      "Check contactor",
-      "Check sequencers",
-      "Check heating elements",
-      "Check heat strips (dust-free)",
-      "Check high limit switch",
-      "Replace belt(s) per PMA",
-      "Replace filters(s) per PMA",
-    ],
-  },
-  {
-    title: "Make-up Air",
-    questions: [
-      "Verify gas pressure",
-      "Check gas valve / burner",
-      "Check safety control",
-      "Check heat exchanger cracks",
-      "Check gas line / unit for leaks",
-      "Check sequencers",
-      "Check heating elements",
-      "Check electrical connections",
-      "Verify T-Stats set points",
-      "Verify T-Stats programming",
-      "Check operation of heat mode",
-      "Check for combustion gases",
-      "Replace belt(s) per PMA",
-      "Wash cleanable filters",
-    ],
-  },
-  {
-    title: "Exhaust",
-    questions: [
-      "Lubricate bearings",
-      "Check rotation",
-      "Take amp reading",
-      "Adjust belt tension",
-      "Check pulleys / sheaves",
-      "Check all electric controls",
-      "Check all electric connections",
-      "Replace belt(s) per PMA",
-    ],
-  },
-];
+// The checklist lists now live with the SCHEMA (src/forms/formSchema/
+// hvacPmSchema.ts), so the form and its preview are built from one list —
+// re-exported here because HvacPmStepForm already imports SECTIONS from this
+// file (copy verified against the stepper design 24337-41981, 2026-07-27).
+export const SECTIONS = HVAC_PM_SECTIONS;
 
 const TECHS_OPTIONS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
 

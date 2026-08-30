@@ -28,7 +28,7 @@ export default function AvatarPO({ size = "md", status = "none", className }: Av
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.purchaseOrder}
       size={size}

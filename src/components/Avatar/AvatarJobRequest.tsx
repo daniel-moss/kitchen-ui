@@ -23,7 +23,7 @@ export default function AvatarJobRequest({
 
   return (
     <Avatar
-      type="object"
+      shape="square"
       content="icon"
       icon={semanticIcons.jobRequest}
       size={size}

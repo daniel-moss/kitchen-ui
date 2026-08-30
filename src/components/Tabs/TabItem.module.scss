@@ -198,10 +198,10 @@
 }
 
 // ===== warning (attention) =====
-// The tab points at something that needs the user's attention. Only the COLOUR
+// The tab points at something that needs the user's attention. Only the COLOR
 // changes — the selected fill (default: gray-a3 / container: the raised white
 // surface) is untouched, so an inactive warning tab still reads as inactive.
-// Last in the file on purpose: it must win over every variant's colour rule
+// Last in the file on purpose: it must win over every variant's color rule
 // above (same specificity, later wins), in rest, selected, hover and press.
 .tab.warning,
 .tab.warning:hover,

@@ -5,6 +5,7 @@ import ListItemSlotIcon from "./ListItemSlotIcon";
 import ListItemTextRight from "./ListItemTextRight";
 import { ListItemTextLines, ListItemTextVariant } from "./ListItemTextLeft.types";
 import Avatar from "../Avatar/Avatar";
+import AvatarLive from "../Avatar/AvatarLive";
 import AvatarUser from "../Avatar/AvatarUser";
 import AvatarGroup from "../Avatar/AvatarGroup";
 import { AvatarGroupItem } from "../Avatar/AvatarGroup.types";
@@ -32,7 +33,7 @@ type StoryArgs = {
 
 const frame: React.CSSProperties = { width: 400 };
 
-const objectAvatar = <Avatar type="object" content="icon" size="xl" />;
+const objectAvatar = <Avatar shape="square" content="icon" size="xl" />;
 const groupItems: AvatarGroupItem[] = users.slice(0, 2).map((u) => ({ kind: "user", content: "image", imageSrc: u.avatar, name: u.name }));
 
 const RIGHT_SLOTS: Record<Exclude<RightSlot, "none">, React.ReactNode> = {
@@ -49,7 +50,7 @@ const RIGHT_SLOTS: Record<Exclude<RightSlot, "none">, React.ReactNode> = {
   selectInput: <SelectField value="Value" fitContent />,
   toggle: <Toggle defaultChecked aria-label="Enable" />,
   userAvatar: <AvatarUser size="lg" content="image" />,
-  liveUserAvatar: <Avatar type="live" content="image" size="lg" />,
+  liveUserAvatar: <AvatarLive content="image" size="lg" />,
   userAvatarStack: <AvatarGroup variation="inline" size="lg" items={groupItems} />,
 };
 

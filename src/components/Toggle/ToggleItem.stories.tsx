@@ -77,7 +77,7 @@ const centeredColumn: React.CSSProperties = {
   gap: "var(--size-20)",
 };
 
-// The docs ladder: all 7 states of one value, each labelled with its name.
+// The docs ladder: all 7 states of one value, each labeled with its name.
 const Ladder = ({ active }: { active: ActiveOption }) => (
   <div style={{ ...centeredColumn, alignItems: "center" }}>
     {STATE_OPTIONS.map((state) => (

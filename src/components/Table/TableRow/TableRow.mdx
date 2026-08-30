@@ -1,0 +1,99 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as TableRowStories from "./TableRow.stories";
+
+<Meta of={TableRowStories} />
+
+# TableRow
+
+We use **TableRow** within tables for horizontal cell organisation.
+
+<Canvas of={TableRowStories.Table} />
+
+```tsx
+<TableRow variant="header">
+  <CellHeader label="ID" width={120} isSortable dataType="alphabetical" onClick={sortById} />
+  <CellHeader label="Service" width={190} isSortable dataType="alphabetical" sortOrder="ascending" />
+</TableRow>
+
+<TableRow isClickable onClick={openJob}>
+  <CellBody width={120} isTabular>JOB-1043</CellBody>
+  <CellBody width={190}>Walk-in cooler repair</CellBody>
+</TableRow>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The row is the cells and a
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
+below them. **The row owns the height and the divider** — the cells fill the
+height they are given and never draw a bottom border of their own. That is why
+the separator is one element per row: a line drawn by each cell breaks in the
+middle the moment one cell forgets it.
+
+There is no gap between the cells and no padding on the row. Each cell brings
+its own 16px of horizontal padding.
+
+### Header row
+
+Cells are 40px tall (`--size-10`), plus the 1px divider — **41px in total**.
+It holds
+<a href="/?path=/docs/components-table-cellheader--docs" target="_top">CellHeader</a>
+cells only.
+
+<Canvas of={TableRowStories.HeaderRow} />
+
+### Body row
+
+Cells are 48px tall (`--size-12`), plus the 1px divider — **49px in total**.
+It holds
+<a href="/?path=/docs/components-table-cellbody--docs" target="_top">CellBody</a>
+cells only.
+
+<Canvas of={TableRowStories.BodyRow} />
+
+The divider sits **below** the cells rather than inside their box, which keeps
+the cell heights round numbers. The totals — 41 and 49 — are the row pitch a
+virtualized table must scroll by.
+
+The row's background is opaque (`--surface-level-first`). This is the one place
+the "app surfaces have no fill of their own" rule does not apply, and pinned
+columns are the reason: a sticky cell floats above the cells scrolling beneath
+it, so without a fill that moving content shows straight through it.
+
+## Behavior
+
+### Header row
+
+A header row never supports interaction states. Its cells may be sortable and
+handle their own clicks, but the row itself does not react.
+
+<Canvas of={TableRowStories.HeaderInteraction} />
+
+### Body row
+
+A body row might be clickable or non-clickable. If the user has the permission
+to view the record, the row is clickable. Otherwise it is static.
+
+Clicking a clickable row opens the record; ⌘/Ctrl-click opens it in a new tab.
+
+Only a clickable row is interactive — it has hover, pressed and focus states
+and is keyboard-focusable. A static row has none of them, so it never suggests
+an action it cannot perform.
+
+<Canvas of={TableRowStories.Clickable} />
+
+### Loading
+
+The row has no loading state of its own. Each cell carries its own skeleton, so
+a partially loaded table is possible.
+
+<Canvas of={TableRowStories.Loading} />
+
+## Props
+
+<ArgTypes of={TableRowStories} />
