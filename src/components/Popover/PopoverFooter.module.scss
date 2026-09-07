@@ -1,4 +1,4 @@
-// Divider on top + Body (action bar) beneath. No background of its own — sits
+// Divider on top + a padded action row beneath. No background of its own — sits
 // on whatever popover surface contains it. (Mirror of PopoverHeader, whose
 // divider is at the bottom.)
 .footer {
@@ -14,24 +14,28 @@
   padding: var(--size-3) var(--size-4); // 12 / 16
 }
 
-// Trailing group: flex:1 + justify-end pushes the high-priority buttons right.
-// A leading Cancel is rendered before this group; native buttons don't grow, so
-// it keeps its natural size and stays far left.
+// Trailing group, pinned right by the auto margin. flex: 0 0 auto — the
+// buttons never grow or shrink, so a long slotLeft text truncates (it has its
+// own min-width: 0) instead of squeezing the buttons. A leading ghost Cancel
+// keeps its natural size far left, with the row's 8px gap in between.
 .buttons {
-  flex: 1 1 0;
-  min-width: 0;
+  flex: 0 0 auto;
+  margin-left: auto;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: var(--size-2); // 8px
 }
 
-// Navigation / mobile: every button fills the row equally.
+// Full-width layout (Figma layout=fullWidth): the buttons stay on one row and
+// share the width equally. Exclusive with slotLeft — the props union enforces
+// it, so there is no leading element to handle here.
 .stretch {
-  // the leading button (any direct child of body that isn't the trailing group)
-  > :not(.buttons) {
+  .buttons {
     flex: 1 1 0;
+    min-width: 0;
+    margin-left: 0;
   }
+
   .buttons > * {
     flex: 1 1 0;
   }

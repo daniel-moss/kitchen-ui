@@ -38,6 +38,7 @@ export function CellHeader({
   dataType = "other",
   sortOrder,
   isPinned = false,
+  pinnedOffset = 0,
   isLastPinned = false,
   isLoading = false,
   onClick,
@@ -66,11 +67,16 @@ export function CellHeader({
         {
           [styles.sortable]: isSortable && !isLoading,
           [styles.sorted]: isSorted,
+          [styles.pinned]: isPinned,
           [styles.lastPinned]: isLastPinned,
         },
         className,
       )}
-      style={width === undefined ? undefined : { width, minWidth: width }}
+      style={{
+        ...(width === undefined ? undefined : { width, minWidth: width }),
+        // The sticky offset — where this cell freezes while the table scrolls.
+        ...(isPinned ? { left: pinnedOffset } : undefined),
+      }}
     >
       {isLoading ? (
         <SkeletonTypography variant="captionMD" className={styles.skeleton} />

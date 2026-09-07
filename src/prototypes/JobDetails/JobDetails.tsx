@@ -64,7 +64,7 @@ import ServicePanel from "./ServicePanel";
 import { Equipment, EQUIPMENT_POOL, INITIAL_JOB_EQUIPMENT } from "./equipment";
 import { EquipmentFormValues } from "./EquipmentForm";
 import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource, sourceRequiresId } from "./JobPropertiesForm";
-import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
+import { NewEquipment } from "../../modules/NewEquipmentForm/NewEquipmentForm.types";
 import SummaryPanel from "./SummaryPanel";
 import TimesheetForm from "./TimesheetForm";
 import { FormsLog } from "./FormsModule";
@@ -73,7 +73,7 @@ import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import StartJobForm from "./StartJobForm";
 import SubStatusForm from "./SubStatusForm";
 import TimesheetPanel, { categoryIcon, formatHrMin, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
 
@@ -987,7 +987,7 @@ function useJobShell(isDesktop: boolean) {
   const [serviceValues, setServiceValues] = useState<ServiceValues>(defaultServiceValues);
   // The job's equipment (ids into the location's pool) — lifted here so the
   // Service call form (Summary tab) reads the live Equipment-module list.
-  const [equipmentIds, setEquipmentIds] = useState<number[]>(INITIAL_JOB_EQUIPMENT);
+  const [equipmentIds, setEquipmentIds] = useState<string[]>(INITIAL_JOB_EQUIPMENT);
   // "Is equipment involved?" — answered when the job is created, so it is
   // always yes or no (Daniel, 2026-08-03). The demo job starts with equipment.
   const [equipmentInvolved, setEquipmentInvolved] = useState<EquipmentFormValues["involved"]>("yes");
@@ -1126,7 +1126,7 @@ function useJobShell(isDesktop: boolean) {
   // log — "added A, B and removed C" (Figma 24450-60498).
   // `pool` is passed explicitly when the caller just created a piece — the pool
   // state does not hold it yet in this render.
-  const changeEquipmentIds = (next: number[], pool: Equipment[] = equipmentPool) => {
+  const changeEquipmentIds = (next: string[], pool: Equipment[] = equipmentPool) => {
     const { added, removed } = diffEquipment(equipmentIds, next, pool);
     setEquipmentIds(next);
     if (added.length === 0 && removed.length === 0) return;
@@ -1149,7 +1149,9 @@ function useJobShell(isDesktop: boolean) {
   // the picker can tick it; it reaches the job when the form is saved. The
   // New-equipment form shows its own "Equipment created" toast.
   const createEquipment = (values: NewEquipment): Equipment => {
-    const id = equipmentPool.reduce((max, e) => Math.max(max, e.id), 0) + 1;
+    // Created pieces get their own id space — the pool's ids are the
+    // database's strings now.
+    const id = `eq-created-${equipmentPool.length + 1}`;
     const equipment: Equipment = {
       id,
       name: values.name,
@@ -1426,7 +1428,7 @@ function useJobShell(isDesktop: boolean) {
   const CREATED_FROM = {
     invoice: { icon: "circle-dollar", text: " created a related invoice ", value: "INV-10001" },
     estimate: { icon: "clock", text: " created a related estimate ", value: "EST-10001" },
-    recall: { icon: "clock-rotate-left", text: " created a recall ", value: "JOB-10001" },
+    recall: { icon: "clock-rotate-left", text: " created a recall ", value: JOB_ID },
   };
   const logCreatedFrom = (what: keyof typeof CREATED_FROM) => {
     const it = CREATED_FROM[what];

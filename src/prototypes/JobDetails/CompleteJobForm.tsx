@@ -87,26 +87,26 @@ interface EquipmentDetails {
   warranty: WarrantyStatus;
   notes: string;
 }
-const EQUIPMENT_DETAILS: Record<number, EquipmentDetails> = {
-  1: {
-    category: "HVAC",
-    type: "Air handler",
+const EQUIPMENT_DETAILS: Record<string, EquipmentDetails> = {
+  "eq-wd-reachin": {
+    category: "Refrigeration",
+    type: "Reach-in freezer",
     ownership: "Owned",
-    area: "The kitchen",
-    installDate: "January 1, 2026",
+    area: "Storage room",
+    installDate: "November 2, 2021",
     warranty: "covered",
     notes:
       "🔥 Gas Supply: Connected to main gas line; shut-off valve behind unit\n⚡ Electrical Info: 120V ignition system; breaker panel in storage room\n🛑 Safety Concerns: High heat exposure – allow cooldown before servicing\n📦 Spare Parts Availability: Spare burner tubes in storage, shelf B-3\n🧰 Maintenance: Belts and filters last checked during the previous PM visit",
   },
-  2: { category: "Cooking", type: "Griddle", ownership: "Owned", area: "Cook line", installDate: "March 12, 2024", warranty: "expired", notes: "" },
-  3: { category: "Refrigeration", type: "Ice machine", ownership: "Leased", area: "Back kitchen", installDate: "June 5, 2023", warranty: "covered", notes: "" },
-  4: { category: "Cooking", type: "Oven", ownership: "Owned", area: "The kitchen", installDate: "September 20, 2022", warranty: "none", notes: "" },
-  5: {
+  "eq-wd-griddle": { category: "Cooking", type: "Griddle", ownership: "Owned", area: "Cook line", installDate: "March 12, 2024", warranty: "expired", notes: "" },
+  "eq-wd-range": { category: "Cooking", type: "Range", ownership: "Owned", area: "Hot line", installDate: "August 2, 2021", warranty: "expired", notes: "" },
+  "eq-wd-mixer": { category: "Food preparation", type: "Dough mixer", ownership: "Unknown", area: "", installDate: "", warranty: "none", notes: "" },
+  "eq-wd-walkin": {
     category: "Refrigeration",
     type: "Walk-in cooler",
     ownership: "Owned",
-    area: "Storage room",
-    installDate: "November 2, 2021",
+    area: "Back kitchen",
+    installDate: "March 14, 2022",
     warranty: "partial",
     notes:
       "❄️ Refrigerant: R-404A low-temperature system; recovery required before opening the loop\n🚪 Door: 48\" magnetic gasket replaced in 2024\n🛑 Safety: Confirm the defrost cycle is off before servicing the evaporator coils",
@@ -266,8 +266,8 @@ interface CompleteJobFormProps {
   onCompleted: (signature: SignatureResult) => void;
   /** The job's equipment (ids into the pool) — the LIVE list, shared with the
    *  Equipment module (Daniel: equipment is shared, the rest is a snapshot). */
-  equipmentIds: number[];
-  onEquipmentIdsChange: (next: number[]) => void;
+  equipmentIds: string[];
+  onEquipmentIdsChange: (next: string[]) => void;
   /** The location's equipment — the LIVE pool (the New-equipment form appends
    *  to it), so a piece created on the job shows up here too. */
   equipmentPool: Equipment[];

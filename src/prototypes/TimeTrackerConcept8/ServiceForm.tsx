@@ -26,6 +26,7 @@ import { SelectPopoverList, useSelectPopover } from "./selectPopover";
 import { noop, slot } from "./shared";
 
 import styles from "./ServiceForm.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- field data (per the "New Job" form fields documentation) ---------------
 
@@ -70,7 +71,7 @@ const INITIAL_SERVICES: { name: string; defaultPriority: string }[] = [
 // service location, sorted by status change). The demo job recalls JOB-10002.
 const RECALL_JOBS = [JOB_RECALL_TO, "JOB-10003", "JOB-10004", "JOB-10005", "JOB-10006"].map((id) => ({
   id,
-  title: `${id} ・ Standard labor`,
+  title: `${id}${TEXT_SEPARATOR}Standard labor`,
   caption: "Finalized on Jan 1, 2025 by Lorne R.",
 }));
 

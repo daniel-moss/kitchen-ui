@@ -17,10 +17,10 @@ import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { ICE_MACHINE_REPAIR_SCHEMA } from "../../forms/formSchema/iceMachineRepairSchema";
-import { fieldMap, optionValues } from "../../forms/formSchema/options";
-import ObjectCard from "../../forms/shared/ObjectCard";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { ICE_MACHINE_REPAIR_SCHEMA } from "../../modules/formSchema/iceMachineRepairSchema";
+import { fieldMap, optionValues } from "../../modules/formSchema/options";
+import ObjectCard from "../../modules/shared/ObjectCard";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import {
   Equipment,
   EquipmentAvatar,
@@ -35,7 +35,7 @@ import { noop, useAnchoredMenu } from "./shared";
 import styles from "./HotSideRepairForm.module.scss";
 
 // Labels, help texts, "(optional)" flags, select/radio options and `accept`
-// come from the SCHEMA (src/forms/formSchema/iceMachineRepairSchema.ts) — the
+// come from the SCHEMA (src/modules/formSchema/iceMachineRepairSchema.ts) — the
 // same data the read-only preview is built from, so the two cannot drift apart.
 const F = fieldMap(ICE_MACHINE_REPAIR_SCHEMA);
 const labelOf = (key: string) => F[key].label ?? "";
@@ -51,7 +51,7 @@ type YesNo = "" | "Yes" | "No";
 
 export interface IceMachineDraft {
   checkIn: string;
-  equipmentId: number | null;
+  equipmentId: string | null;
   reportedIssue: string;
   operatingOnArrival: YesNo;
   errorCodes: string;

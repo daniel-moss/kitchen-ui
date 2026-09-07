@@ -11,15 +11,16 @@ export const noop = () => {};
 /**
  * The docs-page story frame (Daniel's spec, 2026-07-29): every story embedded
  * in a component's MDX docs page wraps its content in this — it mirrors the
- * Figma Documentation "Preview" frame. Fills the docs content column (700px
- * total, border-box) with --size-20 (80px) padding inside; centered in the
+ * Figma Documentation "Preview" frame. Fills the docs content column (600px
+ * total, border-box — matches the docs column in storybook-docs.css; was 700,
+ * Daniel 2026-09-02) with --size-20 (80px) padding inside; centered in the
  * standalone story view. Pair it with `parameters: { layout: "fullscreen" }`
  * on the stories' meta — the frame provides the ONLY padding ("padded" would
  * stack Storybook's own on top).
  */
 export const docsFrame: CSSProperties = {
   boxSizing: "border-box",
-  maxWidth: 700,
+  maxWidth: 600,
   padding: "var(--size-20)",
   margin: "0 auto",
 };

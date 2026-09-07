@@ -1,0 +1,8 @@
+// Schedule step — "Details" module: the fields stack inside the FormModule.
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px between the radios / Date & time / Duration
+  width: 100%;
+}

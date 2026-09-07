@@ -134,7 +134,9 @@ The "View" button opens the view menu. The view menu is
 <a href="/?path=/story/prototypes-view-menu--desktop" target="_top">documented here</a>.
 Hovering over the IconButton triggers a tooltip. **TopBarView does not open
 the menu by itself** — it reports the click through `onViewMenuClick`; the
-menu is your wiring.
+menu is your wiring. While the menu is open the button holds the pressed
+look — because the menu is yours, its open state is passed in through
+`viewMenuPressed`.
 
 <Canvas of={TopBarViewStories.ViewButton} />
 
@@ -144,7 +146,9 @@ The "Filters" button opens the "Filters" menu. The filters are
 <a href="https://www.figma.com/design/54dNq5bLwhXf3fXwts0Jvx/Filters---Next-Update?node-id=1950-34790" target="_blank" rel="noreferrer">documented here</a>.
 Hovering over the IconButton triggers a tooltip. **TopBarView does not open
 the menu by itself** — it reports the click through `onFiltersClick`; the
-menu is your wiring.
+menu is your wiring. While the menu is open the button holds the pressed
+look — because the menu is yours, its open state is passed in through
+`filtersPressed`.
 
 <Canvas of={TopBarViewStories.FiltersButton} />
 

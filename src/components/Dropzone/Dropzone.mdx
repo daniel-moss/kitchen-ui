@@ -1,0 +1,141 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as DropzoneStories from "./Dropzone.stories";
+
+<Meta of={DropzoneStories} />
+
+# Dropzone
+
+**Dropzone** is the drag-and-drop file input. It is a large drop target: the
+user drags files onto it, or clicks it to open the system file picker. It is
+used wherever a form collects files — the "Files" module of the "New Job"
+form, and the "Add Files" form.
+
+<Canvas of={DropzoneStories.Default} />
+
+```tsx
+<Dropzone
+  title={`Add up to ${remaining} files`}
+  caption={`Drag and drop or click to upload. Up to ${maxSizeMb} MB per file.`}
+  isWarning={remaining === 0}
+  onFilesSelected={addFiles}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[The copy is dynamic](#the-copy-is-dynamic)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Interaction states](#interaction-states)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Drag-over](#drag-over)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Warning — the limit is reached](#warning--the-limit-is-reached)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Rejected files](#rejected-files)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Disabled](#disabled)<br />
+↳&nbsp;&nbsp;[Placement](#placement)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Three parts, stacked and centered:
+
+- **Container** — fills the container width, the height hugs the content.
+  Padding `--size-8` (32px), corner radius `--border-radius-2_5` (10px), fill
+  `--gray-a2`, a 1px dashed `--gray-a7` border drawn inside the bounds, and a
+  `--size-4` (16px) gap between the icon and the text.
+- **Icon box** — the <a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+  (xl, square) with the regular-weight "download" icon in `--gray-a8`.
+- **Text** — the title (`heading-h4`, `--text-strong`) and the caption
+  (`body-400-compact`, `--text-subtle`), `--size-1` (4px) apart. Both are
+  centered and wrap on narrow widths.
+
+<Canvas of={DropzoneStories.Default} />
+
+## Behavior
+
+### The copy is dynamic
+
+The title tells the user how many files they can still add: "Add up to N
+files" — N is the company file limit minus the files already added. The
+caption names the interaction and the size limit. Both limits come from
+company settings (platform defaults: 25 files, 100 MB per file), so none of
+this copy is fixed.
+
+The component's defaults show the generic "N" copy on purpose — the consumer
+passes the real values through `title` and `caption`. When only one file can
+be added, pass the singular: "Add up to 1 file".
+
+<Canvas of={DropzoneStories.Default} />
+
+### Interaction states
+
+Clicking the Dropzone — or pressing Enter / Space while it has keyboard
+focus — opens the system file picker. The hover state exists only on pointer
+devices; touch never shows it. On hover, press, and keyboard focus the border
+and the icon step to `--gray-12`; press also fills the container `--gray-a3`.
+
+**Motion:** in the hovered and pressed states the dashed border moves
+clockwise around the container (marching-ants motion). Users with reduced
+motion enabled get a static border. The focused, warning, and disabled states
+never animate (focused and warning have solid borders).
+
+<Canvas of={DropzoneStories.DefaultState} />
+
+<Canvas of={DropzoneStories.Hovered} />
+
+<Canvas of={DropzoneStories.Pressed} />
+
+<Canvas of={DropzoneStories.Focused} />
+
+### Drag-over
+
+While a file is dragged over the target, the Dropzone shows the pressed
+state — with the border motion running, so the target reads as live. Dropping
+starts the upload. The uploaded files are listed by the consuming form (for
+example as CardFile cards) — the Dropzone itself never lists files.
+
+<Canvas of={DropzoneStories.DragOver} />
+
+### Warning — the limit is reached
+
+When the file count reaches the company limit, the Dropzone turns amber and
+the copy changes. In this state the Dropzone is non-interactive — clicks and
+drops do nothing.
+
+<Canvas of={DropzoneStories.Warning} />
+
+### Rejected files
+
+A file is not uploaded when it is over the size limit, when its file type is
+not allowed, or when a drop holds more files than the remaining count allows.
+A <a href="/?path=/story/components-toast-toast--playground" target="_top">Toast</a>
+(detailed, dismissible, no CTA) explains what went wrong; the Dropzone itself
+does not change. A drop always shows **one Toast** — when several files are
+rejected, the Toast covers them all instead of stacking.
+
+**The Dropzone does not validate or show these Toasts itself** — it hands
+every picked or dropped file to `onFilesSelected`, and the consumer checks
+the limits and shows the matching Toast. A single-sentence caption gets no
+trailing period (the copy rule); the two-sentence limit caption keeps its
+periods.
+
+<Canvas of={DropzoneStories.RejectionToasts} />
+
+### Disabled
+
+The whole component at 30% opacity, non-interactive. If a Dropzone is both at
+its limit and disabled, disabled wins — it shows the default copy, dimmed.
+
+<Canvas of={DropzoneStories.Disabled} />
+
+## Placement
+
+The Dropzone is used bare inside a FormModule — the module header does the
+labeling, so it never gets a Label or the
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+wrapper. It fills the module's width. For a compact photo input (fixed square
+trigger + cards), use
+<a href="/?path=/docs/components-fields-mediafield--docs" target="_top">MediaField</a>
+instead; the Dropzone is the full-width drop surface for file collections.
+
+## Props
+
+<ArgTypes of={DropzoneStories} />

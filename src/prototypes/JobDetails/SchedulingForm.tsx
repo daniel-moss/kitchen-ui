@@ -14,7 +14,7 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import TextField from "../../components/Fields/TextField/TextField";
 import { toast } from "../../components/Toast/Toaster";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { JOB_ID } from "./jobData";
 
 import styles from "./SchedulingForm.module.scss";
@@ -292,7 +292,7 @@ export default function SchedulingForm({
                 <Chip
                   key={p.label}
                   size="md"
-                  active={activePreset(p)}
+                  isSelected={activePreset(p)}
                   onClick={() => {
                     setHours(p.hours);
                     setMinutes(p.minutes);

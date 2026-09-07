@@ -32,7 +32,11 @@ export interface RadioItemProps extends Omit<InputHTMLAttributes<HTMLInputElemen
   defaultChecked?: boolean;
   onChange?: ChangeEventHandler<HTMLInputElement>;
 
-  /** Error styling (tomato). */
+  /**
+   * Error styling (tomato). Usually injected by RadioGroup when the whole
+   * group is invalid; pass it directly to flag ONE card — e.g. the "Bill to
+   * different client" card while its billing client has unresolved issues.
+   */
   error?: boolean;
   /** Non-interactive, whole item dimmed. */
   disabled?: boolean;

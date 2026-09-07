@@ -160,8 +160,20 @@ Roughly, as of this handoff:
 - **Buttons/links:** `Button` (solid/subtle/ghost/danger; sm/md/lg; `isFullWidth`;
   debounced onClick), `IconButton` (variants incl. `muted`; sizes xxxs–lg),
   `LinkButton` (polymorphic `<a>`/`<button>`, `--text-*` schemes, +8px hit area),
-  `Chip` (md 28/lg 32; `active` selected look + aria-pressed; slotLeft = Icon or
-  any avatar strictly xxs/16; loading skeleton; Button-style focus ring).
+  `Chip` (REBUILT to Figma 29520-29010, 2026-09-05: sm 28 / md 32 / lg 36,
+  default md, label body 14 in ALL sizes — the sm caption font is gone;
+  `isSelected` look (RENAMED from `active` 2026-09-06, matching the Figma
+  axis + the DS selection vocabulary) + aria-pressed; `isValid=false` error
+  treatment —
+  tomato-a2 fill / 2px tomato-9 border / --text-error, REPLACES the active
+  emphasis, persists through hover/press/focus, disabled keeps it dimmed at
+  30%, loading suppresses it; slotLeft = Icon 14 or avatar xxs/16 in sm,
+  xs/20 in md·lg, gap 6/8; label truncates before the slot; loading skeleton;
+  focus = OFFSET ring, 2px --gray-12 (tomato-9 when invalid) with a 2px
+  visible gap via outline (the node's -4px ring bounds MINUS its inside
+  stroke — the stroke-overlay gotcha) — the old inset Button-style ring is
+  gone. `Chip.mdx` mirrors the
+  Figma doc page section-for-section).
 - **Avatars/Badges:** `Avatar/` (Avatar + every `Avatar<Type>` + AvatarGroup —
   stack rows: truncated names get full-name tooltips, the "+N" overflow line
   gets an avatar-stack tooltip of the hidden users; Badge/LinkButton labels
@@ -428,6 +440,18 @@ do NOT hand-upload build files (that repo used to hold the built site, which
 is why raw `.tsx` uploads there did nothing).
 
 ### Cross-component patterns established (reuse these)
+- **The inline text separator is ONE constant:** `src/utils/textSeparator.ts` —
+  `TEXT_SEPARATOR` (middle dot `·` with TWO spaces baked in on each side; the
+  inner spaces are nbsp so HTML cannot collapse them) and `joinWithSeparator`
+  for optional parts. Decided by Daniel 2026-09-04 after the separator
+  research: `·` is one of the few dot characters Inter contains (the old `・`
+  fell back to a different font per app). NEVER type a separator dot by hand —
+  import the constant, so a later change is one line. Exception: a date with
+  its TIME is one compound value and joins with a COMMA (Filters'
+  `formatDateTime`) — or with "at" where the string already carries commas
+  (ActivityLog's `exactTimestamp`) — never the separator. Several Figma nodes still draw the old
+  `" ・ "` / `" • "` — flagged in place; production (`roopairs_api`) still
+  hardcodes its own separators and is read-only.
 - **Every `:hover` rule lives inside `@media (hover: hover)`** — touch devices
   never match it, so taps don't leave sticky hover states (fixed DS-wide after
   real-iPhone testing). Write new hover styles the same way; keep
@@ -494,8 +518,11 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   Docs-embedded stories wrap their content in **`docsFrame`** (or
   `<DocsFrame>`) from `src/stories/helpers.tsx`, and the stories' meta sets
   `parameters: { layout: "fullscreen" }` — the frame owns the ONLY padding.
-- Page skeleton: `# Name` → one intro paragraph — always opens **We use
-  `Name` …** → hero `<Canvas>` → a ` ```tsx ` usage snippet → ↳ TOC links
+- Page skeleton: `# Name` → one intro paragraph — the old **"We use
+  `Name` …"** opener is RETIRED (Daniel, 2026-09-02): do not use it for new
+  pages; mirror the Figma doc page's intro wording instead (e.g.
+  "`Name` is used as …"). Existing pages keep their opener until Daniel asks.
+  → hero `<Canvas>` → a ` ```tsx ` usage snippet → ↳ TOC links
   (`#anatomy` / `#behavior` / `#props`) → `## Anatomy` (structure + the key
   measurements) → `## Behavior` (one `###` per rule) → `## Props` with
   `<ArgTypes of={Stories} />` (the table is fed by the JSDoc in `*.types.ts`
@@ -534,18 +561,27 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   DS tokens; follows the preview's theme toolbar). Manager file changes need a
   Storybook RESTART, not just HMR.
 
-## Forms (`src/forms/`) — the reusable product-form tier
+## Modules (`src/modules/`) — the reusable product-module tier
 
-Between the DS (`src/components/`) and the prototypes: **product forms** that
-several flows share, built once from DS components (Daniel's one-source-of-
-truth rule, 2026-07-28). One folder per form, same file conventions as
-components; stories under the **"Forms"** Storybook section. Rules:
-- The form owns everything that is the same everywhere: fields, validation,
+RENAMED from `src/forms/` on 2026-09-03 (Daniel: "forms are basically modules
+as well") — the story section is now **"Modules"**, which changed those story
+ids, so old links to Forms/* stories on the live Storybook are dead.
+
+Between the DS (`src/components/`) and the prototypes: **product modules**
+that several flows share, built once from DS components (Daniel's one-source-
+of-truth rule, 2026-07-28) — forms (NewLocationForm, NewEquipmentForm,
+FormPreview) and now the **ViewMenu** (the table view controls, extracted from
+the ViewMenu prototype on 2026-09-03 so Filters and ViewMenu share one build).
+One folder per module, same file conventions as components; stories under the
+**"Modules"** Storybook section. Rules:
+- The module owns everything that is the same everywhere: fields, validation,
   layout, its own Dialog/drawer shell, the footer. Per-case differences are
-  NAMED PROPS — data props (e.g. `client`), behavior props (`onCreated` — the
-  caller decides the follow-up), slots only for truly case-specific content.
-  No copies per case.
-- `src/forms/shared/selectPopover.tsx` is the SHARED trigger→SelectList wiring
+  NAMED PROPS — data props (e.g. `client`, a column list), behavior props
+  (`onCreated`, `onSortChange` — the caller decides the follow-up), slots only
+  for truly case-specific content. No copies per case. ViewMenu's jobs-only
+  sections (Timeline, Scheduled date) are opt-in props; everything else is for
+  every object type (Daniel, 2026-09-03).
+- `src/modules/shared/selectPopover.tsx` is the SHARED trigger→SelectList wiring
   (desktop anchored card / mobile drawer, placements `below`/`left`, `openAt`
   for autocompletes). RULE (Daniel): the card is FIXED once open — it must not
   follow a trigger that moves from layout changes; only window resize
@@ -569,6 +605,42 @@ components; stories under the **"Forms"** Storybook section. Rules:
   layout-freeze rule), Notes with title hint, "Location created" toast). Used by the
   Job Details Location flow.
 
+## Demo database (`src/data/db/`) — started 2026-09-04
+
+ONE simulated service company for every prototype (Daniel: "we need to start
+the database now until it's not too late"), so demo data stops being copied
+per prototype and everything aligns. Schema in `types.ts` (each entity and
+field MIRRORS a production model, read from `roopairs_api`; sync/billing
+plumbing trimmed), data in `db.ts`, lookup helpers in `index.ts`. Hierarchy:
+Client (own parameters + own contacts) → Locations (own contacts) →
+Equipment (→ Warranties) + Jobs + Estimates + Invoices; a Job can carry its
+OWN contacts (`isEphemeral`, production's reporter/point-of-contact shape).
+Rules: ids are human-readable strings; dates are ABSOLUTE ISO (never the
+clock); optionality mirrors production and the data keeps deliberate gaps for
+empty states; techs are the shared `src/data/users.ts` pool; job statuses use
+the DS BadgeJobStatus set, not production's 8-value enum.
+
+**Browse it, don't read the code:** Storybook → **Data → Database** — the
+page renders LIVE from the records (schema lists are the records' own keys),
+so it cannot drift.
+
+**Migrated (2026-09-04, Daniel: "Migrate Filters and Job Details only"):**
+- **Filters** — jobsData re-exports the db's clients/locations/services/
+  labels/sources (the reference tables moved into the db VERBATIM, order
+  preserved) and still generates its own 64-job table from them; the
+  generated jobs verified byte-identical before/after. Location `suite`
+  became the db's `unit`.
+- **JobDetails** — the world is Wildwood Kitchen now (was McDonald's; the
+  FIGMA demo content still says McDonald's — flagged): the page opens on the
+  db's JOB-1201 (walk-in cooler repair at Wildwood Downtown), locations/
+  clients/contacts/equipment derive from the db in jobData.ts / contacts.ts /
+  equipment.tsx / BillingForm.tsx, and EQUIPMENT + CONTACT ids are the db's
+  STRINGS now (they were numbers — the change rippled through every form).
+  Contact photos come from `ContactRecord.avatar` (avatars pool tail,
+  user-10+, so techs and contacts never share a face).
+- **NOT migrated on purpose:** TimeTracker, TimeTrackerConcept6/8,
+  TimeDistribution still carry their local McDonald's demo data.
+
 ## Prototypes (`src/prototypes/`)
 
 The point of the DS: **assemble working feature prototypes Daniel can share
@@ -577,7 +649,11 @@ prototype — it documents the iOS home-screen viewport limitation, the
 touch/gesture rules baked into the DS, and the real-phone testing workflow
 (PhoneViewport, Add to Home Screen, meta-tag caveats).
 
-Conventions (established with the first one, View Menu):
+Conventions (established with the first one, View Menu — which has since
+GRADUATED: on 2026-09-04 its folder was deleted and the menu + its demo
+stories live in `src/modules/ViewMenu/` under 'Modules/"View" Menu', because it
+became a shared module the Filters prototype consumes; old
+Prototypes/View Menu story links are dead):
 
 - One folder per prototype under `src/prototypes/<Name>/`; each is a Storybook
   story under the **"Prototypes"** sidebar section (add it to `storySort.order`
@@ -597,9 +673,9 @@ Conventions (established with the first one, View Menu):
   (`overflow: hidden`), and anchoring inside a Popover card grows the card
   body's scroll area (a scrollbar appears while the list is open and the menu
   visibly narrows) or clips at the card edge. See `FloatingList` in the View
-  Menu prototype: `position: fixed` from the anchor's rect, re-measured on
-  scroll/resize; mark the portal (`data-floating-list`) and exclude it from
-  outside-click-close handlers.
+  Menu module (`src/modules/ViewMenu/ViewMenu.tsx`): `position: fixed` from
+  the anchor's rect, re-measured on scroll/resize; mark the portal
+  (`data-floating-list`) and exclude it from outside-click-close handlers.
 - **User-testing builds (repo reorganised 2026-08-25).** Builds for testing
   sessions are shared from a SECOND repository,
   `github.com/daniel-moss/roopairs-user-testing`, published by GitHub Pages at

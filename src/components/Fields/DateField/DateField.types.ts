@@ -41,8 +41,9 @@ interface DateFieldBaseProps
   /** Override "today" (deterministic stories), forwarded to the DatePicker. */
   today?: Date;
   /**
-   * The field's label — shown above the input in the mobile drawer footer.
-   * Default: the surrounding Input's string label.
+   * The label of the mobile picker drawer's inner DateField (the drawer
+   * always contains one — this field is not reachable under it). Default:
+   * the surrounding Input's string label, else "Date".
    */
   pickerLabel?: string;
   /**
@@ -54,11 +55,18 @@ interface DateFieldBaseProps
 
   /**
    * Override how the committed date is displayed. Default is the standardized
-   * "Monday, January 1" (the year appears only when it is not the current
-   * year). Typed input is still parsed by Chrono the same way — this only
-   * changes the shown text.
+   * "Monday, January 1, 2026" — the year is always shown. Typed input is
+   * still parsed by Chrono the same way — this only changes the shown text.
    */
   formatValue?: (date: Date) => string;
+
+  /**
+   * Fires on EVERY keystroke with the Chrono parse of the current text: a
+   * Date when it parses, null when the text is empty, undefined when it does
+   * not parse. The DatePicker's inner field uses it to select the matching
+   * date chip in real time; committing still goes through `onDateChange`.
+   */
+  onDateInput?: (date: Date | null | undefined) => void;
 
   /** @internal Injected by InputGroup — do not set directly. */
   _group?: InputGroupChildContext;

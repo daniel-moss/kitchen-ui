@@ -1,90 +1,130 @@
 @use "../../styles/mixins/font" as *;
 
-// ===== shared layout (desktop card + mobile picker) ========================
-.picker {
+// The DatePicker inherits the Popover chrome (card / drawer). These styles
+// only lay out the content: the 16px content padding, the input ↔ calendar
+// stack, the fixed desktop widths, and the calendar grid itself.
+
+// The desktop card is FIXED width (Figma) — it must never be squeezed by a
+// flex/grid parent (that would clip the nav buttons via the card's own
+// overflow: hidden).
+.card {
+  flex: none;
+  width: fit-content;
+}
+
+// Content padding inside the Popover card / drawer body (Figma: 16).
+.cardBody,
+.drawerBody {
   box-sizing: border-box;
+  padding: var(--size-4);
+}
+
+// Input ↔ calendar stack, 16 apart.
+.body {
   display: flex;
   flex-direction: column;
-  gap: var(--size-4); // 16px — header ↔ calendar block
+  gap: var(--size-4);
 }
 
-// Desktop: a floating card, same chrome as the Menu card. Width fits the grid
-// (7×36 + 6×4 gaps + 12×2 padding = 300px). Positioned by the consumer.
-.card {
-  width: fit-content;
-
-  padding: var(--size-3); // 12
-  background: var(--surface-level-third);
-  border-radius: var(--border-radius-2_5); // 10
-  // 1px border drawn inset (never adds to fit-content), under the sm/down shadow.
-  box-shadow:
-    inset 0 0 0 1px var(--gray-a2),
-    0 2px 5px 0 var(--box-shadow-shadow-default);
-
-  opacity: 0;
-  transform: translateY(4px) scale(0.98);
-  transition:
-    opacity 160ms ease,
-    transform 160ms cubic-bezier(0.32, 0.72, 0, 1); // keep in sync with DURATION in DatePicker.tsx
-}
-.cardOpen {
-  opacity: 1;
-  transform: none;
+// Desktop single: fixed width — 308 content, 44px cells (340 card).
+.bodySingleDesktop {
+  width: 308px;
 }
 
-// Mobile: inside the Popover drawer. Full width, its own padding (Figma).
-.pickerMobile {
-  width: 100%;
-  padding: var(--size-1_5) var(--size-4) var(--size-4); // 6 top / 16 sides / 16 bottom
-}
-
-// ===== header (nav + title) =================================================
-.header {
+// Desktop range: two fixed-width columns, 16 apart — 632 content (664 card).
+.rangeColumns {
   display: flex;
-  align-items: center;
-  gap: var(--size-2); // 8
-  width: 100%;
+  gap: var(--size-4);
 }
-.title {
-  @include font("heading-h4"); // Inter Semi Bold 14/20
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+  width: 308px;
+}
 
+// Mobile range: the From/To fields side by side above the calendar.
+.inputs {
+  display: flex;
+  gap: var(--size-4);
+  align-items: flex-end;
+}
+.inputs > * {
   flex: 1 0 0;
   min-width: 0;
-  color: var(--gray-12);
-  text-align: center;
 }
 
-// ===== weekdays + grid ======================================================
-.calendarBlock {
+// ===== one month (Figma "#️⃣ Month") =======================================
+.month {
   display: flex;
   flex-direction: column;
-  gap: var(--size-3); // 12 — weekdays ↔ dates
+  gap: var(--size-4); // 16 — header ↔ grid
+  min-width: 0;
 }
 
+// Header: title left, nav cluster right. Fixed 36px height.
+.header {
+  display: flex;
+  gap: var(--size-4);
+  align-items: center;
+  justify-content: space-between;
+  height: var(--size-9);
+}
+.title {
+  @include font("heading-h3"); // Inter Semi Bold 16/24
+
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-strong);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.nav {
+  display: flex;
+  flex: none;
+  gap: var(--size-2); // 8 — between the IconButtons
+  align-items: center;
+}
+
+// Grid: weekday captions, then the rows.
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12 — weekdays ↔ rows
+}
 .weekdays {
   display: flex;
-  gap: var(--size-1); // 4
 }
 .weekday {
   @include font("caption-medium-400"); // Inter Regular 13/20
 
-  flex: none;
-  width: var(--size-9); // 36
-  color: var(--gray-a9);
+  flex: 1 0 0;
+  min-width: 0;
+  color: var(--text-subtle);
   text-align: center;
 }
 
-.grid {
+.rows {
   display: flex;
   flex-direction: column;
   gap: var(--size-1); // 4 — between week rows
   outline: none;
 }
+.row {
+  display: flex;
+  align-items: center;
+}
 
-// Month-change slide (swipe / arrow buttons): the new grid slides in from the
-// direction of travel + fades, so it's clear a month changed. Keyed remount in
-// DatePicker.tsx replays it each change.
-@keyframes dpSlideNext {
+// A cell with no date — fills the space, nothing else.
+.placeholder {
+  flex: 1 0 0;
+  min-width: 0;
+  height: var(--size-9);
+}
+
+// Month-change slide (swipe / nav buttons): the new grid slides in from the
+// direction of travel + fades. The keyed remount in Calendar replays it.
+@keyframes dp-slide-next {
   from {
     opacity: 0;
     transform: translateX(24px);
@@ -94,7 +134,7 @@
     transform: translateX(0);
   }
 }
-@keyframes dpSlidePrev {
+@keyframes dp-slide-prev {
   from {
     opacity: 0;
     transform: translateX(-24px);
@@ -105,32 +145,8 @@
   }
 }
 .slideNext {
-  animation: dpSlideNext 220ms ease-out;
+  animation: dp-slide-next 220ms ease-out;
 }
 .slidePrev {
-  animation: dpSlidePrev 220ms ease-out;
-}
-.row {
-  display: flex;
-  gap: var(--size-1); // 4
-}
-
-// Mobile spreads the 36px cells across the full drawer width.
-.pickerMobile {
-  .weekdays,
-  .row {
-    justify-content: space-between;
-    gap: 0;
-    width: 100%;
-  }
-}
-
-// ===== mobile footer (DateField + Apply) ====================================
-.footer {
-  box-sizing: border-box;
-  display: flex;
-  align-items: flex-end;
-  gap: var(--size-2); // 8
-  width: 100%;
-  padding: var(--size-3) var(--size-4); // 12 / 16
+  animation: dp-slide-prev 220ms ease-out;
 }

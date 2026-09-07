@@ -1,5 +1,6 @@
 import {
   CSSProperties,
+  Fragment,
   HTMLAttributes,
   MouseEvent,
   ReactNode,
@@ -15,19 +16,19 @@ import clsx from "clsx";
 
 import AvatarGroup from "../../components/Avatar/AvatarGroup";
 import Badge from "../../components/Badge/Badge";
-import BadgeJobStatus, { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
+import BadgeJobStatus, { BadgeJobStatusStatus, STATUS } from "../../components/Badge/BadgeJobStatus";
 import Button from "../../components/Button/Button";
 import Chip from "../../components/Chip/Chip";
 import ChipGroup from "../../components/Chip/ChipGroup";
 import Dialog from "../../components/Dialog/Dialog";
 import { Divider } from "../../components/Divider/Divider";
 import EmptyState from "../../components/EmptyState/EmptyState";
-import DateButton from "../../components/DatePicker/DateButton";
+import DateChip from "../../components/DatePicker/DateChip";
+import Month from "../../components/DatePicker/Month";
 import DateField from "../../components/Fields/DateField/DateField";
 import Input from "../../components/Input/Input";
 import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import { Icon } from "../../components/Icon/Icon";
-import Counter from "../../components/Counter/Counter";
 import IconButton from "../../components/IconButton/IconButton";
 import Menu from "../../components/Menu/Menu";
 import MenuHeader from "../../components/Menu/MenuHeader";
@@ -35,17 +36,15 @@ import MenuItem from "../../components/Menu/MenuItem";
 import MenuItemGroup from "../../components/Menu/MenuItemGroup";
 import BottomBarNav from "../../components/BottomBarNav/BottomBarNav";
 import BottomBarNavItem from "../../components/BottomBarNav/BottomBarNavItem";
-import { SidebarNavBreakpointContext } from "../../components/SidebarNav/SidebarNavContext";
+import SidebarNav from "../../components/SidebarNav/SidebarNav";
 import SidebarNavItem from "../../components/SidebarNav/SidebarNavItem";
 import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup";
-import SidebarNavProfileButton from "../../components/SidebarNav/SidebarNavProfileButton";
-import SidebarNavWorkspaceButton from "../../components/SidebarNav/SidebarNavWorkspaceButton";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
+import TopBarView from "../../components/TopBarView/TopBarView";
 import Popover from "../../components/Popover/Popover";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import ScrollArea from "../../components/ScrollArea/ScrollArea";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListHeader from "../../components/SelectList/SelectListHeader";
@@ -56,6 +55,17 @@ import TextField from "../../components/Fields/TextField/TextField";
 import InputGroup from "../../components/Fields/InputGroup/InputGroup";
 import { CellBody } from "../../components/Table/CellBody/CellBody";
 import { CellHeader } from "../../components/Table/CellHeader/CellHeader";
+import { CellDataType, CellSortOrder } from "../../components/Table/CellHeader/CellHeader.types";
+import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
+import {
+  ViewMenuAttribute,
+  ViewMenuColumn,
+  ViewMenuColumnType,
+  ViewMenuColumnsState,
+  ViewMenuTimelineState,
+  ViewMenuView,
+} from "../../modules/ViewMenu/ViewMenu.types";
+import { SCHEDULED_WINDOW_DAYS, defaultTimelineState } from "../../modules/ViewMenu/viewMenuData";
 import { Table } from "../../components/Table/Table/Table";
 import { TableRow } from "../../components/Table/TableRow/TableRow";
 import TabGroup from "../../components/Tabs/TabGroup";
@@ -63,14 +73,7 @@ import TabItem from "../../components/Tabs/TabItem";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { objectPlaceholder } from "../../data/users";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
-import {
-  WEEKDAYS,
-  buildMonthGrid,
-  formatFullDate,
-  formatMonthTitle,
-  isSameDay,
-  isSameMonth,
-} from "../../utils/calendar";
+import { isSameMonth } from "../../utils/calendar";
 import { semanticIcons } from "../../styles/semanticIcons";
 import { noop } from "../../stories/helpers";
 
@@ -87,6 +90,7 @@ import {
   AddressValue,
   DurationValue,
   FIRST_YEAR,
+  YEARS_AFTER_TODAY,
   DateValue,
   emptyAddress,
   FilterDef,
@@ -102,10 +106,8 @@ import {
   conditionChoices,
   conditionLabel,
   countLabel,
-  formatDurationFooter,
   formatFooterDate,
   formatLongDate,
-  formatMonthValue,
   isConditionActive,
   isDateRange,
   isEmptyValue,
@@ -124,6 +126,7 @@ import {
   assigneesOf,
   clientOf,
   formatDateTime,
+  dayOffset,
   formatDay,
   formatDuration,
   labelsOf,
@@ -146,20 +149,21 @@ import styles from "./Filters.module.scss";
 // which the node still draws: it says how many filters are applied, not how many
 // jobs there are.
 //
-// The JOBS LIST page:
-//   - sidebar: Concept 1's hardcoded copy, RESTRUCTURED — Create is lifted out
-//     of the item list and sits on top of it, the header is 60px, and the rows
-//     are 1px apart instead of flush;
-//   - top bar: the DS `TopBarNav` — no title icon, an h3 title at 16px, no live
-//     users, a 60px row — with the branch tabs 16px after the title;
-//   - view bar: 60px, the status tabs on the left and the three buttons on the
-//     right;
+// The JOBS LIST page — the app shell is the REAL DS components since
+// 2026-09-03 (Daniel: "use the actual SidebarNav, TopBarNav and TopBarView"):
+//   - sidebar: the DS `SidebarNav` (it took over everything the hand-built
+//     copy used to do — the 60px header, Create on top, the built-in Search
+//     item, the 1px row rhythm, the medium edge divider);
+//   - top bar: the DS `TopBarNav` `list` variant, with the branch tabs in its
+//     own `tabs` slot;
+//   - view bar: the DS `TopBarView` — the status tabs/selector on the left,
+//     Search · Filters · View on the right;
 //   - filter bar: the chips, with the tab's locked Status chip first;
 //   - table: Concept 1's.
 //
-// Mobile, as in Concept 3: the top bar carries the branch tabs and the DS's own
-// mobile create button, and the status control is NOT a Button — here it is a
-// plain label + count + chevron row (see StatusPicker), opening ONE flat list.
+// Mobile: the top bar keeps the desktop format (breakpoint="desktop" — see
+// TopBar), and the status control is TopBarView's own view selector — the
+// tab's name + angles-up-down, opening ONE flat inline list.
 //
 // Every line in the concept is --gray-a4: under the top bar, down the sidebar's
 // right edge, above the mobile bottom bar, along the bottom of the view bar,
@@ -239,14 +243,12 @@ const createMenu = (
   </MenuItemGroup>
 );
 
-// The list under Create STARTS with Search (Daniel, 2026-08-16) — in Concept 1
-// Search sits above Create. The page is the Jobs list and the current page is
-// the "Jobs" sub-item, so that group starts open with the sub-item active.
+// The nav items BELOW the built-in Search row (SidebarNav renders Search
+// itself when `onSearchClick` is set). The page is the Jobs list and the
+// current page is the "Jobs" sub-item, so that group starts open with the
+// sub-item active.
 const navContent = (
   <>
-    <SidebarNavItem icon="magnifying-glass" hotKey="⌘K" onClick={noop}>
-      Search...
-    </SidebarNavItem>
     <SidebarNavItem icon="house">Home</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.estimate}>Estimates</SidebarNavItem>
     <SidebarNavItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
@@ -286,152 +288,96 @@ const bottomItems = (
   </>
 );
 
-// ---- the sidebar (hardcoded for this concept) ------------------------------
+// ---- the sidebar -----------------------------------------------------------
 
-// Sidebar — Concept 1's hardcoded copy (Figma nodes 13825-10029 +
-// 13835-16562), assembled from the real DS parts, with the changes Daniel
-// asked for on 2026-08-16:
-//   - the header is 56px, not 64;
-//   - CREATE is lifted OUT of the item list and sits on top of it, directly
-//     under the header with no gap above it;
-//   - the item list below it starts with Search, 8px under Create;
-//   - the rows are 1px apart (Concept 1 stacks them flush), inside the
-//     accordion groups too, and the bottom items are 1px apart as well.
-// Unchanged from Concept 1: the 280px column, 10px side padding, 36px rows,
-// the Create row's own look. The edge line is now --gray-a4.
-
-// The Create row and its menu. The menu opens to the right of the row and is
-// TOP-aligned — the component aligns the bottoms, which would run off the top
-// of the screen from a row this high.
-function CreateRow() {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-
-  // Measure while open (and on scroll/resize — the sidebar scrolls).
-  useLayoutEffect(() => {
-    if (!open) return undefined;
-    const update = () => {
-      const rect = wrapRef.current?.getBoundingClientRect();
-      if (rect == null) return;
-      setPos({ left: rect.right + 4, top: rect.top });
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [open]);
-
-  // Clicking outside the row + card closes the menu.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e: PointerEvent) => {
-      const target = e.target as Element;
-      if (wrapRef.current?.contains(target) === true) return;
-      if (target.closest?.("[data-concept-create-menu]") != null) return;
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [open]);
-
-  return (
-    <div ref={wrapRef}>
-      <SidebarNavItem
-        className={styles.createRow}
-        icon="circle-plus"
-        strong
-        hotKey="C"
-        isPressed={open}
-        onClick={() => setOpen(!open)}
-      >
-        Create
-      </SidebarNavItem>
-      {pos != null &&
-        createPortal(
-          <div data-concept-create-menu className={styles.createMenu} style={{ left: pos.left, top: pos.top }}>
-            <Menu open={open} onClose={() => setOpen(false)} title="Create" breakpoint="desktop">
-              {createMenu}
-            </Menu>
-          </div>,
-          document.body,
-        )}
-    </div>
-  );
-}
-
+// The DS `SidebarNav` (Daniel, 2026-09-03 — the hand-assembled copy is gone).
+// Everything the old local build did by hand is the component's own behavior
+// now: the 60px header, Create on top of the item list with its right-opening
+// top-aligned menu card, the built-in Search item (rendered when
+// `onSearchClick` is set; its hot key follows the OS), the 1px row rhythm,
+// the pinned bottom items and the medium (--gray-a4) edge divider.
+//
+// `breakpoint="desktop"` keeps the sidebar rendered (and its menus on their
+// card presentation) whatever the canvas width is — the component returns
+// null on mobile otherwise, and the context it provides carries the value to
+// the workspace / profile buttons.
+//
+// `imageSrc` gives the 28px object avatar a picture instead of the name's
+// first letter (Daniel, 2026-08-17). `objectPlaceholder` is the kit's shared
+// demo object image (src/data/users.ts) — its path is relative on purpose,
+// because the built Storybook is served under a sub-path on GitHub Pages.
 const Sidebar = () => (
-  // The breakpoint context keeps the workspace / profile menus on their
-  // desktop presentation (cards, not drawers) whatever the canvas width is.
-  <SidebarNavBreakpointContext.Provider value="desktop">
-    <div className={styles.sidebar}>
-      <div className={styles.sidebarInner}>
-        <div className={styles.sidebarHeader}>
-          {/* `imageSrc` gives the 28px object avatar a picture instead of the
-              name's first letter (Daniel, 2026-08-17). `objectPlaceholder` is
-              the kit's shared demo object image (src/data/users.ts) — its path
-              is relative on purpose, because the built Storybook is served
-              under a sub-path on GitHub Pages. */}
-          <SidebarNavWorkspaceButton
-            workspaces={[{ id: "1", name: "Workspace", imageSrc: objectPlaceholder }]}
-            className={styles.sidebarWorkspace}
-          />
-          <SidebarNavProfileButton name="Lorne Riddle" email="email@address.com">
-            {profileMenu}
-          </SidebarNavProfileButton>
-        </div>
-        <ScrollArea wrapperClassName={styles.sidebarScrollWrap} className={styles.sidebarScroll}>
-          <div className={styles.sidebarTop}>
-            <CreateRow />
-            <div className={styles.sidebarItems}>{navContent}</div>
-          </div>
-          <div className={styles.sidebarItems}>{bottomItems}</div>
-        </ScrollArea>
-      </div>
-      {/* --gray-a4 IS Divider's "medium" contrast (Daniel, 2026-08-17 — it was
-          --gray-a6), so this is the component's own variant, not an override. */}
-      <Divider orientation="vertical" contrast="medium" className={styles.sidebarEdge} />
-    </div>
-  </SidebarNavBreakpointContext.Provider>
+  <SidebarNav
+    breakpoint="desktop"
+    workspaces={[{ id: "1", name: "Workspace", imageSrc: objectPlaceholder }]}
+    profileName="Lorne Riddle"
+    profileEmail="email@address.com"
+    profileMenu={profileMenu}
+    onSearchClick={noop}
+    createMenu={createMenu}
+    bottomItems={bottomItems}
+  >
+    {navContent}
+  </SidebarNav>
 );
 
 // ---- the list top bar ------------------------------------------------------
 
-// The DS `TopBarNav` in its `list` variant (Daniel, 2026-08-16) — NOT a
-// hardcoded copy like Concept 1's. The prototype-local adjustments live in the
-// scss: the 60px row, the lg buttons, the 16px `heading-h3` title and the
-// --gray-a4 bottom Divider.
-// The title has NO left icon here (Filters has the wrench). Live users are
-// not passed, so the avatar stack never appears (TopBarNavLiveUsers returns
-// null on an empty list).
+// The DS `TopBarNav` in its `list` variant. Since the bar's 2026-08-27
+// redesign it IS this concept's bar — 60px row, lg buttons, heading-h3 16/24
+// title — so the old local size/type overrides are gone; the one adjustment
+// left in the scss is the --gray-a4 bottom Divider (the concept's line rule).
+// The title has NO left icon here (Filters has the wrench). Live users do not
+// exist on list bars.
 //
-// The BRANCH tabs live here now (Daniel, 2026-08-18): the same [Open · Closed]
-// TabGroup, 24px after the title and filling the bar's height, on BOTH
-// breakpoints (Figma nodes 13888-18181 desktop / 13893-20645 mobile).
+// The BRANCH tabs (Daniel, 2026-08-18): the [Open · Closed] TabGroup, in the
+// bar's own `tabs` slot — the bar owns the scroller, the edge fades and the
+// lg default size (Figma nodes 13888-18181 desktop / 13893-20645 mobile).
 //
-// The bar is told `breakpoint="desktop"` on MOBILE too (Daniel, 2026-08-18):
-// TopBarNavRightElements draws the create button as a plus IconButton on mobile,
-// and the create control should be the same "New" Button as on desktop. Forcing
-// the desktop format is the only way to get it without changing the component.
-// `onSearch` is then left OFF on mobile, so the desktop-only search button still
-// does not appear.
-const TopBar = ({ mobile = false }: { mobile?: boolean }) => (
+// Each shell passes its own breakpoint, so the bar renders the component's own
+// format on both: the "New" Button on desktop, the solid plus IconButton on
+// mobile. (The old force to "desktop" on mobile — Daniel, 2026-08-18, for the
+// same "New" Button everywhere — was dropped on 2026-09-03: "I don't need this
+// force".) `onSearch` is desktop-only either way; passing it only there keeps
+// the intent visible at the call site.
+const TopBar = ({
+  mobile = false,
+  branch,
+  onBranchChange,
+}: {
+  mobile?: boolean;
+  branch: BranchId;
+  onBranchChange: (next: BranchId) => void;
+}) => (
   <TopBarNav
     className={styles.topBar}
     variant="list"
-    breakpoint="desktop"
+    breakpoint={mobile ? "mobile" : "desktop"}
     onSearch={mobile ? undefined : noop}
     onCreate={noop}
+    tabs={
+      // Both branches WORK since the documented Views section (14032-23326) —
+      // switching phases swaps the views, the filter registry and the table's
+      // jobs. See BRANCHES.
+      <TabGroup
+        variant="default"
+        value={branch}
+        onChange={(next) => onBranchChange(next as BranchId)}
+        aria-label="Open or closed jobs"
+      >
+        {BRANCHES.map((entry) => (
+          <TabItem key={entry.id} value={entry.id}>
+            {entry.label}
+          </TabItem>
+        ))}
+      </TabGroup>
+    }
   >
-    <TopBarNavLeftElements className={styles.topBarLeft}>
+    <TopBarNavLeftElements>
       {/* The sub-pages read "Requests" / "Series", not "Job requests" / "Job
           series" (Daniel, 2026-08-17) — the same labels the sidebar's Jobs
           stack already uses. */}
       <TopBarNavTitle
-        className={styles.topBarTitle}
         title="Jobs"
         subPages={[
           { id: "requests", label: "Requests" },
@@ -440,22 +386,6 @@ const TopBar = ({ mobile = false }: { mobile?: boolean }) => (
         ]}
         defaultSubPage="jobs"
       />
-      {/* "Closed" is drawn but not built, so the group never leaves "Open" —
-          see BRANCHES. */}
-      <TabGroup
-        className={styles.branchTabs}
-        variant="default"
-        size="lg"
-        value={OPEN_BRANCH.id}
-        onChange={noop}
-        aria-label="Open or closed jobs"
-      >
-        {BRANCHES.map((branch) => (
-          <TabItem key={branch.id} value={branch.id}>
-            {branch.label}
-          </TabItem>
-        ))}
-      </TabGroup>
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -468,10 +398,19 @@ const TopBar = ({ mobile = false }: { mobile?: boolean }) => (
 // on the right, above them a MenuHeader search reading "Filter...".
 //
 // The rows themselves — their order, labels and icons — and everything each one
-// filters now live in ONE place, `filters.tsx`'s registry, which reads the
+// filters now live in ONE place, `filterDefs.tsx`'s registry, which reads the
 // prototype's own database in `jobsData.ts`. That is what makes the counts in
 // each option's tag and the rows the table shows come from the same predicate.
-const FILTERS = buildFilters(styles.priorityUrgent);
+//
+// ONE registry per BRANCH (the Views section 14032-23326, 2026-09-03). The two
+// differ only in the Status filter: the open nine over a search, or the closed
+// two without one. Whoever needs the registry takes it as a `defs` prop, so
+// every piece follows the branch the page is on.
+const FILTERS_BY_BRANCH = {
+  open: buildFilters(styles.priorityUrgent, "open"),
+  closed: buildFilters(styles.priorityUrgent, "closed"),
+};
+type BranchId = keyof typeof FILTERS_BY_BRANCH;
 
 /** The handlers a filter row may need — see `filterRows`' `extra`. */
 type RowHandlers = Pick<HTMLAttributes<HTMLDivElement>, "onClick" | "onPointerEnter" | "onPointerLeave">;
@@ -489,8 +428,8 @@ const SUB_MARGIN = 8;
 //
 // EXCEPT a dialog-only row (`isDialogOnly` — Address). It opens a modal, not a
 // list beside the row, so the chevron would promise a sub-menu that never comes
-// (Daniel, 2026-08-25). FLAGGED: node 13857-25352 draws the chevron on the
-// Address row like every other one, so the node and the build now differ.
+// (Daniel, 2026-08-25). The updated menu node (14032-20321, 2026-09-03) now
+// draws Address without the chevron too, so the node and the build agree.
 //
 // The rows carry NO counter any more (Daniel, 2026-08-18). A filter can be
 // applied several times, so "how many options are ticked" has no single answer
@@ -552,17 +491,19 @@ const sectionLabel = (label: string) => (
 );
 
 interface AppliedFiltersProps {
+  /** The branch's filter registry. */
+  defs: FilterDef[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /** Set by Menu's withGroupDividers — see above. */
   divider?: boolean;
 }
 
-const AppliedFilters = ({ selection, onSelectionChange, divider = false }: AppliedFiltersProps) => (
+const AppliedFilters = ({ defs, selection, onSelectionChange, divider = false }: AppliedFiltersProps) => (
   <div>
     {sectionLabel("Applied filters")}
     <div className={styles.appliedChips}>
-      {activeFilters(FILTERS, selection).map(({ def, instance }) => (
+      {activeFilters(defs, selection).map(({ def, instance }) => (
         <FilterChip
           key={instance.key}
           mobile
@@ -613,7 +554,7 @@ const AddFilterSection = ({
 // MenuHeader takes focus on mount by itself, so the desktop card opens ready to
 // type. The MOBILE drawer must not (Daniel, 2026-08-17) — and it does not, from
 // the component's own drawer rule, so there is nothing to pass here.
-function useFilterSearch(open: boolean) {
+function useFilterSearch(open: boolean, defs: FilterDef[]) {
   const [query, setQuery] = useState("");
 
   // Every fresh open starts from the full list. Cleared in a LAYOUT effect, not
@@ -625,7 +566,7 @@ function useFilterSearch(open: boolean) {
   }, [open]);
 
   const q = query.trim().toLowerCase();
-  const rows = q === "" ? FILTERS : FILTERS.filter((row) => row.label.toLowerCase().includes(q));
+  const rows = q === "" ? defs : defs.filter((row) => row.label.toLowerCase().includes(q));
 
   // Bare `MenuHeader`, nothing around it. It used to be wrapped in a local
   // --gray-a2 block that re-created the design by hand, because the DS
@@ -696,8 +637,11 @@ const SUB_MAX_WIDTH = 384;
 // short, and a fixed number keeps the "Custom" popover's anchor stable.
 const DATE_LIST_WIDTH = 156;
 
-// The DURATION list is narrower still — four bare labels (node 13983-38374 is
-// 111px). Like the date list it is FIXED, not measured.
+// The DURATION list is narrower still — four bare labels, about 111px of
+// content. Like the date list it is FIXED, not measured — and the rendered
+// card actually opens at `listWidth`'s 240px floor, which is exactly what the
+// documented node draws (13874-11407 is 240 wide, and carries Daniel's
+// "Min Width" annotation saying that IS the minimum).
 const DURATION_LIST_WIDTH = 111;
 
 /**
@@ -737,9 +681,9 @@ const maxCountWidth = () => (cachedMaxCountWidth ??= textWidth(countLabel(JOBS.l
 //
 // The chips' natural width is ALL OF THEM ON ONE ROW; the DS card's own 384px
 // max is the ceiling, and the ChipGroup wraps anything past it. Labels' four
-// conditions ask for about 582, so the card opens at the 384 max and they sit
-// on two rows — two per row, which is the closest the DS card can get to
-// showing all four at once.
+// conditions ask for about 575, so the card opens at the 384 max and they sit
+// on two rows — two per row, exactly as the documented sub-menu draws them
+// (node 14101-43498).
 const CHIP_SIDES = 20; // md Chip: --size-2_5 (10px) each side
 const CHIP_GAP = 8; // ChipGroup's gap
 const HEADER_SIDES = 32; // SelectListHeader's chip container: 16px each side
@@ -769,11 +713,26 @@ function conditionsWidth(instance: FilterInstance): number {
     conditionChoices({ ...instance, ids: instance.ids.slice(0, 1) }),
     conditionChoices({ ...instance, ids: ["a", "b"] }),
   ];
-  // CEIL, not round: the sum is fractional (Labels' four come to 333.31) and
-  // rounding DOWN leaves the row a third of a pixel short, which is enough to
-  // wrap the last chip onto a second line.
+  // CEIL, not round: the sum is fractional and rounding DOWN leaves the row a
+  // third of a pixel short, which is enough to wrap the last chip onto a
+  // second line.
   return Math.ceil(Math.max(...sets.map(chipRowWidth)));
 }
+
+/**
+ * The width a filter's list opens at, WHEREVER it opens from: the widest of the
+ * option rows, the condition chips and the filter's own pinned minimum
+ * (`FilterDef.listMinWidth` — Location's 384, from its "Min Width" annotation),
+ * capped at the DS card's 384px maximum (and floored at 240 by `listWidth`).
+ *
+ * The chips count even when the list shows NONE of them — a value list opened
+ * from a chip. That is the documented Labels section's rule (2026-09-03): its
+ * chip-opened value lists carry the SAME "Min Width" pin as the menu's list
+ * (nodes 13999-17141, 14101-43138 and 14101-43512, all 384) — one filter, one
+ * width, so the list never changes size depending on where it was opened.
+ */
+const openListWidth = (def: FilterDef, instance: FilterInstance, measured: number) =>
+  Math.min(SUB_MAX_WIDTH, Math.max(measured, conditionsWidth(instance), def.listMinWidth ?? 0));
 
 // The condition list — a SelectList of two SelectListItems, not a Menu (Figma
 // nodes 13877-16387 desktop / 13877-16411 mobile; it WAS a Menu until Daniel
@@ -886,7 +845,16 @@ function filterList(
   const counts = optionCounts(JOBS, def);
   const picked = instance.ids;
   const toggle = (optionId: string) => {
-    const ids = picked.includes(optionId) ? picked.filter((id) => id !== optionId) : [...picked, optionId];
+    // An EXCLUSIVE option (Labels' "No labels") stands alone — its annotation:
+    // "Selecting this option unselects all others. This option can only be
+    // used alone." So ticking it clears the rest, and ticking anything else
+    // clears it.
+    const exclusive = def.exclusiveOptionId;
+    const ids = picked.includes(optionId)
+      ? picked.filter((id) => id !== optionId)
+      : optionId === exclusive
+        ? [optionId]
+        : [...picked.filter((id) => id !== exclusive), optionId];
     // Un-ticking the last option leaves an EMPTY application; `upsertFilter`
     // drops it from the selection, so its chip goes with it.
     onInstanceChange({ ...instance, ids });
@@ -977,21 +945,11 @@ const listWidth = (measured: number): CSSProperties => {
 
 // ---- the condition section -------------------------------------------------
 
-// The two conditions as DS `Chip`s at the top of a filter's option list (Figma
-// nodes 13934-14585 desktop / 13934-14391 mobile): a 16/12 padded row, chips 8px
-// apart, `lg` (32px), the current one `active` (the DS's gray-a2 fill + gray-12
-// border).
-//
-// The choices are the same pair the chip's condition menu offers, so they follow
+// The conditions as DS `Chip`s at the top of a filter's option list. The
+// choices are the same set the chip's condition menu offers, so they follow
 // the value count: "is" / "is not" with one option ticked, "is any of" / "is
 // not" with several.
-interface ConditionChipsProps {
-  value: FilterValue;
-  onChange: (choice: ConditionChoice) => void;
-  /** Nothing follows the chips in the header, so the container closes itself. */
-  last?: boolean;
-}
-
+//
 // The bare Chips, with no row around them — what the DS `SelectListHeader`
 // takes for its `chips` slot (it wraps them in a real ChipGroup itself).
 //
@@ -1000,18 +958,10 @@ interface ConditionChipsProps {
 // CONDITIONS, because the sets they offer are wider than the chip's.
 const conditionChipList = (value: FilterValue, onChange: (choice: ConditionChoice) => void) =>
   conditionChoices(value).map((choice) => (
-    <Chip key={choice.label} size="md" active={isConditionActive(value, choice)} onClick={() => onChange(choice)}>
+    <Chip key={choice.label} size="md" isSelected={isConditionActive(value, choice)} onClick={() => onChange(choice)}>
       {choice.label}
     </Chip>
   ));
-
-// The same Chips in the prototype-LOCAL row — for the filters that have no node
-// of their own and so are not on `dsHeader` (Duration, Labels, Location, …).
-const ConditionChips = ({ value, onChange, last = false }: ConditionChipsProps) => (
-  <div className={clsx(styles.conditionChipGroup, last && styles.conditionChipGroupLast)}>
-    {conditionChipList(value, onChange)}
-  </div>
-);
 
 // ---- the date filter's "Custom..." dialog -----------------------------------
 
@@ -1059,16 +1009,19 @@ const TIMEFRAMES: { id: DateTimeframe; label: string }[] = [
 
 // ---- the dialog's MONTH grid and YEAR list ---------------------------------
 
-// The Month and Year timeframes' content. Neither has date fields or a
-// calendar — the period IS the value.
+// The Month and Year timeframes' content — the documented Timeframe filter
+// section (14038-21304, 2026-09-03; Month dialog 14097-21480, Year dialog
+// 14098-28104). Neither has date fields or a calendar — the period IS the
+// value.
 //
-// The cells are the real DS `Chip`, with the nodes' own look applied through a
-// class. FLAGGED, the same way the calendar's DateButtons are: the node strips
-// the Chip's resting fill and 1px ring, stretches it (to a third of the row for
-// a month, the full width for a year), and paints the picked one as a dark
-// PILL — none of which the DS Chip can do today. If this look is kept, the Chip
-// needs a plain/`ghost` variant and a `picked` one, and the list belongs in the
-// DS beside DatePicker.
+// The cells are the DS `DateChip` since 2026-09-03 — the same component the
+// day calendar uses, which is exactly what the nodes draw ("#️⃣ DateChip"):
+// 36px tall, 6px radius, stretching to fill its column; the picked period =
+// the chip's own `selected` (a2 fill + gray-12 stroke, Medium); the CURRENT
+// period — the one holding today — reads `--text-error`, like the calendar's
+// today (the nodes' annotation: "A year with the current day is highlighted");
+// a range runs as the chip's own band. The old local Chip restyle (the dark
+// pill, the full radius) is gone with it.
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface PeriodListProps {
@@ -1084,9 +1037,11 @@ interface PeriodListProps {
 }
 
 // Both the MONTH grid and the YEAR list — the same list of years, drawn two
-// ways (nodes 13962-14374 / 13965-24022 for Month, 13965-29278 / 13965-31488
-// for Year). Month gives each year a `heading-h3` title over its twelve months
-// in three columns; Year is one full-width chip per year and no titles.
+// ways. Month gives each year a 36px `heading-h3` header over its twelve
+// months in three touching columns, rows 4px apart (node 14097-21480); Year is
+// one full-width cell per year, 4px apart, no titles (node 14098-28104). The
+// list SCROLLS and opens on the period holding today (the nodes' annotation),
+// or on the picked one.
 function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListProps) {
   // Same preview as the calendar's: with only one end picked, the band follows
   // the pointer. NOT IN THE NODE — a static frame cannot draw a hover.
@@ -1094,8 +1049,9 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
   const listRef = useRef<HTMLDivElement>(null);
   const openYearRef = useRef<HTMLDivElement>(null);
 
-  // Open on the year that matters — the picked one, else this one (Daniel,
-  // 2026-08-23). The scroll is set on the LIST, not through `scrollIntoView`:
+  // Open on the year that matters — the picked one, else today's (Daniel,
+  // 2026-08-23; the documented nodes' "Shows the year with the current day by
+  // default"). The scroll is set on the LIST, not through `scrollIntoView`:
   // that walks up every scrollable ancestor, and it would take the Timeframe
   // and Condition rows off the top of the dialog with it.
   useEffect(() => {
@@ -1108,34 +1064,35 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
   const bandTo = range ? (to ?? (bandFrom != null && hovered != null && hovered > bandFrom ? hovered : null)) : null;
 
   const openYear = from != null ? Number(from.slice(0, 4)) : today.getFullYear();
+  // 1990 up to ten years past today — the annotation on node 14098-28104.
   const years: number[] = [];
-  for (let year = FIRST_YEAR; year <= today.getFullYear(); year++) years.push(year);
+  for (let year = FIRST_YEAR; year <= today.getFullYear() + YEARS_AFTER_TODAY; year++) years.push(year);
 
-  // One cell — a month or a whole year. Both are the DS Chip with the same
-  // local look; only the label and the ISO behind it differ.
-  const cell = (iso: string, label: string) => {
+  /** The period (first-of-month / first-of-year ISO) that holds today. */
+  const currentIso =
+    timeframe === "year"
+      ? `${today.getFullYear()}-01-01`
+      : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
+
+  // One cell — a month or a whole year: the DS DateChip. `rowStart`/`rowEnd`
+  // cap the range band at the row's edges, the chip's own band rule ("a range
+  // end, a row break … they all look the same").
+  const cell = (iso: string, label: string, rowStart: boolean, rowEnd: boolean) => {
     const picked = range ? iso === bandFrom || iso === bandTo : iso === from;
     const inBand = bandFrom != null && bandTo != null && iso >= bandFrom && iso <= bandTo;
+    const capLeft = iso === bandFrom || rowStart;
+    const capRight = iso === bandTo || rowEnd;
     return (
-      <Chip
+      <DateChip
         key={iso}
-        size="lg"
-        // `active` only on the two ends: it sets aria-pressed, and its gray-12
-        // ring is invisible under the dark fill. A band cell would SHOW that
-        // ring, which the node does not draw.
-        active={picked}
-        className={clsx(
-          styles.monthCell,
-          inBand && styles.monthCellBand,
-          inBand && iso === bandFrom && styles.monthCellBandStart,
-          inBand && iso === bandTo && styles.monthCellBandEnd,
-          picked && styles.monthCellPicked,
-        )}
+        day={label}
+        isSelected={picked}
+        isToday={iso === currentIso}
+        band={!inBand ? "none" : capLeft && capRight ? "capBoth" : capLeft ? "capLeft" : capRight ? "capRight" : "middle"}
+        aria-label={label}
         onPointerEnter={() => setHovered(iso)}
         onClick={() => onPick(iso)}
-      >
-        {label}
-      </Chip>
+      />
     );
   };
 
@@ -1147,14 +1104,17 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
     >
       {years.map((year) =>
         timeframe === "year" ? (
+          // A year is a row of its own, so an in-band year is capped both ways.
           <div key={year} ref={year === openYear ? openYearRef : undefined} className={styles.yearRow}>
-            {cell(`${year}-01-01`, String(year))}
+            {cell(`${year}-01-01`, String(year), true, true)}
           </div>
         ) : (
           <div key={year} ref={year === openYear ? openYearRef : undefined} className={styles.monthYear}>
             <div className={styles.monthYearTitle}>{year}</div>
             <div className={styles.monthGrid}>
-              {MONTH_LABELS.map((label, index) => cell(`${year}-${String(index + 1).padStart(2, "0")}-01`, label))}
+              {MONTH_LABELS.map((label, index) =>
+                cell(`${year}-${String(index + 1).padStart(2, "0")}-01`, label, index % 3 === 0, index % 3 === 2),
+              )}
             </div>
           </div>
         ),
@@ -1165,30 +1125,20 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
 
 // ---- the dialog's calendar -------------------------------------------------
 
-// The month calendar drawn INSIDE the Custom dialog (Figma nodes 13962-8889 /
-// 13962-8893). It is the DS `DatePicker`'s twin, not the component itself: the
-// DS one renders either a floating desktop card (its own surface, shadow and
-// 12px padding) or its own mobile drawer, and neither can sit inline in a dialog
-// body. So the LAYOUT is local and the DAY CELLS are the real DS `DateButton`s,
-// with the node's own look applied through a class.
+// The month calendar drawn INSIDE the Custom dialog — the documented Day
+// dialog (node 14095-7347, 2026-09-03; it replaced 13962-8889 / 13962-8893).
+// Since 2026-09-03 each visible month IS the DS `Month` component (Daniel:
+// "Use Month component from the DS") — the same piece DatePicker renders,
+// which is exactly what the node embeds ("#️⃣ Month"): the 36px header with
+// the title left and the lg jump-to-today / prev / next buttons right, the
+// weekday captions, the fixed 6×7 DateChip grid with empty placeholders
+// outside the month, and the band capped at range ends and row breaks alike.
 //
-// FLAGGED to Daniel: if this stays, it belongs in the DS as a DatePicker
-// presentation (`variant="inline"`) plus a DateButton `pill` look and a range
-// look, not here. The differences from the DS picker, all read off the nodes:
-//   1. the title is `heading-h3` (15/24) and LEFT-aligned; the DS picker's is
-//      `heading-h4` (14/20) and centred between the two buttons;
-//   2. both nav IconButtons sit to the RIGHT of the title and are `lg` (36px);
-//      the DS picker puts one on each side at `md` (32px). With two months side
-//      by side they sit on the LAST one only, and move BOTH (node 13962-12748);
-//   3. the day cell is a PILL that stretches to fill the row (up to 56px); the
-//      DS cell is a fixed 36px square with a 6px radius, and its selected label
-//      is semibold where the node's is medium;
-//   4. days outside the shown month are INVISIBLE (`opacity: 0` in the node);
-//      the DS picker dims them to 40%;
-//   5. the DS picker has no RANGE at all — the band under the days is entirely
-//      the nodes' own (see `dialogCalendarDayBand*` in the scss).
-// The grid is still the DS's own `buildMonthGrid` — 6 rows, Monday first — so
-// the calendar's height never changes from month to month.
+// What stays local is only the ARRANGEMENT the DS root cannot provide inline
+// (`DatePicker` renders as a floating card or its own drawer): one or two
+// months side by side (the nav on the LAST one, moving both — node
+// 14096-10085), the swipe-to-change-month gesture, and the half-picked
+// range's hover preview, which `Month`'s own `onHover` contract exists for.
 
 /** Range mode's two ends, as ISO `yyyy-mm-dd`. Its presence IS the mode. */
 interface CalendarRange {
@@ -1223,21 +1173,18 @@ function DialogCalendar({ value, range, onChange, month, onMonthChange, monthCou
   // change on every render, or the "today" cell could flip mid-session.
   const [todayDate] = useState(() => today ?? new Date());
   // The day under the pointer while a range is half-picked — it previews where
-  // the band would end. NOT IN THE NODE (a static frame cannot draw a hover),
-  // but picking a range blind is guesswork. FLAGGED.
-  const [hovered, setHovered] = useState<string | null>(null);
+  // the band would end (`Month`'s own `onHover` contract). NOT IN THE NODE (a
+  // static frame cannot draw a hover), but picking a range blind is guesswork.
+  // FLAGGED.
+  const [hovered, setHovered] = useState<Date | null>(null);
   const goToMonth = (delta: number) => onMonthChange(new Date(month.getFullYear(), month.getMonth() + delta, 1));
 
-  // JUMP TO TODAY (Figma nodes 13973-32477 / 13973-32495). It appears only once
-  // today is in NONE of the shown months, and its icon points the way back:
-  // today AHEAD of them → `arrow-turn-right`, BEHIND them → `arrow-turn-left`.
-  // First of the three buttons, so the two month arrows keep their place at the
-  // right edge. Jumping puts today in the FIRST month.
-  // (The range nodes do not draw it — they were cut before it existed — so this
-  // is the single-selection rule carried over. FLAGGED.)
+  // JUMP TO TODAY (Figma nodes 13973-32477 / 13973-32495) — `Month`'s own
+  // return button. It appears only once today is in NONE of the shown months,
+  // and its icon points the way back. Jumping puts today in the FIRST month.
   const monthsAfterLast = monthIndex(todayDate) - (monthIndex(month) + monthCount - 1);
   const monthsBeforeFirst = monthIndex(todayDate) - monthIndex(month);
-  const jumpDirection = monthsAfterLast > 0 ? "forward" : monthsBeforeFirst < 0 ? "back" : null;
+  const returnDirection = monthsAfterLast > 0 ? "right" : monthsBeforeFirst < 0 ? "left" : null;
 
   // Swipe sideways to change month — the same gesture (and the same 48px /
   // mostly-horizontal test) the DS DatePicker's drawer uses. A vertical drag is
@@ -1258,10 +1205,14 @@ function DialogCalendar({ value, range, onChange, month, onMonthChange, monthCou
     goToMonth(dx < 0 ? 1 : -1);
   };
 
-  // The band's two ends. With only `from` picked the hovered day stands in for
-  // `to`, so the band follows the pointer. ISO strings compare like dates.
-  const bandFrom = range?.from ?? null;
-  const bandTo = range?.to ?? (bandFrom != null && hovered != null && hovered > bandFrom ? hovered : null);
+  // The band's two ends, as DATES (`Month`'s contract). With only `from`
+  // picked the hovered day stands in for `to`, so the band follows the pointer.
+  const from = dateOf(range?.from ?? null);
+  const to = dateOf(range?.to ?? null);
+  const bandEnd = to ?? (from != null && hovered != null && hovered > from ? hovered : null);
+  const band = from != null && bandEnd != null ? { start: from, end: bandEnd } : null;
+  // The selected chips: the range's two ends, or the single mode's one pick.
+  const selectedDates = range != null ? [from, to] : [value ?? null];
 
   const months = Array.from({ length: monthCount }, (_, i) => new Date(month.getFullYear(), month.getMonth() + i, 1));
 
@@ -1270,109 +1221,32 @@ function DialogCalendar({ value, range, onChange, month, onMonthChange, monthCou
       <div className={styles.dialogCalendarMonths}>
         {months.map((shown, index) => {
           // The controls live on the LAST month only, so with two of them the
-          // arrows sit at the far right and move the pair together.
+          // arrows sit at the far right and move the pair together (node
+          // 14096-10085).
           const withNav = index === monthCount - 1;
-          const grid = buildMonthGrid(shown);
-          const rows: Date[][] = [];
-          for (let i = 0; i < 42; i += 7) rows.push(grid.slice(i, i + 7));
-
+          // The keyboard entry point: the selected end shown in this month,
+          // else the month's first day.
+          const selectedHere = selectedDates.find((s) => s != null && isSameMonth(s, shown)) ?? null;
           return (
-            <div key={monthIndex(shown)} className={styles.dialogCalendarMonth}>
-              <div className={styles.dialogCalendarHeader}>
-                <div className={styles.dialogCalendarTitle}>{formatMonthTitle(shown)}</div>
-                {withNav && jumpDirection != null && (
-                  <HoverTooltip text="Jump to today">
-                    <IconButton
-                      aria-label="Jump to today"
-                      icon={jumpDirection === "forward" ? "arrow-turn-right" : "arrow-turn-left"}
-                      variant="ghost"
-                      size="lg"
-                      onClick={() => onMonthChange(firstOfMonth(todayDate))}
-                    />
-                  </HoverTooltip>
-                )}
-                {withNav && (
-                  <>
-                    <IconButton
-                      aria-label="Previous month"
-                      icon="angle-left"
-                      variant="ghost"
-                      size="lg"
-                      onClick={() => goToMonth(-1)}
-                    />
-                    <IconButton
-                      aria-label="Next month"
-                      icon="angle-right"
-                      variant="ghost"
-                      size="lg"
-                      onClick={() => goToMonth(1)}
-                    />
-                  </>
-                )}
-              </div>
-
-              <div className={styles.dialogCalendarBlock}>
-                <div className={styles.dialogCalendarWeekdays}>
-                  {WEEKDAYS.map((weekday) => (
-                    <div key={weekday} className={styles.dialogCalendarWeekday}>
-                      {weekday}
-                    </div>
-                  ))}
-                </div>
-
-                <div className={styles.dialogCalendarGrid} role="grid" onPointerLeave={() => setHovered(null)}>
-                  {rows.map((row, i) => (
-                    <div key={i} className={styles.dialogCalendarRow} role="row">
-                      {row.map((date) => {
-                        // Only this month's days exist here — the rest keep
-                        // their cell (the grid must not reflow) but are
-                        // invisible and inert.
-                        const outside = !isSameMonth(date, shown);
-                        const iso = isoOf(date);
-                        // An END of the range, or the single mode's one pick:
-                        // the DS `selected` pill either way.
-                        const isEnd = range != null ? iso === bandFrom || iso === bandTo : isSameDay(date, value);
-                        // Inside the band — the two ends included, so the fill
-                        // runs unbroken under their pills.
-                        const inBand =
-                          !outside && bandFrom != null && bandTo != null && iso >= bandFrom && iso <= bandTo;
-                        // NOT IN THE NODE — its example month (January 2027)
-                        // holds no today, so the node cannot say. Kept the DS
-                        // DateButton's own `today` fill (--gray-a3), because a
-                        // "Jump to today" button that lands on a month where
-                        // today looks like every other day helps nobody.
-                        // FLAGGED — say the word and it goes.
-                        const isToday = !isEnd && !inBand && isSameDay(date, todayDate);
-                        return (
-                          <DateButton
-                            key={date.getTime()}
-                            day={date.getDate()}
-                            type={isEnd ? "selected" : isToday ? "today" : "default"}
-                            disabled={outside}
-                            aria-label={formatFullDate(date)}
-                            aria-hidden={outside || undefined}
-                            className={clsx(
-                              styles.dialogCalendarDay,
-                              isEnd && styles.dialogCalendarDaySelected,
-                              outside && styles.dialogCalendarDayHidden,
-                              inBand && styles.dialogCalendarDayBand,
-                              // The band is capped where it really starts and
-                              // ends, not at each month's edge: a range that
-                              // spans two months runs straight off one grid and
-                              // onto the next.
-                              inBand && iso === bandFrom && styles.dialogCalendarDayBandStart,
-                              inBand && iso === bandTo && styles.dialogCalendarDayBandEnd,
-                            )}
-                            onPointerEnter={() => setHovered(iso)}
-                            onClick={() => onChange(date)}
-                          />
-                        );
-                      })}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <Month
+              key={monthIndex(shown)}
+              month={shown}
+              today={todayDate}
+              selectedDates={selectedDates}
+              band={band}
+              showNav={withNav}
+              prevDisabled={false}
+              nextDisabled={false}
+              onPrev={() => goToMonth(-1)}
+              onNext={() => goToMonth(1)}
+              returnDirection={withNav ? returnDirection : null}
+              onReturn={() => onMonthChange(firstOfMonth(todayDate))}
+              onPick={onChange}
+              // The hover preview only matters while a range is half-picked.
+              onHover={range != null ? setHovered : undefined}
+              tabbable={selectedHere ?? shown}
+              slideDir={null}
+            />
           );
         })}
       </div>
@@ -1471,16 +1345,6 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
   // same way; this only changes the committed text.
   const formatField = breakpoint === "desktop" ? formatLongDate : formatFooterDate;
 
-  // The footer's read-only label: one value, or both ends of the range.
-  const formatEnd = (iso: string) =>
-    timeframe === "year" ? iso.slice(0, 4) : timeframe === "month" ? formatMonthValue(iso) : formatFooterDate(dateOf(iso)!);
-  const footerLabel =
-    range && draft.from != null && draft.to != null
-      ? `${formatEnd(draft.from)} — ${formatEnd(draft.to)}`
-      : !range && draft.from != null
-        ? formatEnd(draft.from)
-        : null;
-
   return (
     <Dialog
       open={open}
@@ -1497,18 +1361,17 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
       // between them.
       bodyPadded={false}
       footer={
+        // Cancel / Apply since the documented Timeframe section (2026-09-03,
+        // nodes 14095-7347 / 14097-21480 / 14098-28104 — every variant draws
+        // the ghost Cancel in the left slot). The old picked-date preview
+        // (Daniel, 2026-08-23, node 13979-35697) is GONE from the design; the
+        // duration dialog still carries its own. Apply stays disabled until a
+        // value is picked, the nodes' annotation.
         <PopoverFooter
-          // The left slot SHOWS the picked date. NOT a Button — plain text with
-          // a calendar icon 8px in front of it (Daniel, 2026-08-23; node
-          // 13979-35697 draws a 20px-tall icon + text with no box around it).
-          // With nothing picked it is not there at all.
           leadingButton={
-            footerLabel != null ? (
-              <span className={styles.customFooterValue}>
-                <Icon icon="calendar" size={14} container="square" />
-                {footerLabel}
-              </span>
-            ) : undefined
+            <Button variant="ghost" size="lg" onClick={onClose}>
+              Cancel
+            </Button>
           }
         >
           <Button
@@ -1531,7 +1394,7 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
       <div className={styles.dateCustomTimeframe}>
         <ChipGroup>
           {TIMEFRAMES.map((option) => (
-            <Chip key={option.id} size="lg" active={timeframe === option.id} onClick={() => setTimeframe(option.id)}>
+            <Chip key={option.id} size="lg" isSelected={timeframe === option.id} onClick={() => setTimeframe(option.id)}>
               {option.label}
             </Chip>
           ))}
@@ -1549,7 +1412,7 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
       <div className={styles.dateCustomCondition}>
         <ChipGroup>
           {DATE_CONDITIONS.map((choice) => (
-            <Chip key={choice} size="lg" active={draft.compare === choice} onClick={() => setCompare(choice)}>
+            <Chip key={choice} size="lg" isSelected={draft.compare === choice} onClick={() => setCompare(choice)}>
               {/* "on" a day, "in" a month or a year — the only measure whose
                   wording follows the timeframe (nodes 13979-34143 / 13979-35147). */}
               {dateCompareLabel(choice, timeframe)}
@@ -1558,12 +1421,13 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
         </ChipGroup>
       </div>
 
-      {/* SELECTION — the chosen timeframe's own content. NO top padding: the
-          Condition block above always closes with its own 16. */}
-      <div className={styles.dateCustomSelection}>
-        {timeframe !== "day" ? (
-          // MONTH and YEAR have no date fields and no calendar — the period
-          // list IS the control (nodes 13962-14374 / 13965-29278).
+      {/* The chosen timeframe's own content. MONTH and YEAR (nodes 14097-21480
+          / 14098-28104): a SECOND full-bleed Divider — Day has none — then the
+          period list, which carries its own 16px padding and scrolls behind
+          the line. DAY keeps the Selection block (field + calendar). */}
+      {timeframe !== "day" ? (
+        <>
+          <Divider contrast="medium" />
           <PeriodList
             timeframe={timeframe}
             from={draft.from}
@@ -1572,7 +1436,9 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
             onPick={pickIso}
             today={todayDate}
           />
-        ) : (
+        </>
+      ) : (
+        <div className={styles.dateCustomSelection}>
           <>
             {range ? (
               // Two fields sharing the row, 16px apart (nodes 13962-12748 /
@@ -1618,33 +1484,38 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
               monthCount={monthCount}
             />
           </>
-        )}
-      </div>
+        </div>
+      )}
     </Dialog>
   );
 }
 
 // ---- the duration filter's "Custom..." dialog ------------------------------
 
-// The modal behind the duration list's "Custom..." row (Figma nodes 13983-37497
-// desktop / 13983-37308 mobile, and 13983-38053 / 13983-37755 for `within`). The
-// DS `Dialog`, titled with the filter's own name, holding two blocks:
+// The modal behind the duration list's "Custom..." row — the documented Form
+// section (14100-38325, 2026-09-03: No Range nodes 13923-24049 desktop /
+// 13923-24742 mobile, Range 13923-24617 / 13923-24921, plus their Filled
+// twins). The DS `Dialog`, titled with the filter's own name, holding:
 //
 //   CONDITION (a 16px row) — a `ChipGroup` of `lg` Chips: over / under / is /
 //     within. This is the ONE place `within` can be chosen, because it is the
-//     only place that can collect a second value. (The node labels the first two
-//     "greater" / "less"; see the copy note on DurationCompare.)
-//   CONTENT (16px sides and bottom, none on top — the Condition block closes
-//     with its own 16 — and 16px between items):
+//     only place that can collect a second value.
+//   a `Divider`, FULL-BLEED — edge to edge, like the date and address
+//     dialogs'. NEW with the documented section; the old node drew none here.
+//   CONTENT (16px all round, 16px between items):
 //     - one `Input` labelled "Duration", or, in `within`, two stacked Inputs
-//       labelled "Duration from" and "Duration until";
+//       labelled "From" and "To" (the documented nodes' labels — they read
+//       "Duration from" / "Duration until" before);
 //     - each is the DS `InputGroup` in its TextField + SelectField shape: hours
 //       typed with an "hr" suffix, minutes picked from a list with a "min" one.
-//   the FOOTER: the value being built on the left (an hourglass + the text), and
-//     "Apply" on the right.
+//   the FOOTER: a ghost Cancel and a solid Apply, like the date and address
+//     dialogs. The old value-being-built preview (node 13983-38225) is GONE
+//     from the design — the Filled nodes (14100-39378 / 14100-40342) draw a
+//     plain Cancel / Apply pair too.
 //
-// There is NO Divider between the two blocks — the date dialog has one under its
-// Timeframe row, this one draws none.
+// Apply stays disabled until the value is complete — the nodes' annotations:
+// "until the 'date' Input is filled out", and on a range "until both the
+// 'From' and the 'To' inputs are filled out".
 //
 // Everything inside is a DRAFT until Apply, so an unfinished edit never wipes
 // the chip.
@@ -1660,7 +1531,10 @@ interface DurationParts {
 
 const splitDuration = (total: number | null): DurationParts =>
   total == null
-    ? { hours: "", minutes: "00" }
+    ? // A ZERO in the hours field, not a blank — the empty nodes draw "0 hr" /
+      // "00 min" in the filled style (13923-24049 / 13923-24617). Zero still
+      // counts as "not filled in", which is what keeps Apply disabled.
+      { hours: "0", minutes: "00" }
     : { hours: String(Math.floor(total / 60)), minutes: String(total % 60).padStart(2, "0") };
 
 /**
@@ -1768,8 +1642,13 @@ function DurationInput({
           <TextField
             value={value.hours}
             // Digits only — the field is a number of hours, and the mobile
-            // keyboard follows.
-            onChange={(e) => onChange({ ...value, hours: e.target.value.replace(/\D/g, "").slice(0, 3) })}
+            // keyboard follows. Leading zeros are dropped because the field
+            // STARTS at "0" (the node's empty state): typing after it would
+            // otherwise read "02" where the user meant "2".
+            onChange={(e) => {
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 3);
+              onChange({ ...value, hours: digits.replace(/^0+(?=\d)/, "") });
+            }}
             keyboard="numeric"
             suffix="hr"
             aria-label={`${label} hours`}
@@ -1844,20 +1723,13 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
   const fromMinutes = joinDuration(from);
   const toMinutes = joinDuration(to);
 
-  // Apply stays disabled until there is something to apply: one length, or BOTH
-  // ends of a range — and the second end has to be the LONGER one, or the range
-  // is empty and the filter would silently match nothing. INVENTED, flagged: the
-  // nodes draw no error state for a backwards range.
+  // Apply stays disabled until there is something to apply (the nodes'
+  // annotation: "until the 'date' Input is filled out" / "until both the 'From'
+  // and the 'To' inputs are filled out"): one length, or BOTH ends of a range —
+  // and the second end has to be the LONGER one, or the range is empty and the
+  // filter would silently match nothing. That last check is INVENTED, flagged:
+  // the nodes draw no error state for a backwards range.
   const ready = within ? fromMinutes != null && toMinutes != null && toMinutes > fromMinutes : fromMinutes != null;
-
-  // The footer's read-only label: one value, or both ends of the range.
-  const footerLabel = within
-    ? fromMinutes != null && toMinutes != null
-      ? `${formatDurationFooter(fromMinutes)} — ${formatDurationFooter(toMinutes)}`
-      : null
-    : fromMinutes != null
-      ? formatDurationFooter(fromMinutes)
-      : null;
 
   return (
     <Dialog
@@ -1871,17 +1743,15 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
       // between them.
       bodyPadded={false}
       footer={
+        // Cancel / Apply since the documented Form section (2026-09-03, nodes
+        // 13923-24049 / 13923-24617 — every variant draws the ghost Cancel in
+        // the left slot). The old value-being-built preview (an hourglass +
+        // the text, node 13983-38223) is GONE from the design.
         <PopoverFooter
-          // The left slot SHOWS the value being built — plain text with an
-          // hourglass 8px in front of it, not a Button (node 13983-38223). With
-          // nothing filled in it is not there at all.
           leadingButton={
-            footerLabel != null ? (
-              <span className={styles.customFooterValue}>
-                <Icon icon="hourglass" size={14} container="square" />
-                {footerLabel}
-              </span>
-            ) : undefined
+            <Button variant="ghost" size="lg" onClick={onClose}>
+              Cancel
+            </Button>
           }
         >
           <Button
@@ -1907,21 +1777,28 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
       <div className={styles.durationCustomCondition}>
         <ChipGroup>
           {DURATION_DIALOG_CONDITIONS.map((choice) => (
-            <Chip key={choice} size="lg" active={compare === choice} onClick={() => setCompare(choice)}>
+            <Chip key={choice} size="lg" isSelected={compare === choice} onClick={() => setCompare(choice)}>
               {choice}
             </Chip>
           ))}
         </ChipGroup>
       </div>
 
+      {/* FULL-BLEED — edge to edge, like the date and address dialogs'. NEW
+          with the documented section; the old build drew none here. */}
+      <Divider contrast="medium" />
+
       {/* CONTENT — one field row, or two when the condition needs both ends.
+          The single "Duration" row and the range's "From" SHARE one state,
+          which is the node's own annotation made real (13923-24617): "selecting
+          'within' automatically populates 'From' duration with that value".
           Leaving `within` keeps whatever was typed into the second row, so a
           slip on the chips costs nothing; only Apply reads it. */}
       <div className={styles.durationCustomContent}>
         {within ? (
           <>
-            <DurationInput label="Duration from" value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
-            <DurationInput label="Duration until" value={to} onChange={setTo} pop={toPop} mobile={mobile} />
+            <DurationInput label="From" value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
+            <DurationInput label="To" value={to} onChange={setTo} pop={toPop} mobile={mobile} />
           </>
         ) : (
           <DurationInput label="Duration" value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
@@ -1933,27 +1810,36 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
 
 // ---- the Address dialog ----------------------------------------------------
 
-// The ADDRESS filter's whole interface (Figma nodes 13988-53606 desktop /
-// 13988-53696 mobile). Unlike every other filter this one never opens a list —
-// there is nothing to list — so the row in the Filters menu opens this straight
-// away, and so does the chip's value segment.
+// The ADDRESS filter's whole interface — the documented section 14100-36446
+// (nodes 14100-36447 desktop / 14100-36463 mobile, 2026-09-03; it replaced
+// 13988-53606 / 13988-53696). Unlike every other filter this one never opens a
+// list — there is nothing to list — so the row in the Filters menu opens this
+// straight away, and so does the chip's value segment.
 //
-// The DS `Dialog`, titled with the filter's name, holding five `Input`s at 24px
-// apart inside 16px padding, each labelled "(optional)" because any one of them
-// on its own is a real question. The only difference between the breakpoints is
-// the last row: DESKTOP puts State / Province and Postal code side by side
-// (280px each inside the 608px card), MOBILE stacks all five.
+// The DS `Dialog`, titled with the filter's name, holding:
+//
+//   CONDITION (a 16px row, NEW with the documented section) — a `ChipGroup` of
+//     two `lg` Chips, "contains" / "does not contain". The same pair the chip's
+//     condition segment offers, from the same `conditionChoices` source — so
+//     the dialog and the chip cannot drift apart.
+//   a `Divider`, FULL-BLEED — edge to edge, like the date dialog's.
+//   the FIVE `Input`s at 24px apart inside 16px padding, each labelled
+//     "(optional)" because any one of them on its own is a real question. The
+//     only difference between the breakpoints is the last row: DESKTOP puts
+//     State / Province and Postal code side by side (280px each inside the
+//     608px card), MOBILE stacks all five.
 //
 // The footer is a plain Cancel / Apply pair — not the value-preview footer the
 // date and duration dialogs use, because the value is already legible in the
 // fields above it.
 //
-// Everything is a DRAFT until Apply, the same contract the other two dialogs
-// have, so an unfinished edit never touches the chip.
+// Everything is a DRAFT until Apply — the condition chips included — the same
+// contract the other two dialogs have, so an unfinished edit never touches the
+// chip.
 interface AddressCustomProps {
   def: FilterDef;
   value: FilterValue;
-  onApply: (address: AddressValue) => void;
+  onApply: (address: AddressValue, negated: boolean) => void;
   onClose: () => void;
   open: boolean;
   breakpoint: "desktop" | "mobile";
@@ -1961,6 +1847,10 @@ interface AddressCustomProps {
 
 function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: AddressCustomProps) {
   const [draft, setDraft] = useState<AddressValue>(() => value.address ?? emptyAddress());
+  // The condition is part of the draft too: re-opening the dialog seeds it from
+  // the application ("contains" on a fresh one — `negated: false`), and only
+  // Apply writes it back.
+  const [negated, setNegated] = useState(value.negated);
 
   const field = (key: keyof AddressValue) => {
     const spec = ADDRESS_FIELDS.find((entry) => entry.key === key);
@@ -2002,7 +1892,7 @@ function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: Addre
             size="lg"
             isDisabled={!ready}
             onClick={() => {
-              onApply(draft);
+              onApply(draft, negated);
               onClose();
             }}
           >
@@ -2011,6 +1901,27 @@ function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: Addre
         </PopoverFooter>
       }
     >
+      {/* CONDITION — "contains" / "does not contain" as lg Chips in a 16px row
+          (node 14100-36449), the pair `conditionChoices` already defines for an
+          address. Picking one only marks it; Apply commits it. */}
+      <div className={styles.addressCustomCondition}>
+        <ChipGroup>
+          {conditionChoices(value).map((choice) => (
+            <Chip
+              key={choice.label}
+              size="lg"
+              isSelected={negated === choice.negated}
+              onClick={() => setNegated(choice.negated)}
+            >
+              {choice.label}
+            </Chip>
+          ))}
+        </ChipGroup>
+      </div>
+
+      {/* FULL-BLEED — edge to edge, no side inset, like the date dialog's. */}
+      <Divider contrast="medium" />
+
       <div className={styles.addressCustomContent}>
         {field("street")}
         {field("suite")}
@@ -2053,10 +1964,11 @@ function CustomDialog({ def, instance, breakpoint, onApply, onClose }: CustomDia
         value={instance}
         breakpoint={breakpoint}
         open
-        // `negated` is KEPT: an address's condition is the ordinary
-        // contains / does not contain pair, set from the chip, and re-opening
-        // the dialog to fix a typo must not quietly flip it back.
-        onApply={(address) => onApply({ ...instance, address })}
+        // The dialog owns the condition since the documented section
+        // (14100-36446): its own chips edit the contains / does not contain
+        // pair, so Apply writes `negated` back along with the fields. The
+        // chip's condition segment still edits the same pair between visits.
+        onApply={(address, negated) => onApply({ ...instance, address, negated })}
         onClose={onClose}
       />
     );
@@ -2115,6 +2027,13 @@ interface FilterOptionsProps {
   onCustom?: () => void;
   /** Hide the condition chips — the chip's own value list has none. */
   hideConditions?: boolean;
+  /**
+   * Passed to the DS SelectList. The menu's HOVER-opened sub-lists turn it
+   * off: a hover-close must not pull focus back into the menu's search — the
+   * field's icon visibly re-lit every time the pointer reached the Address
+   * row (Daniel, 2026-09-04).
+   */
+  restoreFocus?: boolean;
 }
 
 function FilterOptions({
@@ -2127,6 +2046,7 @@ function FilterOptions({
   footer,
   onCustom,
   hideConditions = false,
+  restoreFocus = true,
 }: FilterOptionsProps) {
   const [query, setQuery] = useState("");
   // Each filter's search is ITS OWN (Daniel, 2026-08-18). On desktop this one
@@ -2155,55 +2075,36 @@ function FilterOptions({
   // The condition keeps the ticked options as they are — only the condition moves.
   const setCondition = (choice: ConditionChoice) => onInstanceChange(withCondition(instance, choice));
 
-  const chips = !fromChip && def.hideConditionChips !== true;
-
   // The card hugs the WIDER of its two contents — the option rows and the
   // header's condition chips — with the DS card's own 384px as the ceiling and
-  // `listWidth`'s 240px as the floor. Without the chips in the sum, Labels'
-  // four conditions stacked into four lines inside a 240px card.
-  const width = chips ? Math.min(SUB_MAX_WIDTH, Math.max(list.width, conditionsWidth(instance))) : list.width;
+  // `listWidth`'s 240px as the floor. The chips count even when this list
+  // hides them (`openListWidth`'s one-filter-one-width rule).
+  const width = openListWidth(def, instance, list.width);
 
-  // The three DESIGNED filters (`dsHeader`) hand the whole header to the DS
-  // `SelectListHeader`, in one of its two variants:
-  //   - Assignee and Client: chipGroup + search — 16px around the chips closing
-  //     at 8, the real 40px SearchField bar under them, 97px in all (Figma nodes
-  //     13923-21709 / 13923-21079 and 13933-10525 / 13933-9967);
-  //   - Date received: chipGroup ONLY, `search={false}` — a 16px-padded row of
-  //     chips, 65px in all (node 13962-8817). It has no search.
+  // EVERY filter's header is the DS `SelectListHeader` (the documented
+  // sections, 2026-09-03 — the prototype-local chips block is gone), in one of
+  // its two variants:
+  //   - a filter WITH a search: chipGroup + search — 16px around the chips
+  //     closing at 8, the real 40px SearchField bar under them, 97px in all;
+  //   - a filter WITHOUT one: chipGroup ONLY, `search={false}` — a 16px-padded
+  //     row of chips, 65px in all.
   // Either way the closing Divider is the component's own, and the chips go in
   // bare: the header wraps them in a ChipGroup itself.
   //
   // It is not SelectList's built-in `searchable` — that prop and `header` are
   // mutually exclusive, and this header holds the chips as well — so the query
   // lives here and `filterList` does the filtering.
-  const dsHeader =
+  const header =
     def.dsHeader === true && !fromChip ? (
       <SelectListHeader
-        chips={chips ? conditionChipList(instance, setCondition) : undefined}
+        chips={conditionChipList(instance, setCondition)}
         search={def.searchPlaceholder != null}
         placeholder={def.searchPlaceholder}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onClear={() => setQuery("")}
       />
-    ) : null;
-
-  // Every filter with no node of its own still draws the prototype-local block:
-  // the condition chips in a padded row, closed by a Divider (Figma node
-  // 13947-15714) — 6px above the chips (the card adds 10 more) and 16px sides.
-  //
-  // `medium` on the Divider, not its `low` default: the node draws --gray-a4,
-  // the same line the DS SelectListHeader brings with it.
-  const header =
-    dsHeader ??
-    (fromChip || !chips ? undefined : (
-      <>
-        <div className={clsx(styles.optionHeader, variant === "drawer" && styles.optionHeaderDrawer)}>
-          <ConditionChips value={instance} onChange={setCondition} last />
-        </div>
-        <Divider contrast="medium" />
-      </>
-    ));
+    ) : undefined;
 
   // A date or duration list's footer is the "Custom" row; every other list takes
   // whatever the caller passes (mobile's Apply bar).
@@ -2230,10 +2131,10 @@ function FilterOptions({
       // 2026-08-23 — "reset the style to match the DS"), so no
       // `drawerHeaderDivider` here: SelectList's default is true. It used to be
       // off for every filter with a header block, which is why Assignee, Client
-      // and the Filters sheet were all missing the line.
-      // FLAGGED: Assignee's and Client's mobile nodes (13934-13257 /
-      // 13933-9967) still draw the DrawerHeader at 70px — no line — so those
-      // two nodes now disagree with the build.
+      // and the Filters sheet were all missing the line. (The old flag is
+      // resolved: the Multi-Select Filter section's mobile nodes — 14038-14033,
+      // and Assignee's own 13923-21079 — now draw the medium Divider under the
+      // DrawerHeader, so the nodes and the build agree.)
       header={header}
       searchable={ownSearch}
       searchPlaceholder={def.searchPlaceholder}
@@ -2244,6 +2145,7 @@ function FilterOptions({
       // list's OWN header too, since SelectList focuses the first `input` it
       // finds inside whichever header it was given.
       autoFocusSearch={def.autoFocusSearch === true}
+      restoreFocus={restoreFocus}
       footer={listFooter}
       // A date or duration filter holds ONE value, so its rows are
       // single-select — which is also what makes SelectList close itself the
@@ -2369,45 +2271,45 @@ function MobileFilterOptions({ def, instance, onCommit, onClose, hideConditions 
 
 // ---- the view bar's tabs ---------------------------------------------------
 
-// The view bar's tabs (Figma nodes 13888-18217 desktop / 13890-19955 mobile).
-// There are TWO levels:
+// The VIEWS — the documented Views section (14032-23326, 2026-09-03). Two
+// levels:
 //
-//   BRANCH — "Open" and "Closed", the first TabGroup. A branch holds sub-tabs;
-//     it applies no filter of its own.
-//   TAB — the branch's sub-tabs, the second TabGroup: "All" plus one tab per
-//     job status group. Every tab EXCEPT "All" applies a LOCKED Status filter.
+//   BRANCH — "Open" and "Closed", the TopBarNav's phase TabGroup. A branch is
+//     a PHASE: even its "All" view lists only that phase's jobs ("All Open —
+//     No pre-defined filters. All open jobs are listed", and the closed twin).
+//   VIEW — the branch's TopBarView tabs: "All" plus one view per status
+//     group. Every view EXCEPT "All" applies a LOCKED Status filter.
 //
-// The Closed branch (All / Finalized / Cancelled) is DRAWN but NOT BUILT
-// (Daniel, 2026-08-18: "doesn't build Closed tab for now"). It is in the data
-// below because the mobile tab list draws both groups; clicking it does
-// nothing. FLAGGED — say when it should work and it is one line (the statuses
-// are already here).
+// Both branches are BUILT since the documented section (the old "doesn't
+// build Closed for now", 2026-08-18, is superseded): Open holds All / Pending
+// / Scheduled / In progress / On hold / Completed, Closed holds All /
+// Finalized / Cancelled — the section's TopBarView tabs, verbatim.
 //
 // The locked filter is NOT part of the user's FilterSelection: the user cannot
 // change or remove it, so it never becomes an editable chip. It lives in the
-// tab state and is applied on top of the user's filters (AND), and the filter
+// view state and is applied on top of the user's filters (AND), and the filter
 // bar shows it as the first, inert chip.
 //
-// The statuses are Daniel's mapping (2026-08-18) onto the DS status list, which
-// is finer than the production one (`Job.Statuses`, roopairs/apps/jobs/models.py):
-//   Pending     = Draft + Unscheduled     (the node's chip reads "2 statuses")
+// The status mapping is the section's own (each view's chip and its read-only
+// value list):
+//   Pending     = Draft + Unscheduled     (the chip reads "is any of 2 statuses")
 //   Scheduled   = Upcoming + Past due
-//   In progress = Active + Quick-paused
-//   On hold     = On hold (external) + On hold (internal)
+//   In progress = Active + Quick-paused   (the annotation: "Active first,
+//                 then Quick-paused" — sub-statuses shown because this
+//                 workspace HAS them; a company without them would show the
+//                 generic status instead)
+//   On hold     = On hold (external) + On hold (internal) ("External first")
 //   Completed   = Completed
-// The icons are the node's, and they are NOT all the status badge's own glyph —
-// Scheduled uses `calendar-lines` where BadgeJobStatus draws `circle-half-stroke`.
+//   Finalized   = Finalized · Cancelled = Cancelled
 interface ViewTab {
   id: string;
   label: string;
-  /** The tab's icon — regular when unselected, solid when selected. */
-  icon?: string;
-  /** The Status filter this tab locks on. Empty = no filter ("All"). */
+  /** The Status filter this view locks on. Empty = no filter ("All"). */
   statuses: BadgeJobStatusStatus[];
 }
 
 interface TabBranch {
-  id: string;
+  id: BranchId;
   label: string;
   tabs: ViewTab[];
 }
@@ -2418,248 +2320,175 @@ const BRANCHES: TabBranch[] = [
     label: "Open",
     tabs: [
       { id: "all", label: "All", statuses: [] },
-      { id: "pending", label: "Pending", icon: "circle-dashed", statuses: ["draft", "unscheduled"] },
-      { id: "scheduled", label: "Scheduled", icon: "calendar-lines", statuses: ["upcoming", "pastDue"] },
-      { id: "inProgress", label: "In progress", icon: "circle-play", statuses: ["active", "quickPaused"] },
-      { id: "onHold", label: "On hold", icon: "circle-stop", statuses: ["onHoldExternal", "onHoldInternal"] },
-      { id: "completed", label: "Completed", icon: "circle-check", statuses: ["completed"] },
+      { id: "pending", label: "Pending", statuses: ["draft", "unscheduled"] },
+      { id: "scheduled", label: "Scheduled", statuses: ["upcoming", "pastDue"] },
+      { id: "inProgress", label: "In progress", statuses: ["active", "quickPaused"] },
+      { id: "onHold", label: "On hold", statuses: ["onHoldExternal", "onHoldInternal"] },
+      { id: "completed", label: "Completed", statuses: ["completed"] },
     ],
   },
   {
-    // Not built — see the note above.
     id: "closed",
     label: "Closed",
     tabs: [
       { id: "closedAll", label: "All", statuses: [] },
-      { id: "finalized", label: "Finalized", icon: "circle-check", statuses: ["finalized"] },
-      { id: "cancelled", label: "Cancelled", icon: "circle-xmark", statuses: ["cancelled"] },
+      { id: "finalized", label: "Finalized", statuses: ["finalized"] },
+      { id: "cancelled", label: "Cancelled", statuses: ["cancelled"] },
     ],
   },
 ];
 
-const OPEN_BRANCH = BRANCHES[0]!;
+const branchById = (id: BranchId) => BRANCHES.find((b) => b.id === id) ?? BRANCHES[0]!;
 
-/** The tab behind an id — always one of the open branch's, the only built one. */
-const tabById = (id: string) => OPEN_BRANCH.tabs.find((t) => t.id === id) ?? OPEN_BRANCH.tabs[0]!;
+/** The view behind an id, within its branch. */
+const tabById = (branch: BranchId, id: string) => {
+  const tabs = branchById(branch).tabs;
+  return tabs.find((t) => t.id === id) ?? tabs[0]!;
+};
+
+/**
+ * The PHASE's whole status set — what the branch's "All" view lists ("All open
+ * jobs" / "All closed jobs"). The union of its views' statuses, so the two
+ * levels can never disagree about what a phase holds.
+ */
+const branchStatuses = (branch: BranchId) => branchById(branch).tabs.flatMap((t) => t.statuses);
 
 // No job counts anywhere in this concept (Daniel, 2026-08-18): not on the tabs,
-// not on the mobile status picker, not in its list. The other concepts keep a
+// not on the mobile view selector, not in its list. The other concepts keep a
 // `tabCount` helper here for them.
-
-// The tab row scrolls sideways — the two groups do not fit the bar next to the
-// buttons. This copies the DS's own scrolling-tabs behaviour from TopBarNav's
-// details bar, so nothing here is invented:
-//   - the SCROLLER is a WRAPPER, never the TabGroup itself (the sliding
-//     underline is positioned inside the tablist, so scrolling the tablist
-//     would leave the line behind);
-//   - the scrollbar is hidden;
-//   - a plain vertical mouse wheel scrolls it horizontally — a native
-//     non-passive listener, because React's onWheel is registered passive and
-//     cannot preventDefault;
-//   - the edge fades show where the row continues.
-// Desktop only: the mobile bar has no tab row at all any more.
-function TabScroller({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [fade, setFade] = useState({ left: false, right: false });
-
-  const measure = () => {
-    const el = ref.current;
-    if (el == null) return;
-    const left = el.scrollLeft > 1;
-    const right = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-    setFade((f) => (f.left === left && f.right === right ? f : { left, right }));
-  };
-
-  // No dependency list on purpose (TopBarNav does the same): the row's width
-  // changes with the bar's controls, and re-measuring every render is cheap.
-  useLayoutEffect(() => {
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  });
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el == null) return undefined;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // real horizontal input works natively
-      if (el.scrollWidth <= el.clientWidth) return;
-      el.scrollLeft += e.deltaY;
-      e.preventDefault();
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={clsx(
-        styles.viewTabsScroll,
-        fade.left && fade.right && styles.viewTabsFadeBoth,
-        fade.left && !fade.right && styles.viewTabsFadeLeft,
-        !fade.left && fade.right && styles.viewTabsFadeRight,
-      )}
-      onScroll={measure}
-    >
-      {children}
-    </div>
-  );
-}
-
-// ---- the mobile status picker ----------------------------------------------
-
-// MOBILE has no tab row (Figma node 13897-21018). The control that replaces it
-// is NOT a Button (Daniel, 2026-08-18): it is a plain row — the tab's name, 8px,
-// `angles-up-down` — with no icon, no COUNT, no padding, no fill and no radius,
-// all in --gray-12. So it is built here, in the prototype, and flagged as
-// prototype-local: no DS component draws this.
-//
-// It follows the DS's interactive-title behaviour (TopBarNavTitle): 75% opacity
-// on hover, 50% while the list is open — which is exactly what the node draws
-// (its status row is at 50% with the list showing).
-//
-// The list below it (node 13897-21030) is ONE flat group of the CURRENT branch's
-// tabs — LABELS ONLY: no group labels, no icons, no counts, no second branch
-// (the branch is chosen in the top bar). It is a body portal, and the INLINE
-// variant on mobile too: the node draws a card, not a drawer, the same call
-// TopBarNavTitle's `subPages` makes.
-
-// The row's chrome around its label: 4px group padding each side, 12px left
-// padding, then the 12px gap to the 16px check and the row's 12px right padding.
-const TAB_ITEM_CHROME = 60;
-/** The node's list width — the floor, so short labels still match the design. */
-const TAB_LIST_MIN_WIDTH = 137;
-
-function StatusPicker({ tab, onTabChange }: { tab: string; onTabChange: (next: string) => void }) {
-  const card = useAnchoredCard("left");
-  const current = tabById(tab);
-
-  const tabs = OPEN_BRANCH.tabs;
-  const width = Math.round(
-    Math.max(
-      TAB_LIST_MIN_WIDTH,
-      tabs.reduce((max, t) => Math.max(max, textWidth(t.label)), 0) + TAB_ITEM_CHROME,
-    ),
-  );
-
-  return (
-    <div ref={card.anchorRef} className={styles.statusPickerWrap}>
-      <button
-        type="button"
-        className={clsx(styles.statusPicker, card.open && styles.statusPickerOpen)}
-        onClick={() => card.setOpen(!card.open)}
-      >
-        <span>{current.label}</span>
-        <Icon
-          icon="angles-up-down"
-          pack="regular"
-          size={14}
-          container="square"
-          className={styles.statusPickerChevron}
-        />
-      </button>
-      {card.pos != null &&
-        createPortal(
-          <div ref={card.cardRef} className={styles.filtersSub} style={card.pos}>
-            {/* `breakpoint="desktop"` is what keeps this a CARD on a phone:
-                SelectList falls back to its drawer for `inline` on mobile, and
-                the node draws a card. It is the same call TopBarNavTitle makes
-                for its sub-pages list. */}
-            <SelectList
-              variant="inline"
-              breakpoint="desktop"
-              open={card.open}
-              onClose={() => card.setOpen(false)}
-              style={{ width, minWidth: width, maxWidth: width }}
-            >
-              <SelectListItemGroup>
-                {tabs.map((item) => (
-                  <SelectListItem
-                    key={item.id}
-                    label={item.label}
-                    select="single"
-                    selected={item.id === tab}
-                    onClick={() => {
-                      onTabChange(item.id);
-                      card.setOpen(false);
-                    }}
-                  />
-                ))}
-              </SelectListItemGroup>
-            </SelectList>
-          </div>,
-          document.body,
-        )}
-    </div>
-  );
-}
-
-// The mobile Filters control. With no filters applied it is the plain 36px
-// IconButton; with some, it grows into a pill holding the bars-filter icon and
-// a `Counter` with how many are on (Figma node 13889-19259 — Daniel, 2026-08-18).
-// That pill is the DS ghost lg Button with the node's 10px side padding, which
-// is Button `md`'s padding at `lg`'s height — the one local override here.
-function FiltersControl({ count, open, onOpen }: { count: number; open: boolean; onOpen: () => void }) {
-  if (count === 0) {
-    return (
-      <IconButton
-        icon="bars-filter"
-        variant="ghost"
-        size="lg"
-        aria-label="Filters"
-        isPressed={open}
-        onClick={onOpen}
-      />
-    );
-  }
-  return (
-    <Button
-      className={styles.filtersCountButton}
-      variant="ghost"
-      size="lg"
-      leftIcon="bars-filter"
-      aria-label="Filters"
-      isPressed={open}
-      onClick={onOpen}
-    >
-      <Counter value={count} />
-    </Button>
-  );
-}
 
 // ---- the view bar ----------------------------------------------------------
 
-// ViewBar — two formats, both 60px:
+// The DS `TopBarView` (Daniel, 2026-09-03 — the hand-built 60px bar, its tab
+// scroller, the local StatusPicker and the local Filters count control are
+// gone). The bar is the component's own on both breakpoints:
 //
-//   DESKTOP (Figma node 13888-18217): 16px side padding. On the left the two tab
-//   groups — [Open · Closed], a 24px-tall vertical Divider, then the open
-//   branch's status tabs, 24px apart — the branch group moved to the TOP BAR.
-//   On the right three ghost lg Buttons, 8px apart: "Search", "Filters" and
-//   "View".
-//   MOBILE (Figma node 13893-20294): the same 16px padding, the StatusPicker on
-//   the left and three controls on the right: search, Filters (with its count)
-//   and View.
+//   DESKTOP: the status tabs on the left (labels only in this concept —
+//   Daniel, 2026-08-18), "Search", "Filters" and "View" ghost lg Buttons on
+//   the right. The keyword search opens the component's own inline field —
+//   display only here, it filters nothing yet.
+//   MOBILE: the view selector on the left — the tab's name + angles-up-down,
+//   opening the flat inline list of the open branch's tabs — and the three
+//   IconButtons on the right. An applied count turns Filters into the ghost
+//   Button whose label is the number.
 //
-// Both formats carry a 1px --gray-a4 line along the bar's BOTTOM EDGE — an inner
-// stroke on the bar itself, not a Divider below it. It stays even with the filter
-// bar below, which the node draws that way too.
+// Wired: the tabs / the selector, and Filters on both breakpoints. Display
+// only: Search (it opens but filters nothing) and View.
 //
-// Wired: the tabs, and Filters on both breakpoints. Display only: Search and
-// View.
+// Differences against the old local bar, all the component's own rules —
+// FLAGGED to Daniel:
+//   - the mobile Filters count is the Button's plain text label (the DS doc's
+//     rule), not the `Counter` pill the node draws (13889-19259);
+//   - RESOLVED 2026-09-04 (per Daniel's ask): both triggers hold the pressed
+//     fill while their menu is open — TopBarView grew `viewMenuPressed` and
+//     `filtersPressed` for it;
+//   - the mobile view-selector list hugs its own content instead of the
+//     node's measured 137px floor.
+
+/** The status tabs as TopBarView views — one per tab of the given branch. */
+const branchViews = (branch: BranchId) => branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+
 interface ViewBarProps {
-  mobile?: boolean;
+  /** The active branch — it picks the views and the filter registry. */
+  branch: BranchId;
   tab: string;
   onTabChange: (next: string) => void;
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
+  /** The view's View-menu settings, and the shared per-view sort it edits. */
+  viewSettings: ViewSettings;
+  onViewSettingsChange: (next: ViewSettings) => void;
+  sort: TableSort;
+  onSortChange: (next: TableSort) => void;
 }
 
-const ViewBar = ({ mobile = false, tab, onTabChange, selection, onSelectionChange }: ViewBarProps) => {
+// DESKTOP: the Filters button opens the anchored menu card. TopBarView owns
+// the button and only reports the click, so the card's anchor is taken off
+// the event instead of a wrapper div — the card still opens 4px below it,
+// right-aligned (Daniel, 2026-08-17), and clicks on the button itself still
+// count as "inside" for the outside-click close.
+function DesktopViewBar({
+  branch,
+  tab,
+  onTabChange,
+  selection,
+  onSelectionChange,
+  viewSettings,
+  onViewSettingsChange,
+  sort,
+  onSortChange,
+}: ViewBarProps) {
+  const card = useAnchoredCard("right", "[data-concept-filters-sub]");
+  // The View menu — the shared module, anchored under the bar's View button
+  // exactly as the Filters menu is under its own. The module's dropdown lists
+  // live in [data-floating-list] body portals; the ignore selector keeps a
+  // click inside them from closing the card underneath.
+  const viewCard = useAnchoredCard("right", "[data-floating-list]");
+  return (
+    <>
+      <TopBarView
+        className={styles.viewBar}
+        breakpoint="desktop"
+        views={branchViews(branch)}
+        view={tab}
+        onViewChange={onTabChange}
+        onFiltersClick={(e) => {
+          // The anchor ref is typed for the div wrappers the other triggers
+          // use; the bar's own Button is just as valid a rectangle.
+          card.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+          card.setOpen(!card.open);
+        }}
+        filtersPressed={card.open}
+        onViewMenuClick={(e) => {
+          viewCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+          viewCard.setOpen(!viewCard.open);
+        }}
+        viewMenuPressed={viewCard.open}
+      />
+      <FiltersMenuCard
+        card={card}
+        defs={FILTERS_BY_BRANCH[branch]}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+      />
+      {viewCard.pos != null &&
+        createPortal(
+          <div ref={viewCard.cardRef} className={styles.filtersSub} style={viewCard.pos}>
+            <FiltersViewMenu
+              open={viewCard.open}
+              onClose={() => viewCard.setOpen(false)}
+              breakpoint="desktop"
+              settings={viewSettings}
+              onSettingsChange={onViewSettingsChange}
+              sort={sort}
+              onSortChange={onSortChange}
+            />
+          </div>,
+          document.body,
+        )}
+    </>
+  );
+}
+
+// MOBILE: the Filters button opens the Menu drawer; a filter row then opens
+// its options as a SECOND drawer on top of it.
+function MobileViewBar({
+  branch,
+  tab,
+  onTabChange,
+  selection,
+  onSelectionChange,
+  viewSettings,
+  onViewSettingsChange,
+  sort,
+  onSortChange,
+}: ViewBarProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const filters = useFilterSearch(filtersOpen);
-  // MOBILE: tapping a filter row opens its options as a SECOND drawer on top of
-  // the Filters one (Figma node 13855-23306 — the list draws its own scrim). NO
+  // The View menu arrives as the module's own drawer.
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const filters = useFilterSearch(filtersOpen, FILTERS_BY_BRANCH[branch]);
+  // Tapping a filter row opens its options as a SECOND drawer on top of the
+  // Filters one (Figma node 13855-23306 — the list draws its own scrim). NO
   // back button (Daniel, 2026-08-17): the Filters drawer is still open
   // underneath, so dismissing this sheet already returns there.
   const [openFilter, setOpenFilter] = useState<FilterDef | null>(null);
@@ -2689,111 +2518,94 @@ const ViewBar = ({ mobile = false, tab, onTabChange, selection, onSelectionChang
   // of that list, so leaving them up would look like the search had missed them.
   const showApplied = activeFilterCount(selection) > 0 && filters.query === "";
 
-  // The MOBILE Filters counter counts the tab's locked Status filter as well
-  // (Daniel, 2026-08-18): on every tab but "All" a filter IS applied, and mobile
-  // has no filter bar to show it. So "Pending" with nothing else on reads 1.
-  const activeCount = activeFilterCount(selection) + (tabById(tab).statuses.length > 0 ? 1 : 0);
+  // The MOBILE Filters count counts the view's locked Status filter as well
+  // (Daniel, 2026-08-18): on every view but "All" a filter IS applied, and
+  // mobile has no filter bar to show it. So "Pending" with nothing else on
+  // reads 1.
+  const activeCount = activeFilterCount(selection) + (tabById(branch, tab).statuses.length > 0 ? 1 : 0);
 
   return (
-    <div className={styles.viewBar}>
-      {mobile ? (
-        <StatusPicker tab={tab} onTabChange={onTabChange} />
-      ) : (
-        <TabScroller>
-          <TabGroup
-            className={styles.statusTabs}
-            variant="default"
-            size="lg"
-            value={tab}
-            onChange={onTabChange}
-            aria-label="Job status"
-          >
-            {/* Labels only in this concept (Daniel, 2026-08-18): no icons, and
-                no counts either — Figma node 13889-19496. */}
-            {OPEN_BRANCH.tabs.map((item) => (
-              <TabItem key={item.id} value={item.id}>
-                {item.label}
-              </TabItem>
-            ))}
-          </TabGroup>
-        </TabScroller>
-      )}
-      <div className={styles.viewControls}>
-        {mobile ? (
-          <>
-            <IconButton icon="search" variant="ghost" size="lg" aria-label="Keyword search" onClick={noop} />
-            <FiltersControl count={activeCount} open={filtersOpen} onOpen={() => setFiltersOpen(true)} />
-            <IconButton icon="sliders" variant="ghost" size="lg" aria-label="View" onClick={noop} />
-            {/* The drawer portals out to the device frame's drawer root, so it
-                does not matter that it is written inside this flex row. */}
-            {/* The drawer header keeps the DS's own line under it (Daniel,
-                2026-08-23 — "reset the style to match the DS"). It used to be
-                turned off through Menu's `drawerHeader` escape hatch; Menu
-                builds the header from `title` again. */}
-            <Menu
-              open={filtersOpen}
-              onClose={() => setFiltersOpen(false)}
-              title="Filters"
-              header={filters.header}
-              breakpoint="mobile"
-            >
-              {/* The phone has no filter bar, so what is applied shows here
-                  (Figma node 13867-5235). Only while something IS applied — and
-                  the search hides it too, since it filters the list below and
-                  the chips are not part of that list. */}
-              {showApplied && <AppliedFilters selection={selection} onSelectionChange={onSelectionChange} />}
-              <AddFilterSection rows={filters.rows} extra={mobileRowHandlers} labelled={showApplied} />
-            </Menu>
-            {/* Rendered after the Menu, so it stacks above it.
-                No search header any more (the nodes dropped it), so the sheet
-                HUGS its content and the scrim strip above it is tappable again —
-                the node's mobile sheets are 185–302px, not full height.
-                `title` is the filter's name, as Daniel asked. */}
-            {/* The sheet edits ONE application, started when the row is tapped
-                and dropped when the sheet closes (`closeFilterSheet`), so the
-                next tap on that row starts another. `key` remounts the sheet per
-                application, so its draft is seeded fresh each time. */}
-            {openFilter != null &&
-              drafts[openFilter.id] != null &&
-              // ADDRESS has no option sheet — the row opens its dialog instead
-              // (node 13988-53696, a drawer over the Filters one).
-              (isDialogOnly(openFilter) ? (
-                <CustomDialog
-                  key={drafts[openFilter.id]!.key}
-                  def={openFilter}
-                  instance={drafts[openFilter.id]!}
-                  breakpoint="mobile"
-                  onApply={(next) => onSelectionChange(upsertFilter(selection, next))}
-                  onClose={closeFilterSheet}
-                />
-              ) : (
-                <MobileFilterOptions
-                  key={drafts[openFilter.id]!.key}
-                  def={openFilter}
-                  instance={drafts[openFilter.id]!}
-                  onCommit={(next) => {
-                    setDrafts((current) => ({ ...current, [next.id]: next }));
-                    onSelectionChange(upsertFilter(selection, next));
-                  }}
-                  onClose={closeFilterSheet}
-                />
-              ))}
-          </>
-        ) : (
-          <>
-            <Button variant="ghost" size="lg" leftIcon="search" onClick={noop}>
-              Search
-            </Button>
-            <FiltersButton selection={selection} onSelectionChange={onSelectionChange} />
-            <Button variant="ghost" size="lg" leftIcon="sliders" onClick={noop}>
-              View
-            </Button>
-          </>
+    <>
+      <TopBarView
+        className={styles.viewBar}
+        breakpoint="mobile"
+        views={branchViews(branch)}
+        view={tab}
+        onViewChange={onTabChange}
+        filtersCount={activeCount}
+        onFiltersClick={() => setFiltersOpen(true)}
+        filtersPressed={filtersOpen}
+        onViewMenuClick={() => setViewMenuOpen(true)}
+        viewMenuPressed={viewMenuOpen}
+      />
+      <FiltersViewMenu
+        open={viewMenuOpen}
+        onClose={() => setViewMenuOpen(false)}
+        breakpoint="mobile"
+        settings={viewSettings}
+        onSettingsChange={onViewSettingsChange}
+        sort={sort}
+        onSortChange={onSortChange}
+      />
+      {/* The drawer portals out to the device frame's drawer root, so where it
+          is written makes no difference. */}
+      {/* The drawer header keeps the DS's own line under it (Daniel,
+          2026-08-23 — "reset the style to match the DS"). It used to be
+          turned off through Menu's `drawerHeader` escape hatch; Menu
+          builds the header from `title` again. */}
+      <Menu
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        title="Filters"
+        header={filters.header}
+        breakpoint="mobile"
+      >
+        {/* The phone has no filter bar, so what is applied shows here
+            (Figma node 13867-5235). Only while something IS applied — and
+            the search hides it too, since it filters the list below and
+            the chips are not part of that list. */}
+        {showApplied && (
+          <AppliedFilters defs={FILTERS_BY_BRANCH[branch]} selection={selection} onSelectionChange={onSelectionChange} />
         )}
-      </div>
-    </div>
+        <AddFilterSection rows={filters.rows} extra={mobileRowHandlers} labelled={showApplied} />
+      </Menu>
+      {/* Rendered after the Menu, so it stacks above it.
+          No search header any more (the nodes dropped it), so the sheet
+          HUGS its content and the scrim strip above it is tappable again —
+          the node's mobile sheets are 185–302px, not full height.
+          `title` is the filter's name, as Daniel asked. */}
+      {/* The sheet edits ONE application, started when the row is tapped
+          and dropped when the sheet closes (`closeFilterSheet`), so the
+          next tap on that row starts another. `key` remounts the sheet per
+          application, so its draft is seeded fresh each time. */}
+      {openFilter != null &&
+        drafts[openFilter.id] != null &&
+        // ADDRESS has no option sheet — the row opens its dialog instead
+        // (node 13988-53696, a drawer over the Filters one).
+        (isDialogOnly(openFilter) ? (
+          <CustomDialog
+            key={drafts[openFilter.id]!.key}
+            def={openFilter}
+            instance={drafts[openFilter.id]!}
+            breakpoint="mobile"
+            onApply={(next) => onSelectionChange(upsertFilter(selection, next))}
+            onClose={closeFilterSheet}
+          />
+        ) : (
+          <MobileFilterOptions
+            key={drafts[openFilter.id]!.key}
+            def={openFilter}
+            instance={drafts[openFilter.id]!}
+            onCommit={(next) => {
+              setDrafts((current) => ({ ...current, [next.id]: next }));
+              onSelectionChange(upsertFilter(selection, next));
+            }}
+            onClose={closeFilterSheet}
+          />
+        ))}
+    </>
   );
-};
+}
 
 // ---- anchored cards --------------------------------------------------------
 
@@ -2806,7 +2618,10 @@ type CardAlign = "left" | "right";
 // `position: fixed` from the trigger's rect, re-measured on scroll and resize.
 function useAnchoredCard(align: CardAlign = "left", ignoreSelector?: string) {
   const [open, setOpen] = useState(false);
-  const anchorRef = useRef<HTMLDivElement>(null);
+  // `| null` in the type parameter makes the ref MUTABLE: most triggers attach
+  // it as a wrapper div's `ref`, but the view bar assigns TopBarView's own
+  // Filters button into it by hand (see DesktopViewBar).
+  const anchorRef = useRef<HTMLDivElement | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | null>(null);
 
@@ -2872,13 +2687,15 @@ type AnchoredCard = ReturnType<typeof useAnchoredCard>;
 // given in a Menu card and would give us a card inside a card.
 interface FiltersMenuCardProps {
   card: AnchoredCard;
+  /** The branch's filter registry. */
+  defs: FilterDef[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
 }
 
-function FiltersMenuCard({ card, selection, onSelectionChange }: FiltersMenuCardProps) {
+function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMenuCardProps) {
   const { open, setOpen, cardRef, pos } = card;
-  const filters = useFilterSearch(open);
+  const filters = useFilterSearch(open, defs);
 
   // The row being hovered, and the applications this VISIT to the menu is
   // building — one per filter, kept for as long as the menu stays open (Daniel,
@@ -3036,6 +2853,8 @@ function FiltersMenuCard({ card, selection, onSelectionChange }: FiltersMenuCard
                 onSelectionChange(upsertFilter(selection, next));
               }}
               variant="inline"
+              // Hover-opened and hover-closed — see the prop's note.
+              restoreFocus={false}
               // Picking "Custom" CLOSES the menu (Daniel, 2026-08-20): the
               // dialog is a modal, so leaving the menu and its list open behind
               // it made no sense — and with them gone the dialog needs no
@@ -3070,43 +2889,23 @@ function FiltersMenuCard({ card, selection, onSelectionChange }: FiltersMenuCard
   );
 }
 
-// The view bar's "Filters" button. The card opens 4px BELOW it and RIGHT-aligned
-// with it (Daniel, 2026-08-17). The node (13857-25352) draws it left-aligned, but
-// the real button sits near the right screen edge, where a left-aligned card
-// runs off it — FLAGGED: the node was drawn with the button standing alone in
-// the middle of the canvas.
-//
-// NO counter on desktop (Daniel, 2026-08-17) — the filter bar below shows the
-// applied filters, so a number here would repeat what is already on screen.
-// The button carries a --gray-a4 fill while the card is open, which is Button
-// `ghost`'s own press fill, so `isPressed` holds that look for as long as the
-// menu shows (the same pattern as the sidebar's Create row).
+// (The view bar's own "Filters" Button lives inside the DS TopBarView now —
+// see DesktopViewBar. The card still opens 4px below it, RIGHT-aligned
+// (Daniel, 2026-08-17): the node (13857-25352) draws it left-aligned, but the
+// real button sits near the right screen edge, where a left-aligned card runs
+// off it — FLAGGED: the node was drawn with the button standing alone in the
+// middle of the canvas. NO counter on desktop (Daniel, 2026-08-17) — the
+// filter bar below shows the applied filters.)
 interface FilterTriggerProps {
+  /** The branch's filter registry. */
+  defs: FilterDef[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
 }
 
-function FiltersButton({ selection, onSelectionChange }: FilterTriggerProps) {
-  const card = useAnchoredCard("right", "[data-concept-filters-sub]");
-  return (
-    <div ref={card.anchorRef}>
-      <Button
-        variant="ghost"
-        size="lg"
-        leftIcon="bars-filter"
-        isPressed={card.open}
-        onClick={() => card.setOpen(!card.open)}
-      >
-        Filters
-      </Button>
-      <FiltersMenuCard card={card} selection={selection} onSelectionChange={onSelectionChange} />
-    </div>
-  );
-}
-
 // The filter bar's "plus" — the same menu, opened LEFT-aligned under the button
 // because it sits at the left of the bar (Daniel, 2026-08-17).
-function AddFilterButton({ selection, onSelectionChange }: FilterTriggerProps) {
+function AddFilterButton({ defs, selection, onSelectionChange }: FilterTriggerProps) {
   const card = useAnchoredCard("left", "[data-concept-filters-sub]");
   return (
     <div ref={card.anchorRef}>
@@ -3119,7 +2918,7 @@ function AddFilterButton({ selection, onSelectionChange }: FilterTriggerProps) {
         isPressed={card.open}
         onClick={() => card.setOpen(!card.open)}
       />
-      <FiltersMenuCard card={card} selection={selection} onSelectionChange={onSelectionChange} />
+      <FiltersMenuCard card={card} defs={defs} selection={selection} onSelectionChange={onSelectionChange} />
     </div>
   );
 }
@@ -3153,21 +2952,24 @@ function AddFilterButton({ selection, onSelectionChange }: FilterTriggerProps) {
 // (nodes 13874-8307 / 13874-8586), so the chips presumably live somewhere on
 // mobile too. Say where and it is one line to switch on.
 interface FilterBarProps {
-  /** The statuses the current tab locks — the first, inert chip. */
+  /** The branch's filter registry. */
+  defs: FilterDef[];
+  /** The statuses the current view locks — the first, inert chip. */
   lockedStatuses: BadgeJobStatusStatus[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
 }
 
-const FilterBar = ({ lockedStatuses, selection, onSelectionChange }: FilterBarProps) => {
-  const chips = activeFilters(FILTERS, selection);
+const FilterBar = ({ defs, lockedStatuses, selection, onSelectionChange }: FilterBarProps) => {
+  const chips = activeFilters(defs, selection);
+  const statusDef = defs.find((def) => def.id === "status")!;
   if (chips.length === 0 && lockedStatuses.length === 0) return null;
 
   return (
     <>
       <div className={styles.filterBar}>
         <div className={styles.filterBarItems}>
-          {lockedStatuses.length > 0 && <LockedStatusChip statuses={lockedStatuses} />}
+          {lockedStatuses.length > 0 && <LockedStatusChip def={statusDef} statuses={lockedStatuses} />}
           {/* One chip per APPLICATION, in the order they were added — two
               "Assignee" chips can stand side by side. */}
           {chips.map(({ def, instance }) => (
@@ -3179,7 +2981,7 @@ const FilterBar = ({ lockedStatuses, selection, onSelectionChange }: FilterBarPr
               onSelectionChange={onSelectionChange}
             />
           ))}
-          <AddFilterButton selection={selection} onSelectionChange={onSelectionChange} />
+          <AddFilterButton defs={defs} selection={selection} onSelectionChange={onSelectionChange} />
         </div>
         {chips.length > 0 &&
           (lockedStatuses.length === 0 ? (
@@ -3202,69 +3004,61 @@ const FilterBar = ({ lockedStatuses, selection, onSelectionChange }: FilterBarPr
   );
 };
 
-// ---- the tab's locked chip -------------------------------------------------
+// ---- the view's locked chip ------------------------------------------------
 
-// The Status chip a tab applies (Figma node 13889-19207). The SAME surface as a
-// normal chip, but only THREE segments — name, condition, value — and no remove
-// button: the user cannot change or remove what the tab locks.
+// The Status chip a view applies — the documented Views section (14032-23326,
+// 2026-09-03; e.g. the Pending chip 14032-24293). The SAME surface as a normal
+// chip, but only THREE segments — name, condition, value — and no remove
+// button. The annotation on every one: "Unremovable and unchangeable. The user
+// is only allowed to see the applied values."
 //
-// The VALUE segment is the one target (Daniel, 2026-08-18): clicking it opens
-// the same option list as a normal chip, so the user can SEE which statuses are
-// on and which are not — but every row is DISABLED, so nothing can be ticked.
+// The VALUE segment is the one target: clicking it opens the branch's status
+// list READ-ONLY, so the user can SEE which statuses are on and which are not
+// — the rows are the DS `readOnly` state (normal colors, nothing ticks; the
+// value-list nodes 14032-25709 / 14101-52292 / 14101-53105 draw
+// `state=readOnly` on every row), with the applied ones pinned on top by the
+// DS's own selected-on-open rule, exactly as the nodes draw them. No counts.
 //
-// The condition reads "is" even when the tab locks two statuses ("Status is 2
-// statuses" in the node). A user chip would say "is any of" there — FLAGGED, the
-// node's copy is what this builds.
-const STATUS_FILTER = FILTERS.find((def) => def.id === "status")!;
-
-// The read-only option list: every status, the tab's ones ticked, all disabled.
-// It reuses `filterList`'s own width, so the locked list and the editable one
-// are exactly the same size.
-function lockedStatusList(statuses: BadgeJobStatusStatus[]) {
-  const counts = optionCounts(JOBS, STATUS_FILTER);
+// The condition follows the count like a user chip's would — the documented
+// chips read "is any of | 2 statuses" (Pending) and "is | Completed"
+// (Completed). The old node's flat "is" (13889-19207) is superseded.
+function lockedStatusList(def: FilterDef, statuses: BadgeJobStatusStatus[]) {
   const items = (
     <SelectListItemGroup>
-      {STATUS_FILTER.options.map((option) => (
+      {def.options.map((option) => (
         <SelectListItem
           key={option.id}
           label={option.label}
           select="multi"
           selected={statuses.includes(option.id as BadgeJobStatusStatus)}
-          disabled
+          readOnly
           slotLeft={option.slotLeft}
-          tag={countLabel(counts[option.id] ?? 0)}
         />
       ))}
     </SelectListItemGroup>
   );
-  // Measured against an empty application, so the width never depends on what
-  // the tab happens to lock.
-  return { items, width: filterList(STATUS_FILTER, newFilterInstance(STATUS_FILTER), noop).width };
+  // The same width the status filter's own list opens at (the nodes pin the
+  // 240 minimum), measured against an empty application so it never depends
+  // on what the view happens to lock.
+  return { items, width: openListWidth(def, newFilterInstance(def), filterList(def, newFilterInstance(def), noop).width) };
 }
 
-const LockedStatusChip = ({ statuses }: { statuses: BadgeJobStatusStatus[] }) => {
+const LockedStatusChip = ({ def, statuses }: { def: FilterDef; statuses: BadgeJobStatusStatus[] }) => {
   const valueCard = useAnchoredCard("left");
-  const shown = valueDisplay(STATUS_FILTER, { ids: statuses, negated: false });
-  const list = lockedStatusList(statuses);
+  const shown = valueDisplay(def, { ids: statuses, negated: false });
+  const list = lockedStatusList(def, statuses);
 
   return (
     <div className={clsx(styles.chip, styles.chipLocked)}>
       <span className={styles.chipSegment}>
-        <Icon
-          icon={STATUS_FILTER.icon}
-          pack={STATUS_FILTER.pack}
-          rotate={STATUS_FILTER.rotate}
-          size={14}
-          container="square"
-        />
-        {STATUS_FILTER.label}
+        <Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />
+        {def.label}
       </span>
       <span className={styles.chipDivider} />
-      <span className={styles.chipSegment}>is</span>
+      <span className={styles.chipSegment}>{statuses.length > 1 ? "is any of" : "is"}</span>
       <span className={styles.chipDivider} />
-      {/* Capped and truncating like every other chip's value segment. A locked
-          status reads "2 statuses" at its longest, so it never reaches 240 —
-          the rule is here so the two chips cannot drift apart. */}
+      {/* Capped and truncating like every other chip's value segment — the rule
+          is here so the two chips cannot drift apart. */}
       <div ref={valueCard.anchorRef} className={clsx(styles.chipAnchor, styles.chipValue)}>
         <button
           type="button"
@@ -3282,7 +3076,7 @@ const LockedStatusChip = ({ statuses }: { statuses: BadgeJobStatusStatus[] }) =>
                 open={valueCard.open}
                 onClose={() => valueCard.setOpen(false)}
                 multiSelect
-                style={{ width: list.width, minWidth: list.width, maxWidth: list.width }}
+                style={listWidth(list.width)}
               >
                 {list.items}
               </SelectList>
@@ -3483,7 +3277,9 @@ const FilterChip = ({ def, instance, selection, onSelectionChange, mobile = fals
                   ) : undefined
                 }
                 state={list.isEmpty ? "noResults" : "default"}
-                style={listWidth(list.width)}
+                // The SAME width the menu-opened list uses — see `openListWidth`:
+                // the documented Labels value lists pin the menu list's 384.
+                style={listWidth(openListWidth(def, instance, list.width))}
               >
                 {list.items}
               </SelectList>
@@ -3555,7 +3351,7 @@ const COLUMNS = {
   id: 144,
   service: 224,
   status: 240,
-  labels: 240,
+  labels: 288,
   type: 128,
   priority: 144,
   source: 184,
@@ -3612,94 +3408,447 @@ const typeIcon = (type: JobType) => (
   <Icon icon={type === "recall" ? "clock-rotate-left" : "sparkle"} pack="regular" size={14} container="square" />
 );
 
-const JobsTable = ({ jobs }: { jobs: Job[] }) => (
-  <Table
-    className={styles.jobsTable}
-    header={
-      <TableRow variant="header">
-        <CellHeader label="ID" width={COLUMNS.id} isPinned isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Service" width={COLUMNS.service} isPinned isLastPinned isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Status" width={COLUMNS.status} isSortable dataType="other" onClick={noop} />
-        <CellHeader label="Labels" width={COLUMNS.labels} />
-        <CellHeader label="Type" width={COLUMNS.type} />
-        <CellHeader label="Priority" width={COLUMNS.priority} isSortable dataType="other" onClick={noop} />
-        <CellHeader label="Source" width={COLUMNS.source} isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Source ID" width={COLUMNS.sourceId} isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Assignees" width={COLUMNS.techs} />
-        <CellHeader label="Date Received" width={COLUMNS.received} isSortable dataType="timing" onClick={noop} />
-        <CellHeader label="Client" width={COLUMNS.client} isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Location Name" width={COLUMNS.locationName} isSortable dataType="alphabetical" onClick={noop} />
-        <CellHeader label="Location Address" width={COLUMNS.locationAddress} isSortable dataType="alphabetical" onClick={noop} />
-        {/* The view is sorted by Scheduled For, ascending. */}
-        <CellHeader label="Scheduled For" width={COLUMNS.scheduledFor} isSortable dataType="timing" sortOrder="ascending" onClick={noop} />
-        <CellHeader label="Duration" width={COLUMNS.duration} isSortable dataType="numerical" onClick={noop} />
-        <CellHeader label="Status Changed" width={COLUMNS.statusChanged} />
-        <CellHeader label="Last Modified" width={COLUMNS.lastModified} isSortable dataType="timing" onClick={noop} />
-      </TableRow>
+// ---- sorting ---------------------------------------------------------------
+
+// The header cells SORT since 2026-09-03 (Daniel: "clicking on a column header
+// should apply the sorting. The second click changes the order"). Clicking a
+// sortable column sorts by it ASCENDING; clicking the same column again flips
+// the direction. The columns that sort are the ones that were already marked
+// `isSortable`; the default is the view's own order, Scheduled for ascending.
+//
+// The sort belongs to its VIEW (Daniel, 2026-09-03: "Each view should have
+// its own sorting parameters") — kept per view id, exactly like the view's
+// filters, and never carried from one view to another.
+type SortColumn =
+  | "id"
+  | "service"
+  | "status"
+  | "priority"
+  | "source"
+  | "sourceId"
+  | "received"
+  | "client"
+  | "locationName"
+  | "locationAddress"
+  | "scheduledFor"
+  | "duration"
+  | "lastModified";
+
+interface TableSort {
+  column: SortColumn;
+  order: CellSortOrder;
+}
+
+const SORT_DEFAULT: TableSort = { column: "scheduledFor", order: "ascending" };
+
+// STATUS sorts by the badge map's own order — the job's lifecycle — not the
+// alphabet ("other" is its icon pair for the same reason). PRIORITY ascends
+// from No priority through Low to Urgent, the filter list's own order.
+const STATUS_RANK = new Map((Object.keys(STATUS) as BadgeJobStatusStatus[]).map((key, index) => [key, index]));
+
+/**
+ * What each column sorts BY — a string (localeCompare, numeric-aware so
+ * "SRC-99" sorts before "SRC-100") or a number. `null` / "" means the cell is
+ * empty; empty cells sort LAST in either direction (the rule the view's own
+ * Scheduled-for order already followed: "Unscheduled jobs have no date, so
+ * they sort last").
+ */
+const SORT_KEYS: Record<SortColumn, (job: Job) => string | number | null> = {
+  id: (job) => job.id,
+  service: (job) => serviceOf(job).name,
+  status: (job) => STATUS_RANK.get(job.status) ?? 0,
+  priority: (job) => (job.priority == null ? 0 : 5 - job.priority),
+  source: (job) => sourceOf(job).name,
+  sourceId: (job) => job.sourceRef,
+  received: (job) => job.receivedAt,
+  client: (job) => clientOf(job).name,
+  locationName: (job) => locationOf(job).name ?? null,
+  locationAddress: (job) => locationAddress(locationOf(job)),
+  scheduledFor: (job) => job.scheduledFor,
+  duration: (job) => job.durationMinutes,
+  lastModified: (job) => job.lastModifiedAt,
+};
+
+function sortJobs(jobs: Job[], sort: TableSort): Job[] {
+  const key = SORT_KEYS[sort.column];
+  const direction = sort.order === "ascending" ? 1 : -1;
+  return [...jobs].sort((a, b) => {
+    const keyA = key(a);
+    const keyB = key(b);
+    const emptyA = keyA == null || keyA === "";
+    const emptyB = keyB == null || keyB === "";
+    // Ties and empties fall back to the ID, so the order is stable and two
+    // equal rows can never swap as the sort changes around them.
+    if (emptyA || emptyB) return emptyA && emptyB ? a.id.localeCompare(b.id) : emptyA ? 1 : -1;
+    const compared =
+      typeof keyA === "number" && typeof keyB === "number"
+        ? keyA - keyB
+        : String(keyA).localeCompare(String(keyB), "en", { numeric: true });
+    return compared !== 0 ? compared * direction : a.id.localeCompare(b.id);
+  });
+}
+
+// ---- the column registry ---------------------------------------------------
+
+// ONE list drives the shared View Menu's rows, the table's header cells and
+// its body cells, so the menu and the table can never disagree about what a
+// column is. The order here is the DEFAULT view order (the production
+// "Jobs → All Open" config); each view's own `columns` state reorders, hides
+// and pins from it through the View menu.
+interface TableColumnDef {
+  key: string;
+  label: string;
+  width: number;
+  /** The sort-icon pair — the header's, and (mapped) the menu's. */
+  dataType: CellDataType;
+  sortable: boolean;
+  /** The body cell. `pin` freezes a pinned column's cells (see CellPinProps). */
+  cell: (job: Job, pin: CellPinProps) => ReactNode;
+}
+
+/**
+ * What a pinned column's cells receive: the sticky flag with its offset (the
+ * summed widths of the pinned columns before it), and the pinned-region
+ * boundary on the LAST pinned column. Empty for an unpinned column.
+ */
+interface CellPinProps {
+  isPinned?: boolean;
+  pinnedOffset?: number;
+  isLastPinned?: boolean;
+}
+
+// ---- separator comparison (TEMPORARY — Daniel, 2026-09-04) -----------------
+// Separator candidates side by side, so Daniel can compare them in place: the
+// first 7 rows of the DEFAULT table (Open "All", Scheduled for ascending —
+// JOBS' own order) each print "Scheduled for" with a different date–time
+// separator, in the order below. Every other row keeps the ordinary bullet.
+// Pinned to JOB IDS, so re-sorting or filtering moves a trial row with its
+// job. Remove this block — and formatDateTime's `separator` parameter — once
+// Daniel picks one.
+//
+const TABLE_COLUMNS: TableColumnDef[] = [
+  {
+    key: "id", label: "ID", width: COLUMNS.id, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.id} {...pin}>
+        {job.id}
+      </CellBody>
+    ),
+  },
+  {
+    key: "service", label: "Service", width: COLUMNS.service, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.service} {...pin}>
+        {serviceOf(job).name}
+      </CellBody>
+    ),
+  },
+  {
+    key: "status", label: "Status", width: COLUMNS.status, dataType: "other", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.status} content="badge" {...pin}>
+        <BadgeJobStatus status={job.status} />
+      </CellBody>
+    ),
+  },
+  {
+    key: "labels", label: "Labels", width: COLUMNS.labels, dataType: "other", sortable: false,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.labels} content="badge" {...pin}>
+        {labelsOf(job).map((label) => (
+          <Badge key={label.id}>{label.name}</Badge>
+        ))}
+      </CellBody>
+    ),
+  },
+  {
+    key: "type", label: "Type", width: COLUMNS.type, dataType: "other", sortable: false,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.type} slotLeft={typeIcon(job.type)} {...pin}>
+        {job.type === "recall" ? "Recall" : "New"}
+      </CellBody>
+    ),
+  },
+  {
+    key: "priority", label: "Priority", width: COLUMNS.priority, dataType: "other", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.priority} slotLeft={priorityIcon(job.priority)} {...pin}>
+        {priorityOf(job.priority).label}
+      </CellBody>
+    ),
+  },
+  {
+    key: "source", label: "Source", width: COLUMNS.source, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.source} {...pin}>
+        {sourceOf(job).name}
+      </CellBody>
+    ),
+  },
+  {
+    key: "sourceId", label: "Source ID", width: COLUMNS.sourceId, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.sourceId} {...pin}>
+        {job.sourceRef ?? ""}
+      </CellBody>
+    ),
+  },
+  {
+    key: "techs", label: "Assignees", width: COLUMNS.techs, dataType: "other", sortable: false,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.techs} content="assignee" {...pin}>
+        {job.assigneeIds.length > 0 ? (
+          <AvatarGroup
+            size="md"
+            items={assigneesOf(job).map((tech) => ({ content: "image", imageSrc: tech.avatar, name: tech.name }))}
+          />
+        ) : undefined}
+      </CellBody>
+    ),
+  },
+  {
+    key: "received", label: "Date received", width: COLUMNS.received, dataType: "timing", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.received} {...pin}>
+        {formatDay(job.receivedAt)}
+      </CellBody>
+    ),
+  },
+  {
+    key: "client", label: "Client", width: COLUMNS.client, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.client} {...pin}>
+        {clientOf(job).name}
+      </CellBody>
+    ),
+  },
+  // Both location halves are OPTIONAL (2026-08-24): a location may have no
+  // name of its own, or no address. An empty string is what makes CellBody
+  // draw its own "—" placeholder.
+  {
+    key: "locationName", label: "Location name", width: COLUMNS.locationName, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.locationName} {...pin}>
+        {locationOf(job).name ?? ""}
+      </CellBody>
+    ),
+  },
+  {
+    key: "locationAddress", label: "Location address", width: COLUMNS.locationAddress, dataType: "alphabetical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.locationAddress} {...pin}>
+        {locationAddress(locationOf(job))}
+      </CellBody>
+    ),
+  },
+  {
+    key: "scheduledFor", label: "Scheduled for", width: COLUMNS.scheduledFor, dataType: "timing", sortable: true,
+    // A past-due job's scheduled time reads as an error.
+    cell: (job, pin) => (
+      <CellBody
+        width={COLUMNS.scheduledFor}
+        colorScheme={job.status === "pastDue" ? "error" : "default"}
+        {...pin}
+      >
+        {formatDateTime(job.scheduledFor)}
+      </CellBody>
+    ),
+  },
+  {
+    key: "duration", label: "Duration", width: COLUMNS.duration, dataType: "numerical", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.duration} {...pin}>
+        {formatDuration(job.durationMinutes)}
+      </CellBody>
+    ),
+  },
+  {
+    key: "statusChanged", label: "Status changed", width: COLUMNS.statusChanged, dataType: "timing", sortable: false,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.statusChanged} {...pin}>
+        {formatDay(job.statusChangedAt)}
+      </CellBody>
+    ),
+  },
+  {
+    key: "lastModified", label: "Last modified", width: COLUMNS.lastModified, dataType: "timing", sortable: true,
+    cell: (job, pin) => (
+      <CellBody width={COLUMNS.lastModified} {...pin}>
+        {formatDay(job.lastModifiedAt)}
+      </CellBody>
+    ),
+  },
+];
+
+const COLUMN_BY_KEY = new Map(TABLE_COLUMNS.map((def) => [def.key, def]));
+
+// ---- the View menu (the shared module) --------------------------------------
+
+// The shared View Menu module (src/modules/ViewMenu — the ViewMenu prototype's
+// design, extracted on 2026-09-03 so one build serves every prototype). It is
+// FULLY FUNCTIONAL here (Daniel): the Columns section shows, hides, pins and
+// reorders the table's columns, Sort by edits the SAME per-view sort the
+// header cells set, and the Schedule horizon narrows the jobs. Both jobs-only
+// sections are on — this page is jobs.
+//
+// The Cards and Timeline VIEWS are not designed in this prototype, so their
+// switcher tabs are DISABLED (`disabledViews` — Daniel, 2026-09-04: "It
+// doesn't make sense to switch to them if the content doesn't change"); the
+// view is always the table. FLAGGED: the Cards ATTRIBUTES passed below are
+// the table's own columns (the module's demo list is product-shaped, wrong
+// for jobs) — my mapping, not a node's; they stay unreachable while Cards is
+// disabled.
+
+/** The header's sort-icon pairs, mapped onto the menu's column types. */
+const MENU_TYPE: Record<CellDataType, ViewMenuColumnType> = {
+  alphabetical: "text",
+  numerical: "number",
+  timing: "date",
+  other: "generic",
+};
+
+const VIEW_COLUMNS: ViewMenuColumn[] = TABLE_COLUMNS.map((def) => ({
+  key: def.key,
+  label: def.label,
+  type: MENU_TYPE[def.dataType],
+  sortable: def.sortable,
+}));
+
+const VIEW_ATTRIBUTES: ViewMenuAttribute[] = TABLE_COLUMNS.filter((def) => def.key !== "id").map((def) => ({
+  key: def.key,
+  label: def.label,
+}));
+
+/** Everything the View menu edits, kept PER VIEW like the filters and the sort. */
+interface ViewSettings {
+  view: ViewMenuView;
+  columns: ViewMenuColumnsState;
+  activeAttributes: string[];
+  /** A SCHEDULED_OPTIONS key — "all" is off. */
+  scheduledKey: string;
+  timeline: ViewMenuTimelineState;
+}
+
+const defaultViewSettings = (): ViewSettings => ({
+  view: "table",
+  // The table's own default: ID and Service pinned (the production pinned
+  // pair), the rest in the registry's order, nothing hidden.
+  columns: {
+    pinned: ["id", "service"],
+    unpinned: TABLE_COLUMNS.map((def) => def.key).filter((key) => key !== "id" && key !== "service"),
+    hidden: [],
+  },
+  activeAttributes: ["status", "client", "scheduledFor"],
+  scheduledKey: "all",
+  timeline: defaultTimelineState(),
+});
+
+/** One shared default, so an untouched view keeps a stable reference. */
+const DEFAULT_VIEW_SETTINGS = defaultViewSettings();
+
+interface FiltersViewMenuProps {
+  open: boolean;
+  onClose: () => void;
+  breakpoint: "desktop" | "mobile";
+  settings: ViewSettings;
+  onSettingsChange: (next: ViewSettings) => void;
+  /** The same per-view sort the header cells edit — one state, two editors. */
+  sort: TableSort;
+  onSortChange: (next: TableSort) => void;
+}
+
+const FiltersViewMenu = ({ open, onClose, breakpoint, settings, onSettingsChange, sort, onSortChange }: FiltersViewMenuProps) => (
+  <ViewMenuModule
+    open={open}
+    onClose={onClose}
+    breakpoint={breakpoint}
+    columns={VIEW_COLUMNS}
+    columnsState={settings.columns}
+    onColumnsStateChange={(columns) => onSettingsChange({ ...settings, columns })}
+    sort={{ key: sort.column, ascending: sort.order === "ascending" }}
+    onSortChange={(next) =>
+      onSortChange({ column: next.key as SortColumn, order: next.ascending ? "ascending" : "descending" })
     }
-  >
-    {jobs.map((job) => (
-      <TableRow key={job.id} isClickable onClick={noop}>
-        <CellBody width={COLUMNS.id} isTabular>
-          {job.id}
-        </CellBody>
-        <CellBody width={COLUMNS.service} isLastPinned>
-          {serviceOf(job).name}
-        </CellBody>
-        <CellBody width={COLUMNS.status} content="badge">
-          <BadgeJobStatus status={job.status} />
-        </CellBody>
-        <CellBody width={COLUMNS.labels} content="badge">
-          {labelsOf(job).map((label) => (
-            <Badge key={label.id}>{label.name}</Badge>
-          ))}
-        </CellBody>
-        <CellBody width={COLUMNS.type} slotLeft={typeIcon(job.type)}>
-          {job.type === "recall" ? "Recall" : "New"}
-        </CellBody>
-        <CellBody width={COLUMNS.priority} slotLeft={priorityIcon(job.priority)}>
-          {priorityOf(job.priority).label}
-        </CellBody>
-        <CellBody width={COLUMNS.source}>{sourceOf(job).name}</CellBody>
-        <CellBody width={COLUMNS.sourceId} isTabular>
-          {job.sourceRef ?? ""}
-        </CellBody>
-        <CellBody width={COLUMNS.techs} content="assignee">
-          {job.assigneeIds.length > 0 ? (
-            <AvatarGroup
-              size="md"
-              items={assigneesOf(job).map((tech) => ({ content: "image", imageSrc: tech.avatar, name: tech.name }))}
-            />
-          ) : undefined}
-        </CellBody>
-        <CellBody width={COLUMNS.received} isTabular>
-          {formatDay(job.receivedAt)}
-        </CellBody>
-        <CellBody width={COLUMNS.client}>{clientOf(job).name}</CellBody>
-        {/* Both are OPTIONAL now (2026-08-24): a location may have no name of
-            its own, or no address. An empty string is what makes CellBody draw
-            its own "—" placeholder. */}
-        <CellBody width={COLUMNS.locationName}>{locationOf(job).name ?? ""}</CellBody>
-        <CellBody width={COLUMNS.locationAddress}>{locationAddress(locationOf(job))}</CellBody>
-        {/* A past-due job's scheduled time reads as an error. */}
-        <CellBody
-          width={COLUMNS.scheduledFor}
-          isTabular
-          colorScheme={job.status === "pastDue" ? "error" : "default"}
-        >
-          {formatDateTime(job.scheduledFor)}
-        </CellBody>
-        <CellBody width={COLUMNS.duration}>{formatDuration(job.durationMinutes)}</CellBody>
-        <CellBody width={COLUMNS.statusChanged} isTabular>
-          {formatDay(job.statusChangedAt)}
-        </CellBody>
-        <CellBody width={COLUMNS.lastModified} isTabular>
-          {formatDay(job.lastModifiedAt)}
-        </CellBody>
-      </TableRow>
-    ))}
-  </Table>
+    view={settings.view}
+    onViewChange={(view) => onSettingsChange({ ...settings, view })}
+    disabledViews={["cards", "timeline"]}
+    attributes={VIEW_ATTRIBUTES}
+    activeAttributes={settings.activeAttributes}
+    onActiveAttributesChange={(activeAttributes) => onSettingsChange({ ...settings, activeAttributes })}
+    scheduled={{ value: settings.scheduledKey, onChange: (scheduledKey) => onSettingsChange({ ...settings, scheduledKey }) }}
+    timeline={{ value: settings.timeline, onChange: (timeline) => onSettingsChange({ ...settings, timeline }) }}
+  />
 );
+
+interface JobsTableProps {
+  jobs: Job[];
+  /** The view's column arrangement — what the View menu edits. */
+  columnsState: ViewMenuColumnsState;
+  sort: TableSort;
+  /** Clicking a sortable header — the toggle rule lives with the state. */
+  onSortChange: (column: SortColumn) => void;
+}
+
+const JobsTable = ({ jobs, columnsState, sort, onSortChange }: JobsTableProps) => {
+  // The three sorting props of a sortable header, from one place: the active
+  // column shows its direction, every other one the neutral pair.
+  const sortable = (column: string) => ({
+    isSortable: true,
+    sortOrder: sort.column === column ? sort.order : undefined,
+    onClick: () => onSortChange(column as SortColumn),
+  });
+
+  // The view's arrangement, resolved against the registry: the pinned group
+  // first, then the unpinned one, hidden keys dropped from both. Every pinned
+  // column's cells FREEZE at the table's left edge (sticky, offset by the
+  // pinned widths before them — Daniel, 2026-09-04) and the last one carries
+  // the pinned-region boundary — header and cells alike.
+  const visibleDefs = (keys: string[]) =>
+    keys.filter((key) => !columnsState.hidden.includes(key)).flatMap((key) => COLUMN_BY_KEY.get(key) ?? []);
+  const pinnedDefs = visibleDefs(columnsState.pinned);
+  const unpinnedDefs = visibleDefs(columnsState.unpinned);
+  const ordered = [...pinnedDefs, ...unpinnedDefs];
+
+  const pinPropsByKey = new Map<string, CellPinProps>();
+  let pinnedOffset = 0;
+  for (const [index, def] of pinnedDefs.entries()) {
+    pinPropsByKey.set(def.key, {
+      isPinned: true,
+      pinnedOffset,
+      isLastPinned: index === pinnedDefs.length - 1,
+    });
+    pinnedOffset += def.width;
+  }
+  const pinProps = (key: string): CellPinProps => pinPropsByKey.get(key) ?? {};
+
+  return (
+    <Table
+      className={styles.jobsTable}
+      header={
+        <TableRow variant="header">
+          {ordered.map((def) => (
+            <CellHeader
+              key={def.key}
+              label={def.label}
+              width={def.width}
+              dataType={def.dataType}
+              {...pinProps(def.key)}
+              {...(def.sortable ? sortable(def.key) : {})}
+            />
+          ))}
+        </TableRow>
+      }
+    >
+      {jobs.map((job) => (
+        <TableRow key={job.id} isClickable onClick={noop}>
+          {ordered.map((def) => (
+            <Fragment key={def.key}>{def.cell(job, pinProps(def.key))}</Fragment>
+          ))}
+        </TableRow>
+      ))}
+    </Table>
+  );
+};
 
 // ---- one-axis table scrolling (mobile) -------------------------------------
 
@@ -3820,22 +3969,58 @@ const NoResults = ({ onClear }: { onClear: () => void }) => (
 
 interface ShellProps {
   jobs: Job[];
+  /** The active branch (phase) — Open or Closed. */
+  branch: BranchId;
+  onBranchChange: (next: BranchId) => void;
   tab: string;
   onTabChange: (next: string) => void;
-  /** The current tab's locked Status filter — the filter bar's first chip. */
+  /** The current view's locked Status filter — the filter bar's first chip. */
   lockedStatuses: BadgeJobStatusStatus[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
+  /** The table's sort — the header cells set it, the jobs arrive sorted by it. */
+  sort: TableSort;
+  onSortChange: (column: SortColumn) => void;
+  /** The View menu's absolute write into the same per-view sort. */
+  onSortSet: (next: TableSort) => void;
+  /** The view's View-menu settings (columns, view, scheduled window, …). */
+  viewSettings: ViewSettings;
+  onViewSettingsChange: (next: ViewSettings) => void;
 }
 
-const DesktopShell = ({ jobs, tab, onTabChange, lockedStatuses, selection, onSelectionChange }: ShellProps) => (
+const DesktopShell = ({
+  jobs,
+  branch,
+  onBranchChange,
+  tab,
+  onTabChange,
+  lockedStatuses,
+  selection,
+  onSelectionChange,
+  sort,
+  onSortChange,
+  onSortSet,
+  viewSettings,
+  onViewSettingsChange,
+}: ShellProps) => (
   <div className={styles.desktop}>
     <Sidebar />
     <div className={styles.workArea}>
-      <TopBar />
-      <ViewBar tab={tab} onTabChange={onTabChange} selection={selection} onSelectionChange={onSelectionChange} />
-      {/* Only rendered while the tab locks a status or something is applied. */}
+      <TopBar branch={branch} onBranchChange={onBranchChange} />
+      <DesktopViewBar
+        branch={branch}
+        tab={tab}
+        onTabChange={onTabChange}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        viewSettings={viewSettings}
+        onViewSettingsChange={onViewSettingsChange}
+        sort={sort}
+        onSortChange={onSortSet}
+      />
+      {/* Only rendered while the view locks a status or something is applied. */}
       <FilterBar
+        defs={FILTERS_BY_BRANCH[branch]}
         lockedStatuses={lockedStatuses}
         selection={selection}
         onSelectionChange={onSelectionChange}
@@ -3843,7 +4028,7 @@ const DesktopShell = ({ jobs, tab, onTabChange, lockedStatuses, selection, onSel
       {/* The Table is its own scroll container (that is what lets its header
           stick), so it replaces the page ScrollArea rather than nesting in one. */}
       <div className={styles.mainArea}>
-        {jobs.length > 0 ? <JobsTable jobs={jobs} /> : <NoResults onClear={() => onSelectionChange([])} />}
+        {jobs.length > 0 ? <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} /> : <NoResults onClear={() => onSelectionChange([])} />}
       </div>
     </div>
   </div>
@@ -3851,28 +4036,48 @@ const DesktopShell = ({ jobs, tab, onTabChange, lockedStatuses, selection, onSel
 
 // No filter bar on mobile (the node has none): the tab Button shows the tab and
 // the Filters button shows how many of the user's filters are on.
-const MobileShell = ({ jobs, tab, onTabChange, selection, onSelectionChange }: ShellProps) => {
+const MobileShell = ({
+  jobs,
+  branch,
+  onBranchChange,
+  tab,
+  onTabChange,
+  selection,
+  onSelectionChange,
+  sort,
+  onSortChange,
+  onSortSet,
+  viewSettings,
+  onViewSettingsChange,
+}: ShellProps) => {
   // A drag scrolls the table one way at a time — see useSingleAxisScroll.
   const tableRef = useSingleAxisScroll(true);
 
   return (
     <div className={styles.mobile}>
-      <TopBar mobile />
-      <ViewBar
-        mobile
+      <TopBar mobile branch={branch} onBranchChange={onBranchChange} />
+      <MobileViewBar
+        branch={branch}
         tab={tab}
         onTabChange={onTabChange}
         selection={selection}
         onSelectionChange={onSelectionChange}
+        viewSettings={viewSettings}
+        onViewSettingsChange={onViewSettingsChange}
+        sort={sort}
+        onSortChange={onSortSet}
       />
       <div className={styles.mainArea} ref={tableRef}>
-        {jobs.length > 0 ? <JobsTable jobs={jobs} /> : <NoResults onClear={() => onSelectionChange([])} />}
+        {jobs.length > 0 ? <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} /> : <NoResults onClear={() => onSelectionChange([])} />}
       </div>
       {/* The bar owns its own home-indicator inset, so the shell reserves none. */}
       <BottomBarNav breakpoint="mobile" className={styles.bottomBar}>
         <BottomBarNavItem icon="house" label="Home" />
         <BottomBarNavItem icon={semanticIcons.job} label="Jobs" active />
-        <BottomBarNavItem icon="plus" label="Create" strong />
+        {/* A PLAIN item since 2026-09-03 (Daniel + node 1502-14983): bare
+            `plus`, regular weight — the Create adjustment (`strong`,
+            circle-plus) is gone from the design and the component. */}
+        <BottomBarNavItem icon="plus" label="Create" />
         <BottomBarNavItem icon="magnifying-glass" label="Search" />
         <BottomBarNavItem icon="bars" label="Menu" />
       </BottomBarNav>
@@ -3901,29 +4106,81 @@ const EMPTY_SELECTION: FilterSelection = [];
 // Status row disappears from the menu whenever a tab owns it.
 const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
   const isDesktop = useIsDesktop(breakpoint);
-  const [tab, setTab] = useState("all");
+  const [branch, setBranch] = useState<BranchId>("open");
+  // The active view, remembered PER BRANCH, so toggling Open ↔ Closed brings
+  // the user back to the view they were on. The nodes do not draw the switch
+  // itself — the memory is mine, flagged.
+  const [tabs, setTabs] = useState<Record<BranchId, string>>({ open: "all", closed: "closedAll" });
+  const tab = tabs[branch];
+  const setTab = (next: string) => setTabs((current) => ({ ...current, [branch]: next }));
   // A TAB IS A VIEW (Daniel, 2026-08-18), and a view owns its filters: they are
   // kept per tab and never carried from one to another. Custom views come later
-  // and will slot in the same way — a view id with its own set.
+  // and will slot in the same way — a view id with its own set. The view ids
+  // are unique ACROSS branches, so one map holds both phases.
   const [selections, setSelections] = useState<Record<string, FilterSelection>>({});
   const selection = selections[tab] ?? EMPTY_SELECTION;
   const setSelection = (next: FilterSelection) =>
     setSelections((current) => ({ ...current, [tab]: next }));
 
-  const lockedStatuses = tabById(tab).statuses;
+  const filters = FILTERS_BY_BRANCH[branch];
+  const lockedStatuses = tabById(branch, tab).statuses;
+
+  // The table's sort, PER VIEW like the filters (Daniel, 2026-09-03: "Each
+  // view should have its own sorting parameters") — the view id keys both
+  // maps, so a view carries its filters AND its sort, and an untouched view
+  // opens on the default. Clicking a new column sorts by it ascending;
+  // clicking the active one flips the direction.
+  const [sorts, setSorts] = useState<Record<string, TableSort>>({});
+  const sort = sorts[tab] ?? SORT_DEFAULT;
+  const changeSort = (column: SortColumn) =>
+    setSorts((current) => {
+      const active = current[tab] ?? SORT_DEFAULT;
+      return {
+        ...current,
+        [tab]:
+          active.column === column
+            ? { column, order: active.order === "ascending" ? "descending" : "ascending" }
+            : { column, order: "ascending" },
+      };
+    });
+
+  // The View menu's settings, PER VIEW like the filters and the sort — one
+  // more map the view id keys. An untouched view opens on the default.
+  const [viewSettings, setViewSettings] = useState<Record<string, ViewSettings>>({});
+  const settings = viewSettings[tab] ?? DEFAULT_VIEW_SETTINGS;
+  const setSettings = (next: ViewSettings) => setViewSettings((current) => ({ ...current, [tab]: next }));
+
   const jobs = useMemo(() => {
-    const filtered = applyFilters(JOBS, FILTERS, selection);
-    if (lockedStatuses.length === 0) return filtered;
-    return filtered.filter((job) => lockedStatuses.includes(job.status));
-  }, [selection, lockedStatuses]);
+    let list = applyFilters(JOBS, filters, selection);
+    // The PHASE always filters — the branch's "All" view lists that phase's
+    // jobs, not everything ("All Open — ... All open jobs are listed", section
+    // 14032-23326). A view with its own locked statuses narrows further.
+    const phase = lockedStatuses.length > 0 ? lockedStatuses : branchStatuses(branch);
+    list = list.filter((job) => phase.includes(job.status));
+    // The View menu's "Schedule horizon" window (jobs only). The Figma
+    // annotation's rule: N days = through the end of that day, and only
+    // FUTURE-scheduled jobs are hidden — unscheduled and past ones stay.
+    const windowDays = SCHEDULED_WINDOW_DAYS[settings.scheduledKey] ?? null;
+    if (windowDays != null) {
+      list = list.filter((job) => job.scheduledFor == null || dayOffset(job.scheduledFor) <= windowDays);
+    }
+    return sortJobs(list, sort);
+  }, [selection, filters, lockedStatuses, branch, sort, settings.scheduledKey]);
 
   const shellProps = {
     jobs,
+    branch,
+    onBranchChange: setBranch,
     tab,
     onTabChange: setTab,
     lockedStatuses,
     selection,
     onSelectionChange: setSelection,
+    sort,
+    onSortChange: changeSort,
+    onSortSet: (next: TableSort) => setSorts((current) => ({ ...current, [tab]: next })),
+    viewSettings: settings,
+    onViewSettingsChange: setSettings,
   };
   return isDesktop ? <DesktopShell {...shellProps} /> : <MobileShell {...shellProps} />;
 };

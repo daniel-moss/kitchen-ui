@@ -31,6 +31,7 @@ import ServiceForm, { PRIORITIES, ServiceValues } from "./ServiceForm";
 import { noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./ServicePanel.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- demo data --------------------------------------------------------------
 
@@ -70,9 +71,9 @@ const EQUIPMENT_POOL: Equipment[] = [
 ];
 const INITIAL_JOB_EQUIPMENT = [1, 5]; // Air Handler + Walk-in Cooler
 
-// The design's "・" separator (same char the recall rows use).
-const equipmentLabel = (e: Equipment) => `${e.name} ・ ${e.manufacturer}`;
-const equipmentCaption = (e: Equipment) => `Model: ${e.model} ・ Serial: ${e.serial}`;
+// Joined by the shared TEXT_SEPARATOR (Daniel, 2026-09-04 — was the design's "・").
+const equipmentLabel = (e: Equipment) => `${e.name}${TEXT_SEPARATOR}${e.manufacturer}`;
+const equipmentCaption = (e: Equipment) => `Model: ${e.model}${TEXT_SEPARATOR}Serial: ${e.serial}`;
 
 // ---- small header buttons ---------------------------------------------------
 
@@ -151,7 +152,7 @@ const EquipmentRow = ({ equipment, mobile, onRemove }: { equipment: Equipment; m
       />
       {mobile ? (
         // The drawer's rich header (Figma 21760-41707): equipment avatar +
-        // name ・ manufacturer title + model/serial caption.
+        // name · manufacturer title + model/serial caption.
         <Menu
           open={menu.open}
           onClose={menu.close}

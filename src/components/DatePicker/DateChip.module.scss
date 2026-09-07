@@ -1,0 +1,119 @@
+@use "../../styles/mixins/font" as *;
+
+// One date chip — fixed 36px height, --border-radius-1_5 (6px) corners,
+// fills the cell width (flex: 1 in a row). The fills/typography live on the
+// inner `.cell`; the range band is a ::before layer behind it (isolation
+// keeps its z-index -1 inside this chip).
+.chip {
+  position: relative;
+  isolation: isolate;
+
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 0 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+
+  height: var(--size-9); // 36
+  padding: 0;
+  border: 0;
+  border-radius: var(--border-radius-1_5); // 6
+  background: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+// The cell face: fills the chip, carries the fill + text. 8px side padding.
+.cell {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 0 var(--size-2); // 8
+  border-radius: var(--border-radius-1_5); // 6
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-strong);
+  text-align: center;
+}
+
+// ===== types ===============================================================
+// today: error-colored text — in every state (no underline; Figma 2026-09-02).
+.today .cell {
+  color: var(--text-error);
+}
+
+// selected: gray-a2 fill + a 1px gray-12 INSIDE stroke (the DS "active"
+// stroke language — same 1px as Chip active / Field active), Medium text.
+// Drawn as an inset shadow so it never adds size. The stroke stays through
+// hover/press/focus; only the fill steps (the shared rules below).
+.selected .cell {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+}
+
+// ===== range band ==========================================================
+// --gray-a2 behind the cell face. Square where it runs on to the neighbor
+// chip; a 6px cap wherever it stops — a range end, a row break, and the
+// hover preview's end all look the same (Figma 2026-09-02, the uniform-cap
+// model).
+.bandMiddle::before,
+.bandCapLeft::before,
+.bandCapRight::before,
+.bandCapBoth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--gray-a2);
+}
+.bandCapLeft::before {
+  border-top-left-radius: var(--border-radius-1_5); // 6
+  border-bottom-left-radius: var(--border-radius-1_5);
+}
+.bandCapRight::before {
+  border-top-right-radius: var(--border-radius-1_5);
+  border-bottom-right-radius: var(--border-radius-1_5);
+}
+.bandCapBoth::before {
+  border-radius: var(--border-radius-1_5);
+}
+
+// ===== hover / press =======================================================
+// The fill steps a3 → a4 for every chip — selected included (its stroke
+// stays via the .selected box-shadow above).
+@media (hover: hover) {
+  .chip:hover .cell {
+    background: var(--gray-a3);
+  }
+}
+.chip:active .cell {
+  background: var(--gray-a4);
+}
+
+// ===== focus ===============================================================
+// 2px gray-12 ring, 2px OUTSIDE the chip bounds. Outline follows the border
+// radius; raised so neighbor chips can't paint over it. The fill steps to a3
+// (like hover).
+.chip:focus-visible {
+  z-index: 1;
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
+}
+.chip:focus-visible .cell {
+  background: var(--gray-a3);
+}
+
+// ===== disabled ============================================================
+// Out-of-limits days: dimmed 0.3 + inert. Keeps its fills/stroke under the
+// dim (a disabled selected day still reads as selected). Days outside the
+// shown month are not disabled chips — they are empty placeholder cells.
+.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}

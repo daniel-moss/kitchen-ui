@@ -12,7 +12,7 @@ import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
+import { NewEquipment } from "../../modules/NewEquipmentForm/NewEquipmentForm.types";
 import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentTitle } from "./equipment";
 import EquipmentForm, { EquipmentFormValues } from "./EquipmentForm";
 import FilesModule from "./FilesModule";
@@ -60,7 +60,7 @@ export default function ServicePanel({
   /** The job's answer to "Is equipment involved?" — owned by useJobShell. */
   equipmentInvolved: EquipmentFormValues["involved"];
   /** The job's equipment (ids into the pool) — owned by useJobShell. */
-  equipmentIds: number[];
+  equipmentIds: string[];
   /** Commits the Equipment form: the answer + the job's equipment ids. */
   onEquipmentSave: (next: EquipmentFormValues) => void;
   /** The location's equipment — owned by useJobShell (the New-equipment form

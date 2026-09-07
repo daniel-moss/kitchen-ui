@@ -36,14 +36,14 @@ const DEFAULT_DURATION = 4000;
 // ---- Toaster ----------------------------------------------------------------
 
 export interface ToasterProps {
-  /** Desktop = bottom-right corner; mobile = top, full width. Default "auto". */
+  /** Desktop = TOP-right corner (Daniel, 2026-09-08); mobile = top, full width. Default "auto". */
   breakpoint?: Breakpoint;
   /** Auto-dismiss delay (ms). `processing` toasts never auto-dismiss. Default 4000. */
   duration?: number;
 }
 
 // Toaster — mount ONCE (app shell / story). Renders the toast stack per the
-// docs: desktop bottom-right, 24px from the window edges, newest in front;
+// docs: desktop top-right, 24px from the window edges, newest in front;
 // mobile on top, 8px below the status bar, full width with 8px edge gaps.
 // Collapsed sonner-style stack — hover to expand (pauses the timers).
 // Auto-dismisses after `duration`; a `processing` toast stays until

@@ -1,0 +1,18 @@
+// "Job Contacts" module — two contact fields, each with its selected Card.
+
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px between fields
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px field <> card
+}
+
+// Missing-value placeholder in rows (the ListItem Template doc).
+.placeholderText {
+  color: var(--text-placeholder);
+}

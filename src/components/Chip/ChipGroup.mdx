@@ -46,6 +46,15 @@ the same on both axes — `--size-2` (8px) between chips and between lines.
 
 <Canvas of={ChipGroupStories.Wrapping} />
 
+### Full width
+
+`isFullWidth` flips the group to the stretch mode (like TabGroup's): one
+non-wrapping row where the chips stop hugging and share the full width
+equally, with the labels centered. Used for the weekday "Repeat on" row in
+forms.
+
+<Canvas of={ChipGroupStories.FullWidth} />
+
 ### Selection
 
 **The group does not manage selection by itself.** Each Chip keeps its own

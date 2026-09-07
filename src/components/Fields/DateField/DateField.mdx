@@ -34,15 +34,17 @@ wrapper — the field is bare).
 <Canvas of={DateFieldStories.Basic} />
 
 Contains the value and the calendar icon. The committed value displays in the
-standardized format — "Thursday, January 1" — with the year appended only
-when it is not the current year (`formatValue` overrides the display).
+standardized format — "Thursday, January 1, 2026" — the year is always shown
+(`formatValue` overrides the display).
 
 <Canvas of={DateFieldStories.Filled} />
 
 ## Behavior
 
 By default, DateField triggers the
-<a href="/?path=/story/components-datepicker-datepicker--playground" target="_top">DatePicker</a>.
+<a href="/?path=/docs/components-datepicker-datepicker--docs" target="_top">DatePicker</a> —
+a card below the field on desktop, a drawer on mobile (the drawer has its own
+inner DateField and an Apply button; this field's label carries over).
 The user can either pick a date in the date picker or enter it manually —
 typed input is parsed by Chrono in any format ("tomorrow", "next friday",
 "1/15") and standardizes on commit (blur or Enter); unparseable text reverts.

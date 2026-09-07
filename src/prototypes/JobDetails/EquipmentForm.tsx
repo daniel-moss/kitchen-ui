@@ -17,9 +17,9 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
-import NewEquipmentForm from "../../forms/NewEquipmentForm/NewEquipmentForm";
-import { NewEquipment } from "../../forms/NewEquipmentForm/NewEquipmentForm.types";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import NewEquipmentForm from "../../modules/NewEquipmentForm/NewEquipmentForm";
+import { NewEquipment } from "../../modules/NewEquipmentForm/NewEquipmentForm.types";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import {
   Equipment,
   EquipmentAvatar,
@@ -37,7 +37,7 @@ export type EquipmentInvolved = "yes" | "no";
 
 export interface EquipmentFormValues {
   involved: EquipmentInvolved;
-  equipmentIds: number[];
+  equipmentIds: string[];
 }
 
 interface EquipmentFormProps {
@@ -85,7 +85,7 @@ export default function EquipmentForm({
   mobile = false,
 }: EquipmentFormProps) {
   const [involved, setInvolved] = useState<EquipmentInvolved>(initial.involved);
-  const [selectedIds, setSelectedIds] = useState<number[]>(initial.equipmentIds);
+  const [selectedIds, setSelectedIds] = useState<string[]>(initial.equipmentIds);
   const [showErrors, setShowErrors] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const pop = useSelectPopover(mobile);
@@ -114,7 +114,7 @@ export default function EquipmentForm({
   // from under the open card. The field's counter still updates live.
   const listed = pop.freeze(selected);
 
-  const toggle = (id: number) =>
+  const toggle = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   // "Add equipment" (picker footer / empty state) leaves the list for the

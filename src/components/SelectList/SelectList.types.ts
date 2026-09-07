@@ -24,6 +24,14 @@ interface SelectListBaseProps {
   children: ReactNode;
   /** Controls the enter/exit animation, like Popover. Default true. */
   open?: boolean;
+  /**
+   * Return focus to where it was when the list closes. Default true — turn it
+   * OFF for a list that opens and closes from POINTER HOVER (the Filters
+   * menu's row lists): pulling focus back on a hover-close visibly re-lights
+   * the field it came from, though the user only moved the mouse
+   * (Daniel, 2026-09-04).
+   */
+  restoreFocus?: boolean;
   /** Called when the list is dismissed (dialog close / scrim tap / swipe). */
   onClose?: () => void;
   /**

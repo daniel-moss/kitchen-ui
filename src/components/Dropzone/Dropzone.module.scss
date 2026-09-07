@@ -1,0 +1,165 @@
+@use "../../styles/mixins/font" as *;
+
+// Dropzone — the drag-and-drop file input (Figma "Dropzone", 23873-7298).
+//
+// The dashed border is an SVG rect, not a CSS border: CSS cannot animate
+// dashes, and the hover/press states march the dashes clockwise (Daniel,
+// 2026-09-06). The solid borders (focused, warning) are inset box-shadows —
+// the house pattern for borders that must not change the box size — and the
+// dashed rect hides under them.
+
+.host {
+  width: 100%;
+}
+
+.root {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--size-4); // 16px — icon <> text
+  width: 100%;
+  padding: var(--size-8); // 32px
+  border: none;
+  border-radius: var(--border-radius-2_5); // 10px
+  background: var(--gray-a2);
+  cursor: pointer;
+  text-align: center;
+  color: inherit;
+}
+
+// ---- the dashed border (SVG) -------------------------------------------
+
+.border {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+.borderRect {
+  // Inset by the half-stroke so the 1px line sits fully inside the bounds,
+  // like the master's INSIDE stroke.
+  x: 0.5px;
+  y: 0.5px;
+  width: calc(100% - 1px);
+  height: calc(100% - 1px);
+  rx: 9.5px; // --border-radius-2_5 (10px) minus the half-stroke inset
+  fill: none;
+  stroke: var(--gray-a7);
+  stroke-width: 1px;
+  stroke-dasharray: 4 4; // the master's dash pattern
+}
+
+// Marching ants: one dash+gap period (8px) per cycle, forward along the
+// rect path = clockwise. Runs on hover, press, and drag-over.
+@keyframes march {
+  to {
+    stroke-dashoffset: -8px;
+  }
+}
+
+@media (hover: hover) {
+  .root:hover:not(:disabled) .borderRect {
+    stroke: var(--gray-12);
+    animation: march 0.5s linear infinite;
+  }
+
+  .root:hover:not(:disabled) .icon {
+    color: var(--gray-12);
+  }
+}
+
+.root:active:not(:disabled),
+.root.dragOver {
+  background: var(--gray-a3);
+}
+
+.root:active:not(:disabled) .borderRect,
+.root.dragOver .borderRect {
+  stroke: var(--gray-12);
+  animation: march 0.5s linear infinite;
+}
+
+.root:active:not(:disabled) .icon,
+.root.dragOver .icon {
+  color: var(--gray-12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .borderRect {
+    animation: none !important;
+  }
+}
+
+// ---- keyboard focus -----------------------------------------------------
+
+.root:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--gray-12);
+}
+
+.root:focus-visible .borderRect {
+  visibility: hidden;
+}
+
+.root:focus-visible .icon {
+  color: var(--gray-12);
+}
+
+// ---- warning / disabled -------------------------------------------------
+
+// Limit reached: amber, solid 1px border, non-interactive (the button is
+// disabled; the class carries the look).
+.warning {
+  background: var(--amber-a1);
+  box-shadow: inset 0 0 0 1px var(--amber-a9);
+  cursor: default;
+}
+
+.warning .borderRect {
+  visibility: hidden;
+}
+
+.warning .title,
+.warning .caption {
+  color: var(--text-warning);
+}
+
+.disabled {
+  opacity: 0.3;
+  background: var(--gray-a1);
+  cursor: not-allowed;
+}
+
+// ---- content ------------------------------------------------------------
+
+// The Avatar's regular-weight "download" glyph. The color steps to gray-12
+// with the border on hover / press / drag-over / focus (the doc's pins).
+.icon {
+  color: var(--gray-a8);
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px — title <> caption
+  width: 100%;
+}
+
+.title {
+  @include font("heading-h4");
+  color: var(--text-strong);
+}
+
+.caption {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+}
+
+.fileInput {
+  display: none;
+}

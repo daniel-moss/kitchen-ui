@@ -14,7 +14,7 @@ import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { Session, TECH_STATUSES } from "./TimesheetPanel";
 
 import styles from "./SessionForm.module.scss";
@@ -429,7 +429,7 @@ export default function SessionForm({ open, onClose, session, onSave, startDate,
                 <Chip
                   key={o.label}
                   size="md"
-                  active={offsetActive(o.minutes)}
+                  isSelected={offsetActive(o.minutes)}
                   isDisabled={endDisabled}
                   onClick={() => applyOffset(o.minutes)}
                 >

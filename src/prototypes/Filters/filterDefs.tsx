@@ -17,6 +17,7 @@ import {
   SOURCES,
   TECHS,
   dayOffset,
+  formatDuration,
   locationLabel,
   locationOf,
 } from "./jobsData";
@@ -32,14 +33,14 @@ import {
 //     the jobs behind each option. One function, so a count can never disagree
 //     with what applying the filter actually does.
 //
-// DESIGNED so far: Priority (node 13855-22268), Assignee (13902-21570), Client
-// (13934-13189), Date received (13903-25906), Duration (13874-10420), Labels
-// (13984-38887) and Last modified (13986-45329). The other filters follow the
-// pattern Priority establishes (a multi-select SelectListItem with an icon, a
-// label and the job count in `tag`), but their option lists and copy are mine.
-// The two remaining DATE filters — Scheduled for and Status changed — are the
-// least certain: they are still offered as BUCKETS ("Today", "Next 7 days", …)
-// rather than the designed date control, because they have no node yet.
+// EVERY filter is designed and DOCUMENTED now (2026-09-03): Address
+// (14100-36446), Assignee (13902-21570), Client (13934-13189), Date received
+// (13903-25906), Duration (13874-10420), Labels (13999-17090), Last modified
+// (14100-40610), Location (14101-44921), Priority (13874-9043), Scheduled for
+// (14101-46526), Service (14101-46745), Source (14101-47385), Status
+// (14101-47648), Status changed (14101-53614) and Type (14101-53833). The
+// invented bucket lists and the prototype-local list header are gone with the
+// last of them.
 
 export type FilterId =
   | "address"
@@ -97,20 +98,20 @@ export interface FilterDef {
    */
   searchPlaceholder?: string;
   /**
-   * Build this filter's option-list header from the DS `SelectListHeader` in
-   * its `chipGroup + search` variant — the condition chips in a real ChipGroup
-   * over the real 40px SearchField bar, closed by the header's own Divider
-   * (Figma nodes 13923-21709 desktop / 13923-21079 mobile for Assignee,
-   * 13933-10525 / 13933-9967 for Client; Daniel, 2026-08-20).
+   * Build this filter's option-list header from the DS `SelectListHeader` —
+   * the `chipGroup + search` variant when the filter HAS a search (the
+   * condition chips in a real ChipGroup over the real 40px SearchField bar),
+   * the CHIPS-ONLY variant when it does not (a 16px-padded row of chips, 65px
+   * in all). Either way the closing Divider is the component's own.
    *
-   * Assignee and Client are on it. Every other filter still draws the
-   * prototype-local block (`.optionHeader`), which no DS component covers yet:
-   * Date received's chips carry their own 6px spacing and no search.
+   * Since the documented sections (2026-09-03) EVERY filter with a list is on
+   * it, so the old prototype-local chips block is gone from Filters.tsx.
    */
   dsHeader?: boolean;
   /**
-   * Drop the "N jobs" count from every option row. Assignee and Client are
-   * drawn that way: an avatar and a name, nothing else.
+   * Drop the "N jobs" count from every option row. Since the documented
+   * sections (2026-09-03) EVERY options filter is drawn without counts, so
+   * every one is on it.
    */
   hideCounts?: boolean;
   /**
@@ -124,41 +125,22 @@ export interface FilterDef {
    */
   groups?: { id: string; label: string }[];
   /**
-   * Always show a COUNT in the chip's value segment ("1 location", "3
-   * locations"), never the single picked option's own label.
-   *
-   * Every other options filter prints the one value it holds — "Priority is
-   * Urgent". Location's node does not (13986-51053 draws "1 location" with one
-   * ticked), and the reason is plain in the row: a whole location line is
-   * "Downtown ・ 418 Mission St, San Francisco, CA 94105", far past what a chip
-   * segment can hold.
+   * A MINIMUM width for this filter's lists, wherever they open from — the
+   * documented sections pin it on the node as a "Min Width" annotation. Only
+   * Location carries one (384, the DS card's maximum — nodes 14101-44923 and
+   * its mobile twin): its rows are whole location lines, so the list always
+   * opens at full size. `openListWidth` in Filters.tsx reads it; `listWidth`'s
+   * 240px floor still applies to everyone else.
    */
-  countValue?: boolean;
-  /**
-   * Drop the condition CHIPS from this filter's option list. With nothing above
-   * it the search is the whole header, which IS the DS `SelectListHeader`, so
-   * the list stops building a header of its own and hands the field back to
-   * SelectList's built-in `searchable`.
-   *
-   * NO FILTER USES THIS at the moment. Assignee did while Daniel tried the list
-   * without the chips (Figma node 13923-21709, 2026-08-19); he put them back the
-   * same day. Kept because that trial can come back — and because it is what the
-   * chip's OWN value list does, through the `hideConditions` prop.
-   *
-   * When a filter is on it, the condition is still edited from the chip's
-   * condition segment (node 13902-21583). On MOBILE that puts it out of reach
-   * until the filter bar is designed for phones (Daniel, 2026-08-19: "I'll
-   * design the bar later"), so a filter built on a phone would keep its positive
-   * condition. FLAGGED.
-   */
-  hideConditionChips?: boolean;
+  listMinWidth?: number;
   /**
    * Let the search take focus as the list OPENS, on touch devices too — the
    * mobile nodes draw the drawer with the caret in the field and the keyboard
    * already up. The DS default is the opposite (Daniel, 2026-07-29: focusing
    * inside the tap makes iOS throw the keyboard over half the list), so this is
-   * a per-filter opt-in: Assignee and Client, the two filters that HAVE a
-   * search, are both on it.
+   * a per-filter opt-in — and every filter that HAS a search is on it
+   * (Assignee, Client, Labels, Location, Service, Source, Status: each mobile
+   * node draws the keyboard up).
    */
   autoFocusSearch?: boolean;
   /**
@@ -194,6 +176,15 @@ export interface FilterDef {
    * It seeds `FilterValue.match`, which is what `conditionChoices` reads.
    */
   matchMode?: boolean;
+  /**
+   * An option that stands for the ABSENCE of a value and can only be used
+   * ALONE — Labels' "No labels" row (documented section 13999-17090; the
+   * annotation on the list's first row: "Selecting this option unselects all
+   * others. This option can only be used alone."). Ticking it clears every
+   * other option, and ticking any other option clears it — the toggle in
+   * Filters.tsx reads this id.
+   */
+  exclusiveOptionId?: string;
   /**
    * Does this job match this value? Reads `ids` for an options filter, `date`
    * for a date one and `duration` for a duration one. `negated` is NOT applied
@@ -351,13 +342,11 @@ export interface DurationValue {
  * The strings are the LABELS as well as the stored values — what the chip's
  * condition segment, its condition list and the dialog's chips all print.
  *
- * COPY CHANGED from the node (Daniel, 2026-08-24): it draws `greater` / `less`,
- * which are comparatives and cannot stand alone — "Duration greater 2 hours" is
- * not a sentence, it wants "greater THAN". `over` / `under` read whole on their
- * own ("Duration over 2 hours"), the way Date received's `on` / `before` /
- * `after` / `within` do, and they are SHORTER than what they replace, so the
- * chip and the condition list both narrow. FLAGGED — the Figma nodes
- * (13874-11407, 13877-16124, 13983-37497) still say greater / less.
+ * COPY SETTLED with the documented section (2026-09-03): the nodes themselves
+ * now draw `over` / `under` / `is` (13874-11407 header, 14100-37396 condition
+ * list, 13923-24049 dialog). They replaced the original `greater` / `less`,
+ * which were comparatives and could not stand alone — "Duration greater 2
+ * hours" is not a sentence. The old flag about that mismatch is resolved.
  *
  * STILL OPEN: `over` / `under` are STRICT — a job of exactly 2 hours matches
  * neither "over 2 hours" nor "under 2 hours", only "is 2 hours". If they should
@@ -368,18 +357,19 @@ export type DurationCompare = "over" | "under" | "is" | "within";
 
 /**
  * The three the CHIP's condition list and the option list's header chips offer
- * (Figma nodes 13877-16124 and 13874-11407). `within` is deliberately NOT here:
- * it needs a second value, and only the Custom dialog can collect one.
+ * (Figma nodes 13874-11407 and, documented, 14100-37396). `within` is
+ * deliberately NOT here: it needs a second value, and only the Custom dialog
+ * can collect one.
  *
  * A value that already holds `within` therefore has NO choices at all — see
  * `conditionChoices`, which returns the single "within" that makes the chip's
- * condition segment inert (Daniel, 2026-08-24: node 13877-14876 draws the
- * DEFAULT cursor over that segment, which is how it says "not interactive").
- * The same rule a date RANGE follows.
+ * condition segment inert. The documented chip states it in words now
+ * (14100-37994's annotation: "The 'Condition' box is not clickable when the
+ * condition is set to 'within'"). The same rule a date RANGE follows.
  */
 export const DURATION_CONDITIONS: DurationCompare[] = ["over", "under", "is"];
 
-/** The Custom dialog's ChipGroup — the same three plus `within` (node 13983-37497). */
+/** The Custom dialog's ChipGroup — the same three plus `within` (node 13923-24049). */
 export const DURATION_DIALOG_CONDITIONS: DurationCompare[] = [...DURATION_CONDITIONS, "within"];
 
 /**
@@ -402,34 +392,14 @@ export const durationMinutesOf = (duration: DurationValue): number | null =>
 /** The preset behind an id, for the chip's copy. */
 export const durationPreset = (id: string | null) => (id == null ? undefined : DURATION_PRESET_BY_ID.get(id));
 
-/**
- * "1h" / "2h 30min" / "45min" — a CUSTOM duration in the chip (Figma nodes
- * 13983-38857 and 13877-14888). Tight, because the chip is.
- *
- * FLAGGED: the jobs table writes the same value as "1h 30m" (`formatDuration` in
- * jobsData). Three spellings of one number now live in this concept — the
- * table's, the chip's, and the dialog footer's below.
- */
-export const formatDurationChip = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest}min`;
-  if (rest === 0) return `${hours}h`;
-  return `${hours}h ${rest}min`;
-};
-
-/**
- * "1 hr" / "2 hr 30 min" — the Custom dialog's footer, which shows the value
- * being built next to Apply (Figma node 13983-38225). Spaced out, unlike the
- * chip: the footer has the room.
- */
-export const formatDurationFooter = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const rest = minutes % 60;
-  if (hours === 0) return `${rest} min`;
-  if (rest === 0) return `${hours} hr`;
-  return `${hours} hr ${rest} min`;
-};
+// A CUSTOM duration in the chip is the TABLE's own compact format — "1h 30m" /
+// "1h" / "30m" — imported from jobsData (`formatDuration`), not written again
+// here. The documented chip settled it (node 14100-37990's annotation: "Shown
+// in the compact format. The hours and minutes are only shown if greater than
+// 0"), which is exactly what that formatter does — so the chip and the Duration
+// column can never spell one number two ways. The old chip spelling
+// ("1h 30min") and the dialog-footer spelling ("1 hr 30 min", gone with the
+// footer preview) are both retired with the documented section.
 
 /**
  * The measures the CHIP's condition list offers for a custom date — the
@@ -450,12 +420,13 @@ export const formatDurationFooter = (minutes: number) => {
 export const DATE_CHIP_CONDITIONS: DateCompare[] = ["after", "before", "on"];
 
 /**
- * The years the Month grid and the Year list offer: 2019 up to today's year
- * (Daniel, 2026-08-23). FLAGGED — the nodes list 2019…2028, two years past
- * today's; a "Date received" filter looks backwards, so the list stops at this
- * year. 2019 is a fixed floor, not a rolling window.
+ * The years the Month grid and the Year list offer. The documented Timeframe
+ * filter section settles the old flag with an annotation (node 14098-28104,
+ * 2026-09-03): "Years from 1990 till '+10 years from the current one'". So the
+ * floor is fixed at 1990 and the ceiling rolls with the clock.
  */
-export const FIRST_YEAR = 2019;
+export const FIRST_YEAR = 1990;
+export const YEARS_AFTER_TODAY = 10;
 
 /**
  * One filter's state: the ticked option ids plus its CONDITION. `negated` is the
@@ -517,13 +488,15 @@ export const newFilterInstance = (def: FilterDef): FilterInstance => ({
   date: def.kind === "date" ? { preset: null, from: null, to: null } : undefined,
   // "over" is the condition a fresh duration opens on — the FIRST chip, drawn
   // active in the list header and in the Custom dialog (13874-11407 /
-  // 13983-37497, where it is still labelled "greater").
+  // 13923-24049, both spelling it "over" since the documented section).
   duration: def.kind === "duration" ? { compare: "over", preset: null, from: null, to: null } : undefined,
   // Five blank fields. `negated` stays false, which is "contains" — the first
   // and default condition (node 13995-16953 draws it checked).
   address: def.kind === "address" ? emptyAddress() : undefined,
-  // "all" is the mode a fresh Labels filter opens on — node 13984-38934 draws
-  // "include all of" active. It stays unseen until a second label is ticked.
+  // "all" is the mode a fresh Labels filter opens on — the documented condition
+  // list (14101-43505) draws "include all of" selected, and the Empty header's
+  // annotation marks "include" as the default condition. It stays unseen until
+  // a second label is ticked.
   match: def.matchMode === true ? "all" : undefined,
 });
 
@@ -590,43 +563,25 @@ const PRIORITY_OPTION_DEFS: { id: string; label: string; level: PriorityLevel | 
   { id: "1", label: "Urgent", level: 1, icon: semanticIcons.priorityUrgent, pack: "solid" },
 ];
 
+// The two PHASES' status sets, in the STATUS map's order — the documented
+// Status lists: the OPEN phase's nine (node 14101-47650) and the CLOSED
+// phase's two (14101-48863). Which set the Status filter offers follows the
+// branch the page is on — `buildFilters`' `phase`.
+const STATUS_KEYS = Object.keys(STATUS) as (keyof typeof STATUS)[];
+const CLOSED_KEYS: readonly string[] = ["finalized", "cancelled"];
+const OPEN_STATUSES = STATUS_KEYS.filter((key) => !CLOSED_KEYS.includes(key));
+const CLOSED_STATUSES = STATUS_KEYS.filter((key) => CLOSED_KEYS.includes(key));
+
 /**
- * The date buckets. Each is a predicate over the day offset from TODAY
- * (0 = today, negative = the past). Written once and reused by the four date
- * filters, each of which reads a different field.
+ * The two on-holds carry their SUB-STATUS as the row label — the Status
+ * section's annotation: "Sub-statuses — If exist, they are shown instead of
+ * the generic status". The badge map calls both plain "On hold", which would
+ * make two identical rows.
  */
-const PAST_BUCKETS: { id: string; label: string; icon: string; test: (offset: number) => boolean }[] = [
-  { id: "today", label: "Today", icon: "calendar-day", test: (o) => o === 0 },
-  { id: "yesterday", label: "Yesterday", icon: "calendar-day", test: (o) => o === -1 },
-  { id: "7d", label: "Last 7 days", icon: "calendar-week", test: (o) => o <= 0 && o >= -7 },
-  { id: "30d", label: "Last 30 days", icon: "calendar", test: (o) => o <= 0 && o >= -30 },
-  { id: "older", label: "Older", icon: "calendar-xmark", test: (o) => o < -30 },
-];
-
-const SCHEDULED_BUCKETS: { id: string; label: string; icon: string; test: (offset: number | null) => boolean }[] = [
-  { id: "overdue", label: "Overdue", icon: "calendar-exclamation", test: (o) => o != null && o < 0 },
-  { id: "today", label: "Today", icon: "calendar-day", test: (o) => o === 0 },
-  { id: "tomorrow", label: "Tomorrow", icon: "calendar-day", test: (o) => o === 1 },
-  { id: "7d", label: "Next 7 days", icon: "calendar-week", test: (o) => o != null && o >= 0 && o <= 7 },
-  { id: "later", label: "Later", icon: "calendar", test: (o) => o != null && o > 7 },
-  { id: "none", label: "Not scheduled", icon: "calendar-xmark", test: (o) => o == null },
-];
-
-/** Turn a bucket list into options + a matcher over one job field. */
-function bucketFilter<V>(
-  buckets: { id: string; label: string; icon?: string; test: (value: V) => boolean }[],
-  read: (job: Job) => V,
-  bucketIcon: string,
-): { options: FilterOption[]; matches: FilterDef["matches"] } {
-  const byBucketId = new Map(buckets.map((b) => [b.id, b]));
-  return {
-    options: buckets.map((b) => ({ id: b.id, label: b.label, slotLeft: icon(b.icon ?? bucketIcon) })),
-    matches: (job, value) => {
-      const read_ = read(job);
-      return value.ids.some((id) => byBucketId.get(id)?.test(read_) === true);
-    },
-  };
-}
+const STATUS_FILTER_LABELS: Partial<Record<keyof typeof STATUS, string>> = {
+  onHoldExternal: "On hold (external)",
+  onHoldInternal: "On hold (internal)",
+};
 
 // ---- the date filter (Figma section 13903-25906) ---------------------------
 
@@ -696,13 +651,13 @@ export const formatLongDate = (date: Date) =>
   date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 /**
- * "May, 2027" — a MONTH value, in the footer and in the chip. The comma is the
- * node's own (13962-14374's footer draws "May, 2027"); FLAGGED as a likely slip,
- * since "May 2027" is the ordinary form.
+ * "May 2027" — a MONTH value in the chip. NO comma (Daniel, 2026-09-03, and
+ * node 14098-35853 draws "Jan 2027 — Aug 2027") — the old node's "May, 2027"
+ * was the slip the earlier flag suspected.
  */
 export const formatMonthValue = (iso: string) => {
   const date = new Date(`${iso}T12:00:00`);
-  return `${date.toLocaleDateString("en-US", { month: "short" })}, ${date.getFullYear()}`;
+  return `${date.toLocaleDateString("en-US", { month: "short" })} ${date.getFullYear()}`;
 };
 
 /**
@@ -726,13 +681,22 @@ export const formatValueEnd = (date: DateValue, iso: string) => {
  *   after N days ago  = received later than that day   → before = on it or earlier
  *   within [from, to] = received on or between the two → outside = neither
  */
-function dateFilter(read: (job: Job) => string): { options: FilterOption[]; matches: FilterDef["matches"] } {
+function dateFilter(read: (job: Job) => string | null): { options: FilterOption[]; matches: FilterDef["matches"] } {
   return {
     options: DATE_PRESETS.map((preset) => ({ id: preset.id, label: preset.label })),
     matches: (job, value) => {
       const date = value.date;
       if (date == null) return true;
-      const offset = dayOffset(read(job));
+      const iso = read(job);
+      // A job with NOTHING in this field matches nothing — only Scheduled for
+      // can be empty, and "after 1 week ago" cannot be true of a job that has
+      // no scheduled date. The old bucket list had a "Not scheduled" row for
+      // those; the timeframe list has no equivalent. FLAGGED, twice over: the
+      // row is gone, and `applyFilters` FLIPS this false for the negative half
+      // ("before"), so an unscheduled job shows up under every "before" /
+      // "outside" condition. The node does not say which way is meant.
+      if (iso == null) return false;
+      const offset = dayOffset(iso);
       if (date.preset != null) {
         const preset = PRESET_BY_ID.get(date.preset);
         return preset == null ? true : offset > -preset.days;
@@ -812,12 +776,8 @@ function durationFilter(): { options: FilterOption[]; matches: FilterDef["matche
 
 const receivedDates = dateFilter((job) => job.receivedAt);
 const lastModifiedDates = dateFilter((job) => job.lastModifiedAt);
-const statusChangedBuckets = bucketFilter(PAST_BUCKETS, (job) => dayOffset(job.statusChangedAt), "calendar");
-const scheduledBuckets = bucketFilter(
-  SCHEDULED_BUCKETS,
-  (job) => (job.scheduledFor == null ? null : dayOffset(job.scheduledFor)),
-  "calendar",
-);
+const scheduledDates = dateFilter((job) => job.scheduledFor);
+const statusChangedDates = dateFilter((job) => job.statusChangedAt);
 const durationValues = durationFilter();
 
 /** Client id → name, for the Location list's group headers and its search. */
@@ -828,7 +788,7 @@ const CLIENT_NAME = new Map(CLIENTS.map((client) => [client.id, client.name]));
  * and always passes; a filled one is a case-insensitive SUBSTRING test, which is
  * what "contains" says — typing "Mission" finds "418 Mission St".
  */
-const addressFieldMatches = (typed: string, actual: string | null) => {
+const addressFieldMatches = (typed: string, actual: string | null | undefined) => {
   const query = typed.trim().toLowerCase();
   return query === "" || (actual ?? "").toLowerCase().includes(query);
 };
@@ -852,7 +812,7 @@ const addressFilter = (): FilterDef["matches"] => (job, value) => {
   const location = locationOf(job);
   return (
     addressFieldMatches(address.street, location.street) &&
-    addressFieldMatches(address.suite, location.suite) &&
+    addressFieldMatches(address.suite, location.unit) &&
     addressFieldMatches(address.city, location.city) &&
     addressFieldMatches(address.state, location.state) &&
     addressFieldMatches(address.postalCode, location.postalCode)
@@ -864,8 +824,13 @@ const addressFilter = (): FilterDef["matches"] => (job, value) => {
 /**
  * `priorityUrgentClass` is the prototype's own --orange-9 class, handed in so
  * this module stays free of the concept's stylesheet.
+ *
+ * `phase` is the branch the page is on (the Views section 14032-23326,
+ * 2026-09-03). Only the STATUS filter reads it: the open branch offers the
+ * nine open statuses over a search, the closed branch the two closed ones
+ * with no search.
  */
-export function buildFilters(priorityUrgentClass: string): FilterDef[] {
+export function buildFilters(priorityUrgentClass: string, phase: "open" | "closed" = "open"): FilterDef[] {
   return [
     {
       // Address — the eighth designed filter (Figma section 13988-53503,
@@ -885,10 +850,9 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       kind: "address",
       noun: { one: "address", many: "addresses" },
       label: "Address",
-      // A KIT icon, like Date received's — it needs `pack: "custom"`, not the
-      // classic regular font.
-      icon: "regular-text-location-pin",
-      pack: "custom",
+      // Plain FA `text` (node 14032-20321, 2026-09-03) — was the KIT icon
+      // `regular-text-location-pin`.
+      icon: "text",
       // No list, so no options — `matches` reads `address`, never `ids`.
       options: [],
       matches: addressFilter(),
@@ -908,6 +872,10 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       // block is now a DS component: nodes 13923-21709 (desktop) and 13923-21079
       // (mobile) draw the two plain Chips, "is" active, over the full 40px
       // search bar. So the local chip overrides are gone from this filter.
+      //
+      // Since 2026-09-04 the list opens with a "No assignees" row — the same
+      // exclusive absence-option Labels has (`exclusiveOptionId`). See the
+      // options below.
       id: "assignees",
       noun: { one: "assignee", many: "assignees" },
       label: "Assignee",
@@ -919,18 +887,37 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       hideCounts: true,
       autoFocusSearch: true,
       dsHeader: true,
+      // "No assignees" stands ALONE — the row's annotation (node 14143-63387):
+      // "Selecting this option unselects all others. This option can only be
+      // used alone." — Labels' exclusive rule, read by the toggle in
+      // Filters.tsx.
+      exclusiveOptionId: "none",
       // xs (20px) user avatars — SelectListItem's left slot takes an Icon or an
       // xs avatar, and a person reads better as a face than as an icon.
       // Sorted by name, the order the node lists them in (the data's own order
       // is by user id, which reads as random here).
-      options: [...TECHS]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((tech) => ({
-          id: String(tech.id),
-          label: tech.name,
-          slotLeft: <AvatarUser size="xs" content="image" imageSrc={tech.avatar} />,
-        })),
-      matches: (job, { ids }) => job.assigneeIds.some((id) => ids.includes(String(id))),
+      options: [
+        // "No assignees" FIRST, over the people (2026-09-04 — both breakpoints
+        // draw it as the list's first row: 14143-63387 desktop, 14037-50110
+        // mobile). Its dashed-ring avatar with the small user glyph IS
+        // AvatarUser's `placeholder` content — the DS empty slot, read off the
+        // node (dashed --gray-a9 ring, 10px regular `user` icon).
+        // FLAGGED: the mobile node's copy reads "No assignee", SINGULAR, where
+        // the desktop node reads "No assignees". Built with the plural — the
+        // desktop copy, and what Daniel asked for.
+        { id: "none", label: "No assignees", slotLeft: <AvatarUser size="xs" content="placeholder" /> },
+        ...[...TECHS]
+          .sort((a, b) => a.name.localeCompare(b.name))
+          .map((tech) => ({
+            id: String(tech.id),
+            label: tech.name,
+            slotLeft: <AvatarUser size="xs" content="image" imageSrc={tech.avatar} />,
+          })),
+      ],
+      // "No assignees" = the job carries nobody. Its negative ("is not") is the
+      // flip `applyFilters` makes — the job has at least one assignee.
+      matches: (job, { ids }) =>
+        ids.includes("none") ? job.assigneeIds.length === 0 : job.assigneeIds.some((id) => ids.includes(String(id))),
     },
     {
       // Client — the second filter Daniel designed in full (Figma section
@@ -951,7 +938,7 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       id: "client",
       noun: { one: "client", many: "clients" },
       label: "Client",
-      icon: "building-user",
+      icon: "building", // was building-user (node 14032-20321, 2026-09-03)
       searchPlaceholder: "Client...", // the ellipsis is back (Daniel, 2026-08-24)
       hideCounts: true,
       autoFocusSearch: true,
@@ -992,11 +979,11 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       kind: "date",
       noun: { one: "date", many: "dates" },
       label: "Date received",
-      // A KIT icon (Daniel, 2026-08-24) — it arrived with the 2026-08-24 kit
-      // download, so it needs `pack: "custom"`, not the classic regular font.
-      // Was `calendar-lines-pen`, and plain `calendar` before that.
-      icon: "regular-calendar-circle-arrow-right-bl",
-      pack: "custom",
+      // Back to plain `calendar` (node 14032-20321, 2026-09-03) — the same
+      // glyph Scheduled for carries, which is what the node draws. Was the KIT
+      // icon `regular-calendar-circle-arrow-right-bl`, `calendar-lines-pen`
+      // before that, and plain `calendar` at the start.
+      icon: "calendar",
       dsHeader: true,
       ...receivedDates,
     },
@@ -1024,57 +1011,73 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       ...durationValues,
     },
     {
-      // Labels — the fifth designed filter (Figma section 13984-38887,
-      // 2026-08-24). Still an OPTIONS filter, ticked with checkboxes, but two
-      // things set it apart from every other one:
+      // Labels — the fifth designed filter; DOCUMENTED since 2026-09-03
+      // (section 13999-17090: Empty 13999-17124 / 13999-17223, Selected
+      // 14101-42749 / 14101-42751, the 2+ sub-menu 14101-43497 / 14101-43499 —
+      // it replaced the first draft, section 13984-38887). Still an OPTIONS
+      // filter, ticked with checkboxes, but three things set it apart:
       //
       //   - it carries a SEARCH ("Label...") over the condition chips, so its
       //     header is the DS `SelectListHeader` in the chipGroup + search
-      //     variant — Assignee's and Client's header (nodes 13984-38897 desktop
-      //     / 13984-38956 mobile), and its search takes focus on the phone too
-      //     (the mobile node draws the keyboard up);
+      //     variant — Assignee's and Client's header — and its search takes
+      //     focus on the phone too (the mobile nodes draw the keyboard up);
       //   - it is the one filter that lets the user pick how several values
       //     COMBINE, ALL of them or ANY of them (`matchMode`). A job holds a set
       //     of labels, so both are real questions; a status or a client is one
-      //     value per job, where "all of" could never match.
+      //     value per job, where "all of" could never match;
+      //   - its list opens with a "No labels" row (`exclusiveOptionId`) — the
+      //     absence of a value as a pickable option, and one that stands ALONE.
       //
-      // Its rows are a checkbox and a name — no icon (the tag glyph is gone,
-      // node 13985-40254 draws none) and no job count.
+      // Its rows are a checkbox and a name — no icon and no job count. Every
+      // Labels list pins the DS card's 384px maximum as its MIN width (the
+      // "Min Width" annotations on 13999-17141 / 14101-43138 / 14101-43512) —
+      // `conditionsWidth` + the width unification in Filters.tsx deliver that.
       id: "labels",
       noun: { one: "label", many: "labels" },
       label: "Labels",
       icon: "tag",
-      // WITH the ellipsis, as the node draws it (13984-38897) — and Assignee and
-      // Client took theirs back on 2026-08-24 to match, so all three agree.
-      searchPlaceholder: "Label...",
+      searchPlaceholder: "Label...", // the node draws the ellipsis
       hideCounts: true,
       autoFocusSearch: true,
       dsHeader: true,
       matchMode: true,
-      options: LABELS.map((label) => ({ id: label.id, label: label.name })),
-      // The POSITIVE half only — `applyFilters` flips it for "do not include" /
-      // "exclude if …", which is what makes each pair a true opposite:
-      //   include all of  = carries every ticked label → exclude if all = not all
-      //   include any of  = carries at least one       → exclude if any of = none
+      // "No labels" FIRST, over the labels themselves (node 13999-17141's row
+      // order). Its annotation: "Selecting this option unselects all others.
+      // This option can only be used alone."
+      exclusiveOptionId: "none",
+      options: [
+        { id: "none", label: "No labels" },
+        ...LABELS.map((label) => ({ id: label.id, label: label.name })),
+      ],
+      // The POSITIVE half only — `applyFilters` flips it for the "do not
+      // include …" half, which is what makes each pair a true opposite:
+      //   include all of = carries every ticked label → do not include all of = not all
+      //   include any of = carries at least one       → do not include any of = none
       // With ONE label ticked the two modes are the same test, which is why the
       // condition collapses to include / do not include.
-      matches: (job, { ids, match }) =>
-        match === "any"
+      //
+      // "No labels" is always alone (`exclusiveOptionId`), so it never meets the
+      // modes: the job simply carries nothing. Its negative ("do not include")
+      // is the flip — the job carries at least one label.
+      matches: (job, { ids, match }) => {
+        if (ids.includes("none")) return job.labelIds.length === 0;
+        return match === "any"
           ? ids.some((id) => job.labelIds.includes(id))
-          : ids.every((id) => job.labelIds.includes(id)),
+          : ids.every((id) => job.labelIds.includes(id));
+      },
     },
     {
-      // Last modified — the sixth designed filter (Figma section 13986-45329,
-      // 2026-08-24), and the SECOND of the date kind. Daniel: "it is supposed to
-      // work very similar to Date received", and the nodes bear that out — every
-      // piece is the same one:
+      // Last modified — the sixth designed filter, and the SECOND of the date
+      // kind; since 2026-09-03 it is DOCUMENTED as a Timeframe filter (section
+      // 14100-40610), identical to Date received's (13962-8766) — every piece
+      // is the same one:
       //   - the same seven presets in the same order over the same "Custom..."
-      //     row (node 13986-45365 desktop / 13986-45361 mobile);
-      //   - the same chips-only `SelectListHeader`, md Chips "before" / "after"
-      //     with BEFORE active, closed by the component's own Divider;
-      //   - the same Custom dialog (13986-45435 desktop / 13986-45525 mobile):
-      //     Day / Month / Year over on / before / after / within, a "Date"
-      //     DateField and the DatePicker, footer = the picked date + Apply.
+      //     row;
+      //   - the same chips-only `SelectListHeader`, md Chips "after" (active,
+      //     first) / "before", closed by the component's own Divider;
+      //   - the same Custom dialog (the Timeframe filter section 14038-21304):
+      //     Day / Month / Year over after / before / on-in / within, the
+      //     period lists, the Cancel + Apply footer.
       // So it takes the date machinery unchanged and only reads another field.
       //
       // What is its own: the label, and the `pen` icon (regular, classic pack —
@@ -1089,25 +1092,32 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       ...lastModifiedDates,
     },
     {
-      // Location — the seventh designed filter (Figma section 13986-51028,
-      // 2026-08-24). An OPTIONS filter like Assignee and Client, and it borrows
-      // their header: the DS `SelectListHeader` in the chipGroup + search
-      // variant, "is" / "is not" over a 40px search placed "Location..."
-      // (13986-51038 desktop / 13986-51097 mobile, which draws the keyboard up).
+      // Location — DOCUMENTED since 2026-09-03 (section 14101-44921, annotated
+      // as a Multi-Select Filter — the pattern documentation is 14038-14033).
+      // An OPTIONS filter like Assignee and Client, borrowing their header: the
+      // DS `SelectListHeader` in the chipGroup + search variant, "is" / "is
+      // not" over the 40px search (the mobile node draws the keyboard up).
       //
-      // TWO things are its own:
+      // What is its own, per the section's "The List" annotation:
+      //   1. the list is GROUPED BY CLIENT — a SelectListItemGroup with a
+      //      `secondary` GroupLabel per client, the DS divider between them.
+      //      That is what lets the rows drop the client's name, and why the
+      //      search still matches it — see `searchText`;
+      //   2. clients are sorted A to Z;
+      //   3. locations are sorted "by a name or street address" A to Z — the
+      //      row's own label, which starts with the name when there is one and
+      //      the address when there is not (`locationLabel`; the row annotation:
+      //      the name and each address part show only if they exist).
       //
-      //   - the list is GROUPED BY CLIENT. Each group is a SelectListItemGroup
-      //     with a `secondary` GroupLabel naming the client, and the DS puts the
-      //     divider between them. That is what lets the rows drop the client's
-      //     name and say only the site's ("Downtown"), which is also why the
-      //     search still matches the client name — see `searchText`.
-      //   - the chip counts instead of naming (`countValue`): node 13986-51053
-      //     draws "1 location" with a single location ticked, where every other
-      //     options filter would print the value itself.
+      // Its lists PIN the DS card's 384px maximum as their MIN width — the
+      // "Min Width" annotation on node 14101-44923 (`listMinWidth`): the rows
+      // are whole location lines, so the list always opens at full size.
       //
-      // The rows are a checkbox and a line of text — no icon (the node draws no
-      // location-dot; the old build had one) and no job count.
+      // The rows are a checkbox and a line of text — no icon and no job count.
+      //
+      // FLAGGED: the node's search placeholder reads "location..." — lowercase,
+      // where Assignee / Client / Labels all capitalize theirs. Built with the
+      // capital, the shape the siblings share.
       id: "location",
       noun: { one: "location", many: "locations" },
       label: "Location",
@@ -1116,30 +1126,44 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       hideCounts: true,
       autoFocusSearch: true,
       dsHeader: true,
-      countValue: true,
+      listMinWidth: 384,
       // Clients in name order, and only those that HAVE a location — an empty
       // group would be a header with nothing under it.
       groups: [...CLIENTS]
         .filter((client) => LOCATIONS.some((location) => location.clientId === client.id))
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((client) => ({ id: client.id, label: client.name })),
-      options: LOCATIONS.map((location) => ({
-        id: location.id,
-        // "Downtown ・ 418 Mission St, San Francisco, CA 94105" — and only the
-        // halves that exist (`locationLabel`).
-        label: locationLabel(location),
-        groupId: location.clientId,
-        // The row PLUS its client, so the search finds "Wildwood" too.
-        searchText: `${locationLabel(location)} ${CLIENT_NAME.get(location.clientId) ?? ""}`,
-      })),
+      // Sorted by the row's label (the section's annotation: "by a name or
+      // street address from A to Z") — the data's own order was insertion order.
+      options: [...LOCATIONS]
+        .sort((a, b) => locationLabel(a).localeCompare(locationLabel(b)))
+        .map((location) => ({
+          id: location.id,
+          // "Downtown  ·  418 Mission St, San Francisco, CA 94105" — and only the
+          // halves that exist (`locationLabel`).
+          label: locationLabel(location),
+          groupId: location.clientId,
+          // The row PLUS its client, so the search finds "Wildwood" too.
+          searchText: `${locationLabel(location)} ${CLIENT_NAME.get(location.clientId) ?? ""}`,
+        })),
       matches: (job, { ids }) => ids.includes(job.locationId),
     },
     {
+      // Priority — the FIRST designed filter, DOCUMENTED on 2026-09-03 (section
+      // 13874-9043, a Multi-Select Filter — pattern documentation 14038-14033).
+      // Against the first build:
+      //   - the rows are an icon and a label ONLY — the "N jobs" counts are
+      //     gone (`hideCounts`; neither node draws a tag);
+      //   - the header is the DS `SelectListHeader` in its CHIPS-ONLY variant —
+      //     "is" / "is not", no search. (The section briefly drew no header at
+      //     all; Daniel put the chips back the same day, 2026-09-03.)
       id: "priority",
       noun: { one: "priority", many: "priorities" },
       label: "Priority",
       icon: semanticIcons.priorityHigh,
       pack: "custom",
+      hideCounts: true,
+      dsHeader: true,
       options: PRIORITY_OPTION_DEFS.map((option) => ({
         id: option.id,
         label: option.label,
@@ -1148,70 +1172,154 @@ export function buildFilters(priorityUrgentClass: string): FilterDef[] {
       matches: (job, { ids }) => ids.includes(job.priority == null ? "none" : String(job.priority)),
     },
     {
+      // Scheduled for — DOCUMENTED as a Timeframe filter on 2026-09-03 (section
+      // 14101-46526; the annotation links the pattern documentation 14038-21304).
+      // Identical to Date received's and Last modified's build — the same seven
+      // presets over a "Custom..." row, the same after / before chips-only
+      // header, the same Custom dialog — reading the job's SCHEDULED date. It
+      // replaced this entry's invented buckets (Overdue / Today / Tomorrow /
+      // Next 7 days / Later / Not scheduled).
+      //
+      // FLAGGED, twice:
+      //   - the node's presets read "1 day ago" … "1 year ago" — the same
+      //     PAST-anchored copy the other timeframe filters use — although a
+      //     scheduled date is usually AHEAD of today. "Scheduled for after
+      //     1 week ago" works, but nothing on the list can say "next week".
+      //     Built as drawn;
+      //   - a job with NO scheduled date has no row to catch it any more (the
+      //     buckets had "Not scheduled") — see the null note in `dateFilter`.
       id: "scheduledFor",
+      kind: "date",
       noun: { one: "date", many: "dates" },
       label: "Scheduled for",
       icon: "calendar",
-      ...scheduledBuckets,
+      dsHeader: true,
+      ...scheduledDates,
     },
     {
+      // Service — DOCUMENTED on 2026-09-03 (section 14101-46745, a Multi-Select
+      // Filter): the DS `SelectListHeader` in the chipGroup + search variant
+      // ("is" / "is not" over a 40px "Service..." search; the mobile node draws
+      // the keyboard up), and rows that are a checkbox and the service's name —
+      // the wrench icon and the job count are GONE from the rows. The chip's
+      // name segment keeps the wrench (node 14101-46752).
       id: "service",
       noun: { one: "service", many: "services" },
       label: "Service",
       icon: "wrench-simple",
-      options: SERVICES.map((service) => ({ id: service.id, label: service.name, slotLeft: icon("wrench-simple") })),
+      searchPlaceholder: "Service...",
+      hideCounts: true,
+      autoFocusSearch: true,
+      dsHeader: true,
+      options: SERVICES.map((service) => ({ id: service.id, label: service.name })),
       matches: (job, { ids }) => ids.includes(job.serviceId),
     },
     {
+      // Source — DOCUMENTED on 2026-09-03 (section 14101-47385), built exactly
+      // like Service: chipGroup + search header ("Source...", keyboard up on
+      // the phone), bare name rows — no icon, no count.
+      //
+      // The `inbox` icon is Daniel's pick (2026-09-03) — Source means the
+      // channel a request arrived through, and it ends the diamonds-4 clash
+      // with Type. FLAGGED: the Figma nodes still draw the old glyphs (the
+      // menu diamonds-4; the chip 14101-47392 even wrench-simple, a
+      // duplication slip) — the file is behind the decision, not the code.
       id: "source",
       noun: { one: "source", many: "sources" },
       label: "Source",
-      icon: "diamonds-4",
-      options: SOURCES.map((source) => ({ id: source.id, label: source.name, slotLeft: icon("diamonds-4") })),
+      icon: "inbox",
+      searchPlaceholder: "Source...",
+      hideCounts: true,
+      autoFocusSearch: true,
+      dsHeader: true,
+      options: SOURCES.map((source) => ({ id: source.id, label: source.name })),
       matches: (job, { ids }) => ids.includes(job.sourceId),
     },
     {
+      // Status — DOCUMENTED on 2026-09-03 (section 14101-47648, a Multi-Select
+      // Filter): the chipGroup + search header ("Status...", keyboard up on
+      // the phone), icon + label rows with NO job counts.
+      //
+      // The documented list is PHASE-SPLIT, and since the Views section
+      // (14032-23326) both halves are REAL: the OPEN branch draws the nine
+      // open statuses over the search; the CLOSED branch its own two-row list
+      // (Finalized / Cancelled) with no search (the "'Closed' Phase — No
+      // Search" annotation) — two rows need none. `phase` picks the half.
       id: "status",
       noun: { one: "status", many: "statuses" },
       label: "Status",
-      // SOLID, turned 180° (Daniel, 2026-08-18) — the half-filled circle then
-      // reads as "filled from the left", the way the node draws it. This is the
-      // row's icon in the Filters menu and the chip's icon, from one place.
-      icon: "circle-half-stroke",
-      pack: "solid",
+      // REGULAR `circle-dashed`, still turned 180° (node 14032-20321,
+      // 2026-09-03 — the node wraps the glyph in a 180° rotation) — was the
+      // solid `circle-half-stroke`. This is the row's icon in the Filters menu
+      // and the chip's icon, from one place.
+      icon: "circle-dashed",
       rotate: 180,
-      // The statuses, their labels and their icons all come from
-      // BadgeJobStatus's own STATUS map — the same source the table's badges
-      // use, so a status can never be spelled two ways.
-      options: (Object.keys(STATUS) as (keyof typeof STATUS)[]).map((key) => ({
+      searchPlaceholder: phase === "open" ? "Status..." : undefined,
+      hideCounts: true,
+      autoFocusSearch: phase === "open",
+      dsHeader: true,
+      // The statuses, their icons, their colors and (but for the two on-holds)
+      // their labels all come from BadgeJobStatus's own STATUS map — the same
+      // source the table's badges use, so a status can never be spelled two
+      // ways.
+      //
+      // The icons are SOLID, each in its scheme's own a9 — every row of both
+      // node lists draws them that way (open 14101-47650: gray / violet / blue
+      // / tomato / jade / amber / crimson / brown / orange; closed 14101-48863:
+      // jade circle-check, gray circle-xmark). Only the ICON is colored — the
+      // label stays --text-strong, body-400.
+      options: (phase === "open" ? OPEN_STATUSES : CLOSED_STATUSES).map((key) => ({
         id: key,
-        label: STATUS[key].label,
+        label: STATUS_FILTER_LABELS[key] ?? STATUS[key].label,
         slotLeft: (
           <Icon
             icon={STATUS[key].icon}
-            pack="regular"
+            pack="solid"
             size={14}
             container="square"
             rotate={"rotate" in STATUS[key] ? (STATUS[key] as { rotate?: number }).rotate : undefined}
+            style={{ color: `var(--${STATUS[key].scheme}-a9)` }}
           />
         ),
       })),
       matches: (job, { ids }) => ids.includes(job.status),
     },
     {
+      // Status changed — DOCUMENTED as a Timeframe filter on 2026-09-03
+      // (section 14101-53614, pattern documentation 14038-21304), identical to
+      // Date received, Last modified and Scheduled for: the same seven presets
+      // over "Custom...", the same after / before chips, the same Custom
+      // dialog — reading the day the job's status last changed. It replaced
+      // the LAST of the invented bucket lists, so the bucket machinery is gone
+      // with it.
+      //
+      // `arrow-left-arrow-right` — Daniel's pick (2026-09-03): a transition
+      // between two states, which is what a status change is. It replaced the
+      // `pen` the chip node draws (14101-53620), which Last modified already
+      // owns. FLAGGED: Figma is behind this decision.
       id: "statusChanged",
+      kind: "date",
       noun: { one: "date", many: "dates" },
       label: "Status changed",
-      icon: "pen",
-      ...statusChangedBuckets,
+      icon: "arrow-left-arrow-right",
+      dsHeader: true,
+      ...statusChangedDates,
     },
     {
+      // Type — DOCUMENTED on 2026-09-03 (section 14101-53833): the chips-only
+      // DS header ("is" / "is not", no search — two rows need none), and the
+      // rows KEEP their icons (the node draws sparkle / clock-rotate-left) but
+      // drop the job counts.
       id: "type",
       noun: { one: "type", many: "types" },
       label: "Type",
-      // The node draws `diamonds-4` here — the same glyph as Source, which looks
-      // like a leftover from duplicating that row. FLAGGED, built as drawn.
-      icon: "diamonds-4",
+      // `shapes` — Daniel's pick (2026-09-03), the category metaphor; it
+      // replaced the `diamonds-4` the nodes still draw (menu and chip
+      // 14101-53840), which Source used to share. FLAGGED: Figma is behind
+      // this decision.
+      icon: "shapes",
+      hideCounts: true,
+      dsHeader: true,
       // The values are the Job Details page's: New = sparkle, Recall =
       // clock-rotate-left, the same icons the table's Type column shows.
       options: [
@@ -1354,25 +1462,26 @@ export const conditionChoices = (value: FilterValue): ConditionChoice[] => {
         { label: "do not include", negated: true },
       ];
     }
-    // SEVERAL values — node 13984-38934, rewritten by Daniel on 2026-08-24 and
-    // applied verbatim. It is the one-value pair crossed with the mode, in that
-    // order: include / do not include × all of / any of. That is why it reads
-    // clearly where the short forms did not — the verb is never dropped, so
-    // every chip is a whole phrase, and the two halves of the filter speak the
-    // same language ("Labels include Warranty" / "Labels include all of 2
-    // labels").
+    // SEVERAL values — the documented section's copy, REWRITTEN by Daniel on
+    // 2026-09-03 (sub-menu node 14101-43498 and condition list 14101-43505,
+    // applied verbatim): the verb never drops, so every chip is a whole
+    // phrase, and the ORDER puts the two "any" measures in the middle —
+    // include all of / include any of / do not include any of / do not
+    // include all of. (An "exclude if …" wording existed in the node for a
+    // moment the same day; Daniel replaced it with this.) Each negative is the
+    // true opposite of its positive ("do not include any of" flips "include
+    // any of", "do not include all of" flips "include all of"), which is what
+    // lets `applyFilters` keep flipping the positive `matches`.
     //
-    // These four are LONG — about 582px on one row — so they wrap to two rows
-    // inside the DS card's 384px maximum. That is expected, and `conditionsWidth`
-    // in Filters.tsx opens the card at that maximum so they never reflow.
-    //
-    // FLAGGED: the node's second chip reads "include any off" — a doubled "f".
-    // Built with the single "of", the spelling the other three use.
+    // These four are LONG — about 575px on one row — so they wrap to two rows
+    // (two per row, exactly as the nodes draw them) inside the DS card's 384px
+    // maximum, and `conditionsWidth` in Filters.tsx opens the card at that
+    // maximum so they never reflow.
     return [
       { label: "include all of", negated: false, match: "all" },
       { label: "include any of", negated: false, match: "any" },
-      { label: "do not include all of", negated: true, match: "all" },
       { label: "do not include any of", negated: true, match: "any" },
+      { label: "do not include all of", negated: true, match: "all" },
     ];
   }
   // An ADDRESS has one pair, and they are true opposites, so `negated` carries
@@ -1482,17 +1591,19 @@ export function valueDisplay(def: FilterDef, value: FilterValue): { label: strin
   const address = value.address;
   if (address != null) return { label: addressSummary(address) };
   // A DURATION shows its preset's own words ("2 hours"), one custom length
-  // ("1h") or both ends of a custom range ("1h — 2h 30min"), never an icon
-  // (Figma nodes 13874-10444, 13983-38856 and 13877-14887).
+  // ("1h 30m") or both ends of a custom range ("1h 30m — 2h 45m"), never an
+  // icon (documented nodes 14100-37398, 14100-37990 and 14100-37994). A custom
+  // value is the table's own compact format — see the note over the jobsData
+  // import of `formatDuration`.
   const duration = value.duration;
   if (duration != null) {
     const preset = durationPreset(duration.preset);
     if (preset != null) return { label: preset.label };
     if (duration.from == null) return { label: "" };
     if (duration.compare === "within" && duration.to != null) {
-      return { label: `${formatDurationChip(duration.from)} — ${formatDurationChip(duration.to)}` };
+      return { label: `${formatDuration(duration.from)} — ${formatDuration(duration.to)}` };
     }
-    return { label: formatDurationChip(duration.from) };
+    return { label: formatDuration(duration.from) };
   }
   const date = value.date;
   if (date != null) {
@@ -1502,9 +1613,11 @@ export function valueDisplay(def: FilterDef, value: FilterValue): { label: strin
     }
     return { label: date.from == null ? "" : formatValueEnd(date, date.from) };
   }
-  // Location COUNTS even at one value (`countValue`) — its rows are far too long
-  // for a chip segment. Every other options filter names the single value.
-  if (value.ids.length === 1 && def.countValue !== true) {
+  // ONE value names itself — Location included since its documented section
+  // (2026-09-03): node 14101-44928 draws the whole location line in the value
+  // segment, truncating at the chip's 240px value cap. (It used to COUNT even
+  // at one value, through a `countValue` prop that is gone with it.)
+  if (value.ids.length === 1) {
     const option = def.options.find((o) => o.id === value.ids[0]);
     if (option != null) return { label: option.label, slotLeft: option.slotLeft };
   }

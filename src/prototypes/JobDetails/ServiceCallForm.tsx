@@ -27,23 +27,23 @@ import {
   equipmentLabel,
   equipmentTitle,
 } from "./equipment";
-import { fieldMap, optionValues } from "../../forms/formSchema/options";
-import { FormOption } from "../../forms/formSchema/schema.types";
+import { fieldMap, optionValues } from "../../modules/formSchema/options";
+import { FormOption } from "../../modules/formSchema/schema.types";
 import {
   GAS_OPTIONS,
   PHASE_OPTIONS,
   SERVICE_CALL_SCHEMA,
   TECH_COUNT_OPTIONS,
   VOLTAGE_OPTIONS,
-} from "../../forms/formSchema/serviceCallSchema";
-import ObjectCard from "../../forms/shared/ObjectCard";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+} from "../../modules/formSchema/serviceCallSchema";
+import ObjectCard from "../../modules/shared/ObjectCard";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { noop } from "./shared";
 
 import styles from "./ServiceCallForm.module.scss";
 
 // Labels and option sets come from the SCHEMA
-// (src/forms/formSchema/serviceCallSchema.ts) — the same data the read-only
+// (src/modules/formSchema/serviceCallSchema.ts) — the same data the read-only
 // preview is built from, so the form and its preview cannot drift apart.
 const F = fieldMap(SERVICE_CALL_SCHEMA);
 const labelOf = (key: string) => F[key].label ?? "";
@@ -56,7 +56,7 @@ type YesNo = "" | "Yes" | "No";
 // ---- the draft --------------------------------------------------------------
 
 export interface ServiceCallDraft {
-  equipmentId: number | null;
+  equipmentId: string | null;
   voltage: string;
   phase: string;
   gas: string;
@@ -485,7 +485,7 @@ export default function ServiceCallForm({
                     <Chip
                       key={p.label}
                       size="md"
-                      active={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
+                      isSelected={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
                       onClick={() => setDraft((prev) => ({ ...prev, hours: p.hours, minutes: p.minutes }))}
                     >
                       {p.label}

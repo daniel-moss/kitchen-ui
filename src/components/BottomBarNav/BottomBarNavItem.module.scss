@@ -42,12 +42,6 @@
   color: var(--gray-12);
 }
 
-// The Create-button adjustment: a solid gray-12 icon at rest, no fill (the
-// icon weight comes from the tsx).
-.strong {
-  color: var(--gray-12);
-}
-
 // Focus: the newer inset spec — 2px ring at the pill bounds, 2px transparent
 // gap, then the gray-a4 inner fill with its own FULL radius. Last among the
 // states: the focus look wins over the fills above.

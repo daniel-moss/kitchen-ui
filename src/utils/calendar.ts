@@ -48,6 +48,12 @@ export function isOutOfRange(d: Date, min?: Date | null, max?: Date | null) {
   return false;
 }
 
+/** The first of the month containing `d`. */
+export const firstOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
+
+/** Months since year 0 — lets two months be compared with one number. */
+export const monthIndex = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+
 /** Monday-first weekday headers. */
 export const WEEKDAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 
@@ -58,3 +64,16 @@ export const formatMonthTitle = (month: Date) => TITLE_FORMAT.format(month);
 const FULL_FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 /** "Friday, January 15, 2027" — a day button's accessible label. */
 export const formatFullDate = (d: Date) => FULL_FORMAT.format(d);
+
+const COMPACT_FORMAT = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+/**
+ * "Sun, Jan 1, 2027" — the compact display for the range drawer's From/To
+ * fields. The DatePicker's inner fields ALWAYS show the year, even the
+ * current one (Daniel, 2026-09-02).
+ */
+export const formatCompactDate = (d: Date) => COMPACT_FORMAT.format(d);

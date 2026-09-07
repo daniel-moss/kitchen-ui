@@ -24,7 +24,7 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
-import { SelectPopover, SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopover, SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import {
   ContactChannel,
   ContactGroup,
@@ -63,7 +63,7 @@ const CONTACT_GROUPS: ContactGroup[] = [
 // Pool order, so ticking a contact never shuffles the rows already listed.
 const ALL_CONTACTS: JobContact[] = CONTACT_GROUPS.flatMap((g) => g.contacts);
 
-const contactsOf = (ids: number[]) => ALL_CONTACTS.filter((c) => ids.includes(c.id));
+const contactsOf = (ids: string[]) => ALL_CONTACTS.filter((c) => ids.includes(c.id));
 
 const CHANNEL_COPY: Record<ContactChannel, { label: string; icon: string; searchPlaceholder: string }> = {
   text: {
@@ -107,8 +107,8 @@ interface ChannelCardProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   /** The picked contacts' ids — this channel's own selection. */
-  picks: number[];
-  onPicksChange: (next: number[]) => void;
+  picks: string[];
+  onPicksChange: (next: string[]) => void;
   /** Send was pressed with this channel on but no contacts picked. */
   noContacts: boolean;
   /** @internal Injected by CheckboxGroup — forwarded to the CheckboxItem. */
@@ -214,8 +214,8 @@ function ContactsList({
 }: {
   channel: ContactChannel;
   pop: SelectPopover;
-  picks: number[];
-  onToggle: (id: number) => void;
+  picks: string[];
+  onToggle: (id: string) => void;
   mobile: boolean;
 }) {
   return (
@@ -288,7 +288,7 @@ interface SendSummaryFormProps {
 
 export default function SendSummaryForm({ open, onClose, afterCompletion = false, mobile = false }: SendSummaryFormProps) {
   const [channels, setChannels] = useState<Record<ContactChannel, boolean>>({ text: false, email: false });
-  const [picks, setPicks] = useState<Record<ContactChannel, number[]>>({ text: [], email: [] });
+  const [picks, setPicks] = useState<Record<ContactChannel, string[]>>({ text: [], email: [] });
   const [message, setMessage] = useState(DEFAULT_MESSAGE);
   const [showErrors, setShowErrors] = useState(false);
 
@@ -310,7 +310,7 @@ export default function SendSummaryForm({ open, onClose, afterCompletion = false
 
   const setChannel = (channel: ContactChannel, checked: boolean) =>
     setChannels((prev) => ({ ...prev, [channel]: checked }));
-  const togglePick = (channel: ContactChannel, id: number) =>
+  const togglePick = (channel: ContactChannel, id: string) =>
     setPicks((prev) => ({
       ...prev,
       [channel]: prev[channel].includes(id) ? prev[channel].filter((p) => p !== id) : [...prev[channel], id],

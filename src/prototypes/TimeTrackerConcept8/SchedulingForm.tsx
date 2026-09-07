@@ -276,7 +276,7 @@ export default function SchedulingForm({
                 <Chip
                   key={p.label}
                   size="md"
-                  active={activePreset(p)}
+                  isSelected={activePreset(p)}
                   onClick={() => {
                     setHours(p.hours);
                     setMinutes(p.minutes);

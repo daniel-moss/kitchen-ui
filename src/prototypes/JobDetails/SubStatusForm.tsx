@@ -10,7 +10,7 @@ import PopoverFooter from "../../components/Popover/PopoverFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 
 import styles from "./jobForm.module.scss";
 

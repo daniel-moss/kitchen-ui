@@ -26,6 +26,12 @@
 .cells {
   display: flex;
   align-items: center;
+
+  // The link in the fill's inheritance chain: the ROW paints the opaque (or
+  // composited hover) background, pinned CELLS copy it with their own
+  // `background: inherit` — and `inherit` only reaches one level up, so this
+  // wrapper must pass it through.
+  background: inherit;
 }
 
 .header .cells {
@@ -53,14 +59,22 @@
 .clickable {
   cursor: pointer;
 
+  // The hover / press fills are PRE-COMPOSITED over the surface instead of the
+  // plain translucent mixins: pinned cells inherit this background, and a
+  // bare --gray-a3/a4 would let the columns scrolling beneath the frozen
+  // region ghost through it.
   @media (hover: hover) {
     &:hover {
-      @include row-hover-fill;
+      background:
+        linear-gradient(var(--gray-a3), var(--gray-a3)),
+        var(--surface-level-first);
     }
   }
 
   &:active {
-    @include row-press-fill;
+    background:
+      linear-gradient(var(--gray-a4), var(--gray-a4)),
+      var(--surface-level-first);
   }
 
   &:focus-visible {

@@ -18,7 +18,11 @@
 
   // Sticky (pinned) cells float above the cells scrolling underneath, so the
   // fill has to be opaque. It comes from the row.
-  background-color: inherit;
+  // `background`, not `background-color`: a clickable row's hover fill is a
+  // COMPOSITED gradient layer, and inheriting only the color longhand left
+  // every cell painting plain surface over the tinted row — the hover then
+  // showed on nothing (or, with pins, on the pinned cells alone).
+  background: inherit;
 }
 
 // The value fills the cell so alignment has something to push against.
@@ -30,9 +34,30 @@
   min-width: 0;
 }
 
-// Badges sit closer together than an icon does to its label.
+// Badges sit closer together than an icon does to its label. A badge is never
+// SQUEEZED here (Daniel, 2026-09-04: its copy truncates only at the Badge's
+// own max-char limit) — when the set is too wide, whole badges drop into the
+// "+N" counter instead (the measurer in the tsx). The overflow guard only
+// covers the frame a pathologically narrow column would need to settle.
 .badgeContent .content {
   gap: var(--size-1_5);
+  overflow: hidden;
+}
+
+// The hidden twin the badge fit is measured from: every badge at its natural
+// width plus the widest possible "+N", laid out with the row's own gap but
+// never painted and never hit-tested.
+.badgeMeasure {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  display: flex;
+  gap: var(--size-1_5);
+  align-items: center;
+
+  visibility: hidden;
+  pointer-events: none;
 }
 
 // The badge cell's tooltip body: every badge's COPY, one per line, left
@@ -133,4 +158,16 @@
 .skeleton {
   flex: 1 1 0;
   min-width: 0;
+}
+
+// ---- pinned (frozen) ----
+// A pinned body cell freezes at the table's left edge (`left` from the inline
+// style: the summed widths of the pinned columns before it) and floats above
+// its scrolling neighbours. `background: inherit` copies the ROW's fill — the
+// opaque surface, or a clickable row's composited hover fill — so the columns
+// scrolling beneath never show through the frozen region.
+.pinned {
+  position: sticky;
+  z-index: 1;
+  background: inherit;
 }

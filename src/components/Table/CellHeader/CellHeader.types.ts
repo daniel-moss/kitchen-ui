@@ -36,6 +36,12 @@ export interface CellHeaderProps {
   /** Shows the thumbtack, marking the column as pinned. Default false. */
   isPinned?: boolean;
   /**
+   * The pinned cell's sticky offset — the summed widths of the pinned columns
+   * BEFORE it, in px. Set together with `isPinned`: the cell then freezes at
+   * the table's left edge while the rest scroll under it.
+   */
+  pinnedOffset?: number;
+  /**
    * Draws the pinned-region boundary on the right edge. Set it on the LAST
    * pinned column only — the same flag its CellBody cells carry.
    */

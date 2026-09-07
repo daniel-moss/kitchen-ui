@@ -13,7 +13,8 @@ type ChipState = "default" | "focused" | "hovered" | "pressed" | "disabled";
 type StoryArgs = {
   text: string;
   size: ChipSize;
-  active: boolean;
+  isSelected: boolean;
+  isValid: boolean;
   slotLeft: Slot;
   isLoading: boolean;
   isDisabled: boolean;
@@ -81,11 +82,11 @@ const centeredRow: React.CSSProperties = {
   flexWrap: "wrap",
 };
 
-const Ladder = ({ active }: { active: boolean }) => (
+const Ladder = ({ isSelected, isValid = true, withDisabled = true }: { isSelected: boolean; isValid?: boolean; withDisabled?: boolean }) => (
   <div style={centeredColumn}>
-    {STATES.map((state) => (
+    {STATES.filter((state) => withDisabled || state !== "disabled").map((state) => (
       <div key={state} className={PSEUDO[state]}>
-        <Chip size="md" active={active} isDisabled={state === "disabled"} onClick={noop}>
+        <Chip size="md" isSelected={isSelected} isValid={isValid} isDisabled={state === "disabled"} onClick={noop}>
           {STATE_LABELS[state]}
         </Chip>
       </div>
@@ -109,24 +110,26 @@ const LoadingRow = ({ size }: { size: ChipSize }) => (
 
 // --- stories -----------------------------------------------------------------
 
-/** sm/md/lg; `active` = the selected look; the left slot takes an Icon or an avatar. */
+/** sm/md/lg; `isSelected` = the selected look; the left slot takes an Icon or an avatar. */
 export const Playground: Story = {
   // The synthetic playground args/argTypes live on THIS story (not the meta) so
   // the docs-page ArgTypes table stays pure docgen from Chip.types.ts.
   parameters: { layout: "centered" },
-  args: { text: "Chip", size: "md", active: false, slotLeft: "none", isLoading: false, isDisabled: false },
+  args: { text: "Chip", size: "md", isSelected: false, isValid: true, slotLeft: "none", isLoading: false, isDisabled: false },
   argTypes: {
     text: { control: { type: "text" } },
     size: { options: SIZES, control: { type: "inline-radio" } },
-    active: { control: { type: "boolean" } },
+    isSelected: { control: { type: "boolean" } },
+    isValid: { control: { type: "boolean" } },
     slotLeft: { options: ["none", "icon", "avatar"], control: { type: "inline-radio" } },
     isLoading: { control: { type: "boolean" } },
     isDisabled: { control: { type: "boolean" } },
   },
-  render: ({ text, size, active, slotLeft, isLoading, isDisabled }) => (
+  render: ({ text, size, isSelected, isValid, slotLeft, isLoading, isDisabled }) => (
     <Chip
       size={size}
-      active={active}
+      isSelected={isSelected}
+      isValid={isValid}
       slotLeft={slotLeft === "none" ? undefined : SLOTS[slotLeft](size)}
       isLoading={isLoading}
       isDisabled={isDisabled}
@@ -141,7 +144,7 @@ export const Playground: Story = {
 const InteractiveChip = () => {
   const [selected, setSelected] = useState(false);
   return (
-    <Chip size="md" active={selected} onClick={() => setSelected((v) => !v)}>
+    <Chip size="md" isSelected={selected} onClick={() => setSelected((v) => !v)}>
       Chip
     </Chip>
   );
@@ -204,30 +207,63 @@ export const SlotLeftAvatar: Story = {
 };
 
 /** A chip is selected or unselected; clicking / tapping switches between them. */
-export const ActiveInactive: Story = {
+export const SelectedUnselected: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={centeredRow}>
       <Chip size="md" onClick={noop}>
         Unselected
       </Chip>
-      <Chip size="md" active onClick={noop}>
+      <Chip size="md" isSelected onClick={noop}>
         Selected
       </Chip>
     </div>
   ),
 };
 
-/** Inactive across all 5 states. */
+/** Unselected across all 5 states. */
 export const InactiveStates: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <Ladder active={false} />,
+  render: () => <Ladder isSelected={false} />,
 };
 
-/** Active across all 5 states. */
-export const ActiveStates: Story = {
+/** Selected across all 5 states. */
+export const SelectedStates: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <Ladder active />,
+  render: () => <Ladder isSelected />,
+};
+
+/** Invalid, unselected — the error treatment across the interaction states. */
+export const InvalidStates: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <Ladder isSelected={false} isValid={false} withDisabled={false} />,
+};
+
+/** Invalid, selected — renders exactly like invalid unselected (error replaces selection). */
+export const InvalidSelectedStates: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <Ladder isSelected isValid={false} withDisabled={false} />,
+};
+
+/** Disabled across the four value combinations — 30% opacity, scheme kept. */
+export const DisabledMatrix: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <Chip size="md" isDisabled onClick={noop}>
+        Unselected
+      </Chip>
+      <Chip size="md" isSelected isDisabled onClick={noop}>
+        Selected
+      </Chip>
+      <Chip size="md" isValid={false} isDisabled onClick={noop}>
+        Invalid
+      </Chip>
+      <Chip size="md" isSelected isValid={false} isDisabled onClick={noop}>
+        Invalid selected
+      </Chip>
+    </div>
+  ),
 };
 
 /** sm loading — text only, with an icon, and with an avatar. */

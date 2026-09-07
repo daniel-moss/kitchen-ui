@@ -131,7 +131,7 @@ export const LastPinned: Story = {
     <div style={frame}>
       {["JOB-1043", "JOB-1044"].map((id) => (
         <TableRow key={id}>
-          <CellBody width={160} isTabular isLastPinned>
+          <CellBody width={160} isLastPinned>
             {id}
           </CellBody>
           <CellBody width={380}>Walk-in cooler repair</CellBody>
@@ -171,7 +171,7 @@ export const TextTooltip: Story = {
   render: () => (
     <div style={frame}>
       <TableRow>
-        <CellBody width={FRAME_W} tooltip="Created by Rosa Klein on 12 Aug 2026">
+        <CellBody width={FRAME_W} tooltip="Created by Rosa Klein on Aug 12, 2026">
           Walk-in cooler repair
         </CellBody>
       </TableRow>

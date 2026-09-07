@@ -6,90 +6,118 @@ import * as ChipStories from "./Chip.stories";
 
 # Chip
 
-We use **Chip** as a small interactive element for a single or multiple
-selection. It works as a toggle — clicking or tapping switches it between
-unselected and selected.
+`Chip` is used as a compact, toggleable value — a filter condition, a picked
+label — that sits in a row with its siblings and answers one question: is this
+value in effect right now?
 
 <Canvas of={ChipStories.Interactive} />
 
 ```tsx
-<Chip size="md" active={selected} onClick={() => setSelected((v) => !v)}>
+<Chip size="md" isSelected={selected} onClick={() => setSelected((v) => !v)}>
   Chip
 </Chip>
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
 ↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Interaction states](#interaction-states)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Selection — isSelected](#selection--isselected)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Validation — isValid](#validation--isvalid)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Disabled](#disabled)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Left slot](#left-slot)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Loading](#loading)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-The bare minimum is the text only. The chip supports 3 sizes: **sm**
-(`--size-7` (28px) — caption 13/20, `--size-2` (8px) padding), **md**
-(`--size-8` (32px) — body 14/20, `--size-2_5` (10px) padding) and **lg**
-(`--size-9` (36px) — body 14/20, `--size-3` (12px) padding). All three have
-`--border-radius-1_5` (6px) corners.
+The chip is a padded container with corner radius that contains a label and an
+optional left slot. Three sizes: **sm** (`--size-7` (28px), `--size-2` (8px)
+padding), **md** (`--size-8` (32px), `--size-2_5` (10px) padding) and **lg**
+(`--size-9` (36px), `--size-3` (12px) padding). The label is body 14/20 in
+every size, and the corners are `--border-radius-1_5` (6px). `md` is the
+default — the most used chip.
 
 <Canvas of={ChipStories.Sizes} />
 
-Chip supports a **left slot**. The left slot supports an
+The left slot — an
 <a href="/?path=/story/components-icon--default" target="_top">Icon</a>
-and an avatar. The gap after the slot is `--size-1_5` (6px) in sm and
+or an avatar. The gap after the slot is `--size-1_5` (6px) in sm and
 `--size-2` (8px) in md and lg.
-
-Icon: size 14, and all parameters are editable. An icon with no color of its
-own follows the label color, so it changes with the chip's state; an icon the
-caller colored keeps that color.
 
 <Canvas of={ChipStories.SlotLeftIcon} />
 
-Avatar: the size is fixed — **xxs (16px)** in sm, **xs (20px)** in md and lg —
-but any avatar is supported.
+The avatar size is pinned by the chip size and is not choosable — **xxs
+(16px)** in sm, **xs (20px)** in md and lg.
 
 <Canvas of={ChipStories.SlotLeftAvatar} />
 
 ## Behavior
 
-### Selected and unselected
+### Interaction states
 
-Chip can be selected and unselected. Clicking or tapping on a chip switches
-between these states. Both fill with `--gray-a2`; the 1px border changes —
-`--gray-a7` when unselected, `--gray-12` when selected — and so does the text:
-an unselected chip is `--text-subtle` at rest, a selected one is
-`--text-strong`. `md` is the default size. `active` also sets `aria-pressed`,
-so pass it on chips that work as toggles.
+State never changes the chip's size — every treatment is a fill, border, or
+text change. Engaging the chip in any way (hover, press, focus, selection)
+lifts the label from `--text-subtle` to `--text-strong`. Unless the icon color
+was overridden, the icon follows the label.
 
-<Canvas of={ChipStories.ActiveInactive} />
-
-### States
-
-Each value has 5 states: default, focused (keyboard only), hovered, pressed and
-disabled. **Inactive** hover keeps the fill and strengthens the border to
-`--gray-a8`; press moves the fill to `--gray-a3` and keeps that border.
-**Active** does not change on hover; press moves the fill to `--gray-a3` and
-keeps the `--gray-12` border. **Focus** is the same on both values: a 2px
-`--gray-12` stroke, with no gap. **Disabled** dims to 30% with the not-allowed
-cursor.
-
-An **inactive** chip also changes its text color: `--text-subtle` at rest and
-when disabled, `--text-strong` on focus, hover and press. A left icon that has
-no color of its own follows the same steps. An **active** chip is
-`--text-strong` in every state.
-
-Inactive
+Hover strengthens the border from `--gray-a7` to `--gray-a8`; press adds the
+`--gray-a3` fill. Focus adds the ring — the keyboard's signal: a 2px
+`--gray-12` stroke with a 2px gap to the chip.
 
 <Canvas of={ChipStories.InactiveStates} />
 
-Active
+### Selection — isSelected
 
-<Canvas of={ChipStories.ActiveStates} />
+A selected chip is the currently applied option. Its border turns `--gray-12`
+and holds it through hover and press. `isSelected` also sets `aria-pressed`,
+so pass it (true/false) on chips that work as toggles.
+
+<Canvas of={ChipStories.SelectedUnselected} />
+
+<Canvas of={ChipStories.SelectedStates} />
+
+### Validation — isValid
+
+The error treatment replaces the selection emphasis — an invalid chip renders
+the same whether or not it is selected. Error persists through hover, press and
+focus — the user reaches for an invalid chip precisely to fix it.
+
+The look: `--tomato-a2` fill, a 2px `--tomato-9` border and an `--text-error`
+label. Unless the icon color was overridden, the icon follows the label. Hover
+and focus step the fill to `--tomato-a3`, press to `--tomato-a4`; the focus
+ring turns `--tomato-9`.
+
+<Canvas of={ChipStories.InvalidStates} />
+
+Selected — identical to unselected:
+
+<Canvas of={ChipStories.InvalidSelectedStates} />
+
+### Disabled
+
+A disabled chip dims to 30% opacity as a whole and stops responding. It keeps
+its own scheme while dimmed — a disabled invalid chip stays visibly tomato, so
+a locked form (saving, or a section switched off) does not hide that an error
+is still in it. The error becomes actionable again the moment the chip
+re-enables.
+
+<Canvas of={ChipStories.DisabledMatrix} />
+
+### Left slot
+
+The slot takes an icon or an object avatar; its size is the chip's decision,
+never the consumer's — 16px content inside sm, 20px inside md and lg. A chip
+with a slot truncates its label first; the slot never shrinks. Icon: size 14,
+and all parameters are editable — an icon with no color of its own follows the
+label color through every state; an icon the caller colored keeps that color.
 
 ### Loading
 
 `isLoading` swaps the label for a skeleton bar and the left slot (if one is
 set) for a `--gray-a3` circle — 14px for an icon, and the avatar's own size
 (16px in sm, 20px in md and lg) for an avatar. The chip keeps the unselected
-look, is not interactive, and shows the busy cursor.
+look (an invalid chip's error treatment is suppressed until the value lands),
+is not interactive, and shows the busy cursor.
 
 sm
 

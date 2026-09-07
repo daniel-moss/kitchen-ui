@@ -1,0 +1,12 @@
+// "New service" form — the field stack.
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px between fields
+}
+
+// Urgent's fire is the only colored priority icon.
+.urgent {
+  color: var(--orange-9);
+}

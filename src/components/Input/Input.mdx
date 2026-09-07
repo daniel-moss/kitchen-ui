@@ -30,7 +30,9 @@ also flows down into the field, which uses it to build its **default** error
 message ("Enter/Choose/Provide/Add [Label]") and related copy. Validation and
 the error message stay the **field's** job — `isValid` / `errorMessage` live
 on the field and Input renders no errors; the shared label only means you
-rarely need to write custom `errorMessage` copy.
+rarely need to write custom `errorMessage` copy. Clicking the label focuses /
+triggers the field below (checkbox and radio groups only receive focus — a
+label click never toggles an option).
 
 <Canvas of={InputStories.WithLabel} />
 

@@ -135,9 +135,9 @@ BadgeColor, BadgeStatus.
 
 <Canvas of={CellBodyStories.BadgeContent} />
 
-The cell shows up to two badges without truncation. If it's more than two
-badges, we only show the first one and replace the rest with a **+N** badge. The
-+N badge shows the number of hidden badges.
+The cell shows as many badges as fit the width. If the badges do not fit the
+width they truncate — show as many as fit and hide the rest under the **+N**
+badge.
 
 If the badges are truncated, we show the tooltip by hovering over the **cell**.
 The tooltip contains the list of all badges including the first one. Each badge

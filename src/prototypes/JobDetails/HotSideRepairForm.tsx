@@ -17,8 +17,8 @@ import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { HOT_SIDE_REPAIR_SCHEMA } from "../../forms/formSchema/hotSideRepairSchema";
-import { fieldMap } from "../../forms/formSchema/options";
+import { HOT_SIDE_REPAIR_SCHEMA } from "../../modules/formSchema/hotSideRepairSchema";
+import { fieldMap } from "../../modules/formSchema/options";
 import {
   Equipment,
   EquipmentAvatar,
@@ -27,15 +27,15 @@ import {
   equipmentLabel,
   equipmentTitle,
 } from "./equipment";
-import ObjectCard from "../../forms/shared/ObjectCard";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import ObjectCard from "../../modules/shared/ObjectCard";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { fileTypeOf, MediaItem, tileSrc } from "./mediaItem";
 import { noop, useAnchoredMenu } from "./shared";
 
 import styles from "./HotSideRepairForm.module.scss";
 
 // Labels, help texts, "(optional)" flags, radio options and `accept` come from
-// the SCHEMA (src/forms/formSchema/hotSideRepairSchema.ts) — the same data the
+// the SCHEMA (src/modules/formSchema/hotSideRepairSchema.ts) — the same data the
 // read-only preview is built from, so the two cannot drift apart.
 const F = fieldMap(HOT_SIDE_REPAIR_SCHEMA);
 const labelOf = (key: string) => F[key].label ?? "";
@@ -52,7 +52,7 @@ export type { MediaItem } from "./mediaItem";
 export interface HotSideDraft {
   checkIn: string;
   /** The picked equipment (the object select — 2026-08-06 Figma update). */
-  equipmentId: number | null;
+  equipmentId: string | null;
   reportedIssue: string;
   operatingOnArrival: YesNo;
   temperature: string;

@@ -1,0 +1,10 @@
+// The View Menu DEMO's stage (the module's stories) — a CLEAN showcase: the
+// bare card on desktop (no stage at all — the docs preview brings its own
+// 80px padding), the drawer alone in the device frame on mobile. The menu's
+// own styles are ViewMenu.module.scss.
+
+// ---- mobile stage ----
+.mobileStage {
+  position: relative;
+  height: 100%;
+}

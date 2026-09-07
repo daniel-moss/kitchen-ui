@@ -173,17 +173,17 @@ export interface JobStatusLog {
  * 24450-60498).
  */
 export function diffEquipment(
-  before: number[],
-  after: number[],
+  before: string[],
+  after: string[],
   // The LIVE pool — the New-equipment form appends to it, so the caller passes
   // its own copy instead of this module reading the initial one.
   pool: Equipment[] = EQUIPMENT_POOL
 ): { added: string[]; removed: string[] } {
-  const name = (id: number) => {
+  const name = (id: string) => {
     const equipment = pool.find((e) => e.id === id);
     return equipment != null ? equipmentSentenceName(equipment) : undefined;
   };
-  const names = (ids: number[]) => ids.map(name).filter((n): n is string => n != null);
+  const names = (ids: string[]) => ids.map(name).filter((n): n is string => n != null);
 
   return {
     added: names(after.filter((id) => !before.includes(id))),

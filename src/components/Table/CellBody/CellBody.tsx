@@ -14,9 +14,6 @@ import { CellBodyProps } from "./CellBody.types";
 /** Shown when a text, number or badge cell has no value. */
 const EMPTY_PLACEHOLDER = "—";
 
-/** Badges shown in full before the rest collapse into a "+N" count. */
-const MAX_BADGES = 2;
-
 /** The assignee tooltip when nobody is assigned. */
 const NO_ASSIGNEES = "No assignees";
 
@@ -109,6 +106,8 @@ export function CellBody({
   colorScheme = "default",
   isTabular,
   width,
+  isPinned = false,
+  pinnedOffset = 0,
   isLastPinned = false,
   isLoading = false,
   slotLeft,
@@ -140,6 +139,38 @@ export function CellBody({
       : null;
   const assignees = assigneeGroup?.props.items;
 
+  // How many WHOLE badges fit the width — the doc's rule (Daniel, 2026-09-04:
+  // "The cell shows as many badges as fit the width... show as many as fit
+  // and hide the rest under the '+N' badge"). Badges are never squeezed and
+  // their widths vary with their copy, so the fit comes from REAL widths: a
+  // hidden twin renders every badge plus the widest possible counter, and the
+  // largest count whose row (with the counter, when one is needed) fits the
+  // cell wins. The assignee cell's philosophy, with measurement in place of
+  // fixed avatar geometry. Never fewer than one badge, and the equality guard
+  // is what keeps the every-render effect (the file's convention) from
+  // looping.
+  const measureRef = useRef<HTMLSpanElement>(null);
+  const [badgeFit, setBadgeFit] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (content !== "badge" || isEmpty || isLoading) return;
+    const measurer = measureRef.current;
+    const available = contentRef.current?.clientWidth ?? 0;
+    if (measurer == null || available === 0) return;
+    const widths = [...measurer.children].map((el) => (el as HTMLElement).offsetWidth);
+    const counterWidth = widths.pop() ?? 0;
+    const GAP = 6; // --size-1_5, the badge row's gap
+    let fit = 1;
+    for (let count = widths.length; count >= 1; count -= 1) {
+      const badgesWidth = widths.slice(0, count).reduce((sum, w) => sum + w, 0) + (count - 1) * GAP;
+      const rowWidth = badgesWidth + (count < widths.length ? GAP + counterWidth : 0);
+      if (rowWidth <= available) {
+        fit = count;
+        break;
+      }
+    }
+    setBadgeFit((current) => (current === fit ? current : fit));
+  });
+
   // Badge copy for the tooltip: each Badge's own children, in order.
   const badgeLabels = items.map((item) =>
     isValidElement(item) ? ((item.props as { children?: ReactNode }).children ?? null) : item,
@@ -158,14 +189,19 @@ export function CellBody({
       );
     }
 
-    // Badges: show up to two, then the first plus a count of the ones hidden.
-    if (content === "badge" && items.length > MAX_BADGES) {
-      return (
-        <>
-          {items[0]}
-          <Badge>{`+${items.length - 1}`}</Badge>
-        </>
-      );
+    // Badges: as many whole ones as FIT, the rest under "+N" (see the fit
+    // measurement above). Until the first measurement lands they all render —
+    // the layout effect resolves before paint, so nothing flashes.
+    if (content === "badge") {
+      const shown = badgeFit ?? items.length;
+      if (shown < items.length) {
+        return (
+          <>
+            {items.slice(0, shown)}
+            <Badge>{`+${items.length - shown}`}</Badge>
+          </>
+        );
+      }
     }
 
     // Assignees: the cell — not the caller — decides how many avatars fit the
@@ -210,7 +246,7 @@ export function CellBody({
       if (assignees != null && assignees.length > 0) return { variant: "avatarGroup", items: assignees } as const;
       return null;
     }
-    if (content === "badge" && !isEmpty && items.length > MAX_BADGES) {
+    if (content === "badge" && !isEmpty && badgeFit != null && badgeFit < items.length) {
       return {
         variant: "slot",
         content: (
@@ -248,15 +284,27 @@ export function CellBody({
         // left slot's icon — the doc's rule that the icon inherits the colour
         // on every variant except "default" and "subtle".
         styles[colorScheme],
-        { [styles.lastPinned]: isLastPinned },
+        { [styles.pinned]: isPinned, [styles.lastPinned]: isLastPinned },
         className,
       )}
-      style={width === undefined ? undefined : { width, minWidth: width }}
+      style={{
+        ...(width === undefined ? undefined : { width, minWidth: width }),
+        // The sticky offset — where this cell freezes while the table scrolls.
+        ...(isPinned ? { left: pinnedOffset } : undefined),
+      }}
     >
       {isLoading ? (
         renderLoading()
       ) : (
         <>
+          {/* The measuring twin — every badge at natural width plus the widest
+              possible counter. Hidden, out of flow, never interactive. */}
+          {content === "badge" && !isEmpty && (
+            <span ref={measureRef} aria-hidden="true" className={styles.badgeMeasure}>
+              {items}
+              <Badge>{`+${Math.max(items.length - 1, 1)}`}</Badge>
+            </span>
+          )}
           {/* `triggerRef` hands HoverTooltip the cell itself: no wrapper is
               rendered around the value (an inline-flex span here would break
               the row, since the cell is a flex child carrying its own width),

@@ -1,0 +1,41 @@
+@use "../../../styles/mixins/font" as *;
+
+// "Location" module — field + selected-location Card, --size-3 (12px) apart
+// (the node's annotated gap).
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// Missing-value placeholder in list rows (the ListItem Template doc).
+.placeholderText {
+  color: var(--text-placeholder);
+}
+
+// The Active/Inactive group icons (the node: solid 14, jade / gray).
+.activeIcon {
+  color: var(--jade-a9);
+}
+
+.inactiveIcon {
+  color: var(--gray-a9);
+}
+
+// The "Change location?" Prompt body: the intro sentence, then the
+// "Will be cleared" list.
+.promptListTitle {
+  @include font("heading-h4");
+  display: block;
+  margin-top: var(--size-3);
+  color: var(--text-strong);
+}
+
+.promptList {
+  display: block;
+
+  > span {
+    display: block;
+  }
+}

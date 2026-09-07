@@ -1,0 +1,20 @@
+@use "../../styles/mixins/font" as *;
+
+// The shared grouped file list.
+
+.size {
+  @include font("body-400-compact");
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+// Missing-value placeholder (the ListItem Template doc).
+.placeholderText {
+  color: var(--text-placeholder);
+}
+
+// The row ⋯ menu's fixed-position anchor (the Job Details pattern).
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

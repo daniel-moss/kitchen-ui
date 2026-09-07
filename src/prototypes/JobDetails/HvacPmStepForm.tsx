@@ -19,9 +19,9 @@ import StepItemGroup from "../../components/StepItemGroup/StepItemGroup";
 import StepItem from "../../components/StepItemGroup/StepItem";
 import { StepItemProgress } from "../../components/StepItemGroup/StepItem.types";
 import { ChecklistAnswer, SECTIONS } from "./HvacPmForm";
-import { HVAC_PM_STEPS, HVAC_PM_TECHS_OPTIONS } from "../../forms/formSchema/hvacPmSchema";
+import { HVAC_PM_STEPS, HVAC_PM_TECHS_OPTIONS } from "../../modules/formSchema/hvacPmSchema";
 import { DURATION_PRESETS, MINUTE_OPTIONS } from "./SchedulingForm";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 
 import styles from "./HvacPmStepForm.module.scss";
 
@@ -302,7 +302,7 @@ export default function HvacPmStepForm({
                     key={t}
                     size="md"
                     className={styles.techChip}
-                    active={t === draft.techs}
+                    isSelected={t === draft.techs}
                     onClick={() => setDraft((prev) => ({ ...prev, techs: t }))}
                   >
                     {t}
@@ -342,7 +342,7 @@ export default function HvacPmStepForm({
                 <Chip
                   key={p.label}
                   size="md"
-                  active={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
+                  isSelected={p.hours === String(parseInt(draft.hours, 10) || 0) && p.minutes === draft.minutes}
                   onClick={() => setDraft((prev) => ({ ...prev, hours: p.hours, minutes: p.minutes }))}
                 >
                   {p.label}

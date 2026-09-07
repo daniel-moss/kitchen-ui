@@ -13,7 +13,6 @@ export default function BottomBarNavItem({
   icon,
   label,
   active = false,
-  strong = false,
   isDisabled = false,
   href,
   target,
@@ -26,7 +25,7 @@ export default function BottomBarNavItem({
 
   return (
     <Tag
-      className={clsx(styles.item, active && styles.active, strong && styles.strong, isDisabled && styles.disabled, className)}
+      className={clsx(styles.item, active && styles.active, isDisabled && styles.disabled, className)}
       href={isLink ? href : undefined}
       target={isLink ? target : undefined}
       rel={isLink ? rel : undefined}
@@ -37,8 +36,7 @@ export default function BottomBarNavItem({
       aria-current={active ? "page" : undefined}
       onClick={isDisabled ? undefined : onClick}
     >
-      {/* `strong` also solidifies the icon (the bar doc's Create). */}
-      <Icon icon={icon} pack={active || strong ? "solid" : "regular"} size={18} />
+      <Icon icon={icon} pack={active ? "solid" : "regular"} size={18} />
     </Tag>
   );
 }

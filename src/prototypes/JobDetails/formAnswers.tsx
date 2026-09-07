@@ -1,4 +1,4 @@
-import { FormAnswers, FormMediaAnswer } from "../../forms/formSchema/schema.types";
+import { FormAnswers, FormMediaAnswer } from "../../modules/formSchema/schema.types";
 import { Equipment, EquipmentAvatar, equipmentCaption, equipmentLabel } from "./equipment";
 import { HotSideDraft } from "./HotSideRepairForm";
 import { HvacPmStepDraft } from "./HvacPmStepForm";

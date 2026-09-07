@@ -1,0 +1,20 @@
+// "Type" module — possible recalls above the radios (the node's order).
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+}
+
+// The chosen row's "Selected" button: success-colored, non-interactive.
+.selectedButton {
+  --btn-fg: var(--text-success);
+  pointer-events: none;
+}
+
+// The Recall radio's content: field + the recalled job's Card, 12px apart.
+.recallContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}

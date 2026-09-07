@@ -45,7 +45,7 @@ const headerCells = (
 
 const bodyCells = (
   <>
-    <CellBody width={130} isTabular>
+    <CellBody width={130}>
       JOB-1043
     </CellBody>
     <CellBody width={270}>Walk-in cooler repair</CellBody>
@@ -136,7 +136,7 @@ export const Table: Story = {
         { id: "JOB-1045", service: "Ice machine descale", status: "Complete", total: "$45.00" },
       ].map((job) => (
         <TableRow key={job.id} isClickable onClick={noop}>
-          <CellBody width={120} isTabular isLastPinned>
+          <CellBody width={120} isLastPinned>
             {job.id}
           </CellBody>
           <CellBody width={190}>{job.service}</CellBody>

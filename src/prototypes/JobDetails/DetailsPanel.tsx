@@ -45,8 +45,8 @@ import {
   SERVICE_CLIENT_CONTACTS,
   SERVICE_LOCATION_CONTACTS,
 } from "./contacts";
-import NewLocationForm from "../../forms/NewLocationForm/NewLocationForm";
-import { NewLocation } from "../../forms/NewLocationForm/NewLocationForm.types";
+import NewLocationForm from "../../modules/NewLocationForm/NewLocationForm";
+import { NewLocation } from "../../modules/NewLocationForm/NewLocationForm.types";
 import { groupLocations, JobLocation, locationCaption, SERVICE_CLIENTS } from "./jobData";
 import JobPropertiesForm, { JobProperties, JobSource, MODULE_DATE, sourceAvatar, sourceRequiresId } from "./JobPropertiesForm";
 import { displayStatus, formatStatusTimestamp, JobState, STATUS_TS } from "./jobState";
@@ -58,6 +58,7 @@ import StatusModule from "./StatusModule";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./DetailsPanel.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // The "Details" content of the Job Details prototype (Figma "Details" Tab,
 // node 23821-21309): 8 DisplayModules. Desktop: the right sidebar. Mobile:
@@ -116,7 +117,7 @@ interface DetailsPanelProps {
 
 /** Job IDs already in the demo workspace — typing one shows the Job-properties
  *  form's "Job with this ID already exists" error (node 23810-16779). */
-const TAKEN_JOB_IDS = ["JOB-10002", "JOB-10003", "JOB-10004", "JOB-10005", "JOB-10006"];
+const TAKEN_JOB_IDS = ["JOB-1209", "JOB-1195", "JOB-1187", "JOB-1176", "JOB-1164"];
 
 /** The header pencil — an ordinary right-slot IconButton. Without `onClick`
  *  the module has no form yet and the button is display-only. */
@@ -680,7 +681,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               variant="object"
               avatar={<AvatarClient size="xl" type="business" />}
               label={c.name}
-              caption="Business · Commercial"
+              caption={c.caption}
               onClick={() => {
                 setClientsOpen(false);
                 setNewLocationClient(c.name);
@@ -704,14 +705,14 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               disabled
               avatar={<AvatarClient size="xl" type="business" />}
               label={c.name}
-              caption="Business · Commercial"
+              caption={c.caption}
               onClick={noop}
             />
           ))}
         </SelectListItemGroup>
       </SelectList>
 
-      {/* The reusable New-location form (src/forms). Creating appends to the
+      {/* The reusable New-location form (src/modules). Creating appends to the
           pool and selects the location via the same clearing rules. */}
       <NewLocationForm
         open={newLocationClient != null}

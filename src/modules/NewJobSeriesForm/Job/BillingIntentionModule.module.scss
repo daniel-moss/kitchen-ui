@@ -1,0 +1,41 @@
+// "Billing Intention" module.
+
+.labelRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-1_5); // 6px — label <> hint trigger
+}
+
+// The "different client" content: field + billing-client Card, the same
+// --size-3 (12px) rhythm as the Location module's field <> card.
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// Card + its issues help text, --size-1_5 (6px) apart (the node).
+.cardStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5);
+}
+
+// Missing-value placeholder in rows (the ListItem Template doc).
+.placeholderText {
+  color: var(--text-placeholder);
+}
+
+// The location/client row sits 4px from every content-slot side.
+.rowPad {
+  padding: var(--size-1);
+}
+
+// The Active/Inactive group icons (the node: solid 14, jade / gray).
+.activeIcon {
+  color: var(--jade-a9);
+}
+
+.inactiveIcon {
+  color: var(--gray-a9);
+}

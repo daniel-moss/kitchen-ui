@@ -17,12 +17,10 @@ import styles from "./DateField.module.scss";
 import { DateFieldProps } from "./DateField.types";
 
 // The standardized display (Figma + the app-wide date rule): weekday + month +
-// day — "Monday, January 1" — with the year added only when it is not the
-// current year ("Monday, January 1, 2027").
-const FORMAT = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+// day + year — "Monday, January 1, 2027". The year is ALWAYS shown — the old
+// "hide the current year" rule was removed (Daniel, 2026-09-07).
 const FORMAT_WITH_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-export const formatDate = (date: Date) =>
-  (date.getFullYear() === new Date().getFullYear() ? FORMAT : FORMAT_WITH_YEAR).format(date);
+export const formatDate = (date: Date) => FORMAT_WITH_YEAR.format(date);
 
 // Parse typed text into a Date: "" clears, a Chrono-parseable string commits,
 // anything else returns undefined (the caller reverts).
@@ -45,6 +43,7 @@ export default function DateField(props: DateFieldProps) {
     value,
     defaultValue,
     onDateChange,
+    onDateInput,
     isValid = true,
     errorMessage,
     withPicker = true,
@@ -78,7 +77,11 @@ export default function DateField(props: DateFieldProps) {
   const showInvalid = !g.isValid && interactive;
   const pickerEnabled = withPicker && interactive;
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => setDraft(e.target.value);
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setDraft(e.target.value);
+    // Live parse for real-time consumers (the DatePicker's inner field).
+    onDateInput?.(parseText(e.target.value));
+  };
 
   // Commit: empty clears; parseable standardizes; anything else reverts.
   const commit = () => {
@@ -93,28 +96,38 @@ export default function DateField(props: DateFieldProps) {
 
   // ===== DatePicker wiring ==================================================
   const isDesktop = useIsDesktop(breakpoint);
-  // Mobile opens the calendar-only picker drawer — there is nothing to type, so
-  // the input must NOT summon the keyboard. A real `readOnly` attribute keeps
-  // iOS from showing it (the label's onClick still opens the picker); the
-  // read-only VISUAL is intentionally not applied (the field stays interactive).
+  // Mobile: this field only OPENS the picker drawer (typing happens in the
+  // drawer's own inner DateField), so the input must NOT summon the keyboard.
+  // A real `readOnly` attribute keeps iOS from showing it (the label's onClick
+  // still opens the picker); the read-only VISUAL is intentionally not applied
+  // (the field stays interactive).
   const mobileNoKeyboard = pickerEnabled && !isDesktop;
   const fieldRef = useRef<HTMLLabelElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
+  // 4px gap, left-aligned (docs). When the card would run past the viewport
+  // bottom it FLIPS above the field instead of clipping (Daniel, 2026-09-07);
+  // before the card has rendered (no height yet) it opens below.
+  const placeCard = () => {
+    if (fieldRef.current == null) return;
+    const r = fieldRef.current.getBoundingClientRect();
+    const cardHeight = cardRef.current?.getBoundingClientRect().height ?? 0;
+    const below = r.bottom + 4;
+    const flip = cardHeight > 0 && below + cardHeight > window.innerHeight - 8 && r.top - 4 - cardHeight > 8;
+    setPos({ top: flip ? r.top - 4 - cardHeight : below, left: r.left });
+  };
+
   const openPicker = () => {
     if (!pickerEnabled) return;
-    if (isDesktop && fieldRef.current != null) {
-      const r = fieldRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 4, left: r.left }); // 4px gap, left-aligned (docs)
-    }
+    if (isDesktop) placeCard();
     setPickerOpen(true);
   };
   const closePicker = () => setPickerOpen(false);
 
-  // A picked calendar day commits immediately and closes (desktop: select +
-  // close; mobile: day tap applies + closes).
+  // The picker applied a date (desktop: a chip was clicked; mobile: Apply was
+  // tapped) — commit it and close.
   const pickDate = (d: Date) => {
     setDraft(null);
     setDate(d);
@@ -124,11 +137,9 @@ export default function DateField(props: DateFieldProps) {
   // an outside click (the field's own click re-opens, so it is excluded).
   useEffect(() => {
     if (!pickerOpen || !isDesktop) return undefined;
-    const update = () => {
-      if (fieldRef.current == null) return;
-      const r = fieldRef.current.getBoundingClientRect();
-      setPos({ top: r.bottom + 4, left: r.left });
-    };
+    const update = placeCard;
+    // Re-measure now that the card is mounted — its height decides the flip.
+    update();
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
       if (fieldRef.current?.contains(t) || cardRef.current?.contains(t)) return;
@@ -163,8 +174,10 @@ export default function DateField(props: DateFieldProps) {
         document.body
       )
     ) : (
-      // Mobile: calendar only — no DateField/Apply footer (Daniel). Tapping a
-      // day commits and closes.
+      // Mobile: the DRAWER — the DatePicker's own inner DateField (labelled
+      // like this field) above the calendar, plus the Apply footer. Day taps
+      // fill the inner field; Apply commits (onChange fires then) and closes;
+      // dismissing the drawer discards.
       <DatePicker
         breakpoint="mobile"
         open={pickerOpen}
@@ -174,6 +187,7 @@ export default function DateField(props: DateFieldProps) {
         minDate={minDate}
         maxDate={maxDate}
         today={today}
+        label={effectivePickerLabel}
       />
     )
   ) : null;

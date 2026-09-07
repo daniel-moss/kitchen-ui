@@ -3,7 +3,8 @@ import { ServiceCallDraft } from "./ServiceCallForm";
 
 // Demo answers for the two schema-backed forms, so the job opens with completed
 // forms whose PREVIEW can be shown right away (Daniel, 2026-08-06). Both point
-// at equipment the job really has (equipment.tsx INITIAL_JOB_EQUIPMENT = 1 + 5):
+// at equipment the job really has (equipment.tsx INITIAL_JOB_EQUIPMENT —
+// the database job's walk-in cooler + reach-in freezer):
 // the Service call is about the walk-in cooler — the job's reported issue — and
 // the Hot Side - Repair about the gas-heat air handler, which is the unit with
 // burners, a pilot and gas pressure.
@@ -40,7 +41,7 @@ const video = (name: string, file: string, poster: string, size: number): MediaI
 // empty. Its preview exists, it is just reached by filling the form first.
 
 export const DEMO_SERVICE_CALL_DRAFT: ServiceCallDraft = {
-  equipmentId: 5, // Walk-in Cooler ・ True Manufacturing
+  equipmentId: "eq-wd-walkin", // Walk-in Cooler · True Manufacturing
   voltage: "208V",
   phase: "Single phase",
   gas: "Natural gas",
@@ -69,7 +70,7 @@ export const DEMO_SERVICE_CALL_DRAFT: ServiceCallDraft = {
 
 export const DEMO_HOT_SIDE_DRAFT: HotSideDraft = {
   checkIn: "Marta Reyes, kitchen manager",
-  equipmentId: 1, // Air Handler ・ American Range
+  equipmentId: "eq-wd-reachin", // Reach-in Freezer · True Manufacturing
   reportedIssue: "No heat — the burner lights and drops out after a few seconds.",
   operatingOnArrival: "No",
   temperature: "63 °F",

@@ -3,346 +3,40 @@
 // Filters — Concept 5 shell. App background is --surface-level-first; the nav
 // bars and the content area draw no fill of their own (app mockup rule).
 
-// ---- nav sidebar (hardcoded for this concept) ------------------------------
-// Concept 1's sidebar (Figma nodes 13825-10029 + 13835-16562) with Daniel's
-// 2026-08-16 changes: a 56px header, Create lifted above the item list with no
-// gap under the header, the list starting with Search 8px below Create, and
-// 1px between all the rows instead of Concept 1's flush stack.
-
-.sidebar {
-  box-sizing: border-box;
-  display: flex;
-  align-items: stretch;
-  width: 281px; // 280 + the 1px edge divider
-  height: 100%;
-}
-
-.sidebarInner {
-  display: flex;
-  flex-direction: column;
-  width: 280px;
-  height: 100%;
-  min-height: 0;
-}
-
-.sidebarHeader {
-  box-sizing: border-box;
-  display: flex;
-  flex: none;
-  gap: var(--size-2); // the minimum workspace ↔ profile gap
-  align-items: center;
-  justify-content: space-between;
-  height: 60px; // Daniel, 2026-08-16 — was 56px (no --size token for 60)
-  padding: 0 var(--size-3); // 12px sides (Daniel, 2026-08-17 — was 10px)
-}
-
-// A long workspace name truncates instead of pushing the profile button.
-.sidebarWorkspace {
-  min-width: 0;
-}
-
-.sidebarScrollWrap {
-  flex: 1 1 0;
-}
-
-// Everything below the header scrolls; while it fits, the bottom block pins
-// down (space-between). NO padding-top — Create sits straight under the
-// header, with no gap between them.
-.sidebarScroll {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-2); // keeps >= 8px between the two blocks when overflowing
-  justify-content: space-between;
-  // 12px sides (Daniel, 2026-08-17 — was 10px), matching the header above.
-  // The BOTTOM stays 10px; only the sides were asked for.
-  padding: 0 var(--size-3) var(--size-2_5);
-
-  // The node's rows are 36px; SidebarNavItem's desktop row is 32px. The extra
-  // [class] beats the component's own two-class rule. Scoped to this sidebar,
-  // so the component keeps its size everywhere else.
-  :is(a, button)[class] {
-    height: var(--size-9); // 36px
-  }
-}
-
-// Create, then the item list — 8px apart. `flex: none` so the block keeps its
-// size and scrolls instead of squashing when the sidebar runs out of height.
-.sidebarTop {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--size-2); // 8px between Create and the list below it
-  width: 100%;
-}
-
-// Every row stack in this sidebar — the main list and the bottom items — puts
-// 1px between its rows.
-.sidebarItems {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--size-px); // 1px
-  width: 100%;
-
-  // Same inside an accordion group: SidebarNavItemGroup's own stack is 2px
-  // apart with 2px under the header. Scoped here — the component is untouched.
-  [role="group"] {
-    gap: var(--size-px); // 1px
-    padding-top: var(--size-px); // 1px below the header
-  }
-}
-
-// The colour is the Divider's own `contrast="medium"` (--gray-a4), set in the
-// tsx — nothing to override here.
-.sidebarEdge {
-  flex: none;
-  height: 100%;
-}
-
-// The Create row, the same as Concept 1's. Everything it needs comes from
-// SidebarNavItem's `strong` modifier — icon + label in the strong colours, no
-// fill at rest — except the icon WEIGHT: `strong` keeps the icon regular on
-// purpose, and the node draws `circle-plus` in the SOLID pack. Icon's `solid`
-// pack IS font-weight 900 (see Icon.module.scss), so this is the same
-// mechanism, not a lookalike. Local to this prototype.
-.createRow i {
-  font-weight: 900;
-}
-
-// The Create menu: a body portal fixed to the right of the row, tops aligned.
-.createMenu {
-  position: fixed;
-  z-index: var(--z-menu);
-}
+// ---- nav sidebar -----------------------------------------------------------
+// The DS SidebarNav since 2026-09-03 — nothing local left: the 60px header,
+// the 12px sides, Create on top, the 1px row rhythm, the 36px rows and the
+// medium (--gray-a4) edge divider are all the component's own.
 
 // ---- top bar ---------------------------------------------------------------
-// The DS TopBarNav, with two prototype-local adjustments (Daniel, 2026-08-16).
+// The DS TopBarNav. Since its 2026-08-27 redesign the bar IS this concept's
+// design (60px row, lg buttons, heading-h3 16/24 title, tabs slot with the
+// scroller and edge fades), so the old local size/type overrides are gone.
 
-// The bar's built-in bottom Divider is its LAST child (the inner row is the
-// first). TopBarNav renders it itself and takes no props for it, so the colour
-// has to come through the component's own --divider-color. --gray-a4 is
-// Divider's "medium" contrast (Daniel, 2026-08-17 — it was --gray-a6); if
-// TopBarNav ever exposes the divider, this becomes contrast="medium".
-.topBar {
-  > :last-child {
-    --divider-color: var(--gray-a4);
-  }
-
-  // The inner row: 60px instead of the DS's 52px (Daniel, 2026-08-16).
-  > :first-child {
-    height: 60px;
-  }
-
-  // The bar's buttons at `lg` instead of `md`. TopBarNavRightElements
-  // HARDCODES size="md" on all three (search IconButton, "New" Button,
-  // mobile plus IconButton) and exposes no prop for it — so these reproduce
-  // the DS's own `lg` values: IconButton lg = 36×36, Button lg = 36 tall with
-  // 12px sides (and 10px while the focus ring is showing, as the DS does).
-  // FLAGGED to Daniel: the proper fix is a size prop on TopBarNav.
-  > :first-child > :last-child {
-    button {
-      height: var(--size-9); // 36px
-    }
-
-    // The icon-only buttons (search on desktop, create on mobile) are square.
-    button[aria-label] {
-      width: var(--size-9); // 36px
-    }
-
-    // The desktop "New" Button takes lg side padding.
-    button:not([aria-label]) {
-      padding: 0 var(--size-3); // 12px
-
-      &:focus-visible {
-        padding: 0 calc(var(--size-3) - 2px);
-      }
-    }
-  }
-}
-
-// The title takes the DS `heading-h3` style (semibold 15/24) instead of
-// TopBarNavTitle's own body-500-compact. The title text is the component's
-// only span that is not aria-hidden (the dropdown icon is), so this reaches
-// the text without touching the angles-up-down icon.
-.topBarTitle {
-  button > span:not([aria-hidden="true"]),
-  > span:not([aria-hidden="true"]) {
-    @include font("heading-h3");
-
-    // 16px instead of the token's 15px — THIS CONCEPT ONLY (Daniel,
-    // 2026-08-17). The h3 weight (semibold) and line height (24px) stay; the
-    // `font` shorthand above set both, and this only replaces the size. The
-    // --font-heading-h3 token itself is untouched, so nothing else moves.
-    font-size: 1rem; // 16px
-  }
-}
-
-// The top bar's left side holds the title AND the branch tabs, 16px apart
-// (Figma nodes 13888-16807 / 13896-20752). TopBarNavLeftElements is a plain
-// centred flex row with no gap of its own, so the gap lives here. Nothing needs
-// to stretch in this concept: the tabs are 36px pills centred in the 60px row,
-// not full-height underlined ones.
-.topBarLeft {
-  gap: var(--size-4); // 16px
+// The ONE adjustment left: the bar's built-in bottom Divider is its LAST child
+// (the inner row is the first). TopBarNav renders it itself and takes no props
+// for it, so the colour has to come through the component's own
+// --divider-color. Every line in this concept is --gray-a4 — Divider's
+// "medium" contrast (Daniel, 2026-08-17); if TopBarNav ever exposes the
+// divider, this becomes contrast="medium".
+.topBar > :last-child {
+  --divider-color: var(--gray-a4);
 }
 
 // ---- view bar --------------------------------------------------------------
-// Desktop = Figma node 13888-17057, mobile = node 13893-20294. Both are 60px
-// with 16px side padding and the controls on the right 8px apart. On the left:
-// the status tabs on desktop, the StatusPicker on mobile.
+// The DS TopBarView since 2026-09-03 — the hand-built 60px bar, its tab
+// scroller, the local StatusPicker and the Filters count control are gone;
+// the component draws all of it on both breakpoints.
 //
-// The 1px --gray-a4 line along the BOTTOM EDGE is on both breakpoints, and it
-// stays even when the filter bar shows below (the node draws both lines).
-// Drawn as an INSET box-shadow, the DS pattern for a line that must not add to
-// the element's size — a real border would push the bar past 60px.
-
-.viewBar {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--size-4); // 16px
-  width: 100%;
-  min-height: 60px;
-  padding: 0 var(--size-4); // 16px sides
-  box-shadow: inset 0 -1px 0 var(--gray-a4);
+// The same divider adjustment as the top bar: the concept's lines are
+// --gray-a4, and TopBarView renders its bottom Divider itself (the bar's
+// second child — on mobile a third child appears below it while the keyword
+// search is open: the search bar with its own closing Divider).
+.viewBar > :nth-child(2),
+.viewBar > :nth-child(3) > :last-child {
+  --divider-color: var(--gray-a4);
 }
 
-// The tab row does not fit the bar next to the buttons, so it scrolls sideways.
-// The SCROLLER is this wrapper, not the tablist itself — a tablist that scrolls
-// inside itself would leave the DS's selected surface behind. The scrollbar is
-// hidden, the same way the DS hides it on TopBarNav's details tabs.
-.viewTabsScroll {
-  display: flex;
-  align-items: center;
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-// The edge fades that mark where the row continues — the same 32px masks the DS
-// uses on TopBarNav's scrolling tabs.
-.viewTabsFadeRight {
-  mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent);
-}
-
-.viewTabsFadeLeft {
-  mask-image: linear-gradient(to right, transparent, #000 32px);
-}
-
-.viewTabsFadeBoth {
-  mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
-}
-
-// The tabs in this concept are the DS TabGroup's `default` variant at `lg`
-// (Figma nodes 13888-16989 / 13888-18080): 36px pills, 12px sides, radius 6, 2px
-// apart, the selected one on a --gray-a3 fill. Every value there is the
-// component's own — the only thing this adds is `max-content`, so the tabs keep
-// their size inside the scroller instead of squashing to fit.
-.statusTabs,
-.branchTabs {
-  width: max-content;
-}
-
-.viewControls {
-  display: flex;
-  flex: none;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  justify-content: flex-end;
-}
-
-// ---- the mobile status picker ----------------------------------------------
-// PROTOTYPE-LOCAL — Figma node 13893-20670 is NOT a Button (Daniel, 2026-08-18):
-// a bare row of icon 14 (solid) · 8px · name + count · 8px · angles-up-down,
-// everything --gray-12, with no padding, no fill and no radius.
-//
-// It dims like the DS's interactive title (TopBarNavTitle): 75% on hover, 50%
-// while the list is open — which is the state the node draws.
-
-.statusPickerWrap {
-  display: flex;
-  flex: none;
-}
-
-.statusPicker {
-  display: flex;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  // The row itself is only 20px tall; the taller box is an invisible touch
-  // target (the DS's 36px minimum), and it changes nothing visually because the
-  // bar centres it. FLAGGED as an addition to the node.
-  min-height: var(--size-9); // 36px
-  padding: 0;
-  color: var(--gray-12);
-  cursor: pointer;
-  background: none;
-  border: 0;
-
-  @include font("body-500-compact");
-
-  @media (hover: hover) {
-    &:hover {
-      opacity: 0.75;
-    }
-  }
-
-  &:active {
-    opacity: 0.5;
-  }
-}
-
-// While the list is open — the node's own state.
-.statusPickerOpen,
-.statusPickerOpen:hover {
-  opacity: 0.5;
-}
-
-// The chevron is dimmer than the label — --gray-a9, like the one in the top
-// bar's title (Daniel, 2026-08-18).
-.statusPickerChevron {
-  color: var(--gray-a9);
-}
-
-// The mobile Filters button once filters are applied (Figma node 13889-19259):
-// the DS ghost lg Button holding the icon and a Counter, with the node's 10px
-// side padding instead of lg's 12 — that is Button `md`'s padding at `lg`'s
-// height, so the 36px control keeps the IconButton's optical weight.
-.filtersCountButton {
-  padding: 0 var(--size-2_5); // 10px
-}
-
-// ---- the condition-chip header ---------------------------------------------
-// The chips row of a filter's option list, closed by a Divider (Figma node
-// 13947-15714). The ONE piece here that is not a DS component.
-//
-// Since 2026-08-23 NO DESIGNED FILTER is on it: Assignee, Client and Date
-// received all hand their whole header to the DS `SelectListHeader`. What is
-// left on it are the filters with no node of their own — Duration, Labels,
-// Location, Priority, Scheduled for, Service, Source, Status, Status changed,
-// Type. FLAGGED: when those get designed, this block and its two classes go.
-.optionHeader {
-  display: flex;
-  flex-direction: column;
-  background: var(--gray-a2);
-  // 10px top and bottom, 16px sides — and NOTHING else. The room above the chips
-  // belongs to the CHIP CONTAINER, so it comes and goes with the chips
-  // (Daniel, 2026-08-19).
-  padding: var(--size-2_5) var(--size-4); // 10px / 16px
-}
-// The 10px on TOP stands in for the CARD's own padding — its top edge is a
-// rounded corner with nothing above it. A DRAWER has the title above instead
-// (and no line under it), so the block sits straight against it.
-.optionHeaderDrawer {
-  padding-top: 0;
-}
 // A search bar with NO fill — the Filters MENU's own search, and the Assignee
 // and Client lists (Daniel, 2026-08-19). `MenuHeader` and `SelectListHeader`
 // both hand their className to the SearchField WRAPPER, whose first child is the
@@ -355,26 +49,9 @@
   background: none;
 }
 
-// The chip CONTAINER (Figma "Frame 13"). It carries its own 6px above the chips
-// — the room belongs to the container, so it disappears with it when a filter
-// has no chips at all. The chips wrap when the list is too narrow for both (the
-// node's group is `flex-wrap`), which is why they are their own row.
-.conditionChipGroup {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  padding-top: var(--size-1_5); // 6px
-}
-// LAST in the header — no search under the chips — so the container closes with
-// its 6px too, on top of the block's 10 (Figma node 13951-16513).
-.conditionChipGroupLast {
-  padding-bottom: var(--size-1_5); // 6px
-}
-
-// (The flat unselected chip override is gone since 2026-08-23: the DS Chip was
-// rebuilt on 2026-08-20 and its resting look IS the flat one — a --gray-a2
-// fill, a --gray-a7 border and a --text-subtle label.)
+// (The prototype-local chips header — .optionHeader and .conditionChipGroup —
+// is gone since 2026-09-03: every filter's list header is the DS
+// `SelectListHeader` now, per the documented sections.)
 
 // ---- the "Filters" menu (desktop) ------------------------------------------
 // The desktop menu card: a body portal fixed under the "Filters" button, 4px
@@ -475,30 +152,39 @@
   }
 }
 
-// The footer's leading slot SHOWS the value being built — plain TEXT with the
-// filter's own icon, not a Button (Daniel, 2026-08-23; node 13979-35697 draws a
-// bare icon + label, 8px apart, with no box and no padding of its own). Shared
-// by both Custom dialogs: a calendar in the date one, an hourglass in the
-// duration one (node 13983-38223).
-.customFooterValue {
-  @include font("body-500-compact"); // Inter Medium 14/20
-
-  display: flex;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  color: var(--text-strong);
-  white-space: nowrap;
-}
-
 // ---- the duration filter's Custom dialog -----------------------------------
-// Figma nodes 13983-37497 (desktop) / 13983-37308 (mobile), and 13983-38053 /
-// 13983-37755 for `within`. Two blocks, no Divider between them — unlike the
-// date dialog, which has one under its Timeframe row.
+// The documented Form section 14100-38325 (nodes 13923-24049 desktop /
+// 13923-24742 mobile, and 13923-24617 / 13923-24921 for `within`): the
+// condition chips in a 16px row, a full-bleed Divider (in the tsx — NEW with
+// the documented section, the old node drew none), then the fields.
 
 // CONDITION — the four measures (over / under / is / within) in a 16px row.
-// The ADDRESS dialog's body (Figma nodes 13988-53606 / 13988-53696): 16px all
-// round, 24px between the fields. Bigger than the duration dialog's 16 because
-// every field here carries a label above it.
+.durationCustomCondition {
+  padding: var(--size-4); // 16px
+}
+
+// CONTENT — one "N hr / NN min" field row, or two 16px apart in `within`.
+// 16px all round: the Divider above separates it from the Condition block.
+.durationCustomContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+}
+
+// ---- the ADDRESS dialog ----------------------------------------------------
+// The documented section 14100-36446 (nodes 14100-36447 desktop /
+// 14100-36463 mobile): the condition chips in a 16px row of their own, a
+// full-bleed Divider (in the tsx), then the fields.
+
+// CONDITION — "contains" / "does not contain" as lg Chips (node 14100-36449).
+.addressCustomCondition {
+  padding: var(--size-4); // 16px
+}
+
+// The dialog's field body: 16px all round, 24px between the fields. Bigger
+// than the duration dialog's 16 because every field here carries a label
+// above it.
 .addressCustomContent {
   display: flex;
   flex-direction: column;
@@ -519,42 +205,31 @@
   }
 }
 
-.durationCustomCondition {
-  padding: var(--size-4); // 16px
-}
-
-// CONTENT — one "N hr / NN min" field row, or two 16px apart in `within`. NO top
-// padding: the Condition block above closes with its own 16.
-.durationCustomContent {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-4); // 16px
-  padding: 0 var(--size-4) var(--size-4); // 0 / 16px / 16px
-}
-
 // ---- the dialog's MONTH grid and YEAR list ---------------------------------
-// Figma nodes 13962-14374 / 13962-14376 and 13965-24022 / 13965-24024 for
-// Month, 13965-29278 / 13965-31488 for Year. The same list of years, drawn two
-// ways: Month gives each year a title over its twelve months in three columns,
-// Year is one full-width chip per year. See the notes on `PeriodList` in
-// Concept5.tsx for what the DS Chip is missing here.
-// The list SCROLLS on its own, so the Timeframe and Condition rows stay put
-// above it. 384 is exactly TWO year blocks (184 each) plus the 16 between them,
-// so the scroll boundary lands on a block edge. The node's Years frame is
-// `overflow: clip` and 400px tall (13965-23216), 16 more than its content —
-// which is slack, not a third block. Was 416 while the grid rows were 8px apart.
+// The documented Timeframe filter section (Month dialog 14097-21480, Year
+// dialog 14098-28104, 2026-09-03). The same list of years, drawn two ways:
+// Month gives each year a 36px header over its twelve months in three touching
+// columns; Year is one full-width cell per year, no titles. The CELLS are the
+// DS DateChip — nothing local is drawn on them any more; the old Chip restyle
+// (the dark pill, the bands, the full radius) is gone.
+//
+// The list is the dialog's own scrolling Content block: 16px padding, under a
+// second full-bleed Divider (in the tsx). The nodes fix the block at 479px on
+// desktop; the DS Dialog's body scrolls the drawer on mobile, so the same
+// height holds there too.
 .monthYears {
   position: relative; // the scroll maths reads each year's offsetTop from here
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--size-4); // 16px between years
-  max-height: 384px;
+  height: 479px;
+  padding: var(--size-4); // 16px
   overflow-y: auto;
   width: 100%;
 }
-// YEAR: one full-width chip per year, 4px apart and no titles (nodes
-// 13965-31165 / 13965-31488 — the rows sit at 0/40/80…, i.e. a 36px chip plus
-// 4; tightened from 8 by Daniel, 2026-08-24).
+// YEAR: one full-width cell per year, 4px apart and no titles (node
+// 14098-28104 — rows at 0/40/80…, a 36px cell plus 4).
 .monthYearsRows {
   gap: var(--size-1); // 4px
 }
@@ -562,32 +237,33 @@
   display: flex;
   width: 100%;
 
-  // The Chip inside fills the row — the node draws it 576px wide of 576.
+  // The DateChip inside fills the row — the node draws it edge to edge.
   > * {
     flex: 1 1 0;
     min-width: 0;
   }
 }
-// A year block: its title over the twelve months. 4px under the title (node
-// 13965-28473 puts the 24px title at 0 and the first row at 28; tightened from
-// 8 by Daniel, 2026-08-24).
+// A year block: its 36px header over the twelve months, 4px apart (node
+// 14098-24909: the MonthHeader row is 36px tall, the first cell row 4 below).
 .monthYear {
   display: flex;
   flex-direction: column;
-  gap: var(--size-1); // 4px — title ↔ grid
+  gap: var(--size-1); // 4px — header ↔ grid
   width: 100%;
 }
 .monthYearTitle {
-  @include font("heading-h3"); // Inter Semi Bold 15/24
+  @include font("heading-h3"); // Inter Semi Bold 16/24
 
+  display: flex;
+  align-items: center;
+  min-height: var(--size-9); // 36px — the node's MonthHeader row
   width: 100%;
   color: var(--text-strong);
 }
 
-// Three columns that TOUCH — the node gives the row `gap: 4px 0`, so the cells
-// join sideways and the rows stay 4px apart (rows at 28/68/108/148 = a 36px
-// chip plus 4; tightened from 8 by Daniel, 2026-08-24). Touching columns are
-// what lets a picked range read as one bar across a row.
+// Three columns that TOUCH — the node's rows have no column gap, so the cells
+// join sideways (which is what lets a picked range read as one bar across a
+// row) and the rows stay 4px apart.
 .monthGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -595,200 +271,27 @@
   width: 100%;
 }
 
-// The DS `Chip`, stripped to what the node draws: no resting fill and no 1px
-// ring, the label `--text-strong`, and stretched to fill its column.
-//
-// Class names are REPEATED on purpose. The DS Chip writes its own states as
-// `.chip:hover:not(:disabled):not(.loading)` — four selectors — so a single
-// class here loses. Two repeats win the resting rule, three win the state
-// rules, and the picked look repeats once more to sit above the band's.
-// FULLY rounded, not the node's 6px (Daniel, 2026-08-23): with no resting fill
-// the radius only shows under the hover, and a pill there matches the picked
-// month's own pill.
-.monthCell.monthCell {
-  min-width: 0;
-  justify-content: center;
-  color: var(--text-strong);
-  border-radius: var(--border-radius-full);
-  background: none;
-  box-shadow: none;
-}
-// NOT IN THE NODE (a static frame draws no states): with no resting fill there
-// is nothing for the DS Chip's hover to move, so the cell would feel dead.
-// These are the DS's own row-interaction fills. FLAGGED.
-@media (hover: hover) {
-  .monthCell.monthCell.monthCell:hover:not(:disabled) {
-    background: var(--gray-a3);
-    box-shadow: none;
-  }
-}
-.monthCell.monthCell.monthCell:active:not(:disabled) {
-  background: var(--gray-a4);
-  box-shadow: none;
-}
-
-// In-range months: the same --gray-a2 band the calendar draws, square so the
-// cells join sideways, capped at the two ends.
-.monthCellBand.monthCellBand.monthCellBand,
-.monthCellBand.monthCellBand.monthCellBand:active:not(:disabled) {
-  background: var(--gray-a2);
-  border-radius: 0;
-  box-shadow: none;
-}
-.monthCellBandStart.monthCellBandStart.monthCellBandStart {
-  border-start-start-radius: var(--border-radius-full);
-  border-end-start-radius: var(--border-radius-full);
-}
-.monthCellBandEnd.monthCellBandEnd.monthCellBandEnd {
-  border-start-end-radius: var(--border-radius-full);
-  border-end-end-radius: var(--border-radius-full);
-}
-
-// The picked month — a dark PILL, the same look the calendar's selected day
-// has. It covers the band underneath, exactly as the node stacks them, and it
-// does not react to hover or press (nor does the selected day).
-.monthCellPicked.monthCellPicked.monthCellPicked.monthCellPicked,
-.monthCellPicked.monthCellPicked.monthCellPicked.monthCellPicked:hover:not(:disabled),
-.monthCellPicked.monthCellPicked.monthCellPicked.monthCellPicked:active:not(:disabled) {
-  @include font("body-500-compact"); // Inter Medium 14/20
-
-  color: var(--gray-1);
-  border-radius: var(--border-radius-full);
-  background: var(--gray-12);
-  box-shadow: none;
-}
-
 // ---- the dialog's calendar -------------------------------------------------
-// The DS DatePicker's layout, rebuilt inline (the DS component only renders as
-// a floating desktop card or its own mobile drawer). See the notes on
-// `DialogCalendar` in Concept5.tsx for the four differences from the DS picker,
-// all read off node 13962-8889.
+// Each visible month is the DS `Month` component since 2026-09-03 — header,
+// weekdays, DateChip grid and band all its own. Only the arrangement is local:
+// the clipping swipe wrapper and the side-by-side row.
 .dialogCalendar {
   // The month slides sideways under a swipe; nothing may show outside the box.
   overflow: hidden;
   width: 100%;
 }
 
-// One or two months side by side, 16px apart (node 13962-12748 draws two 280px
-// calendars in the 576px content column).
+// One or two DS Months side by side, 16px apart (node 14096-10085 draws two
+// in the 576px content column). Each takes half.
 .dialogCalendarMonths {
   display: flex;
   gap: var(--size-4); // 16px
   width: 100%;
-}
-.dialogCalendarMonth {
-  display: flex;
-  flex: 1 1 0;
-  flex-direction: column;
-  gap: var(--size-4); // 16px — header ↔ calendar block
-  min-width: 0;
-}
 
-// Title LEFT, both nav buttons hard right (the DS picker brackets a centred
-// title instead). The 36px floor is the node's own header height — without it
-// the month WITHOUT buttons (the left one of a range pair) would be 24px tall
-// and its grid would ride up above its neighbour's.
-.dialogCalendarHeader {
-  display: flex;
-  gap: var(--size-2); // 8px
-  align-items: center;
-  min-height: var(--size-9); // 36px
-  width: 100%;
-}
-.dialogCalendarTitle {
-  @include font("heading-h3"); // Inter Semi Bold 15/24
-
-  flex: 1 0 0;
-  min-width: 0;
-  color: var(--gray-12);
-}
-
-.dialogCalendarBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-3); // 12px — weekdays ↔ dates
-}
-
-// Weekdays and week rows share one column rhythm: seven cells that stretch to
-// fill the width but never pass 56px, spread apart by `space-between`.
-.dialogCalendarWeekdays,
-.dialogCalendarRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-.dialogCalendarWeekday {
-  @include font("caption-medium-400"); // Inter Regular 13/20
-
-  flex: 1 0 0;
-  min-width: 0;
-  max-width: var(--size-14); // 56px
-  color: var(--gray-a9);
-  text-align: center;
-}
-
-.dialogCalendarGrid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-1); // 4px — between week rows
-  outline: none;
-}
-
-// The DS `DateButton`, with this calendar's look. The class is DOUBLED so it
-// outweighs the component's own single-class rules whichever order the two
-// stylesheets land in (the DS Chip's own hover rules needed the same trick).
-//
-// A PILL that stretches with the row, not the DS's fixed 36px square — the
-// inner `.cell` fills the button, so its radius has to follow.
-.dialogCalendarDay.dialogCalendarDay {
-  flex: 1 0 0;
-  width: auto;
-  min-width: 0;
-  max-width: var(--size-14); // 56px
-  border-radius: var(--border-radius-full);
-
-  > span {
-    border-radius: var(--border-radius-full);
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
   }
-}
-// The selected day's label is MEDIUM here; the DS DateButton draws it semibold.
-.dialogCalendarDaySelected.dialogCalendarDaySelected > span {
-  @include font("body-500-compact"); // Inter Medium 14/20
-}
-// Days outside the shown month are INVISIBLE, not dimmed (the DS DateButton's
-// `disabled` is 40%): the node draws only the month on show. They keep their
-// cell so the grid never reflows, and `disabled` already makes them inert.
-.dialogCalendarDayHidden.dialogCalendarDayHidden {
-  opacity: 0;
-}
-
-// ---- the RANGE band (nodes 13962-12748 / 13962-12750) ----------------------
-// A picked range is a --gray-a2 BAND running under the days, square-cornered so
-// consecutive cells join into one bar, and capped with the full radius at the
-// two ends. The band sits on the BUTTON; the DS DateButton's inner `.cell`
-// stays transparent for the days between, and carries its usual `selected`
-// pill at the two ends — which is exactly how the node stacks them.
-//
-// The band survives a row break on purpose: the node runs it to the row's edge
-// and picks it up again on the next line. It is unbroken WITHIN a row because
-// the cells touch — in range mode the calendar is 280px (desktop) or 343px
-// (mobile) wide, so the 56px cap never kicks in and `space-between` leaves no
-// gaps between them.
-//
-// These come AFTER `.dialogCalendarDay`, whose doubled class sets the full
-// radius; same specificity, so source order decides and these win.
-.dialogCalendarDayBand.dialogCalendarDayBand {
-  background: var(--gray-a2);
-  border-radius: 0;
-}
-.dialogCalendarDayBandStart.dialogCalendarDayBandStart {
-  border-start-start-radius: var(--border-radius-full);
-  border-end-start-radius: var(--border-radius-full);
-}
-.dialogCalendarDayBandEnd.dialogCalendarDayBandEnd {
-  border-start-end-radius: var(--border-radius-full);
-  border-end-end-radius: var(--border-radius-full);
 }
 
 // (The Custom dialog needs no z-index of its own since 2026-08-20: picking
@@ -1108,4 +611,3 @@
   width: var(--size-px); // 1px
   background: var(--gray-a4);
 }
-

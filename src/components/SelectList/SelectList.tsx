@@ -109,6 +109,7 @@ export default function SelectList({
   variant = "inline",
   children,
   open = true,
+  restoreFocus = true,
   onClose,
   title,
   caption,
@@ -214,7 +215,7 @@ export default function SelectList({
   // gets both from Dialog itself, so it is excluded here.
   const usesDialog = variant === "dialog" && isDesktop;
   useEscapeKey(open && !usesDialog, onClose);
-  useRestoreFocus(open && !usesDialog);
+  useRestoreFocus(open && !usesDialog && restoreFocus);
 
   // Arrow keys (plus Home/End) move focus through the options, skipping
   // disabled ones. With no option focused, ArrowDown enters at the top and

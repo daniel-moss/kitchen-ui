@@ -97,13 +97,43 @@ export const Wrapping: Story = {
   ),
 };
 
+// Full width — the weekday row from the "Repeat on" input: the chips share
+// the row equally and the consumer keeps the picked days (no selection by
+// default, per the design).
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const FullWidthDemo = () => {
+  const [selected, setSelected] = useState<string[]>([]);
+  const toggle = (label: string) =>
+    setSelected((prev) => (prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]));
+  return (
+    <ChipGroup isFullWidth>
+      {WEEKDAYS.map((label) => (
+        <Chip key={label} size="lg" isSelected={selected.includes(label)} onClick={() => toggle(label)}>
+          {label}
+        </Chip>
+      ))}
+    </ChipGroup>
+  );
+};
+
+/** isFullWidth — one non-wrapping row, the chips share the width equally. */
+export const FullWidth: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <FullWidthDemo />
+    </div>
+  ),
+};
+
 // Single-select — the consumer keeps ONE selected key.
 const SingleSelectDemo = () => {
   const [selected, setSelected] = useState<string | null>("Sushi");
   return (
     <ChipGroup>
       {CUISINES.slice(0, 5).map((label) => (
-        <Chip key={label} active={selected === label} onClick={() => setSelected(label)}>
+        <Chip key={label} isSelected={selected === label} onClick={() => setSelected(label)}>
           {label}
         </Chip>
       ))}
@@ -129,7 +159,7 @@ const MultiSelectDemo = () => {
   return (
     <ChipGroup>
       {CUISINES.slice(0, 5).map((label) => (
-        <Chip key={label} active={selected.includes(label)} onClick={() => toggle(label)}>
+        <Chip key={label} isSelected={selected.includes(label)} onClick={() => toggle(label)}>
           {label}
         </Chip>
       ))}

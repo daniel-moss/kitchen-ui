@@ -1,0 +1,12 @@
+// "Equipment" module — field + the picked rows, --size-3 (12px) apart.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// Missing-value placeholder in rows (the ListItem Template doc).
+.placeholderText {
+  color: var(--text-placeholder);
+}

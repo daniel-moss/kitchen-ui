@@ -92,7 +92,9 @@ export default function TopBarView({
   searchPlaceholder = "Keyword search...",
   filtersCount = 0,
   onFiltersClick,
+  filtersPressed = false,
   onViewMenuClick,
+  viewMenuPressed = false,
   breakpoint = "auto",
   className,
   _searchOpen = false,
@@ -176,10 +178,10 @@ export default function TopBarView({
                 Search
               </Button>
             )}
-            <Button variant="ghost" size="lg" leftIcon="bars-filter" onClick={onFiltersClick}>
+            <Button variant="ghost" size="lg" leftIcon="bars-filter" isPressed={filtersPressed} onClick={onFiltersClick}>
               Filters
             </Button>
-            <Button variant="ghost" size="lg" leftIcon="sliders" onClick={onViewMenuClick}>
+            <Button variant="ghost" size="lg" leftIcon="sliders" isPressed={viewMenuPressed} onClick={onViewMenuClick}>
               View
             </Button>
           </div>
@@ -238,16 +240,37 @@ export default function TopBarView({
               copy is the count; clearing them all turns it back (the doc).
               The tooltip belongs to the IconButton form only. */}
           {filtersCount > 0 ? (
-            <Button variant="ghost" size="lg" leftIcon="bars-filter" aria-label={`Filters (${filtersCount} applied)`} onClick={onFiltersClick}>
+            <Button
+              variant="ghost"
+              size="lg"
+              leftIcon="bars-filter"
+              aria-label={`Filters (${filtersCount} applied)`}
+              isPressed={filtersPressed}
+              onClick={onFiltersClick}
+            >
               {filtersCount}
             </Button>
           ) : (
             <HoverTooltip text="Filters">
-              <IconButton variant="ghost" size="lg" icon="bars-filter" aria-label="Filters" onClick={onFiltersClick} />
+              <IconButton
+                variant="ghost"
+                size="lg"
+                icon="bars-filter"
+                aria-label="Filters"
+                isPressed={filtersPressed}
+                onClick={onFiltersClick}
+              />
             </HoverTooltip>
           )}
           <HoverTooltip text="View">
-            <IconButton variant="ghost" size="lg" icon="sliders" aria-label="View" onClick={onViewMenuClick} />
+            <IconButton
+              variant="ghost"
+              size="lg"
+              icon="sliders"
+              aria-label="View"
+              isPressed={viewMenuPressed}
+              onClick={onViewMenuClick}
+            />
           </HoverTooltip>
         </div>
       </div>

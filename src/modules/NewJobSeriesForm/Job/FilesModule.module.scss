@@ -1,0 +1,7 @@
+// "Files" module — Dropzone + the added files, --size-3 (12px) apart.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}

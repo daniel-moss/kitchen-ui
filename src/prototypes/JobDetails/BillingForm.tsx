@@ -22,9 +22,11 @@ import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { JobLocation, locationCaption } from "./jobData";
 import { noop } from "./shared";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 
 import styles from "./BillingForm.module.scss";
+import { CLIENTS as DB_CLIENTS } from "../../data/db";
+import { joinWithSeparator, TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- data model -------------------------------------------------------------
 
@@ -43,19 +45,18 @@ interface Client {
   active: boolean;
 }
 
-// Demo client pool (Active + Inactive), all commercial businesses.
-const CLIENTS: Client[] = [
-  { id: 1, name: "McDonald's", type: "Business · Commercial", active: true },
-  { id: 2, name: "Starbucks", type: "Business · Commercial", active: true },
-  { id: 3, name: "Chipotle", type: "Business · Commercial", active: true },
-  { id: 4, name: "Panera Bread", type: "Business · Commercial", active: true },
-  { id: 5, name: "Blockbuster", type: "Business · Commercial", active: false },
-  { id: 6, name: "RadioShack", type: "Business · Commercial", active: false },
-];
+// The client pool (Active + Inactive) — the DATABASE's clients since the
+// 2026-09-04 migration, with the "Type  ·  Industry" caption built per client.
+const CLIENTS: Client[] = DB_CLIENTS.map((client, index) => ({
+  id: index + 1,
+  name: client.name,
+  type: joinWithSeparator(client.clientType, client.industryType),
+  active: client.isActive,
+}));
 
-// The job's service CLIENT — "Bill to client" resolves to this (the client from
-// the designs).
-export const SERVICE_CLIENT = { name: "McDonald's", caption: "Business · Commercial" };
+// The job's service CLIENT — "Bill to client" resolves to this (the database
+// job's client, Wildwood Kitchen).
+export const SERVICE_CLIENT = { name: CLIENTS[0].name, caption: CLIENTS[0].type };
 
 /** The radio labels — reused by the activity log so it reads like the form. */
 export const BILLING_INTENTION_LABELS: Record<BillingIntention, string> = {

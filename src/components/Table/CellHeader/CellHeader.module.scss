@@ -17,8 +17,9 @@
   padding: 0 var(--size-4);
 
   // Pinned header cells are sticky in both directions, so the fill must be
-  // opaque. It comes from the row.
-  background-color: inherit;
+  // opaque. It comes from the row — `background`, not `background-color`, so a
+  // clickable row's composited hover fill comes along in one piece.
+  background: inherit;
 
   transition: background-color 120ms ease;
 }
@@ -77,14 +78,21 @@
 .sortable {
   cursor: pointer;
 
+  // Pre-composited over the surface, like TableRow's fills: a PINNED header
+  // cell is sticky, and a bare translucent fill would let the columns
+  // scrolling beneath it ghost through while hovered.
   @media (hover: hover) {
     &:hover {
-      @include row-hover-fill;
+      background:
+        linear-gradient(var(--gray-a3), var(--gray-a3)),
+        var(--surface-level-first);
     }
   }
 
   &:active {
-    @include row-press-fill;
+    background:
+      linear-gradient(var(--gray-a4), var(--gray-a4)),
+      var(--surface-level-first);
   }
 
   &:focus-visible {
@@ -112,4 +120,14 @@
 .skeleton {
   flex: 1 1 0;
   min-width: 0;
+}
+
+// ---- pinned (frozen) ----
+// A pinned header cell freezes at the table's left edge: sticky BOTH ways —
+// `top` comes from the header rowgroup, `left` from the inline style (the
+// summed widths of the pinned columns before it). Above its scrolling
+// neighbours; the opaque inherited fill hides them as they pass underneath.
+.pinned {
+  position: sticky;
+  z-index: 1;
 }

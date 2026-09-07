@@ -1,0 +1,12 @@
+// "New Job" Form — the shell. The step content column matches the Figma
+// focus-dialog body: a 576px column, centered on desktop.
+
+.column {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8); // 32px — the FormModuleGroup rhythm
+  width: 100%;
+  max-width: 576px;
+  margin: 0 auto;
+}

@@ -18,13 +18,13 @@ const items = (
   <>
     <BottomBarNavItem icon="house" label="Home" active />
     <BottomBarNavItem icon="wrench-simple" label="Jobs" />
-    <BottomBarNavItem icon="circle-plus" label="Create" strong />
+    <BottomBarNavItem icon="plus" label="Create" />
     <BottomBarNavItem icon="magnifying-glass" label="Search" />
     <BottomBarNavItem icon="bars" label="Menu" />
   </>
 );
 
-/** The doc's bar: Home (active), Jobs, Create (solid icon), Search, Menu. */
+/** The doc's bar: Home (active), Jobs, Create, Search, Menu. */
 export const Playground: Story = {
   render: () => (
     <DocsFrame>

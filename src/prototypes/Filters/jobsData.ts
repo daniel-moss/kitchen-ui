@@ -1,11 +1,24 @@
 import { BadgeJobStatusStatus, STATUS } from "../../components/Badge/BadgeJobStatus";
+import {
+  CLIENTS as DB_CLIENTS,
+  JOB_LABELS,
+  JOB_SOURCES,
+  LOCATIONS as DB_LOCATIONS,
+  SERVICES as DB_SERVICES,
+  Client,
+  JobLabel,
+  JobSource,
+  Location,
+  Service,
+} from "../../data/db";
 import { users } from "../../data/users";
+import { joinWithSeparator } from "../../utils/textSeparator";
 
 // Filters — Concept 5's own little database (Daniel, 2026-08-17).
 //
 // WHY it exists: the concept used to carry 6 hand-written display rows plus 20
 // cycled copies of them, with every value already formatted for the screen
-// ("12 Aug", "2h 30m"). Nothing could be filtered or counted from that. Here a
+// ("Aug 12", "2h 30m"). Nothing could be filtered or counted from that. Here a
 // job holds REAL values — dates as ISO strings, duration in minutes, related
 // records as ids — and the strings the table shows are derived from them. That is
 // what lets the filters both COUNT and FILTER the same list (see filters.tsx).
@@ -36,101 +49,33 @@ function dayAt(offsetDays: number, hour = 9, minute = 0): string {
 }
 
 // ---- the related records ---------------------------------------------------
+// MIGRATED to the shared demo database on 2026-09-04 (src/data/db): clients,
+// locations, services, labels and sources are the DATABASE's rows now, so
+// every prototype shares one world — browse it under Data → Database. The
+// generator below still builds this prototype's OWN 64-job table from them: a
+// filterable mass of jobs is Filters' subject matter, and the database's
+// small curated job list is not it. The database arrays keep the exact order
+// the local records had, so the seeded generation is unchanged.
+//
+// The re-exports keep this module the prototype's single data door — the
+// rest of the prototype imports from jobsData, never from the db directly.
+//
+// Location gotcha carried over: `unit` ("Suite 200") is filterable through
+// the Address filter but never DISPLAYED — the Location row and the Address
+// column draw "street, city, state postal" without it, so `locationAddress`
+// leaves it out. (The field was called `suite` before the migration.)
 
-export interface ServiceRecord {
-  id: string;
-  name: string;
-}
+export type ServiceRecord = Service;
+export type ClientRecord = Client;
+export type LocationRecord = Location;
+export type LabelRecord = JobLabel;
+export type SourceRecord = JobSource;
 
-/** The work being done. Also the "Service" filter's options. */
-export const SERVICES: ServiceRecord[] = [
-  { id: "walk-in-cooler", name: "Walk-in cooler repair" },
-  { id: "fryer-service", name: "Fryer service and calibration" },
-  { id: "ice-machine", name: "Ice machine descale" },
-  { id: "dishwasher", name: "Dishwasher inspection" },
-  { id: "combi-oven", name: "Combi oven quarterly maintenance" },
-  { id: "hood-cleaning", name: "Grill hood cleaning" },
-  { id: "freezer-seal", name: "Freezer door seal replacement" },
-  { id: "range-burner", name: "Range burner repair" },
-  { id: "steam-table", name: "Steam table thermostat swap" },
-  { id: "prep-fridge", name: "Prep fridge compressor service" },
-  { id: "grease-trap", name: "Grease trap service" },
-  { id: "espresso", name: "Espresso machine descale" },
-];
-
-export interface ClientRecord {
-  id: string;
-  name: string;
-}
-
-export const CLIENTS: ClientRecord[] = [
-  { id: "wildwood", name: "Wildwood Kitchen" },
-  { id: "harbour", name: "Harbour Grill" },
-  { id: "bayside", name: "Bayside Catering" },
-  { id: "ferry", name: "Ferry Building Deli" },
-  { id: "mission", name: "Mission Taqueria" },
-  { id: "northpoint", name: "North Point Hotel" },
-  { id: "sunset", name: "Sunset Bakery" },
-  { id: "presidio", name: "Presidio Canteen" },
-];
-
-/**
- * A location — REBUILT 2026-08-24 for the Location filter (Figma section
- * 13986-51028). It used to hold a `name` that repeated the client's ("Wildwood
- * Kitchen — Downtown") and one pre-formatted `address` string. Neither works for
- * the designed list, which groups the rows BY CLIENT and prints
- * "Location name ・ Street address, city, state postal code":
- *
- *   - the group header already says the client, so the name here is the site's
- *     OWN name ("Downtown"), never the client's again;
- *   - EVERY part is optional, and the row shows only the parts that exist
- *     (Daniel, 2026-08-24). A pre-joined string cannot answer "does this
- *     location have a postal code", so the parts are stored apart and joined by
- *     `locationAddress` below.
- *
- * The data deliberately covers each gap: `ferry-main` and `presidio-canteen`
- * have no name, `presidio-canteen` no street, `bayside-commissary` no postal
- * code, and `northpoint-banquet` no address at all.
- */
-export interface LocationRecord {
-  id: string;
-  clientId: string;
-  /** The site's own name. Null for a client with one site — common in the app. */
-  name: string | null;
-  street: string | null;
-  /**
-   * Suite / unit. Added 2026-08-24 for the ADDRESS filter, whose second field is
-   * "Suite, unit, etc." (Figma node 13995-16610).
-   *
-   * FLAGGED: it is filterable but never DISPLAYED — the Location filter's row
-   * (13987-52348) and the table's Address column both draw "Street address,
-   * city, state postal code" with no suite in it, so `locationAddress` leaves it
-   * out. Say the word and it goes in after the street.
-   */
-  suite: string | null;
-  city: string | null;
-  state: string | null;
-  postalCode: string | null;
-}
-
-/** Locations belong to a client — that is why the two filters are separate. */
-export const LOCATIONS: LocationRecord[] = [
-  { id: "wildwood-downtown", clientId: "wildwood", name: "Downtown", street: "418 Mission St", suite: "Suite 200", city: "San Francisco", state: "CA", postalCode: "94105" },
-  { id: "wildwood-airport", clientId: "wildwood", name: "Airport", street: "780 McDonnell Rd", suite: "Terminal 2", city: "San Francisco", state: "CA", postalCode: "94128" },
-  { id: "harbour-pier", clientId: "harbour", name: "Pier 39", street: "1201 Beach St", suite: null, city: "San Francisco", state: "CA", postalCode: "94109" },
-  { id: "harbour-marina", clientId: "harbour", name: "Marina", street: "2100 Chestnut St", suite: "Unit B", city: "San Francisco", state: "CA", postalCode: "94123" },
-  // No postal code.
-  { id: "bayside-commissary", clientId: "bayside", name: "Commissary", street: "77 Industrial Way", suite: null, city: "Oakland", state: "CA", postalCode: null },
-  // One site, so no name of its own — the address IS the name.
-  { id: "ferry-main", clientId: "ferry", name: null, street: "1 Ferry Building", suite: "Shop 12", city: "San Francisco", state: "CA", postalCode: "94111" },
-  { id: "mission-24th", clientId: "mission", name: "24th St", street: "2840 24th St", suite: null, city: "San Francisco", state: "CA", postalCode: "94110" },
-  { id: "northpoint-hotel", clientId: "northpoint", name: "Main kitchen", street: "555 North Point St", suite: null, city: "San Francisco", state: "CA", postalCode: "94133" },
-  // Shares the hotel's building, so the address was never filled in — name only.
-  { id: "northpoint-banquet", clientId: "northpoint", name: "Banquet", street: null, suite: null, city: null, state: null, postalCode: null },
-  { id: "sunset-judah", clientId: "sunset", name: "Judah St", street: "1750 Judah St", suite: null, city: "San Francisco", state: "CA", postalCode: "94122" },
-  // No name and no street — city, state and code are all it has.
-  { id: "presidio-canteen", clientId: "presidio", name: null, street: null, suite: null, city: "San Francisco", state: "CA", postalCode: "94129" },
-];
+export const SERVICES = DB_SERVICES;
+export const CLIENTS = DB_CLIENTS;
+export const LOCATIONS = DB_LOCATIONS;
+export const LABELS = JOB_LABELS;
+export const SOURCES = JOB_SOURCES;
 
 /**
  * The address in US order, with ONLY the parts that exist:
@@ -147,54 +92,18 @@ export function locationAddress(location: LocationRecord): string {
 
 /**
  * One location as the filter row writes it (Figma node 13987-52348):
- * "Location name ・ Street address, city, state postal code". Each half appears
- * only if it exists, so a nameless location is just its address and an
+ * "Location name  ·  Street address, city, state postal code". Each half
+ * appears only if it exists, so a nameless location is just its address and an
  * address-less one is just its name.
  *
- * The separator is U+30FB KATAKANA MIDDLE DOT with a space each side — the exact
- * character the node uses. It sits wider than a bullet (•) and appears nowhere
- * else in the DS, which draws its group-label dot in CSS instead. FLAGGED: if
- * this should be the ordinary • , this constant is the only place to change.
+ * The separator is the shared `TEXT_SEPARATOR` (Daniel, 2026-09-04) — the
+ * node's own U+30FB katakana dot is retired: Inter does not contain it, so it
+ * rendered from a different fallback font in every app. FLAGGED: the Figma
+ * node still draws " ・ ".
  */
-export const LOCATION_SEPARATOR = " ・ ";
-
 export function locationLabel(location: LocationRecord): string {
-  return [location.name, locationAddress(location) || null].filter((part) => part != null).join(LOCATION_SEPARATOR);
+  return joinWithSeparator(location.name, locationAddress(location) || null);
 }
-
-export interface LabelRecord {
-  id: string;
-  name: string;
-}
-
-export const LABELS: LabelRecord[] = [
-  { id: "refrigeration", name: "Refrigeration" },
-  { id: "cooking", name: "Cooking equipment" },
-  { id: "ventilation", name: "Ventilation" },
-  { id: "warranty", name: "Warranty" },
-  { id: "recurring", name: "Recurring" },
-  { id: "contract", name: "Contract" },
-  { id: "compliance", name: "Compliance" },
-  { id: "priority-client", name: "Priority client" },
-  { id: "quarterly", name: "Quarterly" },
-  { id: "plumbing", name: "Plumbing" },
-];
-
-export interface SourceRecord {
-  id: string;
-  name: string;
-  /** Prefix for the demo Source ID, or null for sources that provide none. */
-  prefix: string | null;
-}
-
-export const SOURCES: SourceRecord[] = [
-  { id: "phone", name: "Phone call", prefix: "CALL" },
-  { id: "web", name: "Web form", prefix: "WEB" },
-  { id: "email", name: "Email", prefix: "EM" },
-  { id: "series", name: "Recurring series", prefix: "SER" },
-  { id: "walk-in", name: "Walk-in", prefix: null },
-  { id: "portal", name: "Client portal", prefix: "PRT" },
-];
 
 /** The techs a job can be assigned to — the "Assignees" filter's options. */
 // Nine technicians — the nine the Assignee filter's node lists (Daniel,
@@ -393,20 +302,36 @@ export const statusLabel = (status: BadgeJobStatusStatus) => STATUS[status].labe
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "12 Aug" */
+/** "Aug 12" — month FIRST, the US order (Daniel, 2026-09-04; was "12 Aug").
+ *  Matches the production formatDate ("MMM D") and every other formatter in
+ *  the DS (they use Intl en-US, which is month-first already). */
 export function formatDay(iso: string | null): string {
   if (iso == null) return "";
   const d = new Date(iso);
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-/** "12 Aug • 09:00" */
-export function formatDateTime(iso: string | null): string {
+/** "9:00 AM" — the time half of `formatDateTime`, US 12-hour. */
+export function formatTime(iso: string | null): string {
   if (iso == null) return "";
   const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
+  const hours = d.getHours() % 12 === 0 ? 12 : d.getHours() % 12;
   const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${formatDay(iso)} • ${hh}:${mm}`;
+  const period = d.getHours() < 12 ? "AM" : "PM";
+  return `${hours}:${mm} ${period}`;
+}
+
+/**
+ * "Aug 12, 9:00 AM" — US 12-hour time, date and time joined by a COMMA
+ * (Daniel, 2026-09-04, after the separator research: a date with its time is
+ * one compound value, which style guides join with a comma or "at", never a
+ * symbol). Was "12 Aug • 9:00 AM", and 24-hour "12 Aug • 09:00" before that.
+ * FLAGGED: the production DateTimeCell still prints the bullet — the two now
+ * differ on purpose, pending the product-wide separator decision.
+ */
+export function formatDateTime(iso: string | null): string {
+  if (iso == null) return "";
+  return `${formatDay(iso)}, ${formatTime(iso)}`;
 }
 
 /** "2h 30m" / "45m" / "3h" */

@@ -1,4 +1,5 @@
-import { User, usersById } from "../../data/users";
+import { ContactRecord, clientById, clientContactsOf, locationById, locationContactsOf } from "../../data/db";
+import { joinWithSeparator } from "../../utils/textSeparator";
 
 // The job's contact pool — what the "Job reporter" / "Site supervisor" select
 // lists offer (Figma 24485-40395 / 24485-40467, documented in the New Job form
@@ -10,43 +11,37 @@ import { User, usersById } from "../../data/users";
 //   2. Service location — contacts of the job's service location
 //   3. Billing client   — ONLY when the billing client differs from the
 //                         service client (Figma behavior note)
-// Every group's FIRST contact is its primary one (the crown on the avatar).
+// Every group's FIRST contact is its primary one (the crown on the avatar) —
+// the database keeps each list primary-first.
 //
-// The names are the Figma demo names. Their phone/e-mail are invented per
-// person (Figma repeats one placeholder for all of them) so that searching by
-// phone or e-mail actually works in the prototype — Daniel, 2026-08-03.
+// MIGRATED to the shared demo database on 2026-09-04: the groups are the
+// database's contact rows for Wildwood Kitchen / Wildwood Downtown / North
+// Point Hotel (the demo "different billing client"), and a JobContact's id is
+// the DATABASE contact id (a string — it was the user id before). Contact
+// photos come from the database too (`ContactRecord.avatar`, a demo nicety);
+// techs and contacts no longer share faces. The channel GAPS the Send-summary
+// form needs are the database's own: Marcus Boyd has no phone, Rosa Klein no
+// e-mail. FLAGGED: the Figma demo names (McDonald's people) no longer match.
 
 export interface JobContact {
-  /** Same id as the demo user — the avatar and name come from there. */
-  id: number;
+  /** The DATABASE contact id (client or location contact). */
+  id: string;
   name: string;
-  avatar: string;
-  /** A contact may have no e-mail (Figma's Send-summary list: Ismaeel Landry). */
+  /** Demo photo; a contact without one falls back to the avatar's default. */
+  avatar?: string;
+  /** A contact may have no e-mail (Rosa Klein — the Send-summary warning). */
   email?: string;
-  /** A contact may have no phone (Figma's Send-summary list: Kate Charles). */
+  /** A contact may have no phone (Marcus Boyd — the Send-summary warning). */
   phone?: string;
 }
 
-const contact = (userId: number, email?: string, phone?: string): JobContact => {
-  const user = usersById.get(userId) as User;
-  return { id: userId, name: user.name, avatar: user.avatar, email, phone };
-};
-
-// One entry per person: the same contact can sit in two groups (Seb Phillips
-// and Ismaeel Landry do in Figma), and picking either row selects the person.
-// Kate has no phone and Ismaeel no e-mail — Figma's Send-summary lists show
-// exactly those two gaps, and the Send-summary form needs contacts that are
-// missing a channel to show its warning state (Daniel, 2026-08-07).
-export const CONTACTS = {
-  lorne: contact(1, "lorne.riddle@mcdonalds.com", "(415) 555-0118"),
-  amy: contact(3, "amy.lowery@mcdonalds.com", "(415) 555-0142"),
-  kate: contact(4, "kate.charles@mcdonalds.com", undefined),
-  angel: contact(6, "angel.leblanc@mcdonalds.com", "(415) 555-0193"),
-  dirk: contact(5, "dirk.horton@mcdonalds.com", "(415) 555-0224"),
-  ismaeel: contact(8, undefined, "(415) 555-0251"),
-  seb: contact(7, "seb.phillips@mcdonalds.com", "(415) 555-0286"),
-  scott: contact(19, "scott.lyons@chipotle.com", "(415) 555-0310"),
-};
+const toJobContact = (c: ContactRecord): JobContact => ({
+  id: c.id,
+  name: c.name ?? "",
+  avatar: c.avatar,
+  email: c.email,
+  phone: c.phone,
+});
 
 export interface ContactGroup {
   /** The GroupLabel copy — a fixed label, not the client's name. */
@@ -56,29 +51,50 @@ export interface ContactGroup {
   contacts: JobContact[];
 }
 
-/** Contacts of the client the job belongs to. */
-export const SERVICE_CLIENT_CONTACTS: JobContact[] = [
-  CONTACTS.lorne,
-  CONTACTS.amy,
-  CONTACTS.kate,
-  // Not in the Figma list: the demo job's current reporter, so the list can
-  // show him as the selected option. Flagged to Daniel.
-  CONTACTS.angel,
-];
+/**
+ * The New Job form's documented sorting (annotation on node 17184-50566,
+ * 2026-09-05): "The primary contact is on top within each group. The rest of
+ * the contacts are sorted from A to Z." The database keeps insertion order,
+ * so the rule is applied here, where the groups are built for the UI.
+ */
+const groupOrder = (contacts: ContactRecord[], primaryId?: string): JobContact[] => [
+  ...contacts.filter((c) => c.id === primaryId),
+  ...contacts
+    .filter((c) => c.id !== primaryId)
+    .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? "")),
+].map(toJobContact);
 
-/** Contacts of the job's service location. */
-export const SERVICE_LOCATION_CONTACTS: JobContact[] = [CONTACTS.dirk, CONTACTS.ismaeel, CONTACTS.seb];
+/** Contacts of the client the job belongs to (Wildwood Kitchen). */
+export const SERVICE_CLIENT_CONTACTS: JobContact[] = groupOrder(
+  clientContactsOf("wildwood"),
+  clientById("wildwood")?.primaryContactId,
+);
 
-/** Contacts of a billing client that is NOT the service client. */
-export const BILLING_CLIENT_CONTACTS: JobContact[] = [CONTACTS.scott, CONTACTS.seb, CONTACTS.ismaeel];
+/** Contacts of the job's service location (Wildwood Downtown). */
+export const SERVICE_LOCATION_CONTACTS: JobContact[] = groupOrder(
+  locationContactsOf("wildwood-downtown"),
+  locationById("wildwood-downtown")?.primaryContactId,
+);
 
-/** The demo job's starting contacts (Figma menus 21136-58214 / 21758-23072). */
-export const INITIAL_REPORTER = CONTACTS.angel;
-export const INITIAL_SUPERVISOR = CONTACTS.kate;
+/** Contacts of a billing client that is NOT the service client (North Point Hotel). */
+export const BILLING_CLIENT_CONTACTS: JobContact[] = groupOrder(
+  clientContactsOf("northpoint"),
+  clientById("northpoint")?.primaryContactId,
+);
 
-/** The item caption: phone ・ e-mail (Figma separator is U+30FB). A contact
- *  missing one of them shows only the other. */
-export const contactCaption = (c: JobContact) => [c.phone, c.email].filter(Boolean).join(" ・ ");
+/**
+ * The demo job's starting contacts. The reporter is the database job's own
+ * reporter — JOB-1201 denormalizes Ben Castillo's details, exactly how
+ * production copies a picked contact onto the job. The supervisor is Rosa
+ * Klein, whose missing e-mail keeps a channel warning reachable from a
+ * selected contact.
+ */
+export const INITIAL_REPORTER = SERVICE_LOCATION_CONTACTS.find((c) => c.id === "lc-wildwood-downtown-1")!; // Ben Castillo
+export const INITIAL_SUPERVISOR = SERVICE_LOCATION_CONTACTS.find((c) => c.id === "lc-wildwood-downtown-2")!; // Rosa Klein
+
+/** The item caption: phone  ·  e-mail, joined by the shared TEXT_SEPARATOR.
+ *  A contact missing one of them shows only the other. */
+export const contactCaption = (c: JobContact) => joinWithSeparator(c.phone, c.email);
 
 /** The channel a summary is delivered through — its own contact detail. */
 export type ContactChannel = "text" | "email";

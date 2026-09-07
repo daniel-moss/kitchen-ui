@@ -1,0 +1,117 @@
+@import "../../styles/mixins/font";
+
+// The demo-database browser page (Data → Database). A reading page, not an
+// app mockup — plain token-styled tables over the docs background.
+
+.page {
+  padding: var(--size-10) var(--size-10) var(--size-20);
+  max-width: 980px;
+
+  @include font("body-400-compact");
+
+  color: var(--text-strong);
+}
+
+.title {
+  @include font("heading-h2");
+
+  margin: 0 0 var(--size-2);
+}
+
+.intro {
+  color: var(--text-subtle);
+  max-width: 640px;
+  margin: 0 0 var(--size-8);
+}
+
+.sectionTitle {
+  @include font("heading-h3");
+
+  margin: var(--size-10) 0 var(--size-3);
+}
+
+.clientCard {
+  border: 1px solid var(--gray-a5);
+  border-radius: var(--border-radius-2_5);
+  padding: var(--size-5) var(--size-6) var(--size-6);
+  margin-bottom: var(--size-6);
+  background: var(--surface-level-third);
+}
+
+.clientName {
+  @include font("heading-h3");
+
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2);
+}
+
+.inactive {
+  color: var(--text-subtle);
+}
+
+.clientId {
+  @include font("caption-medium-400");
+
+  color: var(--text-placeholder);
+}
+
+.blockLabel {
+  @include font("caption-medium-500");
+
+  color: var(--text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--size-5) 0 var(--size-1_5);
+}
+
+.locationBlock {
+  border-top: 1px solid var(--gray-a4);
+  margin-top: var(--size-5);
+  padding-top: var(--size-4);
+}
+
+.locationName {
+  @include font("body-500-compact");
+
+  margin: 0;
+}
+
+.muted {
+  color: var(--text-subtle);
+}
+
+.missing {
+  color: var(--text-placeholder);
+  font-style: italic;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+
+  th {
+    @include font("caption-medium-500");
+
+    text-align: left;
+    color: var(--text-subtle);
+    padding: var(--size-1) var(--size-4) var(--size-1) 0;
+    border-bottom: 1px solid var(--gray-a4);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: var(--size-1_5) var(--size-4) var(--size-1_5) 0;
+    border-bottom: 1px solid var(--gray-a3);
+    vertical-align: top;
+  }
+}
+
+.schemaProps {
+  color: var(--text-subtle);
+}

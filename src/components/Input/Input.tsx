@@ -1,4 +1,4 @@
-import { Children, isValidElement, ReactElement, useMemo } from "react";
+import { Children, isValidElement, MouseEvent as ReactMouseEvent, ReactElement, useMemo, useRef } from "react";
 
 import clsx from "clsx";
 
@@ -65,12 +65,32 @@ export default function Input({
 
   const context = useMemo(() => ({ label: typeof label === "string" ? label : undefined }), [label]);
 
+  // Clicking the label focuses / triggers the field below (Daniel,
+  // 2026-09-02). The Label is a span — the fields wrap their inputs in their
+  // own <label>, and nested labels are invalid HTML — so the wiring is
+  // manual: find the field's first interactive element and hand it the
+  // interaction. Checkbox/radio groups only receive focus (a label click
+  // must never TOGGLE the first option). Clicks on interactive things inside
+  // the label row itself (the hint trigger) stay theirs.
+  const fieldAreaRef = useRef<HTMLDivElement>(null);
+  const handleLabelClick = (e: ReactMouseEvent) => {
+    if ((e.target as Element).closest("button, [role='button'], a")) return;
+    const el = fieldAreaRef.current?.querySelector<HTMLElement>(
+      'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [role="button"]'
+    );
+    if (el == null) return;
+    el.focus();
+    if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) return;
+    el.click();
+  };
+
   return (
     <div className={clsx(styles.input, className)}>
       {hasHeader && (
         <div className={styles.header}>
           {(hasLabel || strength != null) && (
-            <div className={styles.labelRow}>
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+            <div className={styles.labelRow} onClick={handleLabelClick}>
               {isLoading ? (
                 <SkeletonTypography variant="bodyCompact" />
               ) : (
@@ -108,7 +128,12 @@ export default function Input({
         // empty trigger box (151/180px by breakpoint, radius 8), else 36px.
         fieldSkeleton(field, isDesktop)
       ) : (
-        <InputProvider value={context}>{children}</InputProvider>
+        <InputProvider value={context}>
+          {/* display: contents — a query root for the label click, zero layout. */}
+          <div ref={fieldAreaRef} style={{ display: "contents" }}>
+            {children}
+          </div>
+        </InputProvider>
       )}
     </div>
   );

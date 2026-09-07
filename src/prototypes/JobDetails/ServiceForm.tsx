@@ -23,10 +23,11 @@ import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { JOB_REASON_FOR_CALL, JOB_RECALL_TO, JOB_SERVICE, JOB_TECH_INSTRUCTIONS } from "./jobData";
 import MenuItem from "../../components/Menu/MenuItem";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { noop, slot } from "./shared";
 
 import styles from "./ServiceForm.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- field data (per the "New Job" form fields documentation) ---------------
 
@@ -63,15 +64,16 @@ const PriorityValue = ({ priority }: { priority: Priority }) => (
 // the service's default; A→Z sorting is the doc's list rule).
 const INITIAL_SERVICES: { name: string; defaultPriority: string }[] = [
   { name: "Cooler maintenance", defaultPriority: "Low" },
-  { name: JOB_SERVICE, defaultPriority: "Medium" }, // "Refrigeration repair"
+  { name: JOB_SERVICE, defaultPriority: "Medium" }, // "Walk-in cooler repair"
   { name: "Standard labor", defaultPriority: "No priority" },
 ];
 
 // Finalized jobs for the Recall-to list (doc: only Finalized jobs of the
-// service location, sorted by status change). The demo job recalls JOB-10002.
-const RECALL_JOBS = [JOB_RECALL_TO, "JOB-10003", "JOB-10004", "JOB-10005", "JOB-10006"].map((id) => ({
+// service location, sorted by status change). The demo job recalls the
+// database's JOB-1209; the rest are invented older finalized jobs.
+const RECALL_JOBS = [JOB_RECALL_TO, "JOB-1195", "JOB-1187", "JOB-1176", "JOB-1164"].map((id) => ({
   id,
-  title: `${id} ・ Standard labor`,
+  title: `${id}${TEXT_SEPARATOR}Standard labor`,
   caption: "Finalized on Jan 1, 2025 by Lorne R.",
 }));
 

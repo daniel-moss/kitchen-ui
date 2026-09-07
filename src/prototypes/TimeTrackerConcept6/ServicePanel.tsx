@@ -24,6 +24,7 @@ import ServiceForm from "./ServiceForm";
 import { noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./ServicePanel.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- demo data --------------------------------------------------------------
 
@@ -43,7 +44,7 @@ const PRIVATE_FILES: JobFile[] = [
 ];
 
 const FILE_META = "Added on Jan 1, 2025 by Lorne R.";
-const EQUIPMENT_TITLE = "Air Handler • American Range";
+const EQUIPMENT_TITLE = `Air Handler${TEXT_SEPARATOR}American Range`;
 
 // ---- small header buttons ---------------------------------------------------
 
@@ -103,7 +104,7 @@ const EquipmentRow = ({ mobile, onRemove }: { mobile: boolean; onRemove: () => v
       <ListItem
         variant="titleCaption"
         title={EQUIPMENT_TITLE}
-        caption="Model: 01234 • Serial: 56789"
+        caption={`Model: 01234${TEXT_SEPARATOR}Serial: 56789`}
         avatar={<AvatarEquipment size="xl" />}
         isClickable
         onClick={noop}

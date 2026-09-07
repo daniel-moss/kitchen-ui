@@ -24,6 +24,7 @@ import { noop } from "./shared";
 import { SelectPopoverList, useSelectPopover } from "./selectPopover";
 
 import styles from "./BillingForm.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 // ---- data model -------------------------------------------------------------
 
@@ -44,12 +45,12 @@ interface Client {
 
 // Demo client pool (Active + Inactive), all commercial businesses.
 const CLIENTS: Client[] = [
-  { id: 1, name: "McDonald's", type: "Business · Commercial", active: true },
-  { id: 2, name: "Starbucks", type: "Business · Commercial", active: true },
-  { id: 3, name: "Chipotle", type: "Business · Commercial", active: true },
-  { id: 4, name: "Panera Bread", type: "Business · Commercial", active: true },
-  { id: 5, name: "Blockbuster", type: "Business · Commercial", active: false },
-  { id: 6, name: "RadioShack", type: "Business · Commercial", active: false },
+  { id: 1, name: "McDonald's", type: `Business${TEXT_SEPARATOR}Commercial`, active: true },
+  { id: 2, name: "Starbucks", type: `Business${TEXT_SEPARATOR}Commercial`, active: true },
+  { id: 3, name: "Chipotle", type: `Business${TEXT_SEPARATOR}Commercial`, active: true },
+  { id: 4, name: "Panera Bread", type: `Business${TEXT_SEPARATOR}Commercial`, active: true },
+  { id: 5, name: "Blockbuster", type: `Business${TEXT_SEPARATOR}Commercial`, active: false },
+  { id: 6, name: "RadioShack", type: `Business${TEXT_SEPARATOR}Commercial`, active: false },
 ];
 
 // The job's service LOCATION — the same one shown in the "Location" display
@@ -57,11 +58,11 @@ const CLIENTS: Client[] = [
 // resolve the billing target to this location.
 export const SERVICE_LOCATION = {
   name: "McDonald's",
-  caption: "HQ · 123 Main Street, Suite 45, San Francisco, CA 94105",
+  caption: `HQ${TEXT_SEPARATOR}123 Main Street, Suite 45, San Francisco, CA 94105`,
 };
 // The job's service CLIENT — "Bill to client" resolves to this (the client from
 // the designs).
-export const SERVICE_CLIENT = { name: "McDonald's", caption: "Business · Commercial" };
+export const SERVICE_CLIENT = { name: "McDonald's", caption: `Business${TEXT_SEPARATOR}Commercial` };
 
 // What the "Inherit from location" option resolves to (the location's own
 // billing setting). Fixed for the demo.

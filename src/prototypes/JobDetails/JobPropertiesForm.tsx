@@ -17,7 +17,7 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import { User, users } from "../../data/users";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { JOB_ID, JOB_SOURCE_ID, staffSelectLabel } from "./jobData";
 import { slot } from "./shared";
 

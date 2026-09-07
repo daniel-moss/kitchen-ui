@@ -1,0 +1,7 @@
+// The shared duration widget: hr/min group + the quick-pick chips.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px group <> chips (Daniel, 2026-09-07)
+}

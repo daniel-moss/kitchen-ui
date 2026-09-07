@@ -1,0 +1,150 @@
+@use "../../styles/mixins/font" as *;
+
+// View Menu module — local layout and the two module-only pieces (the
+// "Unpinned" divider and the Hint bubble placement). Everything else is DS
+// components. Extracted from the ViewMenu prototype on 2026-09-03 so every
+// prototype shares one build; the stage/trigger styles stayed with the
+// prototype — the consumer owns the trigger and the card's position.
+
+// The desktop popover card. 360 wide, the design's own width; consumers can
+// widen through the className prop.
+.card {
+  width: 360px;
+}
+
+// ---- menu body ----
+.body {
+  position: relative; // hint bubbles anchor here
+  display: flex;
+  flex-direction: column;
+}
+
+.switcher {
+  box-sizing: border-box;
+  padding: var(--size-4); // 16px around the view switcher
+}
+
+// Sort by — one compact row (44px: 2px vertical padding), 8px section padding.
+.sortSection {
+  box-sizing: border-box;
+  padding: var(--size-2) var(--size-1);
+}
+
+// The menu rows are intentionally more compact than the DS ListItem
+// (10px → 2px / 0px vertical padding) — a local, on-purpose override.
+.sortRow.sortRow {
+  padding-top: var(--size-0_5);
+  padding-bottom: var(--size-0_5);
+}
+
+.columnRow.columnRow {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.columnsSection {
+  display: flex;
+  flex-direction: column;
+}
+
+.columnsTitle {
+  box-sizing: border-box;
+  padding: var(--size-4) var(--size-4) var(--size-1); // 16 / 16 / 4
+}
+
+// Dropdown lists live in a document.body portal (FloatingList in the tsx) —
+// inside the popover card they would grow the card body's scroll area (the
+// menu narrows when the scrollbar appears) or get clipped by its overflow.
+// top/right come from JS measurements of the anchor section. The portal is
+// marked data-floating-list — consumers' outside-click closers must treat it
+// as INSIDE the menu.
+.floatingList {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// ---- "Unpinned" divider (module-local piece) ----
+.unpinnedDivider {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px between the lines and the word
+  height: var(--size-4); // 16px tall band
+  padding: 0 var(--size-4);
+}
+
+.unpinnedLine {
+  flex: 1;
+}
+
+.unpinnedText {
+  flex: none;
+  color: var(--text-subtle);
+
+  @include font("caption-small-400");
+}
+
+// ---- hint placement (the bubble itself is the DS Hint component) ----
+.hintPos {
+  position: absolute;
+  z-index: 30;
+  width: 320px;
+  pointer-events: none;
+}
+
+// A disabled pin button must not swallow hover — the HoverHint wrapper
+// receives it instead and shows the pin-limit hint. The wrapper also carries
+// the not-allowed cursor (the button can not, with its pointer-events off).
+.pinDisabled {
+  pointer-events: none;
+}
+
+.pinHintWrap {
+  cursor: not-allowed;
+}
+
+.drawerBody {
+  position: relative;
+}
+
+// ---- Cards tab: the Attributes section ----
+.attrsSection {
+  box-sizing: border-box;
+  padding: 0 var(--size-4) var(--size-4); // 16px sides + bottom
+}
+
+.attrsTitle {
+  padding: var(--size-4) 0 var(--size-1); // 16px above, 4px below
+}
+
+.attrChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px between chips, both axes
+}
+
+// ---- Timeline tab (jobs only) ----
+.timelineSettings {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px between the two settings
+  padding: var(--size-4);
+}
+
+.settingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px title ↔ tabs
+}
+
+.settingTitle {
+  color: var(--text-strong);
+
+  @include font("body-500-spacious");
+}
+
+.timelineToggles {
+  box-sizing: border-box;
+  padding: var(--size-1); // 4px around the rows
+}

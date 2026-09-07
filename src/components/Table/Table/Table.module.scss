@@ -18,7 +18,10 @@
 .header {
   position: sticky;
   top: 0;
-  z-index: 1;
+  // ABOVE the body's pinned cells (z-index 1): both stack in the table's own
+  // context and the body comes later in the DOM, so an equal z-index let the
+  // frozen body cells paint OVER the header while scrolled down.
+  z-index: 2;
 
   flex: none;
 }

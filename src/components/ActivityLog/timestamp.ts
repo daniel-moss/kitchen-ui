@@ -44,12 +44,17 @@ const TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
 
 /**
  * The exact date + time shown in the timestamp tooltip:
- * `Mon, Jan 1, 2026 ・ 12:00 PM`. The year is ALWAYS written (Figma
+ * `Mon, Jan 1, 2026 at 12:00 PM`. The year is ALWAYS written (Figma
  * 24230-50534, Daniel 2026-08-05) — this tooltip is the one place that says
  * exactly when an event happened, so it never leaves the year to be inferred.
  * That is a deliberate exception to the app-wide "year only when not current"
  * rule, which the LABEL next to the log still follows.
+ *
+ * Joined by "at" (Daniel, 2026-09-04): a date with its time is one compound
+ * value, so it never uses the separator dot — and this string already holds
+ * two commas, so a third would blur; "at" is the style guides' other joiner.
+ * FLAGGED: the Figma node still draws the old " ・ ".
  */
 export function exactTimestamp(date: Date): string {
-  return `${DATE_FORMAT_WITH_YEAR.format(date)} ・ ${TIME_FORMAT.format(date)}`;
+  return `${DATE_FORMAT_WITH_YEAR.format(date)} at ${TIME_FORMAT.format(date)}`;
 }

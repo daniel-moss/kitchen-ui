@@ -1,0 +1,13 @@
+// "Forms" module — field + the picked forms list, --size-3 (12px) apart.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// The row ⋯ menu's fixed-position anchor (the Job Details pattern).
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

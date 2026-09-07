@@ -9,3 +9,17 @@
   align-content: center;
   gap: var(--size-2); // 8px, both axes
 }
+
+// Stretch mode (Figma isFullWidth=true): one non-wrapping row, the chips
+// share the width equally. In the node the chips' sizing flips to FILL and
+// each label FILLs its chip with centered text — `justify-content: center`
+// on the chip reproduces that (the weekday chips carry no left slot).
+.fullWidth {
+  flex-wrap: nowrap;
+}
+
+.fullWidth > * {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+}

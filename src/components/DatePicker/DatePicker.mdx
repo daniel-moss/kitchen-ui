@@ -1,0 +1,289 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as DatePickerStories from "./DatePicker.stories";
+import * as DateChipStories from "./DateChip.stories";
+
+<Meta of={DatePickerStories} />
+
+# DatePicker
+
+We use **DatePicker** for picking a single date or a range of dates.
+
+<Canvas of={DatePickerStories.Desktop} />
+
+```tsx
+<DatePicker
+  value={date}
+  onChange={setDate}
+  onClose={closePicker}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Desktop](#desktop)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Mobile](#mobile)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Month header](#month-header)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Body](#body)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[DateChip](#datechip)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[DateCell](#datecell)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[DatePlaceholder](#dateplaceholder)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[General](#general)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Navigation](#navigation)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Mobile](#mobile-1)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[DateField](#datefield)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Button](#button)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Single date](#single-date)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Range](#range)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+### Desktop
+
+The DatePicker is built on top of the
+<a href="/?path=/story/components-popover-popover--playground" target="_top">Popover</a>
+component. It inherits the Popover background style. The content padding is
+`--size-4` (16px).
+
+<Canvas of={DatePickerStories.Desktop} />
+
+The "single-date" and the "range" variants are fixed width on the desktop:
+340px, and 664px for the range (two 308px months, `--size-4` (16px) apart —
+44px date cells). In the range variant only the right month has the
+navigation buttons.
+
+<Canvas of={DatePickerStories.DesktopRange} />
+
+The DatePicker on the desktop may include an Input when it is not triggered by
+a DateField (`input`) — the field sits `--size-4` (16px) above the month.
+The range variant pairs a field with each month:
+
+<Canvas of={DatePickerStories.DesktopWithInput} />
+
+<Canvas of={DatePickerStories.DesktopRangeWithInput} />
+
+### Mobile
+
+Like the Popover, the DatePicker pops up as a drawer on mobile. The mobile
+version always has an input with the
+<a href="/?path=/docs/components-fields-datefield--docs" target="_top">DateField</a>
+above the calendar. It also has the PopoverFooter with an "Apply" button at
+the bottom of the drawer.
+
+<Canvas of={DatePickerStories.Mobile} />
+
+The "range" variant has 2 Inputs on top, `--size-4` (16px) apart.
+
+<Canvas of={DatePickerStories.MobileRange} />
+
+### Month header
+
+A month header is a group of a title and navigation buttons. The header is
+fixed height — `--size-9` (36px). The title is `heading-h3` (Semibold 16/24),
+ellipsized when it does not fit. The buttons are `lg` (36px) ghost
+<a href="/?path=/story/components-iconbutton--playground" target="_top">IconButton</a>s,
+`--size-2` (8px) apart. The "return" button and the navigation buttons are
+optional (see [Navigation](#navigation)).
+
+### Body
+
+The body is a grid, `--size-4` (16px) below the month header. The grid has a
+header that has 7 cells with weekdays written in the compact format
+(`caption-medium-400`, 13/20, `--text-subtle`). The cells fill the width with
+no gap between them.
+
+Below the grid header — `--size-3` (12px) under it — there is a group of
+rows, `--size-1` (4px) apart. The DatePicker always shows 6 rows. The row
+contains 7 date chips with no gap between them. The date chips fill the width.
+
+<Canvas of={DatePickerStories.SixRows} />
+
+### DateChip
+
+The chip is fixed height — `--size-9` (36px) — with `--border-radius-1_5`
+(6px) corners. It provides the `isToday` and `isSelected` properties. The
+date is `body-400-compact` (14/20) `--text-strong`; hover fills the chip
+`--gray-a3`, press `--gray-a4`; the focus ring is a 2px `--gray-12` stroke
+2px outside the chip; disabled dims to 0.3.
+
+<Canvas of={DateChipStories.Unselected} />
+
+The "today" date — `--text-error` text, in every state:
+
+<Canvas of={DateChipStories.UnselectedToday} />
+
+The selected date — a `--gray-a2` fill with a 1px `--gray-12` inside stroke
+and `body-500-compact` (Medium 14/20) text. Hover and press step the fill
+like the unselected chip; the stroke stays:
+
+<Canvas of={DateChipStories.Selected} />
+
+The selected "today" date:
+
+<Canvas of={DateChipStories.SelectedToday} />
+
+### DateCell
+
+The DateChip is wrapped into a DateCell. The DateCell provides a background
+in date ranges (`--gray-a2`) through the `band` property, which controls the
+background corner radius: square where the band runs on to the neighbor
+cell, a `--border-radius-1_5` (6px) cap wherever it stops — a range end, a
+row break, and the hover preview's end all look the same:
+
+<Canvas of={DateChipStories.Band} />
+
+### DatePlaceholder
+
+The cell with no date contains a DatePlaceholder. The placeholder is
+non-interactive. It just fills the space.
+
+## Behavior
+
+### General
+
+A week starts with "Monday". If there is no selection yet, the DatePicker
+shows a month with the "Today" date.
+
+<Canvas of={DatePickerStories.NoSelection} />
+
+The DatePicker always shows 6 rows. It keeps the container the same size from
+month to month. The first day of the month is always in the first row.
+
+<Canvas of={DatePickerStories.SixRows} />
+
+If the date is already picked, the DatePicker shows a month with the picked
+date (a range opens with its start date's month).
+
+### Navigation
+
+The DatePicker has "back" and "forward" IconButtons. They let the user switch
+between months. They do not trigger tooltips.
+
+If the DatePicker shows a month different from a month with the "Today" date,
+the header includes the "return" IconButton. It lets the user jump back to a
+month with the "Today" date. The icon of the "return" button depends on where
+the "Today" date is.
+
+<Canvas of={DatePickerStories.ReturnButton} />
+
+Hovering over the "return" button triggers a tooltip — "Jump to today" — the
+same for both directions:
+
+<Canvas of={DatePickerStories.ReturnTooltip} />
+
+Keyboard: the calendar grid is one tab stop. Arrow keys move the focused day
+(up/down — a week), Home/End jump to the week's edges, Enter/Space picks,
+Esc closes the desktop card.
+
+### Mobile
+
+The DatePicker pops up as a drawer on mobile. The drawer always has the
+DateField inside because the trigger DateField is not reachable when the
+drawer is shown. The inner DateField is not focused by default. The "Apply"
+button stays "disabled" until the user picks a date.
+
+<Canvas of={DatePickerStories.Mobile} />
+
+Tapping on the inner DateField triggers the native keyboard. The drawer
+shrinks to fit the remaining height and the PopoverFooter lifts up to sit on
+top of the keyboard (the Popover's own keyboard handling) — the DateField
+stays visible while typing.
+
+<Canvas of={DatePickerStories.MobileKeyboard} />
+
+Swiping the calendar swipes the month. Swipe left — next month. Swipe right —
+previous month.
+
+<Canvas of={DatePickerStories.MobileSwipe} />
+
+### DateField
+
+When the DatePicker is triggered by a DateField, it does not need an inner
+DateField. The DatePicker is left-aligned by default, 4px below the field.
+**The positioning is the consumer's wiring** — the DateField does it itself;
+this example is live:
+
+<Canvas of={DatePickerStories.DateFieldTrigger} />
+
+The mobile version follows the default behavior. The label of the inner
+DateField corresponds to the trigger DateField label:
+
+<Canvas of={DatePickerStories.DateFieldTriggerMobile} />
+
+### Button
+
+When the DatePicker is triggered by a Button, it needs an inner DateField
+(`input`). The date format within the inner DateField is the full one:
+Weekday, Month D, YYYY. The label is set to a default one — "Date". The
+DatePicker is left-aligned by default.
+
+Typing in a date selects the matching date chip in real time. Pressing Enter
+or blurring the field does not automatically dismiss the DatePicker. The
+DatePicker is dismissed manually by pressing Esc or clicking outside of it —
+**the outside click is the consumer's wiring** (press **Show code** for the
+exact wiring):
+
+<Canvas of={DatePickerStories.ButtonTrigger} />
+
+The mobile version follows the default behavior. The label of the inner
+DateField is set to a default one:
+
+<Canvas of={DatePickerStories.ButtonTriggerMobile} />
+
+### Single date
+
+This variant lets the user pick one date only. The width on the desktop is
+fixed. Clicking on a date on the desktop instantly applies the date
+(`onChange`) and hides the DatePicker (`onClose`).
+
+<Canvas of={DatePickerStories.NoSelection} />
+
+Tapping on a date on mobile fills out the DateField but doesn't close the
+drawer. The user has to apply the value by tapping on the "Apply" button.
+Tapping on the "Apply" button closes the drawer and applies the value.
+Swiping the drawer down discards the changes. The inner DateField shows the
+date in the full format.
+
+<Canvas of={DatePickerStories.MobileFilled} />
+
+### Range
+
+This variant lets the user pick a range of dates. The width on the desktop is
+fixed. It shows 2 months. The left month's header doesn't have the navigation
+buttons — only the right one does.
+
+Clicking on the first date chip sets the start of the range. Clicking on the
+second one sets the end of the range. While the end is not picked yet,
+hovering the days after the start previews the band. The DatePicker does not
+hide automatically — it stays on the screen until the user dismisses it
+manually. The second click on a date before the first date restarts the
+selection. The third click restarts the selection as well. A one-day range is
+not valid — clicking the start date again does nothing. This example is live:
+
+<Canvas of={DatePickerStories.RangeDesktop} />
+
+Clicking on "back" or "forward" navigation buttons jumps 1 month back or
+forward. The "return" button shows up only when the "today" date is in
+neither of the 2 months, within the right month's header only:
+
+<Canvas of={DatePickerStories.RangeReturn} />
+
+The date chips within the range get the DateCell band (`--gray-a2`): square
+between the neighbor chips, capped with the `--border-radius-1_5` (6px)
+radius wherever the band stops — at the range ends, at the row edges, and at
+the hover preview's end:
+
+<Canvas of={DateChipStories.Band} />
+
+The mobile version follows the same pattern as the desktop one — the first
+selected chip is the start of the range, the second one is the end. The
+drawer shows 1 month at a time. The DateFields show the dates in the compact
+format: Sun, Jan 1, 2027. The "Apply" button stays "disabled" until both
+DateFields have the value.
+
+<Canvas of={DatePickerStories.MobileRange} />
+
+## Props
+
+<ArgTypes of={DatePickerStories} />

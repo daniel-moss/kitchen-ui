@@ -1,0 +1,142 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as PopoverFooterStories from "./PopoverFooter.stories";
+import * as PopoverFooterTextStories from "./PopoverFooterText.stories";
+
+<Meta of={PopoverFooterStories} />
+
+# PopoverFooter
+
+`PopoverFooter` is used as the action bar at the bottom of popover-like
+containers — Popover, Dialog, SidePanel, and select menus. It holds the
+closing actions for the content above it, and an optional left slot for a
+low-priority action or a display-only value.
+
+<Canvas of={PopoverFooterStories.Hero} />
+
+```tsx
+<PopoverFooter
+  slotLeft={
+    <Button size="lg" variant="ghost" onClick={close}>
+      Cancel
+    </Button>
+  }
+>
+  <Button size="lg" variant="solid" onClick={save}>
+    Save
+  </Button>
+</PopoverFooter>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Layout](#layout)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Button priority](#button-priority)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[SlotLeft text is display-only](#slotleft-text-is-display-only)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Truncation](#truncation)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Full width](#full-width)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[With the on-screen keyboard](#with-the-on-screen-keyboard)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+The footer is a full-width Divider (`medium`) with a padded row below it —
+`--size-3` (12px) / `--size-4` (16px) padding, `--size-2` (8px) gaps, 60px
+total height with the lg (36px) buttons. The row holds the optional
+**SlotLeft** area on the left and the action buttons on the right. The footer
+has no background of its own — it sits directly on the container's surface.
+
+<Canvas of={PopoverFooterStories.Anatomy} />
+
+**SlotLeft** can hold one of two things — a ghost
+<a href="/?path=/story/components-button--playground" target="_top">Button</a>
+(typically Cancel) or a display-only text:
+
+<Canvas of={PopoverFooterStories.SlotLeftKinds} />
+
+**Text** (`PopoverFooterText`) is the footer's own text element: a label in
+`body-500-compact` with an optional icon on the left (14px, regular,
+`--size-2` (8px) gap). Any icon can be used. The label and the icon each have
+their own color; both default to `--text-strong`.
+
+<Canvas of={PopoverFooterStories.TextWithIcon} />
+
+**Buttons** are the trailing actions: **Primary** (solid) and an optional
+**Secondary** — `subtle` by default, `ghost` is also allowed. All buttons are
+the lg size (36px).
+
+<Canvas of={PopoverFooterStories.Buttons} />
+
+## Behavior
+
+### Layout
+
+The footer has three layouts: **default** (buttons on the right),
+**slotLeft** (left slot plus buttons on the right), and **fullWidth** (buttons
+share the row width). Full width is only available without the left slot —
+that is why the layout is a single choice, not independent switches (in code,
+`slotLeft` and `stretch` exclude each other at the type level).
+
+<Canvas of={PopoverFooterStories.Layouts} />
+
+### Button priority
+
+Priority grows left to right: the rightmost button is the primary action, a
+secondary action stands to its left, and the left slot holds the
+lowest-priority action. Only the primary button is required — the secondary
+button and the left slot are both optional. The secondary button is `subtle`
+by default; `ghost` is also allowed. A footer holds at most 3 actions,
+including the left one. All buttons are the lg size.
+
+<Canvas of={PopoverFooterStories.Priority} />
+
+### SlotLeft text is display-only
+
+The text variant of the left slot shows a value — it is not interactive and
+has no hover or press states. Any icon can be inserted before the label. The
+label and the icon are colored independently — they do not have to match.
+Both default to `--text-strong`.
+
+<Canvas of={PopoverFooterStories.TextWithIcon} />
+
+### Truncation
+
+The text fills the space between the edge and the buttons. When it does not
+fit, it truncates with an ellipsis. Buttons never shrink and never wrap to a
+second row.
+
+<Canvas of={PopoverFooterStories.Truncation} />
+
+### Full width
+
+In the fullWidth layout the buttons stay on one row and share the width
+equally. A single Primary fills the entire row.
+
+<Canvas of={PopoverFooterStories.FullWidth} />
+
+### With the on-screen keyboard
+
+On touch devices, tapping a footer button while a text field's keyboard is
+open works in one tap. The footer keeps the field focused during the tap so
+the sheet does not move under the finger; the keyboard closes together with
+the popover. Consumers get this behavior for free.
+
+## Props
+
+### PopoverFooter
+
+<ArgTypes of={PopoverFooterStories} />
+
+### PopoverFooterText
+
+<ArgTypes of={PopoverFooterTextStories} />
+
+### Figma ↔ code
+
+The names differ on purpose in a few places:
+
+- Figma `layout=fullWidth` → code `stretch`
+- Figma `secondary=true / false` → how many buttons you pass as `children`
+- Figma `SlotLeft` with `variant=text` → `slotLeft={<PopoverFooterText …>}`
+- The Secondary button's Figma `variant` override (`subtle` default) → the
+  `variant` of the Button you pass as the secondary child

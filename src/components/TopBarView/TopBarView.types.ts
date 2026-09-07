@@ -40,10 +40,22 @@ export interface TopBarViewProps {
    */
   onFiltersClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /**
+   * Hold the "Filters" trigger in the pressed look — set it while the filters
+   * menu is open. The menu is the consumer's wiring, so its open state has to
+   * be passed in. Default false.
+   */
+  filtersPressed?: boolean;
+  /**
    * Called when "View" is clicked (the Button on desktop, the IconButton on
    * mobile). The view menu itself is the consumer's wiring.
    */
   onViewMenuClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+  /**
+   * Hold the "View" trigger in the pressed look — set it while the view menu
+   * is open. The menu is the consumer's wiring, so its open state has to be
+   * passed in. Default false.
+   */
+  viewMenuPressed?: boolean;
 
   /** "auto" (default) tracks the viewport; "desktop" / "mobile" force one (Storybook, tests). */
   breakpoint?: Breakpoint;

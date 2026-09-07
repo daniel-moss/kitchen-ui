@@ -17,7 +17,7 @@ takes over.
 <BottomBarNav>
   <BottomBarNavItem icon="house" label="Home" href="/home" active />
   <BottomBarNavItem icon="wrench-simple" label="Jobs" href="/jobs" />
-  <BottomBarNavItem icon="circle-plus" label="Create" strong onClick={openCreate} />
+  <BottomBarNavItem icon="plus" label="Create" onClick={openCreate} />
   <BottomBarNavItem icon="magnifying-glass" label="Search" onClick={openSearch} />
   <BottomBarNavItem icon="bars" label="Menu" onClick={openMenu} />
 </BottomBarNav>
@@ -35,11 +35,10 @@ over a `--surface-level-first` fill.
 
 ### "Create" button
 
-The Create button is built on top of the
+The Create button is a plain
 <a href="/?path=/docs/components-bottombarnav-bottombarnavitem--docs" target="_top">BottomBarNavItem</a>
-component. It works the same way — the only difference is the icon: it has an
-updated color and weight (solid `--gray-12` at rest, the item's `strong`
-modifier).
+with the `plus` icon — no adjustments (Figma node 1502-14983, 2026-09-03; the
+old solid-icon `strong` modifier is removed).
 
 <Canvas of={BottomBarNavStories.Playground} />
 

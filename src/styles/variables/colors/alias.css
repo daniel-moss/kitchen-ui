@@ -70,7 +70,7 @@
   --surface-level-first: var(--gray-4);
   --surface-level-second: var(--gray-5);
   --surface-level-third: var(--gray-6);
-  --surface-interactive-default: var(--gray-7);
+  --surface-interactive-default: var(--gray-7); /* back to gray-7 (Daniel, 2026-09-08; was gray-8 since 2026-09-03) */
   --surface-interactive-hover: var(--gray-6);
   --surface-interactive-press: var(--gray-5);
 

@@ -15,15 +15,15 @@ import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { MINUTE_OPTIONS } from "./SchedulingForm";
-import { HVAC_PM_SECTIONS } from "../../forms/formSchema/hvacPmSchema";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { HVAC_PM_SECTIONS } from "../../modules/formSchema/hvacPmSchema";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 
 import styles from "./HvacPmForm.module.scss";
 
 // ---- the questionnaire (Figma "CSI – HVAC PM", node 24273-69208; copy
 // re-extracted 2026-07-23 after Daniel's typo pass) ---------------------------
 
-// The checklist lists now live with the SCHEMA (src/forms/formSchema/
+// The checklist lists now live with the SCHEMA (src/modules/formSchema/
 // hvacPmSchema.ts), so the form and its preview are built from one list —
 // re-exported here because HvacPmStepForm already imports SECTIONS from this
 // file (copy verified against the stepper design 24337-41981, 2026-07-27).

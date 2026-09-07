@@ -50,7 +50,7 @@ const header = (
 
 const rows = JOBS.map((job) => (
   <TableRow key={job.id} isClickable onClick={noop}>
-    <CellBody width={COLS.id} isTabular>
+    <CellBody width={COLS.id}>
       {job.id}
     </CellBody>
     <CellBody width={COLS.service}>{job.service}</CellBody>
@@ -84,7 +84,7 @@ export const StickyHeader: Story = {
         {[0, 1, 2].map((pass) =>
           JOBS.map((job) => (
             <TableRow key={`${pass}-${job.id}`} isClickable onClick={noop}>
-              <CellBody width={COLS.id} isTabular>
+              <CellBody width={COLS.id}>
                 {job.id}
               </CellBody>
               <CellBody width={COLS.service}>{job.service}</CellBody>
@@ -124,7 +124,7 @@ export const Scrolling: Story = {
       >
         {JOBS.map((job) => (
           <TableRow key={job.id} isClickable onClick={noop}>
-            <CellBody width={130} isTabular isLastPinned>
+            <CellBody width={130} isLastPinned>
               {job.id}
             </CellBody>
             <CellBody width={220}>{job.service}</CellBody>

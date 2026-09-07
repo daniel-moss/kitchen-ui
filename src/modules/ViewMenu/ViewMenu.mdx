@@ -1,0 +1,48 @@
+import { Canvas, Meta } from "@storybook/blocks";
+
+import * as ViewMenuStories from "./ViewMenu.stories";
+
+<Meta of={ViewMenuStories} />
+
+# "View" Menu
+
+`ViewMenu` is the table view controls, shared by every prototype from one
+place (`src/modules/ViewMenu`): the Table / Cards switcher, **Sort by**, and
+the **Columns** section — visibility toggles, pinning with a limit of 3, and
+drag reorder within a group. This is the DEFAULT version, available for
+**every object type**:
+
+<Canvas of={ViewMenuStories.Desktop} />
+
+The menu is fully controlled: the consumer passes its own columns and state
+and owns the trigger button, the card's position, and the outside-click close.
+The stories here show the clean menu alone; the Filters prototype shows the
+real consumer wiring, with every setting kept per view.
+
+## Mobile
+
+On mobile the menu is a drawer. There is no pinning; the sort column opens a
+second drawer with a search, and the min-one-column warning arrives as a Hint
+drawer.
+
+<Canvas of={ViewMenuStories.Mobile} />
+
+## The jobs version
+
+Two pieces of the menu exist **only for jobs** — other object types have no
+schedule:
+
+- **Schedule horizon** — how far ahead the scheduled jobs are listed
+  ("All dates", "Next 1 week", …). Rendered only when the consumer passes the
+  `scheduled` prop.
+- **Timeline** — the schedule-over-time view, with its orientation, time
+  frame and display toggles. The switcher offers it only when the consumer
+  passes the `timeline` prop.
+
+<Canvas of={ViewMenuStories.Jobs} />
+
+## Views a consumer has not built
+
+`disabledViews` draws a view's tab but makes it unclickable — for a consumer
+that has not designed that view yet, where switching would change nothing.
+The Filters prototype disables Cards and Timeline this way.

@@ -1,0 +1,8 @@
+// Schedule step — "Assignees" module: the field over the selected-techs card.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px field <> selected list (the node's body gap)
+  width: 100%;
+}

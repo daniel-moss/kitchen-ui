@@ -9,13 +9,19 @@
 // chip is `--text-subtle` at rest and steps to `--text-strong` on hover, press
 // and focus; a selected chip is `--text-strong` in every state. An Icon the
 // caller gave its own color keeps that color — only the default follows.
+//
+// The base hover / press rules guard with :not(.invalid): the error treatment
+// (below) owns its own state steps, and the guards keep specificity flat
+// instead of stacking overrides.
 .chip {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   margin: 0;
   border: none;
+  outline: none;
   cursor: pointer;
+  max-width: 100%;
 
   color: var(--text-subtle);
   border-radius: var(--border-radius-1_5); // 6px
@@ -25,13 +31,13 @@
   // Inactive hover: the fill does not move — the border strengthens and the
   // text/icon step up to `--text-strong`.
   @media (hover: hover) {
-    &:hover:not(:disabled):not(.loading) {
+    &:hover:not(:disabled):not(.loading):not(.invalid) {
       color: var(--text-strong);
       box-shadow: inset 0 0 0 1px var(--gray-a8);
     }
   }
 
-  &:active:not(:disabled):not(.loading) {
+  &:active:not(:disabled):not(.loading):not(.invalid) {
     color: var(--text-strong);
     background: var(--gray-a3);
     box-shadow: inset 0 0 0 1px var(--gray-a8);
@@ -47,34 +53,59 @@
   }
 }
 
-// ---- active (selected) ----
+// ---- selected (isSelected) ----
 // The border becomes `--gray-12` instead of `--gray-a7`, and the text/icon are
 // `--text-strong` in EVERY state (a selected chip never dims). Per Figma the
 // selected chip does NOT react to hover; press is the one state that moves the
 // fill.
-.active {
+.selected {
   color: var(--text-strong);
   box-shadow: inset 0 0 0 1px var(--gray-12);
 
   @media (hover: hover) {
-    &:hover:not(:disabled):not(.loading) {
+    &:hover:not(:disabled):not(.loading):not(.invalid) {
       box-shadow: inset 0 0 0 1px var(--gray-12);
     }
   }
 
-  &:active:not(:disabled):not(.loading) {
+  &:active:not(:disabled):not(.loading):not(.invalid) {
     background: var(--gray-a3);
     box-shadow: inset 0 0 0 1px var(--gray-12);
   }
 }
 
+// ---- invalid (isValid=false) ----
+// The error treatment (Figma isValid=false): `--tomato-a2` fill, a 2px
+// `--tomato-9` border and `--text-error` label/icon. It REPLACES the selection
+// emphasis — .invalid is declared after .selected and re-declares every paint,
+// so an invalid selected chip renders exactly like an invalid unselected one.
+// Error persists through interaction: hover and focus step the fill to
+// `--tomato-a3`, press to `--tomato-a4`; the border and text never change.
+// Disabled is the base rule's 30% opacity over this same scheme.
+.chip.invalid {
+  color: var(--text-error);
+  background: var(--tomato-a2);
+  box-shadow: inset 0 0 0 2px var(--tomato-9);
+
+  @media (hover: hover) {
+    &:hover:not(:disabled) {
+      background: var(--tomato-a3);
+    }
+  }
+
+  &:active:not(:disabled) {
+    background: var(--tomato-a4);
+  }
+}
+
 // ---- sizes ----
+// All three label in body 14/20 (the sm caption was the pre-2026-09-05 spec).
 .sm {
   height: var(--size-7); // 28px
   padding: 0 var(--size-2); // 8px
   gap: var(--size-1_5); // 6px
 
-  @include font("caption-medium-400");
+  @include font("body-400-compact");
 }
 
 .md {
@@ -94,18 +125,38 @@
 }
 
 // ---- focus (keyboard only) ----
-// The same on both values: a 2px `--gray-12` stroke, no gap and no inner block,
-// and the text/icon at `--text-strong`. Written with the hover/press selectors'
-// specificity and declared last so focus always wins over them; the third
-// selector keeps the stroke on a loading chip (which the hover/press rules
-// skip).
-.chip:focus-visible:not(:disabled):not(.loading),
-.active:focus-visible:not(:disabled):not(.loading),
-.chip.loading:focus-visible {
-  outline: none;
+// The RING spec (Figma 2026-09-05, replacing the old inset stroke): a 2px
+// `--gray-12` outline with a 2px VISIBLE gap to the chip. The node's ring
+// rectangle sits 4px outside the bounds, but its 2px stroke is drawn INSIDE
+// that rectangle — the classic Figma stroke-overlay gotcha (see the
+// row-focus-ring-inset note in CLAUDE.md) — so offset 2px + width 2px lands
+// the ring's outer edge exactly on the node's bounds. Inside the ring the
+// chip shows its hover treatment: `--gray-a8` border + strong text on an
+// unselected chip, the held `--gray-12` border on a selected one. An INVALID
+// chip's ring is `--tomato-9`, over the error scheme with the `--tomato-a3`
+// fill step.
+// Declared last so focus wins over hover/press; the loading selector keeps
+// the ring on a loading chip (which the hover/press rules skip).
+.chip:focus-visible:not(:disabled):not(.loading):not(.invalid) {
   color: var(--text-strong);
-  background: var(--gray-a2);
-  box-shadow: inset 0 0 0 2px var(--gray-12);
+  box-shadow: inset 0 0 0 1px var(--gray-a8);
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
+}
+
+.selected:focus-visible:not(:disabled):not(.loading):not(.invalid) {
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+}
+
+.chip.invalid:focus-visible:not(:disabled) {
+  background: var(--tomato-a3);
+  outline: 2px solid var(--tomato-9);
+  outline-offset: 2px;
+}
+
+.chip.loading:focus-visible {
+  outline: 2px solid var(--gray-12);
+  outline-offset: 2px;
 }
 
 .slotLeft {
@@ -114,6 +165,10 @@
   align-items: center;
 }
 
+// The label gives way first when the chip is squeezed — the slot never
+// shrinks (the doc's truncation rule). An unconstrained chip still hugs.
 .label {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

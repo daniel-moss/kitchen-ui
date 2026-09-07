@@ -18,15 +18,16 @@
    dark-mode surface. ZERO margins — every gap comes from the elements' own
    paddings. */
 
-/* Page: surface-level-first background, 700px content column. The top padding
-   is the space above the H1 on EVERY docs page (Storybook's own default here
-   is 64px). */
+/* Page: surface-level-first background, 600px content column (matches the
+   Figma doc pages' Content frame — Daniel, 2026-09-02; was 700). The top
+   padding is the space above the H1 on EVERY docs page (Storybook's own
+   default here is 64px). */
 .sbdocs.sbdocs-wrapper {
   background: var(--surface-level-first);
   padding-top: var(--size-32); /* 128 */
 }
 .sbdocs.sbdocs-content {
-  max-width: 700px;
+  max-width: 600px;
 }
 
 /* Zero out Storybook's element margins — spacing is paddings-only. */
@@ -263,4 +264,36 @@
 .sbdocs .docs-story,
 .sbdocs .docs-story > * {
   overflow: visible !important;
+}
+
+/* Two DIRECTLY adjacent story previews (no text between them): 80px apart
+   (Daniel, 2026-09-02 — mirrors the Figma doc pages, where sibling previews
+   sit in one container). Everything else keeps the zero-margin rhythm; the
+   !important beats the zero-margin rule above. */
+.sbdocs .sbdocs-content > .sbdocs-preview + .sbdocs-preview {
+  margin-top: var(--size-20) !important; /* 80 */
+}
+
+/* A story that marks its root with data-tinted: the preview surface gets the
+   TINTED fill — gray-5, like the Figma doc pages' _PreviewSurface
+   tinted=true, which they use for the mobile/device previews. Untinted
+   previews stay transparent (the page's surface-level-first shows through,
+   matching tinted=false). */
+.sbdocs .sbdocs-preview:has([data-tinted]) {
+  background: var(--gray-5);
+}
+
+/* A story that marks its root with data-hug: the preview container HUGS its
+   content and centers on the docs column — content wider than the column
+   overflows symmetrically on both sides (how the Figma doc pages place their
+   wide previews). width: max-content lets the block exceed the column; the
+   50% margin + -50% transform center it. NEVER narrower than the text
+   column (min-width: 100% = the 700px content column), so a narrow preview
+   keeps its borders aligned with the text and centers its content inside. */
+.sbdocs .sbdocs-content > .sbdocs-preview:has([data-hug]) {
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin-left: 50% !important;
+  transform: translateX(-50%);
 }

@@ -24,7 +24,7 @@ export interface ActivityLogItemProps extends Omit<HTMLAttributes<HTMLDivElement
   /**
    * When the event happened. The component derives both the shown label
    * ("1h ago" while recent, then the date "May 12") and the tooltip
-   * ("Mon, Jan 1, 2026 ・ 12:00 PM" — always with the year) from it.
+   * ("Mon, Jan 1, 2026 at 12:00 PM" — always with the year) from it.
    */
   date?: Date;
   /** Overrides the label computed from `date`. */

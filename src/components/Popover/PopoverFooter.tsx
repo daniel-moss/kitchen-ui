@@ -34,18 +34,20 @@ const keepFocusThroughTap = (e: ReactMouseEvent<HTMLDivElement>) => {
   e.preventDefault();
 };
 
-// Action bar for popover-like containers (Popover, Dialog, SidePanel, …). A
-// full-width Divider on top plus a Body row of buttons. An optional leading
-// Cancel (ghost) is pinned far left; the trailing buttons hug the right edge
-// (or stretch to fill the width in the navigation/mobile variant).
-// See Kitchen UI/components/popover-footer.md.
+// Action bar for popover-like containers (Popover, Dialog, SidePanel, select
+// menus). A full-width Divider on top plus a padded row: an optional left
+// slot (`slotLeft` — a ghost Cancel, or a display-only PopoverFooterText)
+// pinned far left, and the trailing buttons hugging the right edge — or
+// sharing the row width equally with `stretch` (Figma `layout=fullWidth`),
+// which excludes the left slot (the props union enforces it).
+// Figma component 24913-73524.
 //
-// `medium` (--gray-a4) since 2026-08-20, Daniel — it was `low` (--gray-a3), and
-// PopoverHeader's bottom line moved with it so the two stay a pair. FLAGGED: the
-// Figma component still draws --gray-a3 (node 24979-75098), so the node needs
-// the same change.
+// Divider is `medium` (--gray-a4) since 2026-08-20 — the Figma component
+// matches since the 2026-09 footer reorganisation (the old --gray-a3 flag is
+// resolved).
 export default function PopoverFooter({
   children,
+  slotLeft,
   leadingButton,
   stretch = false,
   className,
@@ -54,7 +56,7 @@ export default function PopoverFooter({
     <div className={clsx(styles.footer, className)} onMouseDown={keepFocusThroughTap}>
       <Divider orientation="horizontal" contrast="medium" />
       <div className={clsx(styles.body, { [styles.stretch]: stretch })}>
-        {leadingButton}
+        {slotLeft ?? leadingButton}
         <div className={styles.buttons}>{children}</div>
       </div>
     </div>

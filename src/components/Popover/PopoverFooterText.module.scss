@@ -1,0 +1,26 @@
+@use "../../styles/mixins/font" as *;
+
+// Display-only text for PopoverFooter's left slot (Figma: SlotLeft
+// variant=text holding the #️⃣ Text part). Optional icon + truncating label.
+// Never interactive — no hover/press states, no cursor.
+.text {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — the Figma #️⃣ Text row gap
+  min-width: 0;
+  // Default for BOTH label and icon; the color/iconColor props override
+  // independently (they do not have to match — Daniel, 2026-09-02).
+  color: var(--text-strong);
+}
+
+.icon {
+  flex-shrink: 0;
+}
+
+.label {
+  @include font("body-500-compact");
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

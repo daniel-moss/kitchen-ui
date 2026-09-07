@@ -19,6 +19,7 @@ import { JOB_ID, JOB_REASON_FOR_CALL, JOB_RECALL_TO, JOB_SERVICE, JOB_TECH_INSTR
 import { noop } from "./shared";
 
 import styles from "./ServiceForm.module.scss";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 interface ServiceFormProps {
   open: boolean;
@@ -89,12 +90,12 @@ export default function ServiceForm({ open, onClose, mobile = false }: ServiceFo
         {type === "recall" && (
           <div className={styles.recall}>
             <Input label="Recall to">
-              <SelectField value={`${JOB_RECALL_TO} • ${JOB_SERVICE}`} onClick={noop} />
+              <SelectField value={`${JOB_RECALL_TO}${TEXT_SEPARATOR}${JOB_SERVICE}`} onClick={noop} />
             </Input>
             <Card padding={0}>
               <ListItem
                 variant="titleCaption"
-                title={`${JOB_RECALL_TO} • ${JOB_SERVICE}`}
+                title={`${JOB_RECALL_TO}${TEXT_SEPARATOR}${JOB_SERVICE}`}
                 caption="Finalized on Jan 1, 2025 by Lorne R."
                 avatar={<AvatarJob size="xl" status="finalized" />}
                 slotRight={<ListItemSlotIcon icon="arrow-up-right" />}

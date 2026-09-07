@@ -1,0 +1,7 @@
+// "Add Files" form — Dropzone + the file list, --size-3 (12px) apart.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}

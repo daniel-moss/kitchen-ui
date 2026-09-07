@@ -16,6 +16,7 @@ export type SelectListFooterProps =
       variant?: "menuItem";
       /** The action row(s) — MenuItem elements. */
       children: ReactNode;
+      slotLeft?: never;
       leadingButton?: never;
       stretch?: never;
       className?: string;

@@ -15,7 +15,7 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import { JOB_ID } from "./jobData";
-import { SelectPopoverList, useSelectPopover } from "../../forms/shared/selectPopover";
+import { SelectPopoverList, useSelectPopover } from "../../modules/shared/selectPopover";
 import { TECH_STATUSES } from "./TimesheetPanel";
 
 import styles from "./jobForm.module.scss";

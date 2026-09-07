@@ -1,0 +1,14 @@
+// "Labels" module — field + picked-label badges, --size-3 (12px) apart
+// (the doc's annotated gap); the badges wrap when they do not fit the width.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+}

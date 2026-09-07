@@ -24,7 +24,7 @@ const DemoChips = () => {
   return (
     <>
       {["All", "Active", "Archived"].map((label) => (
-        <Chip key={label} active={selected === label} onClick={() => setSelected(label)}>
+        <Chip key={label} isSelected={selected === label} onClick={() => setSelected(label)}>
           {label}
         </Chip>
       ))}
@@ -34,7 +34,7 @@ const DemoChips = () => {
 
 const staticChips = (
   <>
-    <Chip active onClick={noop}>
+    <Chip isSelected onClick={noop}>
       All
     </Chip>
     <Chip onClick={noop}>Active</Chip>

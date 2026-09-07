@@ -5,8 +5,8 @@ import { toast } from "../../components/Toast/Toaster";
 
 // The anchored-menu helper moved to the forms tier (the form preview panel
 // needs it too); re-exported so every prototype import keeps working.
-export { useAnchoredMenu } from "../../forms/shared/anchoredMenu";
-export type { AnchoredMenuPos } from "../../forms/shared/anchoredMenu";
+export { useAnchoredMenu } from "../../modules/shared/anchoredMenu";
+export type { AnchoredMenuPos } from "../../modules/shared/anchoredMenu";
 
 // Shared helpers of the Job Details prototype (used by the shell AND the
 // details panel — keep them out of JobDetails.tsx to avoid import cycles).

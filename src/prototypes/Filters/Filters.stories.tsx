@@ -40,15 +40,15 @@ export const Desktop: Story = {
 
 /**
  * Mobile shell (Figma nodes 13889-19548 and 13897-21009). The top bar carries
- * the title, the [Open · Closed] pill tabs and the DS's own mobile create button
- * (a solid plus IconButton). The view bar below has the status picker on the
- * left — just the tab's name and a chevron, no icon and no count — which opens
- * the tabs as one flat `SelectList` of labels (node 13897-21030).
+ * the title and the [Open · Closed] pill tabs, and keeps the DESKTOP create
+ * control — the solid "New" Button (Daniel, 2026-08-18). The view bar below
+ * is the DS `TopBarView`: its view selector on the left — the tab's name and
+ * a chevron, no icon and no count — opens the tabs as one flat inline list.
  *
- * The one count left is the Filters button's `Counter`: how many filters are
- * applied, counting the tab's own Status filter. With none applied it is the
- * plain square IconButton. Tapping it opens the Filters `Menu` as a drawer
- * (Figma node 13857-25343).
+ * The one count left is on the Filters button: how many filters are applied,
+ * counting the tab's own Status filter — the component draws it as the ghost
+ * Button's plain label. With none applied it is the plain square IconButton.
+ * Tapping it opens the Filters `Menu` as a drawer (Figma node 13857-25343).
  */
 export const Mobile: Story = {
   parameters: { layout: "fullscreen" },

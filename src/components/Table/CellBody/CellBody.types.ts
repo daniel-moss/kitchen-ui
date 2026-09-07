@@ -28,6 +28,13 @@ export type CellContent = "text" | "number" | "badge" | "assignee";
 
 export interface CellBodyProps {
   /**
+   * Freezes the cell at the table's left edge while the columns scroll — set
+   * on every cell of a pinned column, with `pinnedOffset` giving the summed
+   * widths of the pinned columns before it, in px.
+   */
+  isPinned?: boolean;
+  pinnedOffset?: number;
+  /**
    * The cell's value. A plain string is styled and truncated by the cell. Any
    * other node — Badge, AvatarGroup — is rendered as-is. Leave it empty and the
    * cell draws the placeholder for its `content` type.
@@ -44,8 +51,9 @@ export interface CellBodyProps {
   colorScheme?: CellColorScheme;
   /**
    * Tabular (fixed-width) numerals for string content, so values line up down
-   * the column. Defaults to true for `content="number"`. Use it on dates and
-   * IDs too.
+   * the column. Defaults to true for `content="number"`. ONLY for columns of
+   * currency or number-ONLY data, which are usually right-aligned (Daniel,
+   * 2026-09-04) — never for dates, IDs, or other mixed text.
    */
   isTabular?: boolean;
   /** Column width in px. Omit to let the cell size itself. */
