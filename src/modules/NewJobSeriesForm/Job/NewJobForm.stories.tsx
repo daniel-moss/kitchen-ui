@@ -12,6 +12,10 @@ import NewJobForm from "./NewJobForm";
 // of "/" — a real slash would split the Storybook level.
 const meta: Meta = {
   title: 'Modules/"New Job ∕ Series" Form/Job',
+  // Explicit ASCII id: the auto id inherits the title's "∕" (U+2215), and
+  // messengers/keyboards silently turn it into "/" when the story URL is
+  // shared — the link then 404s (Daniel hit this, 2026-09-08).
+  id: "modules-new-job-series-form-job",
   parameters: { controls: { disable: true } },
 };
 
