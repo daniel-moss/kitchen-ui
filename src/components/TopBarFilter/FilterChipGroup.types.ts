@@ -22,6 +22,12 @@ export interface FilterChipGroupProps {
    */
   onAddClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /**
+   * With `onAddClick`: keeps the "Add filter" button pressed while the
+   * follow-up it opened is on screen — set it to that follow-up's open state.
+   * The built-in `addMenu` holds the button pressed by itself.
+   */
+  addPressed?: boolean;
+  /**
    * Presentation. Desktop: a wrapping row, chips `--size-2` (8px) apart on
    * both axes, the "Add filter" IconButton after the chips. Mobile: a column
    * of full-width chips, 8px apart, no button. The resolved value is handed

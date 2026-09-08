@@ -1,13 +1,22 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as InputStories from "./Input.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
 
 <Meta of={InputStories} />
 
 # Input
 
-We use **Input** as the wrapper for input components. It provides the label,
-the help text and a few other auxiliary components.
+`Input` is the shared header around a single field: the label with its extras
+(condition, hint trigger, strength indicator) and the help text. The field
+components themselves stay bare — Input owns everything above them, so every
+field gets the same header, spacing and loading treatment without carrying
+its own.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28582-21616"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28654-5710"
+/>
 
 <Canvas of={InputStories.WithLabel} />
 
@@ -18,55 +27,85 @@ the help text and a few other auxiliary components.
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Behavior](#behavior)<br />
 ↳&nbsp;&nbsp;[Supported fields](#supported-fields)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-Utilizes the
+The header holds up to two rows above the field: the
 <a href="/?path=/docs/components-label--docs" target="_top">Label</a>
-component as the label, `--size-1_5` (6px) above the field. A string label
-also flows down into the field, which uses it to build its **default** error
-message ("Enter/Choose/Provide/Add [Label]") and related copy. Validation and
-the error message stay the **field's** job — `isValid` / `errorMessage` live
-on the field and Input renders no errors; the shared label only means you
-rarely need to write custom `errorMessage` copy. Clicking the label focuses /
-triggers the field below (checkbox and radio groups only receive focus — a
-label click never toggles an option).
-
-<Canvas of={InputStories.WithLabel} />
-
-Utilizes **InputHelpText** as the help text (optional), `--size-0_5` (2px)
-below the label.
+(subtle variant), `--size-1_5` (6px) above the field, and the
+<a href="/?path=/docs/components-inputhelptext--docs" target="_top">InputHelpText</a>,
+`--size-0_5` (2px) below the label.
 
 <Canvas of={InputStories.WithHelpText} />
 
-Supports a right slot next to the label. Currently it is only used for the
-**StrengthIndicator** (the `strength` prop — the value comes from the
-consumer, Input has no strength logic).
+Both rows are optional and independent — label only, help text only, or
+neither. When neither is set, Input renders the bare field and leaves no
+empty header space behind.
+
+<Canvas of={InputStories.HelpTextOnly} />
+
+<Canvas of={InputStories.FieldOnly} />
+
+The label carries the optional extras: a condition — "(optional)" or a
+custom one — after the text, and a hint trigger (the info icon) whose
+HoverHint shows `labelHintContent`.
+
+<Canvas of={InputStories.WithLabelExtras} />
+
+The label row's right slot holds the **StrengthIndicator** (the `strength`
+prop, used with PasswordField). The value comes from the consumer — Input
+has no strength logic of its own.
 
 <Canvas of={InputStories.WithRightSlot} />
 
+## Behavior
+
+### Clicking the label
+
+Clicking the label focuses / triggers the field below, like a native
+`<label>` would — the fields wrap their inputs in their own `<label>`
+elements, so Input wires this by hand instead of nesting labels. Checkbox,
+radio and chip groups only receive focus: a label click never toggles an
+option.
+
+### A string label flows into the field
+
+A string `label` also flows down to the field through context. The field
+uses it to build its **default** copy: the missing-value error message
+("Enter/Choose/Provide/Add [Label]"), the TextArea clear prompt, and the
+DateField picker title. Validation itself stays the **field's** job —
+`isValid` and `errorMessage` live on the field, and Input renders no errors;
+the shared label only means you rarely need custom `errorMessage` copy.
+
+### Read-only
+
+The "(read-only)" label condition cannot be set by hand — it appears
+automatically, and only when the wrapped field itself is `readOnly`.
+
+<Canvas of={InputStories.ReadOnly} />
+
+### Loading
+
+`isLoading` swaps every part for its skeleton: the label row, the help text,
+and the field — sized per field type (TextArea 4 rows, MediaField its
+trigger box, 36px otherwise).
+
+<Canvas of={InputStories.Loading} />
+
 ## Supported fields
 
-One field per Input — any of the field components below. (The exception is
-the combined pair at the end.)
+One field per Input — any of the field components below
 
 ### TextField
 
 <Canvas of={InputStories.WithTextField} />
 
-### TextArea
-
-<Canvas of={InputStories.WithTextArea} />
-
 ### SelectField
 
 <Canvas of={InputStories.WithSelectField} />
-
-### PasswordField
-
-<Canvas of={InputStories.WithPasswordField} />
 
 ### DateField
 
@@ -76,6 +115,10 @@ the combined pair at the end.)
 
 <Canvas of={InputStories.WithInputGroup} />
 
+### TextArea
+
+<Canvas of={InputStories.WithTextArea} />
+
 ### CheckboxGroup
 
 <Canvas of={InputStories.WithCheckboxGroup} />
@@ -84,12 +127,20 @@ the combined pair at the end.)
 
 <Canvas of={InputStories.WithRadioGroup} />
 
+### ChipGroup
+
+<Canvas of={InputStories.WithChipGroup} />
+
 ### MediaField
 
 (See the
 <a href="/?path=/docs/components-fields-mediafield--docs" target="_top">MediaField documentation</a>.)
 
 <Canvas of={InputStories.WithMediaField} />
+
+### PasswordField
+
+<Canvas of={InputStories.WithPasswordField} />
 
 ## Props
 

@@ -23,6 +23,7 @@ export default function TopBarFilter({
   children,
   addMenu,
   onAddClick,
+  addPressed,
   onClearAll,
   onReset,
   breakpoint = "auto",
@@ -35,7 +36,13 @@ export default function TopBarFilter({
   return (
     <div className={clsx(styles.bar, className)}>
       <div className={styles.content}>
-        <FilterChipGroup breakpoint="desktop" addMenu={addMenu} onAddClick={onAddClick} className={styles.chips}>
+        <FilterChipGroup
+          breakpoint="desktop"
+          addMenu={addMenu}
+          onAddClick={onAddClick}
+          addPressed={addPressed}
+          className={styles.chips}
+        >
           {children}
         </FilterChipGroup>
         {onClearAll != null && (

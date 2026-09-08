@@ -13,5 +13,13 @@ export interface ChipGroupProps extends HTMLAttributes<HTMLDivElement> {
    * chips.
    */
   isFullWidth?: boolean;
+  /** false → error state: the chips turn error and the error message shows. Default true. */
+  isValid?: boolean;
+  /**
+   * Error message shown under the chips when invalid. Default: "Choose
+   * [Label]", derived from the surrounding Input's string label. Label and
+   * help text live on the Input wrapper — the group is bare.
+   */
+  errorMessage?: ReactNode;
   className?: string;
 }

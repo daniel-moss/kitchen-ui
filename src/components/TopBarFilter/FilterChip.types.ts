@@ -32,8 +32,20 @@ export interface FilterChipProps {
   onConditionClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Disables the "condition" box: 30% opacity, not-allowed cursor. */
   conditionDisabled?: boolean;
+  /**
+   * Holds the "condition" box's fill while the list it opened is on screen —
+   * set it to that list's open state. Ignored on a fixed chip.
+   */
+  conditionPressed?: boolean;
   /** The "value" box text (e.g. "John Doe"). */
   value: string;
+  /**
+   * Left slot in the "value" box — an Icon (14px; every icon parameter is
+   * the caller's) or ANY avatar at the fixed **xs (20px)** size, like the
+   * property box's `slotLeft` (the boxes are the same part). Sits `--size-2`
+   * (8px) before the text.
+   */
+  valueSlotLeft?: ReactNode;
   /**
    * Makes the "value" box interactive (usually opens a SelectList with value
    * options, or a Dialog). Without a handler the box renders non-interactive.
@@ -44,6 +56,11 @@ export interface FilterChipProps {
   onValueClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Disables the "value" box: 30% opacity, not-allowed cursor. */
   valueDisabled?: boolean;
+  /**
+   * Holds the "value" box's fill while the list it opened is on screen — set
+   * it to that list's open state.
+   */
+  valuePressed?: boolean;
   /**
    * Whether the chip is fixed (not adjustable). A fixed chip has no "remove"
    * box (nor its divider) and its "condition" box renders non-interactive.
@@ -78,6 +95,12 @@ export interface FilterChipBoxProps {
   onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Disables an interactive box: 30% opacity, not-allowed cursor. */
   disabled?: boolean;
+  /**
+   * Holds the box's fill (the hover tint) while the list it opened is on
+   * screen, so the box reads as the open one; a real press still steps the
+   * fill further. Only meaningful on an interactive box.
+   */
+  isPressed?: boolean;
   /**
    * Fill the remaining chip width (the mobile "value" box) instead of hugging
    * the content. Set by FilterChip.

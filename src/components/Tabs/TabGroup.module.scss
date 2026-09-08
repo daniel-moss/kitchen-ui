@@ -45,7 +45,7 @@
 }
 .indicatorContained {
   top: 0;
-  background: var(--surface-interactive-default); // white surface
+  background: var(--surface-interactive-default); // raised neutral surface (white / white-alpha in dark)
   border-radius: 5px; // matches the contained tab
   box-shadow: 0 1px 1.5px 0 var(--box-shadow-shadow-default);
 }

@@ -1,6 +1,7 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as MenuItemStories from "./MenuItem.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
 
 <Meta of={MenuItemStories} />
 
@@ -10,6 +11,11 @@ We use **MenuItem** inside the
 <a href="/?path=/story/components-menu-menu--playground" target="_top">Menu</a>
 component to give access to a set of actions. It is an action row:
 `[left slot] title [tag] [right slot]` with an optional caption.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25039-39951"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28682-35089"
+/>
 
 <Canvas of={MenuItemStories.Interactive} />
 

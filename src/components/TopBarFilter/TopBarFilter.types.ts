@@ -13,6 +13,11 @@ export interface TopBarFilterProps {
   /** Forwarded to the FilterChipGroup inside: a plain "Add filter" click handler. */
   onAddClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /**
+   * Forwarded to the FilterChipGroup inside: with `onAddClick`, keeps the
+   * "Add filter" button pressed while the follow-up it opened is on screen.
+   */
+  addPressed?: boolean;
+  /**
    * Renders the "Clear all" button in the right slot (standard views).
    * Removing all the filters — and with them the bar — is the consumer's
    * wiring: empty the chips in the handler. Never together with `onReset`;

@@ -1,6 +1,7 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as ItemGroupStories from "./ItemGroup.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
 
 <Meta of={ItemGroupStories} />
 
@@ -10,6 +11,11 @@ We use **ItemGroup** to collect related rows into one block. It holds either a
 vertical list of **ListItem**s (`view="list"`, the default) or a wrap grid of
 **Card**s (`view="cards"`). On top of the layout it adds an optional header, a
 bottom divider for stacking, an accordion, truncation, and drag-and-drop reorder.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25527-18316"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25527-22778"
+/>
 
 <Canvas of={ItemGroupStories.WithHeader} />
 

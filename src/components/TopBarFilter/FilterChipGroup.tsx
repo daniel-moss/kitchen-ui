@@ -25,6 +25,7 @@ export default function FilterChipGroup({
   children,
   addMenu,
   onAddClick,
+  addPressed = false,
   breakpoint = "auto",
   className,
 }: FilterChipGroupProps) {
@@ -79,7 +80,7 @@ export default function FilterChipGroup({
                 size="md"
                 icon="plus"
                 aria-label="Add filter"
-                isPressed={open}
+                isPressed={addMenu != null ? open : addPressed}
                 onClick={addMenu != null ? () => setOpen(!open) : onAddClick}
               />
             </HoverTooltip>

@@ -81,7 +81,7 @@ const TECH_INSTRUCTIONS_HINT =
   "Notes specific to this service. e.g. 'Ask client about replacing the unit.' or 'Make sure to collect payment on site.'";
 const DEFAULT_PRIORITY_HINT =
   "When this service is selected, the priority is filled in with this value. It can still be changed.";
-const PRIORITY_PREFILLED_HELP = "Pre-filled based on service's default priotity";
+const PRIORITY_PREFILLED_HELP = "Pre-filled based on service's default priority";
 
 // ---- "New service" dialog (doc nodes 23833:15113 / 23833:15313) -------------
 

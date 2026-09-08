@@ -7,6 +7,7 @@ import InputHelpText from "../InputHelpText/InputHelpText";
 import Label from "../Label/Label";
 import { Skeleton } from "../Skeleton/Skeleton";
 import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
+import ChipGroup from "../Chip/ChipGroup";
 import MediaField from "../Fields/MediaField/MediaField";
 import TextArea from "../Fields/TextArea/TextArea";
 import { InputProvider } from "./InputContext";
@@ -18,7 +19,8 @@ import { InputProps } from "./Input.types";
 // Input — the shared field header: an optional Label (with condition, hint
 // trigger, and the password strength indicator) plus neutral help text, stacked
 // above ONE bare field (TextField, TextArea, SelectField, DateField,
-// PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField). The field
+// PasswordField, InputGroup, CheckboxGroup, RadioGroup, ChipGroup,
+// MediaField). The field
 // carries no label/help text of its own — Input owns everything above it.
 // (The old TextArea + MediaField pair was removed 2026-08-06, Daniel: one
 // Input = one field, and every field keeps its own label.)
@@ -31,7 +33,8 @@ import { InputProps } from "./Input.types";
 // The loading stand-in for the field.
 const fieldSkeleton = (el: ReactElement | null, isDesktop: boolean) => {
   const isMedia = el?.type === MediaField;
-  const height = el?.type === TextArea ? 102 : isMedia ? (isDesktop ? 180 : 151) : 36;
+  const height =
+    el?.type === TextArea ? 102 : isMedia ? (isDesktop ? 180 : 151) : el?.type === ChipGroup ? 32 : 36;
   return <Skeleton height={height} borderRadius={isMedia ? "var(--border-radius-2)" : "var(--border-radius-1_5)"} />;
 };
 
@@ -69,9 +72,10 @@ export default function Input({
   // 2026-09-02). The Label is a span — the fields wrap their inputs in their
   // own <label>, and nested labels are invalid HTML — so the wiring is
   // manual: find the field's first interactive element and hand it the
-  // interaction. Checkbox/radio groups only receive focus (a label click
-  // must never TOGGLE the first option). Clicks on interactive things inside
-  // the label row itself (the hint trigger) stay theirs.
+  // interaction. Checkbox/radio groups — and ChipGroup, whose chips are
+  // buttons — only receive focus (a label click must never TOGGLE the first
+  // option). Clicks on interactive things inside the label row itself (the
+  // hint trigger) stay theirs.
   const fieldAreaRef = useRef<HTMLDivElement>(null);
   const handleLabelClick = (e: ReactMouseEvent) => {
     if ((e.target as Element).closest("button, [role='button'], a")) return;
@@ -81,6 +85,7 @@ export default function Input({
     if (el == null) return;
     el.focus();
     if (el instanceof HTMLInputElement && (el.type === "checkbox" || el.type === "radio")) return;
+    if (field?.type === ChipGroup) return;
     el.click();
   };
 

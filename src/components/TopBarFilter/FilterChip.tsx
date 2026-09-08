@@ -35,6 +35,7 @@ export function FilterChipBox({
   slotLeft,
   onClick,
   disabled = false,
+  isPressed = false,
   fill = false,
   className,
   style,
@@ -63,6 +64,7 @@ export function FilterChipBox({
     breakpoint === "mobile" && styles.boxMobile,
     fill && styles.fill,
     onClick != null && styles.clickable,
+    onClick != null && isPressed && styles.pressed,
     className,
   );
   const content = (
@@ -130,9 +132,12 @@ export default function FilterChip({
   condition,
   onConditionClick,
   conditionDisabled = false,
+  conditionPressed = false,
   value,
+  valueSlotLeft,
   onValueClick,
   valueDisabled = false,
+  valuePressed = false,
   isFixed = false,
   onRemove,
   removeDisabled = false,
@@ -151,11 +156,23 @@ export default function FilterChip({
         {property}
       </FilterChipBox>
       <Divider orientation="vertical" contrast="medium" />
-      <FilterChipBox breakpoint={bp} onClick={isFixed ? undefined : onConditionClick} disabled={conditionDisabled}>
+      <FilterChipBox
+        breakpoint={bp}
+        onClick={isFixed ? undefined : onConditionClick}
+        disabled={conditionDisabled}
+        isPressed={!isFixed && conditionPressed}
+      >
         {condition}
       </FilterChipBox>
       <Divider orientation="vertical" contrast="medium" />
-      <FilterChipBox breakpoint={bp} fill={!isDesktop} onClick={onValueClick} disabled={valueDisabled}>
+      <FilterChipBox
+        breakpoint={bp}
+        slotLeft={valueSlotLeft}
+        fill={!isDesktop}
+        onClick={onValueClick}
+        disabled={valueDisabled}
+        isPressed={valuePressed}
+      >
         {value}
       </FilterChipBox>
       {!isFixed && (

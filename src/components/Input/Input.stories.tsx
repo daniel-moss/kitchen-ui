@@ -3,6 +3,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { cap, docsFrame } from "../../stories/helpers";
 import CheckboxItem from "../Checkbox/CheckboxItem";
 import CheckboxGroup from "../Checkbox/CheckboxGroup";
+import Chip from "../Chip/Chip";
+import ChipGroup from "../Chip/ChipGroup";
 import DateField from "../Fields/DateField/DateField";
 import InputGroup from "../Fields/InputGroup/InputGroup";
 import MediaField from "../Fields/MediaField/MediaField";
@@ -19,10 +21,10 @@ const noop = () => {};
 
 /**
  * Input — the shared field header: label (with condition, hint, strength
- * indicator) + help text above ONE bare field (or the TextArea + MediaField
- * pair). A string label also flows down to the field, which derives its
- * default error message ("Enter/Choose/Provide/Add [Label]"), the TextArea
- * clear-Prompt copy, and the DateField picker label from it.
+ * indicator) + help text above ONE bare field. A string label also flows
+ * down to the field, which derives its default error message
+ * ("Enter/Choose/Provide/Add [Label]"), the TextArea clear-Prompt copy, and
+ * the DateField picker label from it.
  */
 const meta: Meta<typeof Input> = {
   title: "Components/Input/Input",
@@ -81,12 +83,72 @@ export const WithHelpText: Story = {
   ),
 };
 
+/** Help text without a label — the header holds only the InputHelpText. */
+export const HelpTextOnly: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input helpText="Help text">
+        <TextField />
+      </Input>
+    </div>
+  ),
+};
+
+/** Neither label nor help text — no header at all, the bare field. */
+export const FieldOnly: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input>
+        <TextField />
+      </Input>
+    </div>
+  ),
+};
+
 /** The label's right slot — currently only the StrengthIndicator. */
 export const WithRightSlot: Story = {
   render: () => (
     <div style={docsFrame}>
       <Input label="Label" strength="strong">
         <PasswordField variant="new" defaultValue="abcdefgh12" />
+      </Input>
+    </div>
+  ),
+};
+
+/** Label extras: a condition and a hint trigger with its HoverHint caption. */
+export const WithLabelExtras: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input
+        label="Label"
+        labelCondition="optional"
+        labelHint
+        labelHintContent="Shown when the pointer rests on the info icon"
+      >
+        <TextField />
+      </Input>
+    </div>
+  ),
+};
+
+/** Read-only — the "(read-only)" condition comes from the field itself. */
+export const ReadOnly: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input label="Label">
+        <TextField readOnly value="Value" />
+      </Input>
+    </div>
+  ),
+};
+
+/** Loading — label, help text and field render as skeletons. */
+export const Loading: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input label="Label" helpText="Help text" isLoading>
+        <TextField />
       </Input>
     </div>
   ),
@@ -176,6 +238,20 @@ export const WithRadioGroup: Story = {
           <RadioItem value="a" label="Label" />
           <RadioItem value="b" label="Label" />
         </RadioGroup>
+      </Input>
+    </div>
+  ),
+};
+
+export const WithChipGroup: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Input label="ChipGroup">
+        <ChipGroup isFullWidth>
+          <Chip>Label</Chip>
+          <Chip>Label</Chip>
+          <Chip>Label</Chip>
+        </ChipGroup>
       </Input>
     </div>
   ),

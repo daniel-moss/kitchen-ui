@@ -46,6 +46,10 @@ const allServices = (): Service[] => [...SERVICES, ...sessionServices];
 export const serviceNameOf = (serviceId: string | null): string | undefined =>
   serviceId != null ? allServices().find((row) => row.id === serviceId)?.name : undefined;
 
+/** Resolve the whole picked service record (db or session-created) — e.g. for the Schedule step's duration pre-fill. */
+export const serviceOf = (serviceId: string | null): Service | undefined =>
+  serviceId != null ? allServices().find((row) => row.id === serviceId) : undefined;
+
 export default function ServiceDetailsModule({
   reason,
   onReasonChange,
@@ -133,7 +137,7 @@ export default function ServiceDetailsModule({
           {service && (
             <Input
               label="Priority"
-              helpText={value.priorityAdjusted ? undefined : "Pre-filled based on service's default priority"}
+              helpText={value.priorityAdjusted ? undefined : "Pre-filled based on the service default priority"}
             >
               <SelectField
                 value={priorityDef.label}

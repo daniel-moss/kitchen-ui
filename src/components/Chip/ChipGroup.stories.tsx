@@ -15,7 +15,8 @@ type StoryArgs = {
 /**
  * ChipGroup — the container for a row of Chips. They wrap onto more lines when
  * the row runs out of width, with `--size-2` (8px) between them on both axes.
- * Layout only: the consumer owns which Chip is `active`.
+ * The consumer owns which Chip is `isSelected`; the group owns validation —
+ * `isValid={false}` turns every chip error and shows the message below.
  */
 const meta: Meta<StoryArgs> = {
   title: "Components/Chip/ChipGroup",
@@ -173,6 +174,22 @@ export const MultiSelect: Story = {
   render: () => (
     <div style={{ ...docsFrame, display: "flex", justifyContent: "center" }}>
       <MultiSelectDemo />
+    </div>
+  ),
+};
+
+/** Invalid — every chip turns error and the message shows 6px below. */
+export const Validation: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <ChipGroup isValid={false} errorMessage="Choose Cuisine">
+        {CUISINES.slice(0, 3).map((label) => (
+          <Chip key={label} onClick={noop}>
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
     </div>
   ),
 };

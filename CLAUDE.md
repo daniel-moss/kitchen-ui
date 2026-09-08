@@ -522,7 +522,7 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   `Name` …"** opener is RETIRED (Daniel, 2026-09-02): do not use it for new
   pages; mirror the Figma doc page's intro wording instead (e.g.
   "`Name` is used as …"). Existing pages keep their opener until Daniel asks.
-  → hero `<Canvas>` → a ` ```tsx ` usage snippet → ↳ TOC links
+  → the `FigmaLinks` row → hero `<Canvas>` → a ` ```tsx ` usage snippet → ↳ TOC links
   (`#anatomy` / `#behavior` / `#props`) → `## Anatomy` (structure + the key
   measurements) → `## Behavior` (one `###` per rule) → `## Props` with
   `<ArgTypes of={Stories} />` (the table is fed by the JSDoc in `*.types.ts`
@@ -536,6 +536,21 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   into one `## Behavior` — ListItem.mdx does this (`Anatomy` / `Content` /
   `Right elements` / `Bottom elements` / `Dragging` / `Interactivity` /
   `Accordion` / `Props`), and the TOC links mirror them.
+- **Figma links row (Daniel, 2026-09-08):** every doc page gets
+  `<FigmaLinks component="…" doc="…" />` (from `src/stories/FigmaLinks.tsx`)
+  right below the intro paragraph — chip buttons linking the component's
+  Figma node and its Documentation page node (Daniel shares the two links per
+  component; strip the `&t=` share param). Styled ONLY in
+  `storybook-docs.css` (`.docs-figma-links`), built from Figma 29876-38594 +
+  states 29876-39967. Two deliberate deviations from the node: label is
+  body/500 COMPACT (node says spacious) and the rest-state arrow is
+  `--gray-a8` (hover/press step it to gray-12); the focus ring is an
+  addition (the node has none). The colorful logo is the node's exported
+  asset `src/assets/figma-logo.svg` — never redraw it. Rolled out
+  2026-09-08 to every docs page EXCEPT: Avatar family, Button, IconButton,
+  ViewMenu (Daniel has not shared their links yet), and ValueDisplayGroup
+  (its links exist but it has no page of its own — it is documented inside
+  ValueDisplay.mdx).
 - **Props-table gotcha:** `<ArgTypes>` is fed by react-docgen, which CANNOT
   read JSDoc off a **union** props type — it renders an empty table (no
   descriptions, no types). When `<Name>Props` is a union (ListItem's variant

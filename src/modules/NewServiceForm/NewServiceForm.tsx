@@ -22,7 +22,9 @@ import styles from "./NewServiceForm.module.scss";
 // The "New service" form (Figma 17205-69539) — a reusable module, like
 // NewLocationForm / NewEquipmentForm (Daniel, 2026-09-08). Name and Default
 // priority are required (a service cannot be created without a priority);
-// Duration is optional — the shared hr/min widget with the quick-pick chips.
+// Default duration is optional — the shared hr/min widget with the
+// quick-pick chips (label "Default duration" per Figma 17205-69539,
+// 2026-09-08; it pairs with "Default priority" above).
 
 const PRIORITY_HINT =
   "When this service is selected, the priority is filled in with this value. It can still be changed.";
@@ -114,7 +116,7 @@ export default function NewServiceForm({ open, onClose, onCreated, breakpoint = 
             onClick={(event: MouseEvent<HTMLDivElement>) => priorityPop.toggle(event.currentTarget)}
           />
         </Input>
-        <Input label="Duration" labelCondition="optional" labelHintContent={DURATION_HINT}>
+        <Input label="Default duration" labelCondition="optional" labelHintContent={DURATION_HINT}>
           <DurationField value={duration} onChange={setDuration} mobile={!isDesktop} />
         </Input>
       </div>

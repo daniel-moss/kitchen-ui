@@ -9,6 +9,12 @@ export interface ScheduleSelection {
   time: string | null;
   /** Total minutes; null = not set (the shared DurationField value). */
   durationMinutes: number | null;
+  /**
+   * The duration was pre-filled from the picked service's default and not
+   * touched yet — the Duration Input shows its "Pre-filled…" help text while
+   * true. Any user change clears it (Figma 17241-70803, "Adjusted Duration").
+   */
+  durationInherited: boolean;
 }
 
 export interface ScheduleDetailsModuleProps {

@@ -3,8 +3,11 @@
 // FilterChip — one applied filter as "property | condition | value | ×" boxes
 // separated by vertical Dividers inside a white rounded chip. Per Figma
 // (component 29552-11955, parts 29544-9456): the chip is
-// `--surface-interactive-default` with the xs/down shadow and a 6px radius;
-// the boxes are transparent and the chip's overflow clip rounds their corners.
+// `--surface-level-third` (the chip container itself is NON-interactive —
+// only the inner boxes are; Daniel moved it off `--surface-interactive-default`
+// on 2026-09-08 with the alpha-token rework) with the xs/down shadow and a 6px
+// radius; the boxes are transparent and the chip's overflow clip rounds their
+// corners.
 // The chip height is EXPLICIT (like the Figma node) — the Divider's
 // `height: 100%` needs a definite parent height; without it the dividers
 // collapse to nothing in auto-sized layout contexts.
@@ -16,7 +19,7 @@
   height: var(--size-8); // 32px
 
   border-radius: var(--border-radius-1_5); // 6px
-  background: var(--surface-interactive-default);
+  background: var(--surface-level-third);
   box-shadow: var(--box-shadow-xs-down);
 }
 
@@ -58,25 +61,27 @@
   min-width: 0;
 }
 
-// Interactive box (a <button>). Fills per Figma: hover `--gray-a2`, press
-// `--gray-a3`; focus = a 2px `--gray-12` stroke over the hover fill, drawn as
-// an inset box-shadow so it never adds size (the Kitchen UI border pattern).
+// Interactive box (a <button>). Fills: hover/focus `--gray-a3`, press
+// `--gray-a4` (Daniel, 2026-09-08 — stepped up from the a2/a3 the Figma parts
+// node 29544-9456 draws; the node needs updating); focus = a 2px `--gray-12`
+// stroke over the hover fill, drawn as an inset box-shadow so it never adds
+// size (the Kitchen UI border pattern).
 .clickable {
   cursor: pointer;
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      background: var(--gray-a2);
+      background: var(--gray-a3);
     }
   }
 
   &:active:not(:disabled) {
-    background: var(--gray-a3);
+    background: var(--gray-a4);
   }
 
   &:focus-visible:not(:disabled) {
     outline: none;
-    background: var(--gray-a2);
+    background: var(--gray-a3);
     box-shadow: inset 0 0 0 2px var(--gray-12);
   }
 
@@ -84,6 +89,13 @@
     opacity: 0.3;
     cursor: not-allowed;
   }
+}
+
+// A box STAYS at the hover tint while the list it opened is on screen
+// (`isPressed`) — same fill as hover, so moving the pointer away changes
+// nothing; a real press (`:active`, higher specificity) still steps to a4.
+.pressed {
+  background: var(--gray-a3);
 }
 
 .slot {
@@ -144,19 +156,19 @@
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
-      background: var(--gray-a2);
+      background: var(--gray-a3);
       color: var(--gray-12);
     }
   }
 
   &:active:not(:disabled) {
-    background: var(--gray-a3);
+    background: var(--gray-a4);
     color: var(--gray-12);
   }
 
   &:focus-visible:not(:disabled) {
     outline: none;
-    background: var(--gray-a2);
+    background: var(--gray-a3);
     color: var(--gray-12);
     box-shadow: inset 0 0 0 2px var(--gray-12);
   }

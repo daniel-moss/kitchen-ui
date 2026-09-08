@@ -19,7 +19,10 @@ import styles from "./ScheduleDetailsModule.module.scss";
 // later radios ("now" selected by default; "later" = the job stays
 // Unscheduled and the fields below disappear), the "Date & time" InputGroup
 // (DateField + the time SelectField), and the required Duration (the shared
-// hr/min + chips widget).
+// hr/min + chips widget). The duration INHERITS the picked service's default
+// (Figma 17241-70803, "Inherited From The Service"): NewJobForm pre-fills it
+// on the service pick, the help text says so while `durationInherited`, and
+// any user change clears the flag (the help text goes away).
 
 // Mobile shows the date compact — "Sun, Jan 1, 2026" (Daniel, 2026-09-08);
 // desktop keeps the standard full format.
@@ -79,10 +82,15 @@ export default function ScheduleDetailsModule({ value, onChange, showErrors, mob
               </InputGroup>
             </Input>
 
-            <Input label="Duration">
+            <Input
+              label="Duration"
+              helpText={
+                value.durationInherited ? "Pre-filled based on the service default duration" : undefined
+              }
+            >
               <DurationField
                 value={value.durationMinutes}
-                onChange={(durationMinutes) => set({ durationMinutes })}
+                onChange={(durationMinutes) => set({ durationMinutes, durationInherited: false })}
                 mobile={mobile}
                 isValid={!(showErrors && durationMissing)}
               />

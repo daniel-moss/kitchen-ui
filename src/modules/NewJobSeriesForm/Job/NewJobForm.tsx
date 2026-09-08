@@ -28,7 +28,7 @@ import { JobProperties } from "./JobPropertiesModule.types";
 import LabelsModule from "./LabelsModule";
 import ScheduleDetailsModule, { isScheduleValid } from "./ScheduleDetailsModule";
 import { ScheduleSelection } from "./ScheduleDetailsModule.types";
-import ServiceDetailsModule, { serviceNameOf } from "./ServiceDetailsModule";
+import ServiceDetailsModule, { serviceNameOf, serviceOf } from "./ServiceDetailsModule";
 import { ServiceDetails } from "./ServiceDetailsModule.types";
 import TypeModule from "./TypeModule";
 import { JobTypeSelection } from "./TypeModule.types";
@@ -67,7 +67,13 @@ const defaultJobProps = (): JobProperties => ({
 const NO_CONTACTS: JobContactsSelection = { reporter: null, siteSupervisor: null };
 
 // "Schedule now" is selected by default (the dev note on the radios).
-const defaultSchedule = (): ScheduleSelection => ({ mode: "now", date: null, time: null, durationMinutes: null });
+const defaultSchedule = (): ScheduleSelection => ({
+  mode: "now",
+  date: null,
+  time: null,
+  durationMinutes: null,
+  durationInherited: false,
+});
 
 const defaultServiceDetails = (): ServiceDetails => ({
   serviceId: null,
@@ -162,6 +168,20 @@ export default function NewJobForm({
   // "Next" validates the current step: a blocked step shows its errors and
   // stays (the missing-value states across the modules are the signal).
   const serviceValid = reasonForCall.trim() !== "" && serviceDetails.serviceId != null;
+
+  // Picking a service pre-fills the Schedule step's duration from the
+  // service's default (Figma 17241-70803, "Inherited From The Service"): the
+  // field auto-populates and shows the "Pre-filled…" help text until the user
+  // adjusts it. A service without a default duration clears the pre-fill
+  // instead. Keyed on the service ID, so it never fires on mount (null) and
+  // overwrites an adjusted value only when the service actually changes —
+  // the same overwrite rule Priority uses.
+  useEffect(() => {
+    if (serviceDetails.serviceId == null) return;
+    const defaultDuration = serviceOf(serviceDetails.serviceId)?.defaultDurationMinutes ?? null;
+    setSchedule((s) => ({ ...s, durationMinutes: defaultDuration, durationInherited: defaultDuration != null }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceDetails.serviceId]);
 
   // Forms required by the picked service or equipment auto-JOIN the picks
   // (public, not removable) and leave again when their trigger goes away.

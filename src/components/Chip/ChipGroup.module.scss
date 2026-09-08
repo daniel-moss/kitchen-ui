@@ -1,8 +1,16 @@
-// ChipGroup — the row that holds Chips: it wraps, and the gap is the same on
-// both axes. Figma nests this row in an extra wrapper frame that carries no
-// spacing of its own, so one element is enough here.
-// See Figma "ChipGroup" (node 29520-32986).
+// ChipGroup — the chips row plus, when the group is invalid, the error
+// InputHelpText below it. Figma nests the row in a wrapper frame; in code the
+// wrapper is the `.group` column, which also spaces the error message.
+// See Figma "ChipGroup" (set 29824-6190; isValid variants added 2026-09-08).
 .group {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--size-1_5); // 6px, chips ↔ error message
+}
+
+// The row of Chips: it wraps, and the gap is the same on both axes.
+.chips {
   display: flex;
   flex-wrap: wrap;
   align-items: center;

@@ -42,6 +42,8 @@ import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
+import FilterChip from "../../components/TopBarFilter/FilterChip";
+import TopBarFilter from "../../components/TopBarFilter/TopBarFilter";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import Popover from "../../components/Popover/Popover";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
@@ -70,7 +72,6 @@ import { Table } from "../../components/Table/Table/Table";
 import { TableRow } from "../../components/Table/TableRow/TableRow";
 import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
-import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { objectPlaceholder } from "../../data/users";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 import { isSameMonth } from "../../utils/calendar";
@@ -504,7 +505,7 @@ const AppliedFilters = ({ defs, selection, onSelectionChange, divider = false }:
     {sectionLabel("Applied filters")}
     <div className={styles.appliedChips}>
       {activeFilters(defs, selection).map(({ def, instance }) => (
-        <FilterChip
+        <AppliedChip
           key={instance.key}
           mobile
           def={def}
@@ -2405,8 +2406,12 @@ interface ViewBarProps {
 // DESKTOP: the Filters button opens the anchored menu card. TopBarView owns
 // the button and only reports the click, so the card's anchor is taken off
 // the event instead of a wrapper div — the card still opens 4px below it,
-// right-aligned (Daniel, 2026-08-17), and clicks on the button itself still
-// count as "inside" for the outside-click close.
+// right-aligned (Daniel, 2026-08-17; the node 13857-25352 draws it
+// left-aligned, but that node's button stood alone mid-canvas — the real one
+// sits near the right screen edge, where a left-aligned card runs off it),
+// and clicks on the button itself still count as "inside" for the
+// outside-click close. NO counter on the desktop button (Daniel, 2026-08-17)
+// — the filter bar below shows the applied filters.
 function DesktopViewBar({
   branch,
   tab,
@@ -2889,72 +2894,29 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
   );
 }
 
-// (The view bar's own "Filters" Button lives inside the DS TopBarView now —
-// see DesktopViewBar. The card still opens 4px below it, RIGHT-aligned
-// (Daniel, 2026-08-17): the node (13857-25352) draws it left-aligned, but the
-// real button sits near the right screen edge, where a left-aligned card runs
-// off it — FLAGGED: the node was drawn with the button standing alone in the
-// middle of the canvas. NO counter on desktop (Daniel, 2026-08-17) — the
-// filter bar below shows the applied filters.)
-interface FilterTriggerProps {
-  /** The branch's filter registry. */
-  defs: FilterDef[];
-  selection: FilterSelection;
-  onSelectionChange: (next: FilterSelection) => void;
-}
-
-// The filter bar's "plus" — the same menu, opened LEFT-aligned under the button
-// because it sits at the left of the bar (Daniel, 2026-08-17).
-function AddFilterButton({ defs, selection, onSelectionChange }: FilterTriggerProps) {
-  const card = useAnchoredCard("left", "[data-concept-filters-sub]");
-  return (
-    <div ref={card.anchorRef}>
-      {/* md, not lg — it lines up with the 32px chips (Daniel, 2026-08-17). */}
-      <IconButton
-        icon="plus"
-        variant="ghost"
-        size="md"
-        aria-label="Add filter"
-        isPressed={card.open}
-        onClick={() => card.setOpen(!card.open)}
-      />
-      <FiltersMenuCard card={card} defs={defs} selection={selection} onSelectionChange={onSelectionChange} />
-    </div>
-  );
-}
-
 // ---- the filter bar --------------------------------------------------------
 
-// FilterBar — Figma node 13889-19170. NO fill any more (Daniel, 2026-08-18):
-// 14px above and below the chips, 16px sides, 16px between the chips block and
-// the button on the right, and a medium Divider under the whole bar. The chips
-// wrap, 10px apart, and the "plus" that adds another filter is the last item in
-// that same wrapping row.
+// The bar IS the DS `TopBarFilter` now (migrated 2026-09-08 — the prototype
+// inherits the real DS components): FilterChipGroup with the built-in "Add
+// filter" plus button, the right-slot "Clear all" / "Reset" (the DS renders
+// the copy + icon), and the medium Divider under the bar — all the component's
+// own. What stays the prototype's:
+//   - WHEN the bar exists: while the tab locks a Status filter OR the user has
+//     applied at least one filter — on "All" with nothing applied there is no
+//     bar at all.
+//   - WHICH right button: "Clear all" on "All" (locks nothing — everything
+//     goes), "Reset" on every other tab (clears the user's filters, keeps the
+//     tab's locked chip). With only the locked chip: neither.
+//   - The "plus" opens the prototype's own Filters menu card (not a DS Menu),
+//     so it uses `onAddClick` + `addPressed`, anchored to the button from the
+//     click event (the DS group owns the button element).
 //
-// The bar exists while the tab locks a Status filter OR the user has applied at
-// least one filter of their own — so on the "All" tab with nothing applied there
-// is no bar at all.
-//
-// The button on the right appears as soon as the user has added a filter of
-// their own, and its copy depends on the tab (Daniel, 2026-08-18):
-//   - "All", which locks nothing: "Clear all", no icon (Figma node 13911-11708).
-//     Everything in the bar goes with it.
-//   - every other tab: "Reset" with `arrows-rotate-reverse` (node 13911-11776).
-//     It clears the user's filters and leaves the tab's locked Status chip, so
-//     the view returns to its default rather than to nothing.
-// With only the locked chip in the bar there is no button at all — there is
-// nothing of the user's to clear. FLAGGED: the node's copy is "Clear all", not
-// the "Clear" you wrote.
-//
-// FLAGGED to Daniel: DESKTOP only. The node is the desktop screen, and the mobile
-// Filters button carries a counter instead — which is only worth having if the
-// chips are not on screen. But the file does hold mobile condition/value drawers
-// (nodes 13874-8307 / 13874-8586), so the chips presumably live somewhere on
-// mobile too. Say where and it is one line to switch on.
+// FLAGGED to Daniel: DESKTOP only (TopBarFilter's own rule too). The mobile
+// Filters button carries a counter instead.
 interface FilterBarProps {
   /** The branch's filter registry. */
   defs: FilterDef[];
-  /** The statuses the current view locks — the first, inert chip. */
+  /** The statuses the current view locks — the first, fixed chip. */
   lockedStatuses: BadgeJobStatusStatus[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
@@ -2963,43 +2925,37 @@ interface FilterBarProps {
 const FilterBar = ({ defs, lockedStatuses, selection, onSelectionChange }: FilterBarProps) => {
   const chips = activeFilters(defs, selection);
   const statusDef = defs.find((def) => def.id === "status")!;
+  const addCard = useAnchoredCard("left", "[data-concept-filters-sub]");
   if (chips.length === 0 && lockedStatuses.length === 0) return null;
 
   return (
     <>
-      <div className={styles.filterBar}>
-        <div className={styles.filterBarItems}>
-          {lockedStatuses.length > 0 && <LockedStatusChip def={statusDef} statuses={lockedStatuses} />}
-          {/* One chip per APPLICATION, in the order they were added — two
-              "Assignee" chips can stand side by side. */}
-          {chips.map(({ def, instance }) => (
-            <FilterChip
-              key={instance.key}
-              def={def}
-              instance={instance}
-              selection={selection}
-              onSelectionChange={onSelectionChange}
-            />
-          ))}
-          <AddFilterButton defs={defs} selection={selection} onSelectionChange={onSelectionChange} />
-        </div>
-        {chips.length > 0 &&
-          (lockedStatuses.length === 0 ? (
-            <Button variant="ghost" size="md" onClick={() => onSelectionChange([])}>
-              Clear all
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="md"
-              leftIcon="arrows-rotate-reverse"
-              onClick={() => onSelectionChange([])}
-            >
-              Reset
-            </Button>
-          ))}
-      </div>
-      <Divider contrast="medium" />
+      <TopBarFilter
+        breakpoint="desktop"
+        onAddClick={(e) => {
+          addCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+          addCard.setOpen(!addCard.open);
+        }}
+        addPressed={addCard.open}
+        onClearAll={
+          chips.length > 0 && lockedStatuses.length === 0 ? () => onSelectionChange([]) : undefined
+        }
+        onReset={chips.length > 0 && lockedStatuses.length > 0 ? () => onSelectionChange([]) : undefined}
+      >
+        {lockedStatuses.length > 0 && <LockedStatusChip def={statusDef} statuses={lockedStatuses} />}
+        {/* One chip per APPLICATION, in the order they were added — two
+            "Assignee" chips can stand side by side. */}
+        {chips.map(({ def, instance }) => (
+          <AppliedChip
+            key={instance.key}
+            def={def}
+            instance={instance}
+            selection={selection}
+            onSelectionChange={onSelectionChange}
+          />
+        ))}
+      </TopBarFilter>
+      <FiltersMenuCard card={addCard} defs={defs} selection={selection} onSelectionChange={onSelectionChange} />
     </>
   );
 };
@@ -3043,78 +2999,81 @@ function lockedStatusList(def: FilterDef, statuses: BadgeJobStatusStatus[]) {
   return { items, width: openListWidth(def, newFilterInstance(def), filterList(def, newFilterInstance(def), noop).width) };
 }
 
+// The DS FilterChip's `isFixed` IS this chip (migrated 2026-09-08): no remove
+// box, a non-interactive condition box. Per the component's documented rule,
+// the VALUE box is wired only when it holds SEVERAL values — a single-value
+// locked chip ("is | Completed") already says everything, so its value box is
+// plain. (The old local chip opened the read-only list for one value too —
+// behavior change, FLAGGED.)
 const LockedStatusChip = ({ def, statuses }: { def: FilterDef; statuses: BadgeJobStatusStatus[] }) => {
   const valueCard = useAnchoredCard("left");
   const shown = valueDisplay(def, { ids: statuses, negated: false });
   const list = lockedStatusList(def, statuses);
 
   return (
-    <div className={clsx(styles.chip, styles.chipLocked)}>
-      <span className={styles.chipSegment}>
-        <Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />
-        {def.label}
-      </span>
-      <span className={styles.chipDivider} />
-      <span className={styles.chipSegment}>{statuses.length > 1 ? "is any of" : "is"}</span>
-      <span className={styles.chipDivider} />
-      {/* Capped and truncating like every other chip's value segment — the rule
-          is here so the two chips cannot drift apart. */}
-      <div ref={valueCard.anchorRef} className={clsx(styles.chipAnchor, styles.chipValue)}>
-        <button
-          type="button"
-          className={clsx(styles.chipSegment, styles.chipButton, valueCard.open && styles.chipButtonOpen)}
-          onClick={() => valueCard.setOpen(!valueCard.open)}
-        >
-          {shown.slotLeft}
-          <span className={styles.chipValueLabel}>{shown.label}</span>
-        </button>
-        {valueCard.pos != null &&
-          createPortal(
-            <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
-              <SelectList
-                variant="inline"
-                open={valueCard.open}
-                onClose={() => valueCard.setOpen(false)}
-                multiSelect
-                style={listWidth(list.width)}
-              >
-                {list.items}
-              </SelectList>
-            </div>,
-            document.body,
-          )}
-      </div>
-    </div>
+    <>
+      <FilterChip
+        isFixed
+        slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
+        property={def.label}
+        condition={statuses.length > 1 ? "is any of" : "is"}
+        value={shown.label}
+        valueSlotLeft={shown.slotLeft}
+        onValueClick={
+          statuses.length > 1
+            ? (e) => {
+                valueCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+                valueCard.setOpen(!valueCard.open);
+              }
+            : undefined
+        }
+        valuePressed={valueCard.open}
+      />
+      {valueCard.pos != null &&
+        createPortal(
+          <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
+            <SelectList
+              variant="inline"
+              open={valueCard.open}
+              onClose={() => valueCard.setOpen(false)}
+              multiSelect
+              style={listWidth(list.width)}
+            >
+              {list.items}
+            </SelectList>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 };
 
 // ---- one filter chip -------------------------------------------------------
 
-// The chip is FOUR segments on one 36px surface, divided by 1px --gray-a3 lines
-// (Figma node 13857-26698): the filter's icon + name, the condition, the value,
-// and a 36px square remove button. The surface is --surface-interactive-default
-// with the xs/down shadow and a 6px radius — Button `subtle`'s look.
-//
-// PROTOTYPE-LOCAL, and flagged as such: it is not a DS component. It cannot be
-// one Button (three of its four segments are separate targets sharing a single
-// surface, with no gaps), and it is not in the DS yet. Only the NAME segment is
-// inert — Daniel: "3 parts are clickable — condition, value and remove".
-interface FilterChipProps {
+// One applied filter: the DS `FilterChip` plus this prototype's wiring around
+// it (migrated 2026-09-08 — the old hand-built four-segment chip is gone).
+// The chip itself — boxes, dividers, fills, truncation tooltips, the remove
+// box — is entirely the component's; this wrapper owns WHAT the boxes open:
+// the condition/value lists, the mobile drawers, and the Custom dialog. The
+// cards anchor to the box buttons via the click event (the DS chip owns the
+// elements), and `conditionPressed` / `valuePressed` hold a box's fill while
+// its list is on screen.
+interface AppliedChipProps {
   def: FilterDef;
   /** The application this chip stands for. */
   instance: FilterInstance;
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /**
-   * The chip inside the mobile Filters sheet (Figma node 13932-9592). Bigger on
-   * purpose — 36px tall, 12px inside each segment, a 36px remove square — and it
-   * fills the row, so the value segment stretches and truncates. Its condition
-   * and value open DRAWERS instead of cards anchored to the chip.
+   * The chip inside the mobile Filters sheet (Figma node 13932-9592) — the DS
+   * chip's `mobile` presentation: 36px boxes, 12px paddings, fills the row,
+   * the value box takes the slack and truncates. Its condition and value open
+   * DRAWERS instead of cards anchored to the chip.
    */
   mobile?: boolean;
 }
 
-const FilterChip = ({ def, instance, selection, onSelectionChange, mobile = false }: FilterChipProps) => {
+const AppliedChip = ({ def, instance, selection, onSelectionChange, mobile = false }: AppliedChipProps) => {
   const conditionCard = useAnchoredCard("left");
   const valueCard = useAnchoredCard("left");
   const shown = valueDisplay(def, instance);
@@ -3150,35 +3109,48 @@ const FilterChip = ({ def, instance, selection, onSelectionChange, mobile = fals
   const remove = () => onSelectionChange(removeFilter(selection, instance.key));
 
   return (
-    <div className={clsx(styles.chip, mobile && styles.chipMobile)}>
-      {/* The filter's name — not a target. */}
-      <span className={styles.chipSegment}>
-        <Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />
-        {def.label}
-      </span>
-
-      <span className={styles.chipDivider} />
-
+    <>
       {/* The condition — "is" / "is not" / "is any of" (nodes 13861-1837 and
           13870-7296), whose two choices depend on how many values are picked.
-          On MOBILE the same rows arrive as a drawer instead (nodes 13902-21573
-          and, for a duration, 13874-10423) — there is no room beside a
-          full-width chip.
-
           A value with only ONE choice — a date range, a `within` duration —
-          is plain text like the filter's name: nothing to open. */}
-      {fixedCondition ? (
-        <span className={styles.chipSegment}>{conditionLabel(instance)}</span>
-      ) : (
-      <div ref={conditionCard.anchorRef} className={styles.chipAnchor}>
-        <button
-          type="button"
-          className={clsx(styles.chipSegment, styles.chipButton, conditionCard.open && styles.chipButtonOpen)}
-          onClick={() => conditionCard.setOpen(!conditionCard.open)}
-        >
-          {conditionLabel(instance)}
-        </button>
-        {mobile
+          renders as plain text like the filter's name (the DS box with no
+          handler): nothing to open.
+          The value — one option with its icon, or "N priorities". Clicking it
+          opens the SAME options the Filters menu shows (Daniel, 2026-08-17),
+          minus the condition chips (Figma nodes 13912-13977 / 13911-10955).
+          A chip whose value is already CUSTOM skips the list and opens the
+          Custom dialog straight away (node 13914-15128) — the list would only
+          offer presets, which is not what that chip holds. */}
+      <FilterChip
+        breakpoint={mobile ? "mobile" : "desktop"}
+        slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
+        property={def.label}
+        condition={conditionLabel(instance)}
+        onConditionClick={
+          fixedCondition
+            ? undefined
+            : (e) => {
+                conditionCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+                conditionCard.setOpen(!conditionCard.open);
+              }
+        }
+        conditionPressed={conditionCard.open}
+        value={shown.label}
+        valueSlotLeft={shown.slotLeft}
+        onValueClick={(e) => {
+          valueCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+          setCustomOpen(false);
+          valueCard.setOpen(!valueCard.open);
+        }}
+        valuePressed={valueCard.open}
+        onRemove={remove}
+      />
+
+      {/* The condition list. On MOBILE the rows arrive as a drawer instead
+          (nodes 13902-21573 and, for a duration, 13874-10423) — there is no
+          room beside a full-width chip. */}
+      {!fixedCondition &&
+        (mobile
           ? conditionCard.open && (
               <SelectList variant="drawer" open onClose={() => conditionCard.setOpen(false)} title={def.label}>
                 {condition.items}
@@ -3197,135 +3169,91 @@ const FilterChip = ({ def, instance, selection, onSelectionChange, mobile = fals
                 </SelectList>
               </div>,
               document.body,
-            )}
-      </div>
+            ))}
+
+      {/* MOBILE: the value options arrive as the same drawer the Filters sheet
+          uses (node 13923-22399) — a draft plus an Apply footer — with no
+          condition chips, since the chip's own box holds the condition. */}
+      {mobile && valueCard.open && !isCustomValue && (
+        <MobileFilterOptions
+          def={def}
+          instance={instance}
+          hideConditions
+          onCommit={change}
+          onClose={() => valueCard.setOpen(false)}
+        />
       )}
-
-      <span className={styles.chipDivider} />
-
-      {/* The value — one option with its icon, or "N priorities". Clicking it
-          opens the SAME options the Filters menu shows (Daniel, 2026-08-17),
-          minus the condition chips: this list's header is the search alone
-          (Figma nodes 13912-13977 / 13911-10955).
-          A date chip whose value is already CUSTOM skips the list and opens the
-          Custom popover straight away (Figma node 13914-15128) — the list would
-          only offer presets, which is not what that chip holds. */}
-      {/* The value segment is capped at --size-60 (240px) and truncates there,
-          on both breakpoints (Daniel, 2026-08-24) — see `.chipValue`. */}
-      <div ref={valueCard.anchorRef} className={clsx(styles.chipAnchor, styles.chipValue)}>
-        <button
-          type="button"
-          className={clsx(styles.chipSegment, styles.chipButton, valueCard.open && styles.chipButtonOpen)}
-          onClick={() => {
-            setCustomOpen(false);
-            valueCard.setOpen(!valueCard.open);
+      {/* A custom date or duration opens the Custom dialog straight away — the
+          preset list would have nothing ticked in it. The drawer twin of the
+          desktop branch below (nodes 13933-12975 and 13983-37308). */}
+      {mobile && valueCard.open && isCustomValue && (
+        <CustomDialog
+          def={def}
+          instance={instance}
+          breakpoint="mobile"
+          onApply={(next) => {
+            change(next);
+            valueCard.setOpen(false);
           }}
-        >
-          {shown.slotLeft}
-          <span className={styles.chipValueLabel}>{shown.label}</span>
-        </button>
-        {/* MOBILE: the options arrive as the same drawer the Filters sheet uses
-            (node 13923-22399) — a draft plus an Apply footer — with no condition
-            chips, since the chip's own segment holds the condition. */}
-        {mobile && valueCard.open && !isCustomValue && (
-          <MobileFilterOptions
-            def={def}
-            instance={instance}
-            hideConditions
-            onCommit={change}
-            onClose={() => valueCard.setOpen(false)}
-          />
+          onClose={() => valueCard.setOpen(false)}
+        />
+      )}
+      {!mobile &&
+        valueCard.pos != null &&
+        !isCustomValue &&
+        !customOpen &&
+        createPortal(
+          <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
+            <SelectList
+              variant="inline"
+              open={valueCard.open}
+              onClose={() => valueCard.setOpen(false)}
+              multiSelect={!isSingleValue(def)}
+              // SelectList's own search — the header here is the search and
+              // nothing else, which IS the DS `SelectListHeader`. It was a
+              // hand-built block while the SearchField `bar` was 36px; the bar
+              // is 40px + a Divider now, so the component covers it and owns
+              // the query and the filtering with it.
+              searchable={def.searchPlaceholder != null}
+              searchPlaceholder={def.searchPlaceholder}
+              footer={
+                isSingleValue(def) ? (
+                  <SelectListFooter>
+                    <MenuItem label="Custom..." onClick={() => setCustomOpen(true)} />
+                  </SelectListFooter>
+                ) : undefined
+              }
+              state={list.isEmpty ? "noResults" : "default"}
+              // The SAME width the menu-opened list uses — see `openListWidth`:
+              // the documented Labels value lists pin the menu list's 384.
+              style={listWidth(openListWidth(def, instance, list.width))}
+            >
+              {list.items}
+            </SelectList>
+          </div>,
+          document.body,
         )}
-        {/* A custom date or duration opens the Custom dialog straight away — the
-            preset list would have nothing ticked in it. The drawer twin of the
-            desktop branch below (nodes 13933-12975 and 13983-37308). */}
-        {mobile && valueCard.open && isCustomValue && (
-          <CustomDialog
-            def={def}
-            instance={instance}
-            breakpoint="mobile"
-            onApply={(next) => {
-              change(next);
-              valueCard.setOpen(false);
-            }}
-            onClose={() => valueCard.setOpen(false)}
-          />
-        )}
-        {!mobile &&
-          valueCard.pos != null &&
-          !isCustomValue &&
-          !customOpen &&
-          createPortal(
-            <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
-              <SelectList
-                variant="inline"
-                open={valueCard.open}
-                onClose={() => valueCard.setOpen(false)}
-                multiSelect={!isSingleValue(def)}
-                // SelectList's own search — the header here is the search and
-                // nothing else, which IS the DS `SelectListHeader`. It was a
-                // hand-built block while the SearchField `bar` was 36px; the bar
-                // is 40px + a Divider now, so the component covers it and owns
-                // the query and the filtering with it.
-                searchable={def.searchPlaceholder != null}
-                searchPlaceholder={def.searchPlaceholder}
-                footer={
-                  isSingleValue(def) ? (
-                    <SelectListFooter>
-                      <MenuItem label="Custom..." onClick={() => setCustomOpen(true)} />
-                    </SelectListFooter>
-                  ) : undefined
-                }
-                state={list.isEmpty ? "noResults" : "default"}
-                // The SAME width the menu-opened list uses — see `openListWidth`:
-                // the documented Labels value lists pin the menu list's 384.
-                style={listWidth(openListWidth(def, instance, list.width))}
-              >
-                {list.items}
-              </SelectList>
-            </div>,
-            document.body,
-          )}
-        {/* The Custom DIALOG — a centred modal (nodes 13962-8889 / 13962-8893
-            for a date, 13983-37497 for a duration), so it needs no anchor: it
-            opens the same way whether the chip's VALUE segment held a custom
-            value already (`isCustomValue`) or the list's "Custom..." row was
-            picked. */}
-        {!mobile && valueCard.open && (isSingleValue(def) || isDialogOnly(def)) && (isCustomValue || customOpen) && (
-          <CustomDialog
-            def={def}
-            instance={instance}
-            breakpoint="desktop"
-            onApply={(next) => {
-              change(next);
-              setCustomOpen(false);
-              valueCard.setOpen(false);
-            }}
-            onClose={() => {
-              setCustomOpen(false);
-              valueCard.setOpen(false);
-            }}
-          />
-        )}
-      </div>
-
-      <span className={styles.chipDivider} />
-
-      {/* Remove — a 32px square with the tooltip the node shows above it.
-          HoverTooltip wraps its child in an inline-flex span, so that span needs
-          the stretch too: without it the span hugged the 16px glyph and the
-          button's hit area was 32x16 instead of 32x32. */}
-      <HoverTooltip text="Remove" className={styles.chipAnchor}>
-        <button
-          type="button"
-          className={clsx(styles.chipSegment, styles.chipButton, styles.chipRemove)}
-          aria-label={`Remove ${def.label} filter`}
-          onClick={remove}
-        >
-          <Icon icon="xmark" pack="regular" size={14} />
-        </button>
-      </HoverTooltip>
-    </div>
+      {/* The Custom DIALOG — a centred modal (nodes 13962-8889 / 13962-8893
+          for a date, 13983-37497 for a duration), so it needs no anchor: it
+          opens the same way whether the chip's VALUE box held a custom value
+          already (`isCustomValue`) or the list's "Custom..." row was picked. */}
+      {!mobile && valueCard.open && (isSingleValue(def) || isDialogOnly(def)) && (isCustomValue || customOpen) && (
+        <CustomDialog
+          def={def}
+          instance={instance}
+          breakpoint="desktop"
+          onApply={(next) => {
+            change(next);
+            setCustomOpen(false);
+            valueCard.setOpen(false);
+          }}
+          onClose={() => {
+            setCustomOpen(false);
+            valueCard.setOpen(false);
+          }}
+        />
+      )}
+    </>
   );
 };
 

@@ -32,7 +32,8 @@ export interface InputProps {
 
   /**
    * The field — exactly ONE of: TextField, TextArea, SelectField, DateField,
-   * PasswordField, InputGroup, CheckboxGroup, RadioGroup, MediaField.
+   * PasswordField, InputGroup, CheckboxGroup, RadioGroup, ChipGroup,
+   * MediaField.
    */
   children: ReactNode;
 
