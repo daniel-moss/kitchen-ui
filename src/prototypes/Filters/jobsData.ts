@@ -3,8 +3,10 @@ import {
   CLIENTS as DB_CLIENTS,
   JOB_LABELS,
   JOB_SOURCES,
+  JOBS as DB_JOBS,
   LOCATIONS as DB_LOCATIONS,
   SERVICES as DB_SERVICES,
+  TODAY as DB_TODAY,
   Client,
   JobLabel,
   JobSource,
@@ -14,49 +16,25 @@ import {
 import { users } from "../../data/users";
 import { joinWithSeparator } from "../../utils/textSeparator";
 
-// Filters — Concept 5's own little database (Daniel, 2026-08-17).
+// Filters — the Jobs list's data door. Since 2026-09-11 it is a READER, not a
+// generator: the whole jobs table lives in the shared demo database
+// (src/data/db — Daniel: "I want each prototype and design in Storybook to
+// take data from the db"), where the prototype's old seeded 64-job mass was
+// MATERIALIZED next to the curated Wildwood-world jobs, all against the db's
+// one demo clock (TODAY, 2026-09-04). This module maps the db rows onto the
+// prototype's own Job shape (nullable fields instead of optionals), derives
+// the display strings, and keeps the lookups — so the rest of the prototype
+// (filterDefs, Filters.tsx) is untouched by where the rows live.
 //
-// WHY it exists: the concept used to carry 6 hand-written display rows plus 20
-// cycled copies of them, with every value already formatted for the screen
-// ("Aug 12", "2h 30m"). Nothing could be filtered or counted from that. Here a
-// job holds REAL values — dates as ISO strings, duration in minutes, related
-// records as ids — and the strings the table shows are derived from them. That is
-// what lets the filters both COUNT and FILTER the same list (see filters.tsx).
-//
-// Two deliberate choices:
-//
-// 1. **Anchored to a fixed date, not to "now".** `TODAY` is a constant. If the
-//    data were generated from the real clock, every filter count and every
-//    screenshot would drift day by day, and a job written as "past due" would
-//    quietly stop being past due. FLAGGED to Daniel: the dates will read as
-//    stale eventually — move `TODAY` forward (one line) when that matters.
-//
-// 2. **Deterministic generation.** The 64 jobs come from a seeded generator, so
-//    the list, the counts and the screenshots are identical on every reload.
-//    `Math.random()` would reshuffle the table each time and make any count
-//    impossible to check.
+// The list therefore now shows EVERY job in the database — the 64 former
+// generator rows AND the ~14 curated ones (JOB-12xx). One world, one table.
 
-/** The date everything is measured from. See note 1 above. */
-export const TODAY = new Date("2026-08-17T09:00:00");
+/** The demo's fixed NOW — the database's clock (see db.ts). */
+export const TODAY = DB_TODAY;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/** `TODAY` shifted by whole days (negative = the past), at a given local time. */
-function dayAt(offsetDays: number, hour = 9, minute = 0): string {
-  const d = new Date(TODAY.getTime() + offsetDays * DAY_MS);
-  d.setHours(hour, minute, 0, 0);
-  return d.toISOString();
-}
-
 // ---- the related records ---------------------------------------------------
-// MIGRATED to the shared demo database on 2026-09-04 (src/data/db): clients,
-// locations, services, labels and sources are the DATABASE's rows now, so
-// every prototype shares one world — browse it under Data → Database. The
-// generator below still builds this prototype's OWN 64-job table from them: a
-// filterable mass of jobs is Filters' subject matter, and the database's
-// small curated job list is not it. The database arrays keep the exact order
-// the local records had, so the seeded generation is unchanged.
-//
 // The re-exports keep this module the prototype's single data door — the
 // rest of the prototype imports from jobsData, never from the db directly.
 //
@@ -91,6 +69,22 @@ export function locationAddress(location: LocationRecord): string {
 }
 
 /**
+ * The address INCLUDING the unit — "418 Mission St, Suite 200, San Francisco,
+ * CA 94105". The Location filter's object row draws this as its title (node
+ * 14101-44923 writes "123 Main Street, Suite 45, San Francisco, CA 98765").
+ *
+ * FLAGGED: the table's "Location address" COLUMN still leaves the unit out, so
+ * the same location reads slightly differently in the two places. That is what
+ * each node draws; say the word and they can be made to agree.
+ */
+export function locationAddressWithUnit(location: LocationRecord): string {
+  const region = [location.state, location.postalCode].filter((part) => part != null).join(" ");
+  return [location.street, location.unit, location.city, region === "" ? null : region]
+    .filter((part) => part != null && part !== "")
+    .join(", ");
+}
+
+/**
  * One location as the filter row writes it (Figma node 13987-52348):
  * "Location name  ·  Street address, city, state postal code". Each half
  * appears only if it exists, so a nameless location is just its address and an
@@ -118,9 +112,19 @@ export type PriorityLevel = 1 | 2 | 3 | 4;
 /** The Job Details page's Service "Type": a new call or a recall of an old job. */
 export type JobType = "new" | "recall";
 
+// The prototype's row shape: the db's Job with its optionals resolved to
+// explicit nulls (the filters' predicates test against null) and the client
+// denormalized off the location.
 export interface Job {
   id: string;
   serviceId: string;
+  /**
+   * The job's OWN service name — production denormalizes it, and it may
+   * drift from the pricebook name (JOB-1202 is "Fryer preventive
+   * maintenance" on the "Fryer service and calibration" service). The table
+   * and the search show THIS; the Service filter matches `serviceId`.
+   */
+  serviceName: string;
   status: BadgeJobStatusStatus;
   labelIds: string[];
   type: JobType;
@@ -143,133 +147,34 @@ export interface Job {
   lastModifiedAt: string;
 }
 
-// ---- generation ------------------------------------------------------------
-
-// A tiny seeded generator (mulberry32). See note 2 at the top: the data must be
-// the same on every reload, or no count can be checked against the list.
-function makeRng(seed: number) {
-  let state = seed;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-const rand = makeRng(20260817);
-const pick = <T,>(list: T[]): T => list[Math.floor(rand() * list.length)];
-/** An integer in [min, max]. */
-const int = (min: number, max: number) => min + Math.floor(rand() * (max - min + 1));
+const LOCATION_CLIENT = new Map(DB_LOCATIONS.map((location) => [location.id, location.clientId]));
 
 /**
- * Status mix. Weighted so the list reads like a real "Open jobs" view — mostly
- * upcoming and unscheduled work, a few in flight, a tail of closed jobs.
+ * Every job in the database, sorted the view's own way — Scheduled For
+ * ascending, like the production "Jobs → All Open" view; unscheduled jobs
+ * have no date, so they sort last.
  */
-const STATUS_MIX: BadgeJobStatusStatus[] = [
-  ...(Array(9).fill("upcoming") as BadgeJobStatusStatus[]),
-  ...(Array(7).fill("unscheduled") as BadgeJobStatusStatus[]),
-  ...(Array(5).fill("active") as BadgeJobStatusStatus[]),
-  ...(Array(4).fill("pastDue") as BadgeJobStatusStatus[]),
-  ...(Array(3).fill("completed") as BadgeJobStatusStatus[]),
-  ...(Array(2).fill("quickPaused") as BadgeJobStatusStatus[]),
-  ...(Array(2).fill("finalized") as BadgeJobStatusStatus[]),
-  "draft",
-  "onHoldExternal",
-  "onHoldInternal",
-  "cancelled",
-];
-
-/** Priority mix — most jobs are Medium or Low, a few Urgent, some unset. */
-const PRIORITY_MIX: (PriorityLevel | null)[] = [1, 2, 2, 3, 3, 3, 3, 4, 4, 4, null, null];
-
-/** Duration options in minutes; null means "no visit scheduled". */
-const DURATION_MIX = [30, 45, 60, 75, 90, 105, 120, 150, 180, 210, 240, 300];
-
-// When each status puts the scheduled visit, relative to TODAY (in days).
-// `null` = the status has no scheduled visit at all.
-function scheduleWindow(status: BadgeJobStatusStatus): [number, number] | null {
-  switch (status) {
-    case "unscheduled":
-    case "draft":
-      return null;
-    case "pastDue":
-      return [-9, -1];
-    case "active":
-    case "quickPaused":
-      return [0, 0];
-    case "completed":
-    case "finalized":
-      return [-21, -2];
-    case "cancelled":
-      return [-14, 5];
-    case "onHoldExternal":
-    case "onHoldInternal":
-      return [-4, 12];
-    default: // upcoming
-      return [0, 21];
-  }
-}
-
-function makeJob(index: number): Job {
-  const status = STATUS_MIX[index % STATUS_MIX.length];
-  const service = pick(SERVICES);
-  const location = pick(LOCATIONS);
-  const source = pick(SOURCES);
-
-  const window = scheduleWindow(status);
-  const scheduledOffset = window == null ? null : int(window[0], window[1]);
-  const scheduledFor = scheduledOffset == null ? null : dayAt(scheduledOffset, int(7, 17), pick([0, 15, 30, 45]));
-  const durationMinutes = scheduledFor == null ? null : pick(DURATION_MIX);
-
-  // Received before the visit, and never in the future.
-  const receivedOffset = Math.min(-1, (scheduledOffset ?? 0) - int(1, 12));
-  // The status changed after it came in, and the last edit is the most recent.
-  const statusChangedOffset = int(receivedOffset, 0);
-  const lastModifiedOffset = int(statusChangedOffset, 0);
-
-  // A recall points at an earlier job, so it is never a brand-new request.
-  const type: JobType = rand() < 0.22 ? "recall" : "new";
-
-  const labelCount = int(0, 3);
-  const labelIds: string[] = [];
-  while (labelIds.length < labelCount) {
-    const label = pick(LABELS).id;
-    if (!labelIds.includes(label)) labelIds.push(label);
-  }
-
-  // An unscheduled or draft job has nobody on it yet; the rest have 1–3 techs.
-  const assigneeCount = scheduledFor == null ? int(0, 1) : int(1, 3);
-  const assigneeIds: number[] = [];
-  while (assigneeIds.length < assigneeCount) {
-    const tech = pick(TECHS).id;
-    if (!assigneeIds.includes(tech)) assigneeIds.push(tech);
-  }
-
-  return {
-    id: `JOB-${1043 + index}`,
-    serviceId: service.id,
-    status,
-    labelIds,
-    type,
-    priority: PRIORITY_MIX[(index * 5) % PRIORITY_MIX.length],
-    sourceId: source.id,
-    sourceRef: source.prefix == null ? null : `${source.prefix}-${int(1000, 9999)}`,
-    assigneeIds,
-    clientId: location.clientId,
-    locationId: location.id,
-    receivedAt: dayAt(receivedOffset, int(8, 16), pick([0, 15, 30, 45])),
-    scheduledFor,
-    durationMinutes,
-    statusChangedAt: dayAt(statusChangedOffset, int(8, 17)),
-    lastModifiedAt: dayAt(lastModifiedOffset, int(8, 17)),
-  };
-}
-
-/** 64 jobs — enough for believable filter counts, few enough to render plainly. */
-export const JOBS: Job[] = Array.from({ length: 64 }, (_, index) => makeJob(index)).sort((a, b) => {
-  // The view is sorted by Scheduled For ascending, like the production
-  // "Jobs → All Open" view. Unscheduled jobs have no date, so they sort last.
+export const JOBS: Job[] = DB_JOBS.map(
+  (job): Job => ({
+    id: job.id,
+    serviceId: job.serviceId,
+    serviceName: job.serviceName,
+    status: job.status,
+    labelIds: job.labelIds,
+    type: job.type,
+    priority: job.priority ?? null,
+    sourceId: job.sourceId,
+    sourceRef: job.sourceRef ?? null,
+    assigneeIds: job.assigneeIds,
+    clientId: LOCATION_CLIENT.get(job.locationId)!,
+    locationId: job.locationId,
+    receivedAt: job.receivedAt,
+    scheduledFor: job.scheduledFor ?? null,
+    durationMinutes: job.durationMinutes ?? null,
+    statusChangedAt: job.statusChangedAt,
+    lastModifiedAt: job.lastModifiedAt,
+  }),
+).sort((a, b) => {
   if (a.scheduledFor == null && b.scheduledFor == null) return a.id.localeCompare(b.id);
   if (a.scheduledFor == null) return 1;
   if (b.scheduledFor == null) return -1;

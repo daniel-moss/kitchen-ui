@@ -4,6 +4,9 @@ import {
   HTMLAttributes,
   MouseEvent,
   ReactNode,
+  memo,
+  useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -34,11 +37,6 @@ import Menu from "../../components/Menu/Menu";
 import MenuHeader from "../../components/Menu/MenuHeader";
 import MenuItem from "../../components/Menu/MenuItem";
 import MenuItemGroup from "../../components/Menu/MenuItemGroup";
-import BottomBarNav from "../../components/BottomBarNav/BottomBarNav";
-import BottomBarNavItem from "../../components/BottomBarNav/BottomBarNavItem";
-import SidebarNav from "../../components/SidebarNav/SidebarNav";
-import SidebarNavItem from "../../components/SidebarNav/SidebarNavItem";
-import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
@@ -76,12 +74,20 @@ import { Table } from "../../components/Table/Table/Table";
 import { TableRow } from "../../components/Table/TableRow/TableRow";
 import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
-import { objectPlaceholder } from "../../data/users";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 import { isSameMonth } from "../../utils/calendar";
 import { semanticIcons } from "../../styles/semanticIcons";
 import { noop } from "../../stories/helpers";
 
+import {
+  AnchoredCard,
+  AppBottomBar,
+  DIALOG_MARKER,
+  Page,
+  Sidebar,
+  useAnchoredCard,
+  useSingleAxisScroll,
+} from "./appShell";
 import {
   ConditionChoice,
   DATE_CONDITIONS,
@@ -98,6 +104,7 @@ import {
   YEARS_AFTER_TODAY,
   DateValue,
   emptyAddress,
+  AnyFilterDef,
   FilterDef,
   FilterId,
   FilterInstance,
@@ -117,7 +124,6 @@ import {
   isDateRange,
   isEmptyValue,
   newFilterInstance,
-  optionCounts,
   removeFilter,
   scheduledValueEnd,
   upsertFilter,
@@ -138,7 +144,6 @@ import {
   labelsOf,
   locationAddress,
   locationOf,
-  serviceOf,
   sourceOf,
 } from "./jobsData";
 
@@ -176,156 +181,17 @@ import styles from "./Filters.module.scss";
 // under the filter bar, and under the table's header row. The table's BODY rows
 // keep the DS's lighter --gray-a3.
 
-export interface FiltersProps {
+export interface JobsPageProps {
   /** Desktop / mobile shell. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;
+  /** The sidebar / bottom bar navigation — `FiltersPrototype` owns the page. */
+  onNavigate: (next: Page) => void;
 }
 
-// MenuItem left icon (square 16px box) — same helper the other prototypes use.
-const slot = (icon: string) => <Icon icon={icon} container="square" />;
-
-// ---- SidebarNav config (display only) --------------------------------------
-
-const profileMenu = (
-  <>
-    <MenuItemGroup>
-      <MenuItem label="Settings" slotLeft={slot("gear")} />
-    </MenuItemGroup>
-    <MenuItemGroup>
-      <MenuItem label="Help center" slotLeft={slot("circle-question")} />
-      <MenuItem label="Contact support" slotLeft={slot("headset")} />
-      <MenuItem label="Request feature" slotLeft={slot("circle-info")} />
-      <MenuItem label="What's new" slotLeft={slot("bullhorn")} />
-    </MenuItemGroup>
-    <MenuItemGroup>
-      <MenuItem label="Log out" slotLeft={slot("arrow-right-from-bracket")} danger />
-    </MenuItemGroup>
-  </>
-);
-
-const createMenu = (
-  <MenuItemGroup>
-    <MenuItem label="Estimate" slotLeft={slot(semanticIcons.estimate)} />
-    <MenuItem
-      label="Job"
-      slotLeft={slot(semanticIcons.job)}
-      subMenu={
-        <MenuItemGroup>
-          <MenuItem label="Job" slotLeft={slot(semanticIcons.job)} />
-          <MenuItem label="Job series" slotLeft={slot(semanticIcons.jobSeries)} />
-        </MenuItemGroup>
-      }
-      subMenuTitle="Create job"
-    />
-    <MenuItem
-      label="Invoice"
-      slotLeft={slot(semanticIcons.invoice)}
-      subMenu={
-        <MenuItemGroup>
-          <MenuItem label="Invoice" slotLeft={slot(semanticIcons.invoice)} />
-          <MenuItem label="Credit note" slotLeft={slot(semanticIcons.creditNote)} />
-        </MenuItemGroup>
-      }
-      subMenuTitle="Create invoice"
-    />
-    <MenuItem label="Purchase order" slotLeft={slot(semanticIcons.purchaseOrder)} />
-    <MenuItem label="Bill" slotLeft={slot(semanticIcons.bill)} />
-    <MenuItem label="Vendor" slotLeft={slot(semanticIcons.vendor)} />
-    <MenuItem label="Client" slotLeft={slot(semanticIcons.client)} />
-    <MenuItem
-      label="Pricebook item"
-      slotLeft={slot(semanticIcons.pricebook)}
-      subMenu={
-        <MenuItemGroup>
-          <MenuItem label="Labor" slotLeft={slot(semanticIcons.labor)} />
-          <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
-          <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
-          <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
-          <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} />
-        </MenuItemGroup>
-      }
-      subMenuTitle="Create pricebook item"
-    />
-  </MenuItemGroup>
-);
-
-// The nav items BELOW the built-in Search row (SidebarNav renders Search
-// itself when `onSearchClick` is set). The page is the Jobs list and the
-// current page is the "Jobs" sub-item, so that group starts open with the
-// sub-item active.
-const navContent = (
-  <>
-    <SidebarNavItem icon="house">Home</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.estimate}>Estimates</SidebarNavItem>
-    <SidebarNavItemGroup icon={semanticIcons.job} label="Jobs" defaultOpen>
-      <SidebarNavItem type="stackItem">Requests</SidebarNavItem>
-      <SidebarNavItem type="stackItem" active>
-        Jobs
-      </SidebarNavItem>
-      <SidebarNavItem type="stackItem">Series</SidebarNavItem>
-    </SidebarNavItemGroup>
-    <SidebarNavItemGroup icon={semanticIcons.invoice} label="Invoices">
-      <SidebarNavItem type="stackItem">Invoices</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Credit notes</SidebarNavItem>
-    </SidebarNavItemGroup>
-    <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
-    <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
-      <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Products</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
-    </SidebarNavItemGroup>
-    <SidebarNavItemGroup icon={semanticIcons.reports} label="Reports">
-      <SidebarNavItem type="stackItem">Clients &amp; locations</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Jobs</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Inventory</SidebarNavItem>
-    </SidebarNavItemGroup>
-  </>
-);
-
-const bottomItems = (
-  <>
-    <SidebarNavItem icon="circle-question">Help center</SidebarNavItem>
-    <SidebarNavItem icon="bullhorn">What&apos;s new</SidebarNavItem>
-  </>
-);
-
-// ---- the sidebar -----------------------------------------------------------
-
-// The DS `SidebarNav` (Daniel, 2026-09-03 — the hand-assembled copy is gone).
-// Everything the old local build did by hand is the component's own behavior
-// now: the 60px header, Create on top of the item list with its right-opening
-// top-aligned menu card, the built-in Search item (rendered when
-// `onSearchClick` is set; its hot key follows the OS), the 1px row rhythm,
-// the pinned bottom items and the medium (--gray-a4) edge divider.
-//
-// `breakpoint="desktop"` keeps the sidebar rendered (and its menus on their
-// card presentation) whatever the canvas width is — the component returns
-// null on mobile otherwise, and the context it provides carries the value to
-// the workspace / profile buttons.
-//
-// `imageSrc` gives the 28px object avatar a picture instead of the name's
-// first letter (Daniel, 2026-08-17). `objectPlaceholder` is the kit's shared
-// demo object image (src/data/users.ts) — its path is relative on purpose,
-// because the built Storybook is served under a sub-path on GitHub Pages.
-const Sidebar = () => (
-  <SidebarNav
-    breakpoint="desktop"
-    workspaces={[{ id: "1", name: "Workspace", imageSrc: objectPlaceholder }]}
-    profileName="Lorne Riddle"
-    profileEmail="email@address.com"
-    profileMenu={profileMenu}
-    onSearchClick={noop}
-    createMenu={createMenu}
-    bottomItems={bottomItems}
-  >
-    {navContent}
-  </SidebarNav>
-);
+// The SIDEBAR, the mobile BOTTOM BAR and the two positioning hooks
+// (useAnchoredCard, useSingleAxisScroll) moved to appShell.tsx on 2026-09-11,
+// when the Estimates page (EstimatesList.tsx) arrived — the two pages share
+// one shell. This file is the JOBS page plus the page switch at the bottom.
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -405,7 +271,7 @@ const TopBar = ({
 //
 // The rows themselves — their order, labels and icons — and everything each one
 // filters now live in ONE place, `filterDefs.tsx`'s registry, which reads the
-// prototype's own database in `jobsData.ts`. That is what makes the counts in
+// shared demo database through `jobsData.ts`. That is what makes the counts in
 // each option's tag and the rows the table shows come from the same predicate.
 //
 // ONE registry per BRANCH (the Views section 14032-23326, 2026-09-03). The two
@@ -442,39 +308,47 @@ const SUB_MARGIN = 8;
 // here — and every visit to this menu adds a NEW application, it never edits an
 // existing one. The applications live in the filter bar's chips instead.
 const filterRows = (
-  rows: FilterDef[],
+  rows: AnyFilterDef[],
   // Per-row extras — the handlers that open the row's SelectList. MenuItem
   // spreads any unknown props onto its root element, so pointer handlers reach
   // the row with NO change to the component. Narrowed to the three handlers on
   // purpose: MenuItemProps is a UNION, and a whole HTMLAttributes spread
   // collides with the `never`s in its branches.
-  extra?: (row: FilterDef) => RowHandlers,
+  extra?: (row: AnyFilterDef) => RowHandlers,
 ) => (
   <MenuItemGroup>
-    {rows.length > 0 ? (
-      rows.map((row) => (
-        <MenuItem
-          key={row.id}
-          label={row.label}
-          slotLeft={<Icon icon={row.icon} pack={row.pack} rotate={row.rotate} container="square" />}
-          slotRight={
-            isDialogOnly(row) ? undefined : <Icon icon="angle-right" pack="regular" size={14} container="square" />
-          }
-          onClick={noop}
-          {...extra?.(row)}
-        />
-      ))
-    ) : (
-      // No match. `Menu` has no empty / noResults state of its own — SelectList
-      // does (an EmptyState with "No results found"), Menu does not — so this
-      // stands in with a DISABLED MenuItem: a real component in a real state
-      // (dimmed, non-interactive), needing no invented styling.
-      // FLAGGED to Daniel: if Menu should gain a proper noResults state like
-      // SelectList's, that is a DS decision, not a prototype one.
-      <MenuItem label="No results found" disabled />
-    )}
+    {rows.map((row) => (
+      <MenuItem
+        key={row.id}
+        label={row.label}
+        slotLeft={<Icon icon={row.icon} pack={row.pack} rotate={row.rotate} container="square" />}
+        slotRight={
+          isDialogOnly(row) ? undefined : <Icon icon="angle-right" pack="regular" size={14} container="square" />
+        }
+        onClick={noop}
+        {...extra?.(row)}
+      />
+    ))}
   </MenuItemGroup>
 );
+
+// NOTHING MATCHED THE SEARCH — one block for all three surfaces that can hit
+// it (Daniel, 2026-09-11). The nodes draw the SAME thing on each: the Filters
+// menu with no matching row (14310-59924 desktop / 14310-59921 mobile) and a
+// multi-select filter's option list with no matching option (14310-60254 /
+// 14310-60389). It is the DS `EmptyState` with its CAPTION ONLY — no icon, no
+// title, no actions, since every one of those nodes carries `title: false` /
+// `caption: true` — reading "No matching options". The 32px padding around it
+// is the component's own.
+//
+// In the menu it replaces the disabled "No results found" MenuItem that stood
+// in for it; in the lists it replaces the DS SelectList's built-in no-results
+// block (an icon over a title and a caption), through the component's
+// `noResultsState` slot. FLAGGED: if the DS's OWN no-results design has moved
+// to caption-only too, the default should change and the slot can go — the
+// other consumers (JobDetails' service picker, the address autocomplete) still
+// want the title, which is why this is opt-in rather than a new default.
+const noMatches = <EmptyState caption="No matching options" />;
 
 // ---- the mobile sheet's "Applied filters" section --------------------------
 
@@ -498,14 +372,14 @@ const sectionLabel = (label: string) => (
 
 interface AppliedFiltersProps {
   /** The branch's filter registry. */
-  defs: FilterDef[];
+  defs: AnyFilterDef[];
   /**
    * The view's locked Status filter. It leads the section as the LOCKED chip
    * — the same first-chip rule the desktop bar follows (2026-09-09, Daniel:
    * the mobile sheet was not showing it at all, while the Filters button
    * already counted it).
    */
-  lockedStatuses?: BadgeJobStatusStatus[];
+  lockedStatuses?: string[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /** The view's Schedule horizon + the hint's View-menu opener — the conflict warning. */
@@ -559,14 +433,14 @@ const AddFilterSection = ({
   labelled,
   divider = false,
 }: {
-  rows: FilterDef[];
-  extra?: (row: FilterDef) => RowHandlers;
+  rows: AnyFilterDef[];
+  extra?: (row: AnyFilterDef) => RowHandlers;
   labelled: boolean;
   divider?: boolean;
 }) => (
   <div>
     {labelled && sectionLabel("Add filter")}
-    {filterRows(rows, extra)}
+    {rows.length > 0 ? filterRows(rows, extra) : noMatches}
     {divider && <Divider />}
   </div>
 );
@@ -585,7 +459,7 @@ const AddFilterSection = ({
 // should be auto-focus" — reversing his 2026-08-17 rule for this one menu):
 // `autoFocusSearch` here is MenuHeader's explicit opt-in that bypasses the
 // component's drawer + touch exclusions, so only the mobile caller sets it.
-function useFilterSearch(open: boolean, defs: FilterDef[], autoFocusSearch = false) {
+function useFilterSearch(open: boolean, defs: AnyFilterDef[], autoFocusSearch = false) {
   const [query, setQuery] = useState("");
 
   // Every fresh open starts from the full list. Cleared in a LAYOUT effect, not
@@ -637,47 +511,74 @@ function useFilterSearch(open: boolean, defs: FilterDef[], autoFocusSearch = fal
 // The count comes from `optionCounts`, which measures against the list filtered
 // by every OTHER active filter — so it answers "how many would I get if I ticked
 // this", and ticking one option does not drop its siblings to 0.
-// ---- how wide a filter's option list has to be ------------------------------
+// ---- how wide a filter's list is -------------------------------------------
 //
-// The node's Priority list is 209px, and that number is tuned to ITS labels:
-// "No priority" next to "1 job" only just fits. Duration's "Under 1 hour" next
-// to "20 jobs" does not, and a location name needs far more. The card cannot
-// work this out itself — it is `width: fit-content`, but SelectListItem's title
-// has `min-width: 0` and so contributes nothing to the intrinsic width (the same
-// KNOWN LIMIT as the Menu card). So each list is measured here.
+// It is not measured any more (Daniel, 2026-09-11: the Labels list "should
+// follow the default component behavior. No overrides"). The DS SelectList
+// card already sizes itself — `width: fit-content` capped by its own
+// `max-width: 384px` — and the only thing a filter list adds is the 208px
+// floor its documented nodes pin. Everything else the old build computed
+// (canvas text measurement per option, the condition-chip row width, a
+// per-filter minimum) is gone with it.
+//
+// This lands on the nodes exactly, because the component's own hugging is what
+// the nodes draw: Labels empty is 223 (13999-17141) and 384 once a second
+// label brings the four conditions and the chips wrap (14101-42750); Location
+// is 384 (14101-44923); the short lists sit on the 208 floor.
+// 208px — the floor EVERY surface in this menu sits on: the Filters card
+// itself (node 14310-59652) and each of its lists, whose nodes all carry the
+// same "Min Width" pin. One constant, so they cannot drift apart.
+const MIN_WIDTH = "var(--size-52)"; // 208px
 
-let measureCtx: CanvasRenderingContext2D | null | undefined;
+const LIST_STYLE: CSSProperties = { minWidth: MIN_WIDTH };
 
-/** The rendered width of a string in the option row's type (Inter regular 14). */
-function textWidth(text: string): number {
-  if (measureCtx === undefined) measureCtx = document.createElement("canvas").getContext("2d");
-  // No canvas (never in a browser, but the fallback keeps this honest): about
-  // 7.3px per character at Inter 14.
-  if (measureCtx == null) return text.length * 7.3;
-  measureCtx.font = "400 14px InterVariable, Inter, sans-serif";
-  return measureCtx.measureText(text).width;
+/**
+ * Holds a card at the width it HUGGED TO when it opened, for as long as it
+ * stays open — the rule the Filters menu already follows (Daniel, 2026-09-11:
+ * "the width of the menu should not change" while typing), now applied to the
+ * option lists as well: "Service and Source SelectLists change their width
+ * while typing within the search."
+ *
+ * Only those two showed it, and that is the whole story: every other list
+ * either sits on the 208 floor (its rows are narrower) or against the 384
+ * ceiling, so filtering rows out cannot move it. Service (291) and Source
+ * (231) are the ones that float in between, where the widest VISIBLE row
+ * decides the width and so changes with every keystroke.
+ *
+ * A FLOOR, never a fixed width: filtering only removes rows, so the content can
+ * only get narrower and the floor is what it settles on — but if a row ever
+ * needs more, the card can still take it, so this can never clip a label.
+ *
+ * `offsetWidth`, not `getBoundingClientRect()`: the card opens under a
+ * `scale(0.98)` transition and the rect would report the scaled width.
+ */
+function useFrozenWidth(open: boolean, enabled: boolean, key: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [frozen, setFrozen] = useState<number | null>(null);
+
+  // RELEASE first. `key` is the filter the card is showing, and on desktop the
+  // card stays mounted while the pointer moves from row to row — only the
+  // contents change — so a floor measured for Service would otherwise still be
+  // holding Source's list open at 291px.
+  useLayoutEffect(() => {
+    setFrozen(null);
+  }, [open, enabled, key]);
+
+  // MEASURE on the pass after that, when the card is hugging its own rows with
+  // nothing but the 208 floor under it.
+  useLayoutEffect(() => {
+    if (!open || !enabled || frozen != null) return;
+    const el = ref.current;
+    if (el != null) setFrozen(el.offsetWidth);
+  }, [open, enabled, frozen, key]);
+
+  return {
+    ref,
+    style: {
+      minWidth: frozen != null ? `max(${MIN_WIDTH}, ${frozen}px)` : MIN_WIDTH,
+    } as CSSProperties,
+  };
 }
-
-// Everything in an option row except the label and the tag: 12px padding,
-// 16px checkbox, 12px gap, 16px icon, 8px gap, 16px label↔tag gap, 12px padding,
-// plus the group's own 4px each side.
-const OPTION_CHROME = 92 + 8;
-/** The node's Priority width is the floor; the DS card's own max is the ceiling. */
-const SUB_MIN_WIDTH = 209;
-const SUB_MAX_WIDTH = 384;
-
-// A DATE list is narrower than any option list — bare labels, no checkbox, no
-// tag — so it takes the node's own width (13912-11964, the Date received list)
-// instead of being measured. FIXED, not measured: all seven labels are known and
-// short, and a fixed number keeps the "Custom" popover's anchor stable.
-const DATE_LIST_WIDTH = 156;
-
-// The DURATION list is narrower still — four bare labels, about 111px of
-// content. Like the date list it is FIXED, not measured — and the rendered
-// card actually opens at `listWidth`'s 240px floor, which is exactly what the
-// documented node draws (13874-11407 is 240 wide, and carries Daniel's
-// "Min Width" annotation saying that IS the minimum).
-const DURATION_LIST_WIDTH = 111;
 
 /**
  * Does this filter hold ONE value rather than a set? Date and duration both do,
@@ -688,7 +589,7 @@ const DURATION_LIST_WIDTH = 111;
  * behavior); this test alone gates the Custom-dialog machinery, which only a
  * date or duration has.
  */
-const isSingleValue = (def: FilterDef) => def.kind === "date" || def.kind === "duration";
+const isSingleValue = (def: AnyFilterDef) => def.kind === "date" || def.kind === "duration";
 
 /**
  * Is this filter's LIST single-select — one pick at a time, applying and
@@ -697,7 +598,7 @@ const isSingleValue = (def: FilterDef) => def.kind === "date" || def.kind === "d
  * annotation, node 14101-53834). What this does NOT imply is a "Custom..."
  * row: that stays `isSingleValue`'s.
  */
-const isSingleSelect = (def: FilterDef) => isSingleValue(def) || def.singleSelect === true;
+const isSingleSelect = (def: AnyFilterDef) => isSingleValue(def) || def.singleSelect === true;
 
 /**
  * Does this filter have NO option list at all, so that everything about it is
@@ -705,81 +606,11 @@ const isSingleSelect = (def: FilterDef) => isSingleValue(def) || def.singleSelec
  * Filters menu opens the dialog on CLICK instead of hovering a list open, and
  * its chip's value segment does the same.
  */
-const isDialogOnly = (def: FilterDef) => def.kind === "address";
+const isDialogOnly = (def: AnyFilterDef) => def.kind === "address";
 
-// A plain (non-module) class on the Custom dialog's scrim. The dialog portals to
-// <body>, so every anchored card here would read a click inside it as "outside";
-// `useAnchoredCard` looks for this marker and stays open instead.
-const DIALOG_MARKER = "concept-filters-dialog";
+// (DIALOG_MARKER — the Custom dialog's scrim class the anchored cards spare —
+// lives in appShell.tsx with useAnchoredCard now.)
 /** The Custom popover's card, from Figma nodes 13913-14399 / 13912-13158. */
-
-// The widest count any option can show — every job in the database. Measured
-// once, so a list's width never depends on which options happen to be ticked.
-let cachedMaxCountWidth: number | undefined;
-const maxCountWidth = () => (cachedMaxCountWidth ??= textWidth(countLabel(JOBS.length)));
-
-// ---- how wide the HEADER's condition chips want to be ----------------------
-//
-// The card hugs its content and 240px is only the FLOOR (Daniel, 2026-08-24) —
-// but until now only the option ROWS were measured, so a header whose chips are
-// wider than the rows was left to wrap inside a 240px card. Labels showed it:
-// its four conditions stacked into four lines under a 240px card while its
-// longest option, "Cooking equipment", asked for barely 200.
-//
-// The chips' natural width is ALL OF THEM ON ONE ROW; the DS card's own 384px
-// max is the ceiling, and the ChipGroup wraps anything past it. Labels' four
-// conditions ask for about 575, so the card opens at the 384 max and they sit
-// on two rows — two per row, exactly as the documented sub-menu draws them
-// (node 14101-43498).
-const CHIP_SIDES = 20; // md Chip: --size-2_5 (10px) each side
-const CHIP_GAP = 8; // ChipGroup's gap
-const HEADER_SIDES = 32; // SelectListHeader's chip container: 16px each side
-
-const chipRowWidth = (choices: ConditionChoice[]) =>
-  choices.reduce((sum, choice, index) => sum + textWidth(choice.label) + CHIP_SIDES + (index > 0 ? CHIP_GAP : 0), 0) +
-  HEADER_SIDES;
-
-/**
- * The width the condition chips need, at the WIDEST SET this filter can ever
- * show — not the set on screen right now (Daniel, 2026-08-24: "show the select
- * list the size which fits all 4 chips by default").
- *
- * So Labels opens at the 384 maximum, wide enough for the four conditions its
- * second ticked label brings, and never resizes while the user is working inside
- * it. This is the rule the option COUNTS already follow, for the same reason:
- * "measured at its WIDEST POSSIBLE value, not its current one".
- *
- * Labels is the only filter where the widest and narrowest sets differ at all —
- * every other one keeps the same two or three chips whatever is ticked, so every
- * other card still hugs its own option rows.
- */
-function conditionsWidth(instance: FilterInstance): number {
-  // One value and several — the only two shapes `conditionChoices` has. A date
-  // or duration ignores `ids` entirely, so both calls return its own list.
-  const sets = [
-    conditionChoices({ ...instance, ids: instance.ids.slice(0, 1) }),
-    conditionChoices({ ...instance, ids: ["a", "b"] }),
-  ];
-  // CEIL, not round: the sum is fractional and rounding DOWN leaves the row a
-  // third of a pixel short, which is enough to wrap the last chip onto a
-  // second line.
-  return Math.ceil(Math.max(...sets.map(chipRowWidth)));
-}
-
-/**
- * The width a filter's list opens at, WHEREVER it opens from: the widest of the
- * option rows, the condition chips and the filter's own pinned minimum
- * (`FilterDef.listMinWidth` — Location's 384, from its "Min Width" annotation),
- * capped at the DS card's 384px maximum (and floored at 240 by `listWidth`).
- *
- * The chips count even when the list shows NONE of them — a value list opened
- * from a chip. That is the documented Labels section's rule (2026-09-03): its
- * chip-opened value lists carry the SAME "Min Width" pin as the menu's list
- * (nodes 13999-17141, 14101-43138 and 14101-43512, all 384) — one filter, one
- * width, so the list never changes size depending on where it was opened.
- */
-const openListWidth = (def: FilterDef, instance: FilterInstance, measured: number) =>
-  Math.min(SUB_MAX_WIDTH, Math.max(measured, conditionsWidth(instance), def.listMinWidth ?? 0));
 
 // The condition list — a SelectList of two SelectListItems, not a Menu (Figma
 // nodes 13877-16387 desktop / 13877-16411 mobile; it WAS a Menu until Daniel
@@ -800,12 +631,7 @@ function conditionList(value: FilterValue, onPick: (choice: ConditionChoice) => 
       ))}
     </SelectListItemGroup>
   );
-  // These rows have no left icon and no tag, so they need a narrower chrome than
-  // the option lists: 12px padding + label + 16px gap + the 16px check + 12px
-  // padding, plus the group's 4px each side. Lands on the node's 97px for
-  // "is" / "is not".
-  const width = Math.round(Math.max(...choices.map((choice) => textWidth(choice.label))) + 64);
-  return { items, width };
+  return { items };
 }
 
 // A FUNCTION, not a component: SelectList has to SEE the SelectListItemGroup
@@ -815,7 +641,7 @@ function conditionList(value: FilterValue, onPick: (choice: ConditionChoice) => 
 // "No results found" state with zero options. (The same trap as
 // SidePanelNavigation's fragment note in the DS.)
 function filterList(
-  def: FilterDef,
+  def: AnyFilterDef,
   /** The ONE application this list edits — a fresh one from the Filters menu, or
    *  the existing one behind a chip. */
   instance: FilterInstance,
@@ -850,7 +676,7 @@ function filterList(
         ))}
       </SelectListItemGroup>
     );
-    return { items, width: DATE_LIST_WIDTH, isEmpty: false };
+    return { items, isEmpty: false };
   }
 
   // A DURATION filter is the date list's twin (Figma node 13874-11407): four
@@ -886,10 +712,10 @@ function filterList(
         ))}
       </SelectListItemGroup>
     );
-    return { items, width: DURATION_LIST_WIDTH, isEmpty: false };
+    return { items, isEmpty: false };
   }
 
-  const counts = optionCounts(JOBS, def);
+  const counts = def.counts?.() ?? {};
   const picked = instance.ids;
   const toggle = (optionId: string) => {
     // A SINGLE-select options filter (Type) holds one option at a time — its
@@ -900,38 +726,16 @@ function filterList(
       onInstanceChange({ ...instance, ids: [optionId] });
       return;
     }
-    // An EXCLUSIVE option (Labels' "No labels") stands alone — its annotation:
-    // "Selecting this option unselects all others. This option can only be
-    // used alone." So ticking it clears the rest, and ticking anything else
-    // clears it.
-    const exclusive = def.exclusiveOptionId;
-    const ids = picked.includes(optionId)
-      ? picked.filter((id) => id !== optionId)
-      : optionId === exclusive
-        ? [optionId]
-        : [...picked.filter((id) => id !== exclusive), optionId];
+    // Every option toggles on its own. The absence options ("No assignees",
+    // "No labels") used to clear the rest and be cleared BY the rest — the
+    // rows' old annotation, "this option can only be used alone" — which
+    // Daniel removed on 2026-09-11: they combine like any other option now, so
+    // "No assignees or Dana" is a filter the user can build.
+    const ids = picked.includes(optionId) ? picked.filter((id) => id !== optionId) : [...picked, optionId];
     // Un-ticking the last option leaves an EMPTY application; `upsertFilter`
     // drops it from the selection, so its chip goes with it.
     onInstanceChange({ ...instance, ids });
   };
-
-  // The tag is measured at its WIDEST POSSIBLE value, not its current one.
-  // Measuring the live count made the card shrink as options were ticked ("0
-  // jobs" is narrower than "14 jobs"), and the labels then truncated — the width
-  // must not depend on what is selected. A list with no counts (Assignee) drops
-  // that term, which is what lands it on the node's 208px.
-  // A list with no counts (Assignee) loses both the tag and the 16px gap in
-  // front of it, which is what lands it on the node's 208px.
-  const noTag = def.hideCounts === true;
-  const widest =
-    def.options.reduce((max, option) => Math.max(max, textWidth(option.label)), 0) +
-    (noTag ? 0 : maxCountWidth());
-  // A single-select row (Type) measures the SAME as a no-tag multi row: it
-  // trades the 16px checkbox + 12px gap on the left for the 28px check
-  // reserve on the right (the node's 40px right padding minus the 12 the
-  // chrome already counts) — so no branch here.
-  const chrome = noTag ? OPTION_CHROME - 16 : OPTION_CHROME;
-  const width = Math.round(Math.min(SUB_MAX_WIDTH, Math.max(SUB_MIN_WIDTH, widest + chrome)));
 
   // The search is the list's own (see FilterOptions), not SelectList's built-in
   // one: this list's header holds the condition chips as well, and SelectList
@@ -944,20 +748,38 @@ function filterList(
   const haystack = (option: FilterOption) => (option.searchText ?? option.label).toLowerCase();
   const shown = q === "" ? def.options : def.options.filter((option) => haystack(option).includes(q));
 
-  const row = (option: FilterOption) => (
-    <SelectListItem
-      key={option.id}
-      label={option.label}
-      searchText={option.searchText}
-      // Type's rows are single-select — icon + label, no checkbox, the picked
-      // row showing the DS right check (node 14101-53835's rows).
-      select={def.singleSelect === true ? "single" : "multi"}
-      selected={picked.includes(option.id)}
-      onClick={() => toggle(option.id)}
-      slotLeft={option.slotLeft}
-      tag={def.hideCounts === true ? undefined : countLabel(counts[option.id] ?? 0)}
-    />
-  );
+  // The OBJECT row (Location since 2026-09-11 — node 14101-44923): the DS's
+  // 60px variant, an xl AvatarLocation with the address as its Medium title and
+  // the site's name as the caption under it. It carries no tag — the object
+  // variant's copy rules forbid combining a caption with one, and Location
+  // shows no counts anyway.
+  const row = (option: FilterOption) =>
+    def.objectRows === true ? (
+      <SelectListItem
+        key={option.id}
+        variant="object"
+        label={option.label}
+        caption={option.caption}
+        avatar={option.avatar}
+        searchText={option.searchText}
+        select="multi"
+        selected={picked.includes(option.id)}
+        onClick={() => toggle(option.id)}
+      />
+    ) : (
+      <SelectListItem
+        key={option.id}
+        label={option.label}
+        searchText={option.searchText}
+        // Type's rows are single-select — icon + label, no checkbox, the picked
+        // row showing the DS right check (node 14101-53835's rows).
+        select={def.singleSelect === true ? "single" : "multi"}
+        selected={picked.includes(option.id)}
+        onClick={() => toggle(option.id)}
+        slotLeft={option.slotLeft}
+        tag={def.hideCounts === true ? undefined : countLabel(counts[option.id] ?? 0)}
+      />
+    );
 
   // GROUPED (Location, Figma node 13986-51038): one SelectListItemGroup per
   // group, each headed by a `secondary` GroupLabel — the DS pairing rule for
@@ -979,30 +801,33 @@ function filterList(
     // reorder and hands it the groups where it expects items. An array is
     // flattened by `Children.toArray`, so every group is seen.
     const items = groups.map(({ group, options }) => (
-      <SelectListItemGroup key={group.id} label={<GroupLabel variant="secondary" label={group.label} />}>
+      <SelectListItemGroup
+        key={group.id}
+        // The DS pairing rule, which the component's own docs state: a PRIMARY
+        // GroupLabel goes with "object" items, a SECONDARY one with "default"
+        // items. Location's rows became object rows on 2026-09-11 and its node
+        // (14101-44923) moved its GroupLabel to `primary` with them, so the
+        // variant is taken from the rows rather than written by hand.
+        label={
+          def.objectRows === true ? (
+            // `primary` also carries the group's own avatar — Location's header
+            // shows the client's (node 14101-44923's GroupLabel slotLeft).
+            <GroupLabel variant="primary" slotLeft={group.slotLeft} label={group.label} />
+          ) : (
+            <GroupLabel variant="secondary" label={group.label} />
+          )
+        }
+      >
         {options.map(row)}
       </SelectListItemGroup>
     ));
-    return { items, width, isEmpty: groups.length === 0 };
+    return { items, isEmpty: groups.length === 0 };
   }
 
   const items = <SelectListItemGroup>{shown.map(row)}</SelectListItemGroup>;
 
-  return { items, width, isEmpty: shown.length === 0 };
+  return { items, isEmpty: shown.length === 0 };
 }
-
-// A desktop list's width, PINNED — the card must not resize as the search filters
-// the rows, so the same value goes on all three properties. `filterList` measures
-// the longest option; every filter's list then has a FLOOR of --size-60 (240px),
-// so the submenus of the Filters menu all open at the same width instead of each
-// hugging its own longest label (Daniel, 2026-08-19). CSS `max()` keeps that
-// floor a token instead of a number resolved here.
-const LIST_MIN_WIDTH = "var(--size-60)"; // 240px
-
-const listWidth = (measured: number): CSSProperties => {
-  const width = `max(${LIST_MIN_WIDTH}, ${measured}px)`;
-  return { width, minWidth: width, maxWidth: width };
-};
 
 // ---- the condition section -------------------------------------------------
 
@@ -1317,7 +1142,7 @@ function DialogCalendar({ value, range, onChange, month, onMonthChange, monthCou
 
 interface DateCustomProps {
   /** The filter this dialog belongs to — it names the dialog. */
-  def: FilterDef;
+  def: AnyFilterDef;
   /** The value being edited — a fresh one from the list, or the chip's. */
   value: FilterValue;
   /** The finished date. `negated` is always false — `compare` IS the condition. */
@@ -1757,7 +1582,7 @@ function DurationInput({
 }
 
 interface DurationCustomProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   value: FilterValue;
   /** The finished duration. `negated` is always false — `compare` IS the condition. */
   onApply: (duration: DurationValue) => void;
@@ -1900,7 +1725,7 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
 // contract the other two dialogs have, so an unfinished edit never touches the
 // chip.
 interface AddressCustomProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   value: FilterValue;
   onApply: (address: AddressValue, negated: boolean) => void;
   onClose: () => void;
@@ -2011,7 +1836,7 @@ function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: Addre
 // one holds a FilterInstance and wants one back, so the choice is made here
 // instead of at each of the three call sites.
 interface CustomDialogProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   instance: FilterInstance;
   breakpoint: "desktop" | "mobile";
   /** The application with its new custom value — ready for `upsertFilter`. */
@@ -2075,7 +1900,7 @@ function CustomDialog({ def, instance, breakpoint, onApply, onClose }: CustomDia
 // prop on the DS SelectList, not a prototype-local header. It is built here
 // because this is a trial.
 interface FilterOptionsProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   /** The ONE application this list edits — a new one, or a chip's existing one. */
   instance: FilterInstance;
   onInstanceChange: (next: FilterInstance) => void;
@@ -2111,6 +1936,8 @@ function FilterOptions({
   hideConditions = false,
   restoreFocus = true,
 }: FilterOptionsProps) {
+  // Desktop only — a drawer fills the screen width, so there is nothing to hold.
+  const frozenWidth = useFrozenWidth(open, variant === "inline", def.id);
   const [query, setQuery] = useState("");
   // Each filter's search is ITS OWN (Daniel, 2026-08-18). On desktop this one
   // component stays mounted while the pointer moves from row to row — only `def`
@@ -2137,12 +1964,6 @@ function FilterOptions({
 
   // The condition keeps the ticked options as they are — only the condition moves.
   const setCondition = (choice: ConditionChoice) => onInstanceChange(withCondition(instance, choice));
-
-  // The card hugs the WIDER of its two contents — the option rows and the
-  // header's condition chips — with the DS card's own 384px as the ceiling and
-  // `listWidth`'s 240px as the floor. The chips count even when this list
-  // hides them (`openListWidth`'s one-filter-one-width rule).
-  const width = openListWidth(def, instance, list.width);
 
   // EVERY filter's header is the DS `SelectListHeader` (the documented
   // sections, 2026-09-03 — the prototype-local chips block is gone), in one of
@@ -2184,7 +2005,7 @@ function FilterOptions({
       footer
     );
 
-  return (
+  const selectList = (
     <SelectList
       variant={variant}
       open={open}
@@ -2221,11 +2042,24 @@ function FilterOptions({
       // closed-phase Status stretched over an empty screen.
       className={def.searchPlaceholder == null && variant === "drawer" ? styles.hugDrawer : undefined}
       state={list.isEmpty ? "noResults" : "default"}
-      style={variant === "inline" ? listWidth(width) : undefined}
+      // The filters' own no-match block — see `noMatches`. It covers BOTH ways
+      // a list can come up empty: this prototype's own search (the `state`
+      // above) and SelectList's built-in `searchable`, which decides the state
+      // for itself on a chip-opened list.
+      noResultsState={noMatches}
+      // The width it hugged to when it opened, held while the search narrows
+      // the rows — see `useFrozenWidth`. A drawer has no width of its own.
+      style={variant === "inline" ? frozenWidth.style : undefined}
     >
       {list.items}
     </SelectList>
   );
+
+  // The desktop card is wrapped only so its width can be MEASURED: the div
+  // shrink-wraps the card inside the `max-content` portal, so its `offsetWidth`
+  // IS the card's. The drawer is portaled away by SelectList itself, so there
+  // is nothing to measure and nothing to wrap.
+  return variant === "inline" ? <div ref={frozenWidth.ref}>{selectList}</div> : selectList;
 }
 
 // MOBILE applies on "Apply" (Daniel, 2026-08-18) — every filter, Assignee and
@@ -2243,7 +2077,7 @@ function FilterOptions({
 // (its section's annotation) — no Apply bar, the pick applies and closes —
 // but with no Custom row at all: two options need no dialog.
 interface MobileFilterOptionsProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   /** The application to edit: a fresh one from the menu, or a chip's existing one. */
   instance: FilterInstance;
   /** Put this application into the selection. Does NOT close the sheet. */
@@ -2610,7 +2444,7 @@ function MobileViewBar({
   // Filters one (Figma node 13855-23306 — the list draws its own scrim). NO
   // back button (Daniel, 2026-08-17): the Filters drawer is still open
   // underneath, so dismissing this sheet already returns there.
-  const [openFilter, setOpenFilter] = useState<FilterDef | null>(null);
+  const [openFilter, setOpenFilter] = useState<AnyFilterDef | null>(null);
   // The application each filter's sheet is building. It lives only as long as
   // THAT sheet does (Daniel, 2026-08-19 — it used to survive until the whole
   // Filters menu closed): closing a filter's own sheet, with Apply or by
@@ -2625,7 +2459,7 @@ function MobileViewBar({
     if (!filtersOpen) setDrafts({});
   }, [filtersOpen]);
 
-  const mobileRowHandlers = (row: FilterDef): RowHandlers => ({
+  const mobileRowHandlers = (row: AnyFilterDef): RowHandlers => ({
     onClick: () => {
       setDrafts((current) => (current[row.id] != null ? current : { ...current, [row.id]: newFilterInstance(row) }));
       setOpenFilter(row);
@@ -2672,6 +2506,94 @@ function MobileViewBar({
         sort={sort}
         onSortChange={onSortChange}
       />
+      <FiltersDrawer
+        open={filtersOpen}
+        onClose={() => setFiltersOpen(false)}
+        defs={FILTERS_BY_BRANCH[branch]}
+        selection={selection}
+        onSelectionChange={onSelectionChange}
+        lockedStatuses={lockedStatuses}
+        scheduleHorizon={horizonOf(viewSettings)}
+        // "Show settings" from the conflict hint: the Filters drawer makes way
+        // for the View one.
+        onShowViewMenu={() => {
+          setFiltersOpen(false);
+          setViewMenuOpen(true);
+        }}
+      />
+    </>
+  );
+}
+
+// (useAnchoredCard and the AnchoredCard type — the shared anchored body
+// portal — live in appShell.tsx since 2026-09-11; both pages' view bars and
+// the chips use the same hook.)
+
+// ---- the Filters drawer (mobile) -------------------------------------------
+
+// The phone's whole filter surface, split out of the Jobs view bar on
+// 2026-09-11 so the Estimates list can open the SAME one: the Filters sheet,
+// the applied-filters section at the top of it, and the second sheet a row
+// opens on top. It owns the per-visit drafts; the page owns the selection.
+interface FiltersDrawerProps {
+  open: boolean;
+  onClose: () => void;
+  /** The page's filter registry. */
+  defs: AnyFilterDef[];
+  selection: FilterSelection;
+  onSelectionChange: (next: FilterSelection) => void;
+  /** The view's locked Status filter, where the page has one (jobs do). */
+  lockedStatuses?: string[];
+  /** Jobs only — the Schedule horizon behind the applied chips' conflict hint. */
+  scheduleHorizon?: ScheduleHorizon | null;
+  onShowViewMenu?: () => void;
+}
+
+export function FiltersDrawer({
+  open,
+  onClose,
+  defs,
+  selection,
+  onSelectionChange,
+  lockedStatuses = [],
+  scheduleHorizon = null,
+  onShowViewMenu,
+}: FiltersDrawerProps) {
+  // TRUE = the drawer opens with the search focused and the keyboard up
+  // (Daniel, 2026-09-09) — MenuHeader's explicit opt-in.
+  const filters = useFilterSearch(open, defs, true);
+  // Tapping a filter row opens its options as a SECOND drawer on top of the
+  // Filters one (Figma node 13855-23306 — the list draws its own scrim). NO
+  // back button (Daniel, 2026-08-17): the Filters drawer is still open
+  // underneath, so dismissing this sheet already returns there.
+  const [openFilter, setOpenFilter] = useState<AnyFilterDef | null>(null);
+  // The application each filter's sheet is building. It lives only as long as
+  // THAT sheet does (Daniel, 2026-08-19): closing a filter's own sheet, with
+  // Apply or by dismissing it, drops its draft, so opening the row again starts
+  // a fresh application instead of continuing the last one.
+  const [drafts, setDrafts] = useState<Partial<Record<FilterId, FilterInstance>>>({});
+  const closeFilterSheet = () => {
+    if (openFilter != null) setDrafts((current) => ({ ...current, [openFilter.id]: undefined }));
+    setOpenFilter(null);
+  };
+  useEffect(() => {
+    if (!open) setDrafts({});
+  }, [open]);
+
+  const mobileRowHandlers = (row: AnyFilterDef): RowHandlers => ({
+    onClick: () => {
+      setDrafts((current) => (current[row.id] != null ? current : { ...current, [row.id]: newFilterInstance(row) }));
+      setOpenFilter(row);
+    },
+  });
+
+  // The applied-filters section, and with it the two section labels. Hidden
+  // while the search is running: it filters the LIST, and the chips are not part
+  // of that list, so leaving them up would look like the search had missed them.
+  const showApplied = (activeFilterCount(selection) > 0 || lockedStatuses.length > 0) && filters.query === "";
+
+  return (
+    <>
       {/* The drawer portals out to the device frame's drawer root, so where it
           is written makes no difference. */}
       {/* The drawer header keeps the DS's own line under it (Daniel,
@@ -2679,8 +2601,8 @@ function MobileViewBar({
           turned off through Menu's `drawerHeader` escape hatch; Menu
           builds the header from `title` again. */}
       <Menu
-        open={filtersOpen}
-        onClose={() => setFiltersOpen(false)}
+        open={open}
+        onClose={onClose}
         title="Filters"
         // The drawer's TITLE ROW carries the bulk action (Daniel, 2026-09-09
         // — option B of the placement proposals, "use md ghost button"):
@@ -2716,18 +2638,15 @@ function MobileViewBar({
             the chips are not part of that list. */}
         {showApplied && (
           <AppliedFilters
-            defs={FILTERS_BY_BRANCH[branch]}
+            defs={defs}
             lockedStatuses={lockedStatuses}
             selection={selection}
             onSelectionChange={onSelectionChange}
-            scheduleHorizon={horizonOf(viewSettings)}
+            scheduleHorizon={scheduleHorizon}
             // "Show settings" from the conflict hint: the Filters drawer
             // makes way for the View one. Closing the drawer unmounts the
             // chip, which takes the hint drawer down with it.
-            onShowViewMenu={() => {
-              setFiltersOpen(false);
-              setViewMenuOpen(true);
-            }}
+            onShowViewMenu={onShowViewMenu}
           />
         )}
         <AddFilterSection rows={filters.rows} extra={mobileRowHandlers} labelled={showApplied} />
@@ -2770,74 +2689,6 @@ function MobileViewBar({
   );
 }
 
-// ---- anchored cards --------------------------------------------------------
-
-type CardAlign = "left" | "right";
-
-// One anchored body portal, shared by everything in this concept that opens next
-// to something: the Filters menu (from the view bar's button and from the filter
-// bar's plus), and a chip's condition menu and value list. It is a body portal
-// because a card anchored inside the bars would be clipped by their overflow;
-// `position: fixed` from the trigger's rect, re-measured on scroll and resize.
-function useAnchoredCard(align: CardAlign = "left", ignoreSelector?: string) {
-  const [open, setOpen] = useState(false);
-  // `| null` in the type parameter makes the ref MUTABLE: most triggers attach
-  // it as a wrapper div's `ref`, but the view bar assigns TopBarView's own
-  // Filters button into it by hand (see DesktopViewBar).
-  const anchorRef = useRef<HTMLDivElement | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | null>(null);
-
-  useLayoutEffect(() => {
-    if (!open) return undefined;
-    const update = () => {
-      const rect = anchorRef.current?.getBoundingClientRect();
-      if (rect == null) return;
-      // Pinned by the RIGHT edge near the right of the screen, so the card grows
-      // leftwards and its own width never has to be measured.
-      setPos(
-        align === "right"
-          ? { right: window.innerWidth - rect.right, top: rect.bottom + 4 }
-          : { left: rect.left, top: rect.bottom + 4 },
-      );
-    };
-    update();
-    window.addEventListener("scroll", update, true);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update, true);
-      window.removeEventListener("resize", update);
-    };
-  }, [open, align]);
-
-  // A click outside the trigger and the card closes it. `ignoreSelector` spares
-  // a card's OWN satellite portals — the Filters menu's hovered option list is a
-  // second portal, so it is not inside `cardRef`, and without this ticking an
-  // option in it closed the whole menu underneath.
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDown = (e: PointerEvent) => {
-      const target = e.target as Element;
-      if (anchorRef.current?.contains(target) === true) return;
-      if (cardRef.current?.contains(target) === true) return;
-      // The Custom DIALOG portals to <body>, so it is "outside" EVERY card here
-      // — a click on its date field or its Range box closed the dialog, the
-      // option list and the Filters menu all at once (Daniel, 2026-08-20). It
-      // is a modal these cards opened, so no card ever closes on it; its own
-      // scrim and Cancel are what dismiss it.
-      if (target.closest?.(`.${DIALOG_MARKER}`) != null) return;
-      if (ignoreSelector != null && target.closest?.(ignoreSelector) != null) return;
-      setOpen(false);
-    };
-    document.addEventListener("pointerdown", onDown);
-    return () => document.removeEventListener("pointerdown", onDown);
-  }, [open, ignoreSelector]);
-
-  return { open, setOpen, anchorRef, cardRef, pos };
-}
-
-type AnchoredCard = ReturnType<typeof useAnchoredCard>;
-
 // ---- the Filters menu card -------------------------------------------------
 
 // The menu itself, split out from its trigger so BOTH openers share one copy:
@@ -2851,12 +2702,12 @@ type AnchoredCard = ReturnType<typeof useAnchoredCard>;
 interface FiltersMenuCardProps {
   card: AnchoredCard;
   /** The branch's filter registry. */
-  defs: FilterDef[];
+  defs: AnyFilterDef[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
 }
 
-function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMenuCardProps) {
+export function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMenuCardProps) {
   const { open, setOpen, cardRef, pos } = card;
   const filters = useFilterSearch(open, defs);
 
@@ -2865,10 +2716,10 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
   // 2026-08-18). Moving the pointer off a row only closes its list; coming back
   // continues the same application. Closing the whole Filters menu is what
   // resets them, so the next visit adds another application.
-  const [subFilter, setSubFilter] = useState<FilterDef | null>(null);
+  const [subFilter, setSubFilter] = useState<AnyFilterDef | null>(null);
   // Mirrors `subFilter` for the close timer, which fires long after its closure
   // was created and must act on whichever row is CURRENTLY open.
-  const subFilterRef = useRef<FilterDef | null>(null);
+  const subFilterRef = useRef<AnyFilterDef | null>(null);
   subFilterRef.current = subFilter;
   const [drafts, setDrafts] = useState<Partial<Record<FilterId, FilterInstance>>>({});
   const [subRow, setSubRow] = useState<DOMRect | null>(null);
@@ -2878,7 +2729,7 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
   // The Custom DIALOG. Picking "Custom" closes the menu (Daniel, 2026-08-20),
   // and the reset below wipes the visit's `subFilter` / `drafts` — so the dialog
   // holds its OWN copy of what it is editing and survives that.
-  const [customEdit, setCustomEdit] = useState<{ def: FilterDef; instance: FilterInstance } | null>(null);
+  const [customEdit, setCustomEdit] = useState<{ def: AnyFilterDef; instance: FilterInstance } | null>(null);
 
   const cancelSubClose = () => window.clearTimeout(closeTimer.current);
   // A grace period, like MenuItem's own sub-menu: the pointer needs time to
@@ -2895,7 +2746,7 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
       setSubFilter(null);
     }, 150);
   };
-  const openSub = (row: HTMLElement, def: FilterDef) => {
+  const openSub = (row: HTMLElement, def: AnyFilterDef) => {
     cancelSubClose();
     const rect = row.getBoundingClientRect();
     setSubRow(rect);
@@ -2913,22 +2764,65 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
   // edge, so there is no room on the right (the node draws it on the right
   // because the button stands alone mid-canvas there — FLAGGED).
   // Measured after mount but BEFORE paint, so the provisional spot is unseen.
-  useLayoutEffect(() => {
-    if (subFilter == null || subRow == null) return;
+  //
+  // It also re-runs whenever the card's own SIZE changes (the ResizeObserver
+  // below), because a card that is still settling reports the wrong width to
+  // measure against. Labels showed it: its header chips decide that width, and
+  // the first pass read 208 where the card came to rest at 222 — so the list
+  // was placed 14px too far right and sat on top of the menu. Whatever the
+  // reason a list resizes, its position follows it now.
+  const placeSub = useCallback((rowRect: DOMRect) => {
     const el = subCardRef.current;
     if (el == null) return;
     const cw = el.offsetWidth;
     const ch = el.offsetHeight;
-    let left = subRow.right + SUB_GAP;
+    let left = rowRect.right + SUB_GAP;
     if (left + cw > window.innerWidth - SUB_MARGIN) {
-      const flipped = subRow.left - SUB_GAP - cw;
+      const flipped = rowRect.left - SUB_GAP - cw;
       left = flipped >= SUB_MARGIN ? flipped : Math.max(SUB_MARGIN, window.innerWidth - SUB_MARGIN - cw);
     }
-    let top = subRow.top;
+    let top = rowRect.top;
     if (top + ch > window.innerHeight - SUB_MARGIN) top = window.innerHeight - SUB_MARGIN - ch;
     if (top < SUB_MARGIN) top = SUB_MARGIN;
     setSubPos((prev) => (prev != null && prev.left === left && prev.top === top ? prev : { left, top }));
-  }, [subFilter, subRow]);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (subFilter == null || subRow == null) return undefined;
+    const el = subCardRef.current;
+    if (el == null) return undefined;
+    placeSub(subRow);
+    const ro = new ResizeObserver(() => placeSub(subRow));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [subFilter, subRow, placeSub]);
+
+  // The card must not resize while the search narrows the rows (Daniel,
+  // 2026-09-11: "when a user starts typing within the search, the width of the
+  // menu should not change" — typing "type" took it from 191 to 160, and a card
+  // resizing under the caret reads as lag even though the keystroke itself
+  // costs about a millisecond).
+  //
+  // So the card hugs its FULL list once, when it opens, and that width is then
+  // held as a FLOOR for as long as the menu stays open: filtering only removes
+  // rows, so the content can only get narrower and the floor keeps the card
+  // where it was. A floor, not a fixed width — if a row ever needs more the
+  // card can still take it, so this can never clip a label.
+  //
+  // `offsetWidth`, not `getBoundingClientRect()`: the card opens under a
+  // `scale(0.98)` transition, and the rect would report the scaled width.
+  const [frozenWidth, setFrozenWidth] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (!open) {
+      setFrozenWidth(null);
+      return;
+    }
+    const el = cardRef.current?.firstElementChild as HTMLElement | null;
+    if (el != null) setFrozenWidth((prev) => prev ?? el.offsetWidth);
+    // `pos` is in the deps because the portal only exists once the anchor has
+    // been measured — on the render where `open` first flips there is nothing
+    // to measure yet.
+  }, [open, pos, cardRef]);
 
   // Closing the menu takes its sub-list with it — AND drops the applications it
   // was building, which is what makes the next visit start fresh ones.
@@ -2943,7 +2837,7 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
 
   // Touch pointers are ignored — hover-open on touch opens and instantly closes
   // (MenuItem hit this on iPad), and this card is the desktop presentation.
-  const rowHandlers = (row: FilterDef): RowHandlers =>
+  const rowHandlers = (row: AnyFilterDef): RowHandlers =>
     // ADDRESS has no list to hover open — the row IS the dialog's trigger, so it
     // takes a CLICK and closes the menu behind it, exactly as the "Custom..."
     // row does for a date. Hovering it still closes whichever list was open, or
@@ -2978,14 +2872,33 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
     <>
       {createPortal(
         <div ref={cardRef} className={styles.filtersMenu} style={pos}>
+          {/* 208px FLOOR (Daniel, 2026-09-11), the same one every filter list
+              sits on. It is the card's own documented minimum: the Shell
+              section's "Filters" Menu / Desktop (node 14310-59652) carries a
+              "Min Width" pin of 208 over the DS maximum of 384, and is drawn at
+              exactly 208. (An older copy of the menu, 14295-47676, still pins
+              the DS default of 160 — superseded.)
+
+              Above the floor the card hugs its rows. It stopped needing a
+              hand-picked width on 2026-09-11, when the real cause of its
+              old 222px (250 on Daniel's machine) was fixed in the DS: the
+              header's search `<input>` was contributing its default intrinsic
+              width to the fit-content card. See `.bar .input` in SearchField.
+
+              `frozenWidth` is the width it hugged to when it OPENED — that is
+              what keeps the card still while the search filters the rows (see
+              above). The two are combined rather than swapped, so whichever is
+              larger wins and the floor can never be undercut. */}
           <Menu
             open={open}
             onClose={() => setOpen(false)}
             header={filters.header}
             breakpoint="desktop"
-            className={styles.filtersCard}
+            style={{
+              minWidth: frozenWidth != null ? `max(${MIN_WIDTH}, ${frozenWidth}px)` : MIN_WIDTH,
+            }}
           >
-            {filterRows(filters.rows, rowHandlers)}
+            {filters.rows.length > 0 ? filterRows(filters.rows, rowHandlers) : noMatches}
           </Menu>
         </div>,
         document.body,
@@ -3073,9 +2986,10 @@ function FiltersMenuCard({ card, defs, selection, onSelectionChange }: FiltersMe
 // Filters button carries a counter instead.
 interface FilterBarProps {
   /** The branch's filter registry. */
-  defs: FilterDef[];
-  /** The statuses the current view locks — the first, fixed chip. */
-  lockedStatuses: BadgeJobStatusStatus[];
+  defs: AnyFilterDef[];
+  /** The statuses the current view locks — the first, fixed chip. Estimates
+   *  lock none, so it defaults to empty there. */
+  lockedStatuses?: string[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /** The view's Schedule horizon + the hint's View-menu opener — the conflict warning. */
@@ -3083,9 +2997,9 @@ interface FilterBarProps {
   onShowViewMenu?: () => void;
 }
 
-const FilterBar = ({
+export const FilterBar = ({
   defs,
-  lockedStatuses,
+  lockedStatuses = [],
   selection,
   onSelectionChange,
   scheduleHorizon = null,
@@ -3148,7 +3062,7 @@ const FilterBar = ({
 // The condition follows the count like a user chip's would — the documented
 // chips read "is any of | 2 statuses" (Pending) and "is | Completed"
 // (Completed). The old node's flat "is" (13889-19207) is superseded.
-function lockedStatusList(def: FilterDef, statuses: BadgeJobStatusStatus[]) {
+function lockedStatusList(def: AnyFilterDef, statuses: string[]) {
   const items = (
     <SelectListItemGroup>
       {def.options.map((option) => (
@@ -3163,10 +3077,7 @@ function lockedStatusList(def: FilterDef, statuses: BadgeJobStatusStatus[]) {
       ))}
     </SelectListItemGroup>
   );
-  // The same width the status filter's own list opens at (the nodes pin the
-  // 240 minimum), measured against an empty application so it never depends
-  // on what the view happens to lock.
-  return { items, width: openListWidth(def, newFilterInstance(def), filterList(def, newFilterInstance(def), noop).width) };
+  return { items };
 }
 
 // The DS FilterChip's `isLocked` IS this chip (migrated 2026-09-08; the prop
@@ -3188,8 +3099,8 @@ const LockedStatusChip = ({
   statuses,
   mobile = false,
 }: {
-  def: FilterDef;
-  statuses: BadgeJobStatusStatus[];
+  def: AnyFilterDef;
+  statuses: string[];
   mobile?: boolean;
 }) => {
   const valueCard = useAnchoredCard("left");
@@ -3226,7 +3137,7 @@ const LockedStatusChip = ({
                 open={valueCard.open}
                 onClose={() => valueCard.setOpen(false)}
                 multiSelect
-                style={listWidth(list.width)}
+                style={LIST_STYLE}
               >
                 {list.items}
               </SelectList>
@@ -3282,7 +3193,7 @@ const conflictHint = (horizon: ScheduleHorizon, onShowViewMenu: () => void) => (
 );
 
 interface AppliedChipProps {
-  def: FilterDef;
+  def: AnyFilterDef;
   /** The application this chip stands for. */
   instance: FilterInstance;
   selection: FilterSelection;
@@ -3421,7 +3332,7 @@ const AppliedChip = ({
                   variant="inline"
                   open={conditionCard.open}
                   onClose={() => conditionCard.setOpen(false)}
-                  style={{ width: condition.width, minWidth: condition.width, maxWidth: condition.width }}
+                  style={LIST_STYLE}
                 >
                   {condition.items}
                 </SelectList>
@@ -3482,9 +3393,8 @@ const AppliedChip = ({
                 ) : undefined
               }
               state={list.isEmpty ? "noResults" : "default"}
-              // The SAME width the menu-opened list uses — see `openListWidth`:
-              // the documented Labels value lists pin the menu list's 384.
-              style={listWidth(openListWidth(def, instance, list.width))}
+              noResultsState={noMatches}
+              style={LIST_STYLE}
             >
               {list.items}
             </SelectList>
@@ -3641,7 +3551,7 @@ const STATUS_RANK = new Map((Object.keys(STATUS) as BadgeJobStatusStatus[]).map(
  */
 const SORT_KEYS: Record<SortColumn, (job: Job) => string | number | null> = {
   id: (job) => job.id,
-  service: (job) => serviceOf(job).name,
+  service: (job) => job.serviceName,
   status: (job) => STATUS_RANK.get(job.status) ?? 0,
   priority: (job) => (job.priority == null ? 0 : 5 - job.priority),
   source: (job) => sourceOf(job).name,
@@ -3721,11 +3631,14 @@ const TABLE_COLUMNS: TableColumnDef[] = [
       </CellBody>
     ),
   },
+  // The job's OWN service name — the db denormalizes it (production-like),
+  // and it may drift from the pricebook name the Service FILTER lists; the
+  // filter still matches on `serviceId`.
   {
     key: "service", label: "Service", width: COLUMNS.service, dataType: "alphabetical", sortable: true,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.service} {...pin}>
-        {serviceOf(job).name}
+        {job.serviceName}
       </CellBody>
     ),
   },
@@ -3982,7 +3895,16 @@ interface JobsTableProps {
   mobile?: boolean;
 }
 
-const JobsTable = ({ jobs, columnsState, sort, onSortChange, mobile = false }: JobsTableProps) => {
+// MEMOISED (2026-09-11). Re-rendering 78 rows × 17 columns costs 40-160ms, and
+// without this the table rebuilt itself on EVERY render of the page — including
+// the one that merely echoes a keystroke into the view bar's search field,
+// where `jobs` has not changed at all because the filtering is deferred. With
+// the table skipped, that keystroke render is nothing but the input.
+//
+// This only works while every prop keeps its identity between renders: `jobs`
+// comes from the pipeline's `useMemo`, `columnsState` and `sort` are per-view
+// state, and `onSortChange` is a `useCallback` — see `changeSort`.
+const JobsTable = memo(function JobsTable({ jobs, columnsState, sort, onSortChange, mobile = false }: JobsTableProps) {
   // The three sorting props of a sortable header, from one place: the active
   // column shows its direction, every other one the neutral pair.
   const sortable = (column: string) => ({
@@ -4045,106 +3967,10 @@ const JobsTable = ({ jobs, columnsState, sort, onSortChange, mobile = false }: J
       ))}
     </Table>
   );
-};
+});
 
-// ---- one-axis table scrolling (mobile) -------------------------------------
-
-// The table is ONE scroll container that pans both ways, so a diagonal drag
-// moves it sideways and down at the same time. On a phone that feels wrong —
-// Daniel asked for one direction per gesture (2026-08-16).
-//
-// There is no CSS for this: `touch-action` is static, and it is intersected
-// down the ancestor chain, so nesting a `pan-x` scroller inside a `pan-y` one
-// just forbids both. So the axis is locked in JS: the first few pixels of each
-// touch decide the direction, and the other axis is pinned to the value it had
-// when the gesture started.
-//
-// The lock lives ONLY while the finger is down. An earlier version held it
-// through the momentum phase as well, which killed the flick entirely —
-// assigning scrollLeft/scrollTop while iOS is running its inertia aborts the
-// inertia. Releasing at `touchend` keeps the momentum fully native, and it
-// still travels in one direction, because the drag held the other axis still
-// and that is the velocity iOS carries into the flick.
-//
-// Returns a ref for the element WRAPPING the table — the Table's own root is
-// the scroller, and it is that wrapper's only child.
-function useSingleAxisScroll(enabled: boolean) {
-  const hostRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!enabled) return undefined;
-    const el = hostRef.current?.firstElementChild as HTMLElement | null;
-    if (el == null) return undefined;
-
-    let axis: "x" | "y" | null = null;
-    let startX = 0;
-    let startY = 0;
-    let lockLeft = 0;
-    let lockTop = 0;
-    let touching = false;
-
-    const onTouchStart = (e: TouchEvent) => {
-      const t = e.touches[0];
-      if (t == null) return;
-      touching = true;
-      axis = null;
-      startX = t.clientX;
-      startY = t.clientY;
-      lockLeft = el.scrollLeft;
-      lockTop = el.scrollTop;
-    };
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (axis != null) return;
-      const t = e.touches[0];
-      if (t == null) return;
-      const dx = Math.abs(t.clientX - startX);
-      const dy = Math.abs(t.clientY - startY);
-      if (dx < 6 && dy < 6) return; // too small to tell the direction yet
-      axis = dx > dy ? "x" : "y";
-      // The browser may already have scrolled a little before we decided.
-      lockLeft = el.scrollLeft;
-      lockTop = el.scrollTop;
-    };
-
-    // The lock ends the moment the finger lifts, so the flick-and-release
-    // momentum is left completely alone.
-    const onTouchEnd = () => {
-      touching = false;
-      axis = null;
-    };
-
-    // Pin the locked-out axis — ONLY while the finger is down. Assigning
-    // scrollLeft/scrollTop during iOS's momentum phase aborts the inertia
-    // (that is what made the table stop dead on release), so this must never
-    // run after touchend. The drag already held the other axis at a standstill,
-    // so the momentum iOS starts from carries almost no velocity on it.
-    const onScroll = () => {
-      if (!touching || axis == null) return;
-      if (axis === "x") {
-        if (el.scrollTop !== lockTop) el.scrollTop = lockTop;
-      } else if (el.scrollLeft !== lockLeft) {
-        el.scrollLeft = lockLeft;
-      }
-    };
-
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: true });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    el.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => {
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, [enabled]);
-
-  return hostRef;
-}
+// (useSingleAxisScroll — the mobile table's one-direction-per-gesture lock —
+// lives in appShell.tsx since 2026-09-11; the Estimates table shares it.)
 
 // ---- layouts ---------------------------------------------------------------
 
@@ -4495,6 +4321,8 @@ interface ShellProps {
   /** The view's View-menu settings (columns, view, scheduled window, …). */
   viewSettings: ViewSettings;
   onViewSettingsChange: (next: ViewSettings) => void;
+  /** The sidebar / bottom bar navigation — the page switch lives in Filters. */
+  onNavigate: (next: Page) => void;
 }
 
 const DesktopShell = ({
@@ -4522,9 +4350,10 @@ const DesktopShell = ({
   // menu was dismissed re-opens it.
   const [viewMenuSignal, setViewMenuSignal] = useState(0);
 
+  // The WORK AREA only — the sidebar is rendered once by `Filters`, outside the
+  // page switch, so it survives a move between pages (see the note there).
   return (
-    <div className={styles.desktop}>
-      <Sidebar />
+    <>
       <div className={styles.workArea}>
         <TopBar branch={branch} onBranchChange={onBranchChange} />
         <DesktopViewBar
@@ -4590,7 +4419,7 @@ const DesktopShell = ({
           />
         )}
       </div>
-    </div>
+    </>
   );
 };
 
@@ -4615,6 +4444,7 @@ const MobileShell = ({
   onSortSet,
   viewSettings,
   onViewSettingsChange,
+  onNavigate,
 }: ShellProps) => {
   // A drag scrolls the table one way at a time — see useSingleAxisScroll.
   const tableRef = useSingleAxisScroll(true);
@@ -4673,16 +4503,7 @@ const MobileShell = ({
         />
       )}
       {/* The bar owns its own home-indicator inset, so the shell reserves none. */}
-      <BottomBarNav breakpoint="mobile" className={styles.bottomBar}>
-        <BottomBarNavItem icon="house" label="Home" />
-        <BottomBarNavItem icon={semanticIcons.job} label="Jobs" active />
-        {/* A PLAIN item since 2026-09-03 (Daniel + node 1502-14983): bare
-            `plus`, regular weight — the Create adjustment (`strong`,
-            circle-plus) is gone from the design and the component. */}
-        <BottomBarNavItem icon="plus" label="Create" />
-        <BottomBarNavItem icon="magnifying-glass" label="Search" />
-        <BottomBarNavItem icon="bars" label="Menu" />
-      </BottomBarNav>
+      <AppBottomBar page="jobs" onNavigate={onNavigate} />
     </div>
   );
 };
@@ -4699,7 +4520,7 @@ const searchHaystack = (job: Job) => {
   const location = locationOf(job);
   return [
     job.id,
-    serviceOf(job).name,
+    job.serviceName,
     clientOf(job).name,
     location.name ?? "",
     locationAddress(location),
@@ -4727,7 +4548,7 @@ const searchHaystack = (job: Job) => {
 // is active. It then narrows the tab ("Pending" + Status is Draft = the drafts),
 // and two chips both named Status show in the bar. FLAGGED: say the word and the
 // Status row disappears from the menu whenever a tab owns it.
-const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
+const JobsPage = ({ breakpoint = "auto", onNavigate }: JobsPageProps) => {
   const isDesktop = useIsDesktop(breakpoint);
   const [branch, setBranch] = useState<BranchId>("open");
   // The active view, remembered PER BRANCH, so toggling Open ↔ Closed brings
@@ -4755,17 +4576,22 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
   // clicking the active one flips the direction.
   const [sorts, setSorts] = useState<Record<string, TableSort>>({});
   const sort = sorts[tab] ?? SORT_DEFAULT;
-  const changeSort = (column: SortColumn) =>
-    setSorts((current) => {
-      const active = current[tab] ?? SORT_DEFAULT;
-      return {
-        ...current,
-        [tab]:
-          active.column === column
-            ? { column, order: active.order === "ascending" ? "descending" : "ascending" }
-            : { column, order: "ascending" },
-      };
-    });
+  // `useCallback` so the memoised table keeps its identity between renders —
+  // see the note on `JobsTable`.
+  const changeSort = useCallback(
+    (column: SortColumn) =>
+      setSorts((current) => {
+        const active = current[tab] ?? SORT_DEFAULT;
+        return {
+          ...current,
+          [tab]:
+            active.column === column
+              ? { column, order: active.order === "ascending" ? "descending" : "ascending" }
+              : { column, order: "ascending" },
+        };
+      }),
+    [tab],
+  );
 
   // The View menu's settings, PER VIEW like the filters and the sort — one
   // more map the view id keys. An untouched view opens on the default.
@@ -4780,6 +4606,20 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
   const [searches, setSearches] = useState<Record<string, string>>({});
   const search = searches[tab] ?? "";
   const setSearch = (next: string) => setSearches((current) => ({ ...current, [tab]: next }));
+
+  // THE TABLE lags the field, on purpose (Daniel, 2026-09-11: "typing within
+  // the search feels very slow"). Measured with the Event Timing API: a
+  // keystroke in this field cost 64ms to paint at full speed and 248ms at 4×
+  // CPU throttling, with 160ms tasks blocking the main thread — because every
+  // character re-runs the whole pipeline and re-renders 78 rows × 17 columns.
+  // (The Filters MENU's own search was never the problem: 16-24ms.)
+  //
+  // `useDeferredValue` is React's answer to exactly this: the field keeps the
+  // value the user typed and stays responsive, while the expensive list render
+  // runs at a lower priority and is ABANDONED as soon as the next keystroke
+  // arrives. No debounce timer to tune, and no keystroke is ever dropped —
+  // the table just settles a frame or two after the caret.
+  const deferredSearch = useDeferredValue(search);
 
   // The pipeline runs in LAYERS, each measured against the one before, so the
   // Hidden Data Bar and the No Match state can attribute what hides a job:
@@ -4815,7 +4655,8 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
     // hide — the honest, search-aware numbers, so every count is exactly
     // what its button would reveal. Locked-hidden matches stay invisible,
     // the standing rule.
-    const query = search.trim().toLowerCase();
+    // `deferredSearch`, not `search` — see the note where it is declared.
+    const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? afterWindow : afterWindow.filter((job) => searchHaystack(job).includes(query));
     let searchHidden: HiddenCounts = { user: 0, view: 0 };
     if (query !== "" && searched.length === 0) {
@@ -4834,7 +4675,7 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
       searchEmptied: query !== "" && searched.length === 0 && afterWindow.length > 0,
       searchHidden,
     };
-  }, [selection, filters, lockedStatuses, branch, sort, settings.scheduledKey, search]);
+  }, [selection, filters, lockedStatuses, branch, sort, settings.scheduledKey, deferredSearch]);
 
   const shellProps = {
     jobs,
@@ -4855,8 +4696,10 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
     onSortSet: (next: TableSort) => setSorts((current) => ({ ...current, [tab]: next })),
     viewSettings: settings,
     onViewSettingsChange: setSettings,
+    onNavigate,
   };
+
   return isDesktop ? <DesktopShell {...shellProps} /> : <MobileShell {...shellProps} />;
 };
 
-export default Filters;
+export default JobsPage;

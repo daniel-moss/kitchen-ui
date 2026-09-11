@@ -65,23 +65,38 @@
   z-index: var(--z-menu);
 }
 
-// A MINIMUM width, not a fixed one (Daniel, 2026-08-20): the card is at least
-// `--size-60` (240px) and grows with its content from there. An explicit floor
-// is needed for the same reason the Job Details session menu sets one — the DS
-// Menu card is `fit-content`, but a MenuItem's title has `min-width: 0` so it
-// contributes NOTHING to the intrinsic width, and the search field's `<input>`
-// contributes only its own default intrinsic width (left alone the card came
-// out 222px).
-.filtersCard {
-  min-width: var(--size-60); // 240px
-}
+// (The local `.filtersCard` 240px floor is GONE since 2026-09-11 — Daniel:
+// "update the Filters menu min width to a component default one". The card
+// now runs on the DS Menu's own min 160 / max 384, which is exactly what the
+// node pins. See the note at the Menu call site in the tsx.)
 
 // The "Priority" sub-list: a second body portal, fixed 4px to the RIGHT of the
 // row and top-aligned with it (Figma node 13855-22268). Above the menu card, so
 // its own z-index sits on the same layer — the later portal wins on DOM order.
+//
+// NOT ANIMATED (Daniel, 2026-09-11: "it now jumps every single time. Remove
+// it."). A glide between rows was tried twice and removed both times. Position
+// alone cannot carry it: each filter's list is a different WIDTH, and width is
+// intrinsic — the card re-hugs its new rows in one frame while the position is
+// still travelling, so the box appeared to jump anyway. Animating the width
+// with it is not an option either, because the layout effect that places the
+// list measures the card, and mid-transition it reads the previous list's
+// width (that is what put Labels on top of the menu). The list simply appears
+// at its row.
 .filtersSub {
   position: fixed;
   z-index: var(--z-menu);
+
+  // `max-content`, NOT the default shrink-to-fit (2026-09-11). A fixed box with
+  // only `left` set is bounded by what is left of the viewport, so the card's
+  // fit-content width depended on WHERE the wrapper sat — and the placement
+  // effect moves it. That was a feedback loop: place it → more room → the card
+  // grows → the ResizeObserver re-places it → more room again. Labels visibly
+  // settled over four frames (218 → 219 → 221 → 222 while its left crept 898 →
+  // 882). Sizing the wrapper to its content takes the viewport out of it, so
+  // the card is its final width on the first frame and the placement is right
+  // the first time. The DS card's own `max-width: 384px` still caps it.
+  width: max-content;
 }
 
 // SelectList gives a drawer WITH a header the full screen height, so a search
@@ -327,7 +342,9 @@
   color: var(--orange-9);
 }
 
-// Concept 1's table sizing: taller rows than the DS default (40/48). A
+// Concept 1's table sizing: taller rows than the DS default (40/48). Shared
+// by BOTH pages' tables since 2026-09-11 — the Estimates table
+// (EstimatesList.tsx) uses the same class. A
 // TableRow renders [cells][divider], and the Table wraps them in a header
 // rowgroup and a body rowgroup — so the rows are reachable structurally
 // without depending on the components' hashed class names.

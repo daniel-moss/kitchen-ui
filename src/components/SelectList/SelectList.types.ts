@@ -83,6 +83,17 @@ interface SelectListBaseProps {
   /** Caption override for the "noResults" state. Default "Try a different search". */
   noResultsCaption?: string;
   /**
+   * Replaces the built-in "noResults" block entirely — for a surface whose
+   * no-match state is designed differently. The Filters prototype's filter
+   * lists pass a caption-only EmptyState ("No matching options"), which is what
+   * their nodes draw (14310-60254 / 14310-60389), where the built-in state is
+   * an icon over a title and a caption.
+   *
+   * It wins over `noResultsCaption` / `noResultsAction`, which describe the
+   * built-in block.
+   */
+  noResultsState?: ReactNode;
+  /**
    * An action button on the "noResults" state — the way out of a dead end
    * (e.g. the address autocomplete's "Enter manually"). Rendered as the
    * EmptyState's subtle primary button.

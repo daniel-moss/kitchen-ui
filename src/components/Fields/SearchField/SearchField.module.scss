@@ -94,6 +94,20 @@
 
   @include font("body-400-compact"); // Inter Regular 14/20
 }
+// The BAR lives inside cards that HUG their content — the Menu and SelectList
+// headers. An `<input>` carries a default intrinsic width of about 20
+// characters, and `min-width: 0` does NOT remove that from the flex row's
+// MAX-content contribution — so the search bar, not the rows, was deciding how
+// wide a hugging card came out: the Filters menu measured 222px (250 on
+// Daniel's machine, 2026-09-11) where its own rows asked for 191. `width: 0`
+// drops the input's contribution to nothing; `flex: 1 1 0` still stretches it
+// across whatever width the rows settle on, so nothing about the bar changes
+// visually. Scoped to `bar` on purpose — a `field` in a form is sized by its
+// parent, and a standalone one should keep an input's normal intrinsic width.
+.bar .input {
+  width: 0;
+}
+
 .input::placeholder {
   color: var(--text-placeholder);
   opacity: 1;

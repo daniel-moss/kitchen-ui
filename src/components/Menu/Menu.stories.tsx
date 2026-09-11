@@ -184,10 +184,11 @@ const HeaderDemo = ({ mobile }: { mobile: boolean }) => {
         />
       }
       breakpoint={mobile ? "mobile" : "desktop"}
-      // EXPLICIT width, the node's 248. The card is `fit-content`, but a
-      // MenuItem title contributes nothing to it (min-width: 0) and the
-      // header's <input> contributes its own default intrinsic width — see the
-      // KNOWN LIMIT note in Menu.module.scss.
+      // EXPLICIT width, the node's 248 — this demo's rows are short, so left to
+      // hug they would give a much narrower card than the node draws. It is the
+      // STORY matching its node, not a workaround: since 2026-09-11 a menu with
+      // a header hugs its items correctly on its own (the header's <input> no
+      // longer drives the width — see `.bar .input` in SearchField).
       style={mobile ? undefined : { width: 248, minWidth: 248, maxWidth: 248 }}
     >
       <MenuItemGroup>

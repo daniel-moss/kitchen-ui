@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 
 import AvatarClient from "../../components/Avatar/AvatarClient";
+import AvatarLocation from "../../components/Avatar/AvatarLocation";
 import AvatarUser from "../../components/Avatar/AvatarUser";
 import { STATUS } from "../../components/Badge/BadgeJobStatus";
 import { Icon } from "../../components/Icon/Icon";
@@ -9,7 +10,9 @@ import { semanticIcons } from "../../styles/semanticIcons";
 
 import {
   CLIENTS,
+  JOBS,
   Job,
+  LocationRecord,
   LABELS,
   LOCATIONS,
   PriorityLevel,
@@ -18,6 +21,7 @@ import {
   TECHS,
   dayOffset,
   formatDuration,
+  locationAddressWithUnit,
   locationLabel,
   locationOf,
 } from "./jobsData";
@@ -65,6 +69,13 @@ export interface FilterOption {
   /** SelectListItem's left slot — an Icon or a 20px (xs) avatar. */
   slotLeft?: ReactNode;
   /**
+   * OBJECT rows only (see `FilterDef.objectRows`): the second line, under the
+   * title. Location puts the site's NAME here and its address in `label`.
+   */
+  caption?: ReactNode;
+  /** OBJECT rows only: the mandatory xl (36px) avatar on the left. */
+  avatar?: ReactNode;
+  /**
    * Which of `FilterDef.groups` this row sits under. Only a GROUPED filter sets
    * it — Location, whose rows are gathered by client (Figma node 13986-51038).
    */
@@ -82,7 +93,14 @@ export interface FilterOption {
   searchText?: string;
 }
 
-export interface FilterDef {
+/**
+ * One filter. Generic over the ROW it tests (2026-09-11, when the Estimates
+ * list gained filters): everything about a filter except its predicate — the
+ * label, the icon, the options, the conditions, the whole UI — is the same
+ * whatever the list holds, so only `matches` needs to know the row type.
+ * Defaults to `Job`, which keeps the jobs registry and its callers unchanged.
+ */
+export interface FilterDef<TRow = Job> {
   id: FilterId;
   /** The menu row's label, and the sub-list's title on mobile. */
   label: string;
@@ -115,6 +133,14 @@ export interface FilterDef {
    */
   hideCounts?: boolean;
   /**
+   * Draw this filter's rows as the DS SelectListItem's OBJECT variant — the
+   * 60px row with an xl avatar, a Medium title and a caption under it — instead
+   * of the default 36px text row. Only Location, since its 2026-09-11 redesign
+   * (node 14101-44923): its rows carry the address as the title and the site's
+   * name below it, which no single line could hold without truncating.
+   */
+  objectRows?: boolean;
+  /**
    * Split this filter's option list into GROUPS with a `secondary` GroupLabel
    * over each (Figma node 13986-51038). The order here is the order on screen;
    * each option names its group through `FilterOption.groupId`, and a group with
@@ -123,16 +149,11 @@ export interface FilterDef {
    * Only Location is grouped — its rows belong to a client, and without the
    * client above them "Downtown" and "Airport" say nothing.
    */
-  groups?: { id: string; label: string }[];
-  /**
-   * A MINIMUM width for this filter's lists, wherever they open from — the
-   * documented sections pin it on the node as a "Min Width" annotation. Only
-   * Location carries one (384, the DS card's maximum — nodes 14101-44923 and
-   * its mobile twin): its rows are whole location lines, so the list always
-   * opens at full size. `openListWidth` in Filters.tsx reads it; `listWidth`'s
-   * 240px floor still applies to everyone else.
-   */
-  listMinWidth?: number;
+  groups?: { id: string; label: string; slotLeft?: ReactNode }[];
+  // (`listMinWidth` — the per-filter "Min Width" pin, which only Location
+  // carried at 384 — is GONE since 2026-09-11: its node now pins the same 208
+  // every other list does, so ONE floor serves them all. See LIST_MIN_WIDTH in
+  // Filters.tsx.)
   /**
    * Let the search take focus as the list OPENS, on touch devices too — the
    * mobile nodes draw the drawer with the caret in the field and the keyboard
@@ -194,15 +215,12 @@ export interface FilterDef {
    * what drops the list's header chips and the chip's condition box.
    */
   dateWindows?: DateWindowPreset[];
-  /**
-   * An option that stands for the ABSENCE of a value and can only be used
-   * ALONE — Labels' "No labels" row (documented section 13999-17090; the
-   * annotation on the list's first row: "Selecting this option unselects all
-   * others. This option can only be used alone."). Ticking it clears every
-   * other option, and ticking any other option clears it — the toggle in
-   * Filters.tsx reads this id.
-   */
-  exclusiveOptionId?: string;
+  // (`exclusiveOptionId` is GONE since 2026-09-11 — Daniel: "remove the logic
+  // of the single-selection only for 'No assignees' and 'No labels'. The user
+  // should be able to select those options along with the rest". The absence
+  // options are ordinary members of the set now; each filter's `matches` ORs
+  // the absence in. FLAGGED: the rows still carry the old Figma annotation
+  // "This option can only be used alone" on nodes 14143-63387 and 13999-17141.)
   /**
    * Does this job match this value? Reads `ids` for an options filter, `date`
    * for a date one and `duration` for a duration one. `negated` is NOT applied
@@ -211,8 +229,24 @@ export interface FilterDef {
    * "outside"). A value carrying its own `compare` never flips (see
    * `withCondition`).
    */
-  matches: (job: Job, value: FilterValue) => boolean;
+  matches: (row: TRow, value: FilterValue) => boolean;
+  /**
+   * The per-option row counts this filter's list shows in each row's tag, when
+   * it shows them at all (`hideCounts` turns them off). The REGISTRY supplies
+   * it, because only the registry knows which rows to count — see the cache in
+   * `buildFilters`. A filter without counts leaves it unset.
+   */
+  counts?: () => Record<string, number>;
 }
+
+/**
+ * A filter as the UI sees it. The menu, the option lists, the chips and the
+ * filter bar never call `matches` — they only read a filter's chrome — so the
+ * row type is none of their business, and every registry is assignable to
+ * this (a predicate that accepts a Job also accepts `never`). It is what lets
+ * one filter UI serve both the Jobs list and the Estimates list.
+ */
+export type AnyFilterDef = FilterDef<never>;
 
 /**
  * A date filter's value (Figma section 13903-25906). Either a relative PRESET
@@ -496,7 +530,7 @@ export type FilterSelection = FilterInstance[];
 let keyCounter = 0;
 
 /** A fresh, empty application of `def` — what opening a filter's list starts. */
-export const newFilterInstance = (def: FilterDef): FilterInstance => ({
+export const newFilterInstance = (def: AnyFilterDef): FilterInstance => ({
   key: `filter-${++keyCounter}`,
   id: def.id,
   ids: [],
@@ -778,17 +812,17 @@ export const formatValueEnd = (date: DateValue, iso: string) => {
  *   after N days ago  = received later than that day   → before = on it or earlier
  *   within [from, to] = received on or between the two → outside = neither
  */
-function dateFilter(
-  read: (job: Job) => string | null,
+export function dateFilter<TRow = Job>(
+  read: (row: TRow) => string | null,
   /** WINDOW presets instead of the shared past-anchored list — Scheduled for. */
   windows?: DateWindowPreset[],
-): { options: FilterOption[]; matches: FilterDef["matches"] } {
+): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
   return {
     options: (windows ?? DATE_PRESETS).map((preset) => ({ id: preset.id, label: preset.label })),
-    matches: (job, value) => {
+    matches: (row, value) => {
       const date = value.date;
       if (date == null) return true;
-      const iso = read(job);
+      const iso = read(row);
       // A WINDOW preset first, BEFORE the no-date bail: "Not scheduled" (the
       // windowless row, first in the 2026-09-09 list update) is exactly the
       // jobs with nothing in this field. A real window is a whole range, both
@@ -921,10 +955,12 @@ const addressFieldMatches = (typed: string, actual: string | null | undefined) =
  * shown by "does not contain". The alternative ("no field matches") is a
  * different question; the node does not settle it.
  */
-const addressFilter = (): FilterDef["matches"] => (job, value) => {
+export const addressFilter =
+  <TRow = Job,>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow>["matches"] =>
+  (row, value) => {
   const address = value.address;
   if (address == null) return true;
-  const location = locationOf(job);
+  const location = locationOfRow(row);
   return (
     addressFieldMatches(address.street, location.street) &&
     addressFieldMatches(address.suite, location.unit) &&
@@ -946,7 +982,7 @@ const addressFilter = (): FilterDef["matches"] => (job, value) => {
  * with no search.
  */
 export function buildFilters(priorityUrgentClass: string, phase: "open" | "closed" = "open"): FilterDef[] {
-  return [
+  const defs: FilterDef[] = [
     {
       // Address — the eighth designed filter (Figma section 13988-53503,
       // 2026-08-24), and the FIRST row of the menu: the rows are alphabetical
@@ -970,7 +1006,7 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       icon: "text",
       // No list, so no options — `matches` reads `address`, never `ids`.
       options: [],
-      matches: addressFilter(),
+      matches: addressFilter(locationOf),
     },
     {
       // Assignee — the first filter Daniel designed in full (Figma section
@@ -988,9 +1024,9 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       // (mobile) draw the two plain Chips, "is" active, over the full 40px
       // search bar. So the local chip overrides are gone from this filter.
       //
-      // Since 2026-09-04 the list opens with a "No assignees" row — the same
-      // exclusive absence-option Labels has (`exclusiveOptionId`). See the
-      // options below.
+      // Since 2026-09-04 the list opens with a "No assignees" row — the absence
+      // of a value as a pickable option. It combines with the people since
+      // 2026-09-11 (see `matches`).
       id: "assignees",
       noun: { one: "assignee", many: "assignees" },
       label: "Assignee",
@@ -1002,11 +1038,6 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       hideCounts: true,
       autoFocusSearch: true,
       dsHeader: true,
-      // "No assignees" stands ALONE — the row's annotation (node 14143-63387):
-      // "Selecting this option unselects all others. This option can only be
-      // used alone." — Labels' exclusive rule, read by the toggle in
-      // Filters.tsx.
-      exclusiveOptionId: "none",
       // xs (20px) user avatars — SelectListItem's left slot takes an Icon or an
       // xs avatar, and a person reads better as a face than as an icon.
       // Sorted by name, the order the node lists them in (the data's own order
@@ -1029,10 +1060,13 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
             slotLeft: <AvatarUser size="xs" content="image" imageSrc={tech.avatar} />,
           })),
       ],
-      // "No assignees" = the job carries nobody. Its negative ("is not") is the
-      // flip `applyFilters` makes — the job has at least one assignee.
+      // "No assignees" = the job carries nobody, and it is ORed with whoever
+      // else is ticked (2026-09-11), so "No assignees" + Dana matches the
+      // unassigned jobs AND Dana's. Its negative ("is not") is the flip
+      // `applyFilters` makes.
       matches: (job, { ids }) =>
-        ids.includes("none") ? job.assigneeIds.length === 0 : job.assigneeIds.some((id) => ids.includes(String(id))),
+        (ids.includes("none") && job.assigneeIds.length === 0) ||
+        job.assigneeIds.some((id) => ids.includes(String(id))),
     },
     {
       // Client — the second filter Daniel designed in full (Figma section
@@ -1140,13 +1174,14 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       //     COMBINE, ALL of them or ANY of them (`matchMode`). A job holds a set
       //     of labels, so both are real questions; a status or a client is one
       //     value per job, where "all of" could never match;
-      //   - its list opens with a "No labels" row (`exclusiveOptionId`) — the
-      //     absence of a value as a pickable option, and one that stands ALONE.
+      //   - its list opens with a "No labels" row — the absence of a value as a
+      //     pickable option, which combines with the labels themselves.
       //
-      // Its rows are a checkbox and a name — no icon and no job count. Every
-      // Labels list pins the DS card's 384px maximum as its MIN width (the
-      // "Min Width" annotations on 13999-17141 / 14101-43138 / 14101-43512) —
-      // `conditionsWidth` + the width unification in Filters.tsx deliver that.
+      // Its rows are a checkbox and a name — no icon and no job count. Its card
+      // is sized by nothing but the component (2026-09-11): it hugs to 223 with
+      // the two conditions (node 13999-17141) and to the 384 maximum once a
+      // second ticked label brings the four, which then wrap to two rows (node
+      // 14101-42750). Both come out of the DS card's own fit-content.
       id: "labels",
       noun: { one: "label", many: "labels" },
       label: "Labels",
@@ -1157,9 +1192,7 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       dsHeader: true,
       matchMode: true,
       // "No labels" FIRST, over the labels themselves (node 13999-17141's row
-      // order). Its annotation: "Selecting this option unselects all others.
-      // This option can only be used alone."
-      exclusiveOptionId: "none",
+      // order).
       options: [
         { id: "none", label: "No labels" },
         ...LABELS.map((label) => ({ id: label.id, label: label.name })),
@@ -1171,14 +1204,20 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       // With ONE label ticked the two modes are the same test, which is why the
       // condition collapses to include / do not include.
       //
-      // "No labels" is always alone (`exclusiveOptionId`), so it never meets the
-      // modes: the job simply carries nothing. Its negative ("do not include")
-      // is the flip — the job carries at least one label.
+      // "No labels" JOINS the modes since 2026-09-11, where it used to stand
+      // alone. Under "any of" it is one more alternative — "No labels" plus
+      // Warranty matches the unlabelled jobs and the Warranty ones. Under "all
+      // of" it can only be satisfied on its own: a job cannot carry no labels
+      // AND carry Warranty, so that combination matches nothing, which is what
+      // the condition literally asks for.
       matches: (job, { ids, match }) => {
-        if (ids.includes("none")) return job.labelIds.length === 0;
-        return match === "any"
-          ? ids.some((id) => job.labelIds.includes(id))
-          : ids.every((id) => job.labelIds.includes(id));
+        const wantsNone = ids.includes("none");
+        const labelIds = ids.filter((id) => id !== "none");
+        if (match === "any") {
+          return (wantsNone && job.labelIds.length === 0) || labelIds.some((id) => job.labelIds.includes(id));
+        }
+        if (wantsNone) return labelIds.length === 0 && job.labelIds.length === 0;
+        return labelIds.every((id) => job.labelIds.includes(id));
       },
     },
     {
@@ -1207,59 +1246,71 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       ...lastModifiedDates,
     },
     {
-      // Location — DOCUMENTED since 2026-09-03 (section 14101-44921, annotated
-      // as a Multi-Select Filter — the pattern documentation is 14038-14033).
-      // An OPTIONS filter like Assignee and Client, borrowing their header: the
-      // DS `SelectListHeader` in the chipGroup + search variant, "is" / "is
-      // not" over the 40px search (the mobile node draws the keyboard up).
+      // Location — REDESIGNED 2026-09-11 (section 14101-44921, list node
+      // 14101-44923). It was a one-line row, "name · address", which truncated
+      // as soon as a real address ran past the card's 384px maximum. The row is
+      // the DS SelectListItem's OBJECT variant now — 60px, an xl AvatarLocation,
+      // the ADDRESS as the Medium title and the site's NAME as the caption under
+      // it — so both halves are readable and neither has to share a line.
       //
-      // What is its own, per the section's "The List" annotation:
-      //   1. the list is GROUPED BY CLIENT — a SelectListItemGroup with a
-      //      `secondary` GroupLabel per client, the DS divider between them.
-      //      That is what lets the rows drop the client's name, and why the
-      //      search still matches it — see `searchText`;
-      //   2. clients are sorted A to Z;
-      //   3. locations are sorted "by a name or street address" A to Z — the
-      //      row's own label, which starts with the name when there is one and
-      //      the address when there is not (`locationLabel`; the row annotation:
-      //      the name and each address part show only if they exist).
+      // Read off the node: `variant=object`, `select=multi`, a 36px
+      // AvatarLocation, title "123 Main Street, Suite 45, San Francisco, CA
+      // 98765" (the address INCLUDING the unit — see `locationAddressWithUnit`)
+      // over caption "Headquarters" (the name). No tag: the object variant may
+      // not combine a caption with one, and Location shows no counts anyway.
       //
-      // Its lists PIN the DS card's 384px maximum as their MIN width — the
-      // "Min Width" annotation on node 14101-44923 (`listMinWidth`): the rows
-      // are whole location lines, so the list always opens at full size.
+      // Unchanged from the first build, per the section's "The List" annotation:
+      //   1. GROUPED BY CLIENT — a SelectListItemGroup with a `secondary`
+      //      GroupLabel per client;
+      //   2. clients sorted A to Z;
+      //   3. locations sorted "by a name or street address from A to Z" — still
+      //      `locationLabel`, which leads with the name where there is one.
       //
-      // The rows are a checkbox and a line of text — no icon and no job count.
-      //
-      // FLAGGED: the node's search placeholder reads "location..." — lowercase,
-      // where Assignee / Client / Labels all capitalize theirs. Built with the
-      // capital, the shape the siblings share.
+      // The search placeholder is the node's own "Location or client...", which
+      // also says out loud what `searchText` has always done: match the client's
+      // name as well as the row's.
       id: "location",
       noun: { one: "location", many: "locations" },
       label: "Location",
       icon: "location-dot",
-      searchPlaceholder: "Location...",
+      searchPlaceholder: "Location or client...",
       hideCounts: true,
       autoFocusSearch: true,
       dsHeader: true,
-      listMinWidth: 384,
+      objectRows: true,
       // Clients in name order, and only those that HAVE a location — an empty
       // group would be a header with nothing under it.
+      //
+      // Each group header carries the client's own AVATAR, read off the node
+      // (the GroupLabel's `slotLeft` → `AvatarClient`, size sm / 24px, in
+      // 14101-44923's header).
+      //
+      // FLAGGED: the node sets that avatar's `logo: true`, i.e. an IMAGE. No
+      // client in the demo database has a logo — there is no such field — so
+      // this renders the type icon instead, which at least tells a business
+      // from an individual. Add a `logo` to the db's clients and it becomes an
+      // image with one prop.
       groups: [...CLIENTS]
         .filter((client) => LOCATIONS.some((location) => location.clientId === client.id))
         .sort((a, b) => a.name.localeCompare(b.name))
-        .map((client) => ({ id: client.id, label: client.name })),
-      // Sorted by the row's label (the section's annotation: "by a name or
-      // street address from A to Z") — the data's own order was insertion order.
+        .map((client) => ({
+          id: client.id,
+          label: client.name,
+          slotLeft: <AvatarClient size="sm" type={client.clientType === "Individual" ? "individual" : "business"} />,
+        })),
       options: [...LOCATIONS]
         .sort((a, b) => locationLabel(a).localeCompare(locationLabel(b)))
         .map((location) => ({
           id: location.id,
-          // "Downtown  ·  418 Mission St, San Francisco, CA 94105" — and only the
-          // halves that exist (`locationLabel`).
-          label: locationLabel(location),
+          // Title = the address; caption = the site's name, when it has one
+          // (ferry-main and presidio-canteen do not — the address stands alone).
+          label: locationAddressWithUnit(location),
+          caption: location.name,
+          avatar: <AvatarLocation size="xl" />,
           groupId: location.clientId,
-          // The row PLUS its client, so the search finds "Wildwood" too.
-          searchText: `${locationLabel(location)} ${CLIENT_NAME.get(location.clientId) ?? ""}`,
+          // Both lines PLUS the client, so the search finds "Wildwood" too —
+          // what the placeholder now promises.
+          searchText: `${locationAddressWithUnit(location)} ${location.name ?? ""} ${CLIENT_NAME.get(location.clientId) ?? ""}`,
         })),
       matches: (job, { ids }) => ids.includes(job.locationId),
     },
@@ -1449,6 +1500,19 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       matches: (job, { ids }) => ids.includes(job.type),
     },
   ];
+
+  // Every filter that SHOWS counts gets its own counting function, so the
+  // filter UI never has to know where the rows come from — it just asks the
+  // def (see `FilterDef.counts`). Cached per def, because a count walks every
+  // job once per option (Status: 9 × 78) and the list re-renders on every
+  // keystroke in its search. The counts are of the whole data set, never of
+  // the current view, so for a given def they are a constant.
+  for (const def of defs) {
+    if (def.hideCounts === true) continue;
+    let cached: Record<string, number> | undefined;
+    def.counts = () => (cached ??= optionCounts(JOBS, def));
+  }
+  return defs;
 }
 
 // ---- applying and counting -------------------------------------------------
@@ -1457,7 +1521,7 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
  * The jobs left after every ACTIVE filter is applied. Filters combine with AND;
  * the options WITHIN one filter combine with OR.
  */
-export function applyFilters(jobs: Job[], filters: FilterDef[], selection: FilterSelection): Job[] {
+export function applyFilters<TRow>(jobs: TRow[], filters: FilterDef<TRow>[], selection: FilterSelection): TRow[] {
   const byId = new Map(filters.map((def) => [def.id, def]));
   const active = selection.filter((entry) => !isEmptyValue(entry));
   if (active.length === 0) return jobs;
@@ -1486,7 +1550,7 @@ export function applyFilters(jobs: Job[], filters: FilterDef[], selection: Filte
  * way round before — the counts tracked the current view and answered "how many
  * would I get" instead.
  */
-export function optionCounts(jobs: Job[], def: FilterDef): Record<string, number> {
+export function optionCounts<TRow>(jobs: TRow[], def: FilterDef<TRow>): Record<string, number> {
   const counts: Record<string, number> = {};
   // A date or duration filter shows no counts at all (its rows are bare labels),
   // so there is nothing to measure — and its value does not live in `ids`. An
@@ -1510,7 +1574,7 @@ export const activeFilterCount = (selection: FilterSelection) =>
  * the user added them — the chips in the bar. Two applications of the same
  * filter are two chips.
  */
-export function activeFilters(filters: FilterDef[], selection: FilterSelection) {
+export function activeFilters(filters: AnyFilterDef[], selection: FilterSelection) {
   const byId = new Map(filters.map((def) => [def.id, def]));
   return selection
     .filter((entry) => !isEmptyValue(entry))
@@ -1593,10 +1657,10 @@ export const conditionChoices = (value: FilterValue): ConditionChoice[] => {
     // any of", "do not include all of" flips "include all of"), which is what
     // lets `applyFilters` keep flipping the positive `matches`.
     //
-    // These four are LONG — about 575px on one row — so they wrap to two rows
-    // (two per row, exactly as the nodes draw them) inside the DS card's 384px
-    // maximum, and `conditionsWidth` in Filters.tsx opens the card at that
-    // maximum so they never reflow.
+    // These four are LONG — about 575px on one row — so the card hugs out to
+    // its own 384px maximum and they wrap to two rows, two per row, exactly as
+    // the nodes draw them. Nothing measures that: the ChipGroup asks for one
+    // row, the card's max-width refuses, and the chips wrap.
     return [
       { label: "include all of", negated: false, match: "all" },
       { label: "include any of", negated: false, match: "any" },
@@ -1705,7 +1769,7 @@ export function withCondition<T extends FilterValue>(value: T, choice: Condition
  * preset's own words ("1 day ago"), one custom date ("Jan 1") or both ends of a
  * custom range ("Jan 1 — Jan 10"), never an icon.
  */
-export function valueDisplay(def: FilterDef, value: FilterValue): { label: string; slotLeft?: ReactNode } {
+export function valueDisplay(def: AnyFilterDef, value: FilterValue): { label: string; slotLeft?: ReactNode } {
   // An ADDRESS shows the fields that were typed into, in the dialog's order
   // (Figma node 13995-16947). It can get long; the chip truncates.
   const address = value.address;

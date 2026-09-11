@@ -209,7 +209,13 @@ export interface JobContact {
 export interface Job {
   id: string;
   locationId: string;
-  /** What the pricebook service is called ("Walk-in cooler repair"). */
+  /** The pricebook service behind the job (a SERVICES id). */
+  serviceId: string;
+  /**
+   * The job's OWN service name — production denormalizes it onto the job, and
+   * it may drift from the pricebook name ("Fryer preventive maintenance" on a
+   * job whose service is "Fryer service and calibration"). Lists show THIS.
+   */
   serviceName: string;
   status: JobStatus;
   /** 1 Urgent · 2 High · 3 Medium · 4 Low. Unset = no priority. */
@@ -221,6 +227,20 @@ export interface Job {
   assigneeIds: number[];
   /** The equipment this job services, from the same location. */
   equipmentIds: string[];
+  /** JOB_LABELS ids — free-form tags (production `JobLabel`). */
+  labelIds: string[];
+  /** The Service module's "Type": a fresh request, or a recall of old work. */
+  type: "new" | "recall";
+  /** Where the request came from — a JOB_SOURCES id (production origin type). */
+  sourceId: string;
+  /** The source's own reference ("SC-8590"); unset when the source has none. */
+  sourceRef?: string;
+  /** ISO. When the request came in. */
+  receivedAt: string;
+  /** ISO. When the status last changed. */
+  statusChangedAt: string;
+  /** ISO. Any edit to the job. */
+  lastModifiedAt: string;
   /** Who reported the issue — the job's own contact. */
   reporter?: JobContact;
   /** Who to meet on site — the job's own contact. */
@@ -228,16 +248,65 @@ export interface Job {
   notes?: string;
 }
 
+/**
+ * Production `Estimate.ConversionPaths` — what an Approved (or Won) estimate
+ * turned into. Keys aligned with the DS BadgeEstimateStatus set, which shows
+ * the path AS the display status for those two states.
+ */
+export type EstimateConversionPath = "unconverted" | "jobbed" | "invoiced";
+
+/**
+ * Production derives this from the down-payment amounts
+ * (`get_down_payment_status_display`); the demo stores the outcome directly.
+ */
+export type EstimateDownPayment = "notRequired" | "unpaid" | "partiallyPaid" | "paid";
+
+/** An estimate label — production `EstimateLabel`, SEPARATE from job labels. */
+export interface EstimateLabel {
+  id: string;
+  name: string;
+}
+
+// TWO status levels, exactly like production (estimates/models.py): `status`
+// is the DB status (`Estimate.Statuses`), which is also the phase split —
+// Pending / Sent / Approved are open, Won / Lost / Cancelled closed. The
+// DISPLAY status (the badge) is derived from it: Pending → Draft (isDraft)
+// or Unsent; Sent → Expired (dueAt passed) or Awaiting approval; Approved
+// and Won → the conversion path; Lost / Cancelled → themselves.
 export interface Estimate {
   id: string;
   locationId: string;
   /** Set when the estimate was turned into (or written for) a job. */
   jobId?: string;
+  /**
+   * The pricebook service behind the estimate (a SERVICES id) — the Job's own
+   * pattern, added 2026-09-11 so the Estimates list's Service filter can match
+   * by id rather than by a name that may have drifted. Unset when the estimate
+   * is not for a pricebook service at all (EST-2205's build-out consultation).
+   */
+  serviceId?: string;
+  /** The estimate's OWN service name, which may differ from the pricebook's. */
   serviceName: string;
   status: EstimateStatus;
+  /** Pending only — still being written (production `is_draft`). */
+  isDraft?: boolean;
+  /** Approved / Won only — meaningless in the other states. */
+  conversionPath?: EstimateConversionPath;
+  /** ESTIMATE_LABELS ids (production `EstimateLabel`). */
+  labelIds: string[];
   /** Dollars. */
   total: number;
-  createdAt: string;
+  /** ISO. Production `date_issued` (replaced `createdAt`, 2026-09-11). */
+  issuedAt: string;
+  /** ISO. When the estimate expires — production `date_due`, the "Expires" column. */
+  dueAt: string;
+  downPayment: EstimateDownPayment;
+  /** ISO. Production `last_status_transition_time`. */
+  statusChangedAt: string;
+  /** ISO. Any edit. */
+  lastModifiedAt: string;
+  /** ISO — the client opened it (production `last_viewed`). Unset = never. */
+  lastViewedAt?: string;
 }
 
 export interface Invoice {

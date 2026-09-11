@@ -9,6 +9,7 @@ import { Client, Equipment, Estimate, Invoice, Job, Location } from "./types";
 
 export * from "./types";
 export {
+  TODAY,
   CLIENTS,
   CLIENT_CONTACTS,
   LOCATIONS,
@@ -17,6 +18,7 @@ export {
   WARRANTIES,
   JOBS,
   ESTIMATES,
+  ESTIMATE_LABELS,
   INVOICES,
   SERVICES,
   JOB_LABELS,

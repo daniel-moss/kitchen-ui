@@ -10,6 +10,7 @@ import {
   CLIENTS,
   COMPANY,
   EQUIPMENT,
+  ESTIMATE_LABELS,
   ESTIMATES,
   INVOICES,
   JOB_FORMS,
@@ -185,13 +186,13 @@ function LocationBlock({ location }: { location: Location }) {
         <>
           <p className={styles.blockLabel}>Estimates</p>
           <Table
-            head={["ID", "Service", "Status", "Total", "Created", "Job"]}
+            head={["ID", "Service", "Status", "Total", "Issued", "Job"]}
             rows={estimates.map((estimate) => [
               estimate.id,
               estimate.serviceName,
               estimate.status,
               money(estimate.total),
-              estimate.createdAt,
+              estimate.issuedAt,
               orDash(estimate.jobId),
             ])}
           />
@@ -231,6 +232,7 @@ function DatabasePage() {
     { name: "Invoices", rows: INVOICES },
     { name: "Services", rows: SERVICES },
     { name: "Job labels", rows: JOB_LABELS },
+    { name: "Estimate labels", rows: ESTIMATE_LABELS },
     { name: "Job sources", rows: JOB_SOURCES },
     { name: "Branches", rows: BRANCHES },
     { name: "Job forms", rows: JOB_FORMS },

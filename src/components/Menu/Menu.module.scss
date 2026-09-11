@@ -35,12 +35,13 @@
 // own height — as a flex-column child it would otherwise shrink when the items
 // fill the card's max height.
 //
-// KNOWN LIMIT (2026-08-17), the same one as MenuItem's title: the card is
-// `width: fit-content`, and MenuHeader holds an `<input>`, whose default
-// intrinsic width (~166px on top of the bar's own padding) then DRIVES the
-// card width — while the items contribute nothing (their titles are
-// `min-width: 0`). So a menu WITH a header must get an explicit width from its
-// consumer, like Filters Concept 3 does with its 192px Figma card.
+// The KNOWN LIMIT that used to live here is FIXED (2026-09-11): MenuHeader
+// holds an `<input>`, whose ~166px default intrinsic width DROVE the
+// fit-content card, so a menu with a header came out wider than its rows (the
+// Filters menu measured 222px where its rows asked for 191). SearchField's
+// `bar` now zeroes that contribution — see the `.bar .input` note there — so a
+// menu WITH a header hugs its items like any other, and no consumer has to
+// hand it a width.
 .header {
   flex: none;
   width: 100%;

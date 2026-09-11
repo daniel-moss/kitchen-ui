@@ -635,16 +635,42 @@ clock); optionality mirrors production and the data keeps deliberate gaps for
 empty states; techs are the shared `src/data/users.ts` pool; job statuses use
 the DS BadgeJobStatus set, not production's 8-value enum.
 
+**THE DB IS THE SOURCE — and it is not supposed to be small (Daniel,
+2026-09-11: "I want each prototype and design in Storybook to take data from
+the db. If the db does not have a property, extend and update the db").** A
+prototype must not generate or hand-copy its own row data any more: if a list
+needs a field or rows the db lacks, EXTEND the db (schema + data), then read
+it. The old "small curated list" idea is retired. Two consequences already in
+place:
+- `db.ts` exports **`TODAY`** — the demo's ONE fixed clock (2026-09-04
+  09:00), the moment the curated stories imply. Every "today"-relative read
+  measures from it; moving it means re-checking rows around it and
+  re-running `scripts/regenerate-db-rows.mjs` (which re-derives the
+  materialized mass rows from the old seeded generators — its inlined copies
+  of the reference arrays must stay in step with `db.ts`).
+- The Filters pages' MASS tables live in `db.ts` as literals: 78 jobs (the
+  64 former generator rows, dates shifted +18 days onto the new clock, plus
+  the ~14 curated Wildwood-world rows, hand-filled with the list fields) and
+  62 estimates (6 curated upgraded + 56 materialized; ids one contiguous
+  EST-22xx range). `Job` gained serviceId/serviceName-split, labelIds, type,
+  sourceId/sourceRef, receivedAt, statusChangedAt, lastModifiedAt; `Estimate`
+  gained the two-status model (state=`status` + isDraft/conversionPath),
+  labelIds (its OWN `ESTIMATE_LABELS` table, production `EstimateLabel`),
+  issuedAt (replaced `createdAt`), dueAt, downPayment, statusChangedAt,
+  lastModifiedAt, lastViewedAt. Lists show a row's own denormalized
+  `serviceName`; the Service filter matches `serviceId`.
+
 **Browse it, don't read the code:** Storybook → **Data → Database** — the
 page renders LIVE from the records (schema lists are the records' own keys),
 so it cannot drift.
 
-**Migrated (2026-09-04, Daniel: "Migrate Filters and Job Details only"):**
-- **Filters** — jobsData re-exports the db's clients/locations/services/
-  labels/sources (the reference tables moved into the db VERBATIM, order
-  preserved) and still generates its own 64-job table from them; the
-  generated jobs verified byte-identical before/after. Location `suite`
-  became the db's `unit`.
+**Migrated:**
+- **Filters (both lists, 2026-09-11)** — `jobsData.ts` and `estimatesData.ts`
+  are READERS now, not generators: they map the db rows onto the pages' row
+  shapes (optionals → explicit nulls, client denormalized off the location)
+  and keep the lookups/formatters, so `filterDefs.tsx` and the pages did not
+  change API. The Jobs list therefore shows EVERY db job — curated JOB-12xx
+  rows included. Location `suite` became the db's `unit` (2026-09-04).
 - **JobDetails** — the world is Wildwood Kitchen now (was McDonald's; the
   FIGMA demo content still says McDonald's — flagged): the page opens on the
   db's JOB-1201 (walk-in cooler repair at Wildwood Downtown), locations/
@@ -657,6 +683,15 @@ so it cannot drift.
   TimeDistribution still carry their local McDonald's demo data.
 
 ## Prototypes (`src/prototypes/`)
+
+> **Filters prototype — read `src/prototypes/Filters/REORGANISATION.md` before
+> touching it.** It is the handoff for the re-organisation Daniel asked for
+> (2026-09-11): the Figma taxonomy the code should mirror, the current file map,
+> the target module layout, the order to do it in, and the INVARIANTS that each
+> cost a round of rework when broken (width floors, the freeze-on-open, the
+> import cycle, the un-animated sub-list, memoised tables). Verify any change
+> with `node scripts/measure-filters.mjs` (Storybook must be on :6006).
+
 
 The point of the DS: **assemble working feature prototypes Daniel can share
 with colleagues.** Read **`MOBILE.md`** before building or device-testing a

@@ -1,12 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import Filters, { FiltersProps } from "./Filters";
+import Filters, { FiltersProps } from "./FiltersPrototype";
 import { PhoneViewport } from "../../stories/helpers";
 
 const meta: Meta<FiltersProps> = {
   title: "Prototypes/Filters",
   argTypes: {
     breakpoint: { table: { disable: true } },
+    initialPage: { table: { disable: true } },
   },
 };
 
@@ -55,6 +56,38 @@ export const Mobile: Story = {
   render: (args) => (
     <PhoneViewport>
       <Filters {...args} breakpoint="mobile" />
+    </PhoneViewport>
+  ),
+};
+
+/**
+ * The ESTIMATES list (2026-09-11): the same shell opened on the Estimates
+ * page — production's phases and views (Open: All · Pending · Sent ·
+ * Approved; Closed: All · Won · Lost · Cancelled) over the production
+ * All-Open column set. No filters yet — just the list with the View menu,
+ * which has NO Schedule horizon row and NO Timeline view (both are jobs-only).
+ * The desktop sidebar's "Estimates" / "Jobs" items switch pages either way;
+ * this story just lands on Estimates directly.
+ */
+export const DesktopEstimates: Story = {
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <PhoneViewport>
+      <Filters {...args} breakpoint="desktop" initialPage="estimates" />
+    </PhoneViewport>
+  ),
+};
+
+/**
+ * The Estimates list in the mobile shell. The bottom bar has no Estimates
+ * item (the design's bar is Home · Jobs · Create · Search · Menu), so no item
+ * is active here and "Jobs" navigates back to the Jobs list.
+ */
+export const MobileEstimates: Story = {
+  parameters: { layout: "fullscreen" },
+  render: (args) => (
+    <PhoneViewport>
+      <Filters {...args} breakpoint="mobile" initialPage="estimates" />
     </PhoneViewport>
   ),
 };

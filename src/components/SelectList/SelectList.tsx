@@ -123,6 +123,7 @@ export default function SelectList({
   emptyState,
   noResultsCaption,
   noResultsAction,
+  noResultsState,
   autoFocusSearch = false,
   createFromSearch,
   breakpoint = "auto",
@@ -303,16 +304,20 @@ export default function SelectList({
           />
         </div>
       ) : (
-        <EmptyState
-          icon="ban"
-          title="No results found"
-          caption={noResultsCaption ?? "Try a different search"}
-          primaryAction={
-            noResultsAction != null
-              ? { label: noResultsAction.label, leftIcon: noResultsAction.icon, onClick: noResultsAction.onClick }
-              : undefined
-          }
-        />
+        // A consumer-supplied block wins over the built-in one — see
+        // `noResultsState`.
+        noResultsState ?? (
+          <EmptyState
+            icon="ban"
+            title="No results found"
+            caption={noResultsCaption ?? "Try a different search"}
+            primaryAction={
+              noResultsAction != null
+                ? { label: noResultsAction.label, leftIcon: noResultsAction.icon, onClick: noResultsAction.onClick }
+                : undefined
+            }
+          />
+        )
       )
     ) : (
       <div role="listbox" ref={listRef} onKeyDown={handleListKeyDown}>

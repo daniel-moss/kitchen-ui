@@ -22,15 +22,25 @@ export default function useOverlayScrollbar(scrollRef: RefObject<HTMLDivElement 
     const el = scrollRef.current;
     if (el == null) return undefined;
 
+    // Both writes below keep the PREVIOUS object when nothing moved. `update`
+    // runs on every scroll event and on every ResizeObserver callback, and a
+    // fresh `{top, height}` each time re-rendered the ScrollArea even when the
+    // thumb was exactly where it already was — a list whose height changes but
+    // whose thumb does not (the Filters menu filtering its rows as you type)
+    // paid a render per keystroke for nothing.
     const update = () => {
       const { scrollHeight, clientHeight, scrollTop } = el;
       if (scrollHeight <= clientHeight + 1) {
-        setThumb(null);
+        setThumb((prev) => (prev == null ? prev : null));
         return;
       }
       const height = Math.max(24, (clientHeight / scrollHeight) * clientHeight);
       const top = (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - height);
-      setThumb({ top, height });
+      setThumb((prev) =>
+        prev != null && Math.abs(prev.top - top) < 0.5 && Math.abs(prev.height - height) < 0.5
+          ? prev
+          : { top, height },
+      );
     };
 
     update();
