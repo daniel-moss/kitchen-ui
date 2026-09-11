@@ -16,7 +16,7 @@ import { TopBarFilterProps } from "./TopBarFilter.types";
 // (on mobile it renders nothing — the SidebarNav breakpoint-exclusivity rule)
 // and only while there are applied filters (no chips → nothing). Which right
 // slot to show — "Clear all" on standard views, "Reset" on views with
-// fixed filters once the user added their own — is the consumer's
+// locked filters once the user added their own — is the consumer's
 // state logic. See Figma: component 29562-16614, parts 29562-16683,
 // documentation 29562-15978.
 export default function TopBarFilter({
@@ -50,14 +50,10 @@ export default function TopBarFilter({
             Clear all
           </Button>
         )}
+        {/* Plain text since 2026-09-09 — Daniel removed the icon from the
+            doc's Reset button (node 29562-15978). */}
         {onClearAll == null && onReset != null && (
-          <Button
-            variant="ghost"
-            size="md"
-            leftIcon="arrows-rotate-reverse"
-            className={styles.slotRight}
-            onClick={onReset}
-          >
+          <Button variant="ghost" size="md" className={styles.slotRight} onClick={onReset}>
             Reset
           </Button>
         )}

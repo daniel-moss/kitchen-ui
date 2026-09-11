@@ -21,12 +21,17 @@ export interface FilterChipProps {
    * `--size-2` (8px) before the text.
    */
   slotLeft?: ReactNode;
-  /** The "condition" box text (e.g. "is"). */
-  condition: string;
+  /**
+   * The "condition" box text (e.g. "is"). OPTIONAL since 2026-09-09: a chip
+   * whose filter has no condition — a preset timeframe value like
+   * "Next 3 days" — renders WITHOUT the box (and without its divider). The
+   * Figma component's boolean `condition` prop is this prop's presence.
+   */
+  condition?: string;
   /**
    * Makes the "condition" box interactive (usually opens a SelectList with
    * condition options). Without a handler the box renders non-interactive.
-   * Ignored on a fixed chip (`isFixed`) — its condition box always renders
+   * Ignored on a locked chip (`isLocked`) — its condition box always renders
    * non-interactive.
    */
   onConditionClick?: (event: MouseEvent<HTMLButtonElement>) => void;
@@ -34,7 +39,7 @@ export interface FilterChipProps {
   conditionDisabled?: boolean;
   /**
    * Holds the "condition" box's fill while the list it opened is on screen —
-   * set it to that list's open state. Ignored on a fixed chip.
+   * set it to that list's open state. Ignored on a locked chip.
    */
   conditionPressed?: boolean;
   /** The "value" box text (e.g. "John Doe"). */
@@ -49,9 +54,12 @@ export interface FilterChipProps {
   /**
    * Makes the "value" box interactive (usually opens a SelectList with value
    * options, or a Dialog). Without a handler the box renders non-interactive.
-   * In a fixed chip (`isFixed`), wire it only when the box holds SEVERAL
-   * values — it opens the selected options in a read-only list; with one
-   * value leave it unset (the box is not clickable).
+   * In a locked chip (`isLocked`), wire it whenever the value comes from the
+   * filter's option list — one selected option or several — and it opens the
+   * selection with the rest of the options as a read-only list. Leave it
+   * unset only for a CUSTOM value (one a Dialog would edit): that box is not
+   * clickable. (Rule corrected 2026-09-10 — the earlier "only with several
+   * values" doc rule was wrong, per Daniel.)
    */
   onValueClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Disables the "value" box: 30% opacity, not-allowed cursor. */
@@ -62,15 +70,39 @@ export interface FilterChipProps {
    */
   valuePressed?: boolean;
   /**
-   * Whether the chip is fixed (not adjustable). A fixed chip has no "remove"
+   * Whether the chip is locked (not adjustable). A locked chip has no "remove"
    * box (nor its divider) and its "condition" box renders non-interactive.
    * Default false.
    */
-  isFixed?: boolean;
+  isLocked?: boolean;
   /** Click on the "remove" box — remove the filter chip from the list. */
   onRemove?: (event: MouseEvent<HTMLButtonElement>) => void;
   /** Disables the "remove" box: 30% opacity, not-allowed cursor. */
   removeDisabled?: boolean;
+  /**
+   * The WARNING state (doc's "Warning — isWarning" section; first usage: the
+   * schedule-horizon conflict, Filters file 14101-46526): the "property",
+   * "condition" and "value" boxes render `--text-warning` and the property
+   * slot swaps to the `warning` icon (the chip owns the swap — the Figma
+   * master's behavior — so `slotLeft` is set aside while warning). The
+   * "remove" box keeps its colors, and interaction states are unchanged.
+   * A default-colored `valueSlotLeft` icon inherits the warning color; an
+   * icon with a customized color keeps its own color. The explaining bubble
+   * goes in `propertyHint`.
+   */
+  isWarning?: boolean;
+  /**
+   * Free-slot Hint content anchored to the "property" box (the conflict
+   * design's rule: "hovering over / tapping on the 'property' box triggers
+   * the Hint"). Desktop: a HoverHint below the box; mobile: a tap on the
+   * box opens the same content as a drawer.
+   */
+  propertyHint?: ReactNode;
+  /**
+   * The desktop hint bubble's width. Default 384 — the conflict design's
+   * "Max Width" pin; the doc page's generic example draws 276.
+   */
+  propertyHintWidth?: number;
   /**
    * Presentation. Desktop: 32px (`--size-8`) boxes, 10px (`--size-2_5`) side
    * paddings, each box capped at 240px, the chip hugs its content. Mobile:
@@ -106,6 +138,8 @@ export interface FilterChipBoxProps {
    * the content. Set by FilterChip.
    */
   fill?: boolean;
+  /** The conflict treatment: `--text-warning` text (and inherited slot icon). */
+  warning?: boolean;
   /**
    * The box text. Truncates with an ellipsis; when truncated, hovering the
    * box shows a tooltip with the full value.

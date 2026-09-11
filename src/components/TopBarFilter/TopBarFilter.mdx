@@ -25,7 +25,8 @@ We use **TopBarFilter** to contain the applied filters on desktop
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
 ↳&nbsp;&nbsp;[Behavior](#behavior)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Standard view](#standard-view)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Fixed filters](#fixed-filters)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Filters order](#filters-order)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Locked filters](#locked-filters)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
@@ -61,19 +62,25 @@ consumer's wiring.
 
 <Canvas of={TopBarFilterStories.StandardView} />
 
-### Fixed filters
+### Filters order
 
-If a view has at least one fixed filter, we do not show the "Clear all"
+When the user adds a new filter, the FilterChip shows up at the end of the
+list. In code the chips are children — the bar renders them in the order
+given — so appending the new filter last is the consumer's wiring.
+
+### Locked filters
+
+If a view has at least one locked filter, we do not show the "Clear all"
 button. If the user hasn't added their own filters yet, the right slot is
 empty.
 
-<Canvas of={TopBarFilterStories.FixedFiltersEmpty} />
+<Canvas of={TopBarFilterStories.LockedFiltersEmpty} />
 
-If the user adds their own filters, we show the "Reset" button. It allows the
-user to reset the view to the default parameters. In code, `onReset` renders
-the button — never together with `onClearAll`.
+If the user adds their own filters, we show the "Reset" button. It lets the
+user reset the view to its default parameters. In code, `onReset` renders the
+button — never together with `onClearAll`.
 
-<Canvas of={TopBarFilterStories.FixedFiltersReset} />
+<Canvas of={TopBarFilterStories.LockedFiltersReset} />
 
 ## Props
 

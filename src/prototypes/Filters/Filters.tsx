@@ -46,7 +46,10 @@ import FilterChip from "../../components/TopBarFilter/FilterChip";
 import TopBarFilter from "../../components/TopBarFilter/TopBarFilter";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import Popover from "../../components/Popover/Popover";
+import DrawerHeader from "../../components/Popover/DrawerHeader";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
+import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent";
+import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListHeader from "../../components/SelectList/SelectListHeader";
@@ -67,7 +70,8 @@ import {
   ViewMenuTimelineState,
   ViewMenuView,
 } from "../../modules/ViewMenu/ViewMenu.types";
-import { SCHEDULED_WINDOW_DAYS, defaultTimelineState } from "../../modules/ViewMenu/viewMenuData";
+import { SCHEDULED_OPTIONS, SCHEDULED_WINDOW_DAYS, defaultTimelineState } from "../../modules/ViewMenu/viewMenuData";
+import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import { Table } from "../../components/Table/Table/Table";
 import { TableRow } from "../../components/Table/TableRow/TableRow";
 import TabGroup from "../../components/Tabs/TabGroup";
@@ -115,6 +119,7 @@ import {
   newFilterInstance,
   optionCounts,
   removeFilter,
+  scheduledValueEnd,
   upsertFilter,
   valueDisplay,
   withCondition,
@@ -494,16 +499,37 @@ const sectionLabel = (label: string) => (
 interface AppliedFiltersProps {
   /** The branch's filter registry. */
   defs: FilterDef[];
+  /**
+   * The view's locked Status filter. It leads the section as the LOCKED chip
+   * — the same first-chip rule the desktop bar follows (2026-09-09, Daniel:
+   * the mobile sheet was not showing it at all, while the Filters button
+   * already counted it).
+   */
+  lockedStatuses?: BadgeJobStatusStatus[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
+  /** The view's Schedule horizon + the hint's View-menu opener — the conflict warning. */
+  scheduleHorizon?: ScheduleHorizon | null;
+  onShowViewMenu?: () => void;
   /** Set by Menu's withGroupDividers — see above. */
   divider?: boolean;
 }
 
-const AppliedFilters = ({ defs, selection, onSelectionChange, divider = false }: AppliedFiltersProps) => (
+const AppliedFilters = ({
+  defs,
+  lockedStatuses = [],
+  selection,
+  onSelectionChange,
+  scheduleHorizon = null,
+  onShowViewMenu,
+  divider = false,
+}: AppliedFiltersProps) => (
   <div>
     {sectionLabel("Applied filters")}
     <div className={styles.appliedChips}>
+      {lockedStatuses.length > 0 && (
+        <LockedStatusChip mobile def={defs.find((def) => def.id === "status")!} statuses={lockedStatuses} />
+      )}
       {activeFilters(defs, selection).map(({ def, instance }) => (
         <AppliedChip
           key={instance.key}
@@ -512,6 +538,8 @@ const AppliedFilters = ({ defs, selection, onSelectionChange, divider = false }:
           instance={instance}
           selection={selection}
           onSelectionChange={onSelectionChange}
+          scheduleHorizon={scheduleHorizon}
+          onShowViewMenu={onShowViewMenu}
         />
       ))}
     </div>
@@ -552,10 +580,12 @@ const AddFilterSection = ({
 // also makes the drawer fill the screen height — which is what stops the sheet
 // resizing as the list filters down.
 //
-// MenuHeader takes focus on mount by itself, so the desktop card opens ready to
-// type. The MOBILE drawer must not (Daniel, 2026-08-17) — and it does not, from
-// the component's own drawer rule, so there is nothing to pass here.
-function useFilterSearch(open: boolean, defs: FilterDef[]) {
+// MenuHeader takes focus on mount by itself, so the desktop card opens ready
+// to type. The MOBILE drawer joined it on 2026-09-09 (Daniel: "the search
+// should be auto-focus" — reversing his 2026-08-17 rule for this one menu):
+// `autoFocusSearch` here is MenuHeader's explicit opt-in that bypasses the
+// component's drawer + touch exclusions, so only the mobile caller sets it.
+function useFilterSearch(open: boolean, defs: FilterDef[], autoFocusSearch = false) {
   const [query, setQuery] = useState("");
 
   // Every fresh open starts from the full list. Cleared in a LAYOUT effect, not
@@ -582,6 +612,10 @@ function useFilterSearch(open: boolean, defs: FilterDef[]) {
   const header = (
     <MenuHeader
       className={styles.searchNoFill}
+      // `undefined`, never `false`, when not opted in — false means NEVER
+      // focus in MenuHeader's semantics, and the desktop card must keep its
+      // default focus-on-open.
+      autoFocusSearch={autoFocusSearch || undefined}
       value={query}
       onChange={(e) => setQuery(e.target.value)}
       onClear={() => setQuery("")}
@@ -649,9 +683,21 @@ const DURATION_LIST_WIDTH = 111;
  * Does this filter hold ONE value rather than a set? Date and duration both do,
  * and everything that follows from it is the same for the two: a single-select
  * list (so it closes on the pick), no counts, no Apply bar on mobile, and a
- * "Custom..." row in the footer that opens a dialog.
+ * "Custom..." row in the footer that opens a dialog. Type is single-SELECT
+ * without being single-value (`isSingleSelect` below carries the list
+ * behavior); this test alone gates the Custom-dialog machinery, which only a
+ * date or duration has.
  */
 const isSingleValue = (def: FilterDef) => def.kind === "date" || def.kind === "duration";
+
+/**
+ * Is this filter's LIST single-select — one pick at a time, applying and
+ * closing on the pick, no Apply bar on mobile? Every single-value filter is,
+ * and so is an options filter marked `singleSelect` (Type — its section's
+ * annotation, node 14101-53834). What this does NOT imply is a "Custom..."
+ * row: that stays `isSingleValue`'s.
+ */
+const isSingleSelect = (def: FilterDef) => isSingleValue(def) || def.singleSelect === true;
 
 /**
  * Does this filter have NO option list at all, so that everything about it is
@@ -846,6 +892,14 @@ function filterList(
   const counts = optionCounts(JOBS, def);
   const picked = instance.ids;
   const toggle = (optionId: string) => {
+    // A SINGLE-select options filter (Type) holds one option at a time — its
+    // section's annotation. Picking REPLACES the pick, exactly like a date
+    // preset; there is no un-pick, because clearing the filter is the chip's
+    // remove button.
+    if (def.singleSelect === true) {
+      onInstanceChange({ ...instance, ids: [optionId] });
+      return;
+    }
     // An EXCLUSIVE option (Labels' "No labels") stands alone — its annotation:
     // "Selecting this option unselects all others. This option can only be
     // used alone." So ticking it clears the rest, and ticking anything else
@@ -872,6 +926,10 @@ function filterList(
   const widest =
     def.options.reduce((max, option) => Math.max(max, textWidth(option.label)), 0) +
     (noTag ? 0 : maxCountWidth());
+  // A single-select row (Type) measures the SAME as a no-tag multi row: it
+  // trades the 16px checkbox + 12px gap on the left for the 28px check
+  // reserve on the right (the node's 40px right padding minus the 12 the
+  // chrome already counts) — so no branch here.
   const chrome = noTag ? OPTION_CHROME - 16 : OPTION_CHROME;
   const width = Math.round(Math.min(SUB_MAX_WIDTH, Math.max(SUB_MIN_WIDTH, widest + chrome)));
 
@@ -891,7 +949,9 @@ function filterList(
       key={option.id}
       label={option.label}
       searchText={option.searchText}
-      select="multi"
+      // Type's rows are single-select — icon + label, no checkbox, the picked
+      // row showing the DS right check (node 14101-53835's rows).
+      select={def.singleSelect === true ? "single" : "multi"}
       selected={picked.includes(option.id)}
       onClick={() => toggle(option.id)}
       slotLeft={option.slotLeft}
@@ -1422,22 +1482,24 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
         </ChipGroup>
       </div>
 
-      {/* The chosen timeframe's own content. MONTH and YEAR (nodes 14097-21480
-          / 14098-28104): a SECOND full-bleed Divider — Day has none — then the
-          period list, which carries its own 16px padding and scrolls behind
-          the line. DAY keeps the Selection block (field + calendar). */}
+      {/* A SECOND full-bleed Divider closes the Condition block on EVERY
+          timeframe now — DAY joined Month and Year on 2026-09-09 (the Day
+          section's new dividers, nodes 14205-65591…65613; Month/Year drew it
+          all along, 14097-21480 / 14098-28104). */}
+      <Divider contrast="medium" />
+
+      {/* The chosen timeframe's own content. MONTH and YEAR: the period list,
+          which carries its own 16px padding and scrolls behind the line. DAY
+          keeps the Selection block (field + calendar). */}
       {timeframe !== "day" ? (
-        <>
-          <Divider contrast="medium" />
-          <PeriodList
-            timeframe={timeframe}
-            from={draft.from}
-            to={draft.to}
-            range={range}
-            onPick={pickIso}
-            today={todayDate}
-          />
-        </>
+        <PeriodList
+          timeframe={timeframe}
+          from={draft.from}
+          to={draft.to}
+          range={range}
+          onPick={pickIso}
+          today={todayDate}
+        />
       ) : (
         <div className={styles.dateCustomSelection}>
           <>
@@ -2148,11 +2210,16 @@ function FilterOptions({
       autoFocusSearch={def.autoFocusSearch === true}
       restoreFocus={restoreFocus}
       footer={listFooter}
-      // A date or duration filter holds ONE value, so its rows are
+      // A date, duration or Type filter holds ONE pick, so its rows are
       // single-select — which is also what makes SelectList close itself the
       // moment one is picked.
-      multiSelect={!isSingleValue(def)}
-      className={isSingleValue(def) && variant === "drawer" ? styles.dateDrawer : undefined}
+      multiSelect={!isSingleSelect(def)}
+      // Every drawer WITHOUT a search HUGS its content (Daniel, 2026-09-09,
+      // with the Priority node 13855-23306 — drawer 358 of 812; the
+      // full-height rule exists only so a SEARCH does not resize the sheet
+      // per keystroke). Was single-select-only, which left Priority and the
+      // closed-phase Status stretched over an empty screen.
+      className={def.searchPlaceholder == null && variant === "drawer" ? styles.hugDrawer : undefined}
       state={list.isEmpty ? "noResults" : "default"}
       style={variant === "inline" ? listWidth(width) : undefined}
     >
@@ -2172,7 +2239,9 @@ function FilterOptions({
 // 13874-11522): its footer is the "Custom" row, not an Apply bar, because the
 // list is single-select — picking a value IS the decision, so it applies and
 // closes on the spot (Daniel, 2026-08-19). Its Custom dialog carries the Apply
-// button instead.
+// button instead. TYPE follows the same single-select rule since 2026-09-09
+// (its section's annotation) — no Apply bar, the pick applies and closes —
+// but with no Custom row at all: two options need no dialog.
 interface MobileFilterOptionsProps {
   def: FilterDef;
   /** The application to edit: a fresh one from the menu, or a chip's existing one. */
@@ -2200,7 +2269,7 @@ const pickedValue = (value: FilterValue): string => {
 function MobileFilterOptions({ def, instance, onCommit, onClose, hideConditions = false }: MobileFilterOptionsProps) {
   const [draft, setDraft] = useState<FilterInstance>(instance);
   const [custom, setCustom] = useState(false);
-  const isSingle = isSingleValue(def);
+  const isSingle = isSingleSelect(def);
 
   const commit = (next: FilterInstance) => {
     setDraft(next);
@@ -2230,7 +2299,10 @@ function MobileFilterOptions({ def, instance, onCommit, onClose, hideConditions 
         open
         onClose={onClose}
         hideConditions={hideConditions}
-        onCustom={isSingle ? () => setCustom(true) : undefined}
+        // The "Custom..." row belongs to date and duration ONLY — Type is
+        // single-select without a dialog behind it (`isSingleValue`, not
+        // `isSingleSelect`).
+        onCustom={isSingleValue(def) ? () => setCustom(true) : undefined}
         footer={
           // No footer at all until something is ticked (Daniel, 2026-08-19):
           // with nothing chosen there is nothing to apply, so the bar would only
@@ -2401,6 +2473,15 @@ interface ViewBarProps {
   onViewSettingsChange: (next: ViewSettings) => void;
   sort: TableSort;
   onSortChange: (next: TableSort) => void;
+  /**
+   * The Hidden Data Bar's "Show" (its annotation: "Opens the 'View' menu") —
+   * an incrementing signal from the shell; each step opens this bar's View
+   * menu, exactly as a click on its View button would.
+   */
+  openViewMenuSignal?: number;
+  /** The bar's keyword search — the shell owns the state (it filters the table). */
+  search: string;
+  onSearchChange: (next: string) => void;
 }
 
 // DESKTOP: the Filters button opens the anchored menu card. TopBarView owns
@@ -2422,6 +2503,9 @@ function DesktopViewBar({
   onViewSettingsChange,
   sort,
   onSortChange,
+  openViewMenuSignal = 0,
+  search,
+  onSearchChange,
 }: ViewBarProps) {
   const card = useAnchoredCard("right", "[data-concept-filters-sub]");
   // The View menu — the shared module, anchored under the bar's View button
@@ -2429,6 +2513,24 @@ function DesktopViewBar({
   // live in [data-floating-list] body portals; the ignore selector keeps a
   // click inside them from closing the card underneath.
   const viewCard = useAnchoredCard("right", "[data-floating-list]");
+  // The Hidden Data Bar's "Show" — the same card, anchored to the same View
+  // button. TopBarView owns that button and only hands it out inside a click
+  // event, so with no click to read it from, the effect finds it in this
+  // bar's own DOM (scoped by the bar's class; the icon glyph is CSS content,
+  // so the button's text is exactly "View"). A prototype-local reach —
+  // FLAGGED: the honest fix is a ref the DS TopBarView exposes.
+  const setViewCardOpen = viewCard.setOpen;
+  useEffect(() => {
+    if (openViewMenuSignal === 0) return;
+    const bar = document.querySelector(`.${styles.viewBar}`);
+    const button =
+      bar == null
+        ? null
+        : [...bar.querySelectorAll("button")].find((candidate) => candidate.textContent?.trim() === "View");
+    if (button != null) viewCard.anchorRef.current = button as unknown as HTMLDivElement;
+    setViewCardOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the signal alone re-opens
+  }, [openViewMenuSignal, setViewCardOpen]);
   return (
     <>
       <TopBarView
@@ -2437,6 +2539,8 @@ function DesktopViewBar({
         views={branchViews(branch)}
         view={tab}
         onViewChange={onTabChange}
+        search={search}
+        onSearchChange={onSearchChange}
         onFiltersClick={(e) => {
           // The anchor ref is typed for the div wrappers the other triggers
           // use; the bar's own Button is just as valid a rectangle.
@@ -2487,11 +2591,21 @@ function MobileViewBar({
   onViewSettingsChange,
   sort,
   onSortChange,
+  openViewMenuSignal = 0,
+  search,
+  onSearchChange,
 }: ViewBarProps) {
   const [filtersOpen, setFiltersOpen] = useState(false);
   // The View menu arrives as the module's own drawer.
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
-  const filters = useFilterSearch(filtersOpen, FILTERS_BY_BRANCH[branch]);
+  // The Hidden Data Bar's "Show" — the drawer needs no anchor, so the signal
+  // simply opens it.
+  useEffect(() => {
+    if (openViewMenuSignal > 0) setViewMenuOpen(true);
+  }, [openViewMenuSignal]);
+  // TRUE = the drawer opens with the search focused and the keyboard up
+  // (Daniel, 2026-09-09) — MenuHeader's explicit opt-in.
+  const filters = useFilterSearch(filtersOpen, FILTERS_BY_BRANCH[branch], true);
   // Tapping a filter row opens its options as a SECOND drawer on top of the
   // Filters one (Figma node 13855-23306 — the list draws its own scrim). NO
   // back button (Daniel, 2026-08-17): the Filters drawer is still open
@@ -2518,16 +2632,20 @@ function MobileViewBar({
     },
   });
 
+  const lockedStatuses = tabById(branch, tab).statuses;
+
   // The applied-filters section, and with it the two section labels. Hidden
   // while the search is running: it filters the LIST, and the chips are not part
   // of that list, so leaving them up would look like the search had missed them.
-  const showApplied = activeFilterCount(selection) > 0 && filters.query === "";
+  // The view's LOCKED filter counts as applied here too (2026-09-09, Daniel) —
+  // on "Pending" with nothing else on, the section shows the locked chip alone.
+  const showApplied = (activeFilterCount(selection) > 0 || lockedStatuses.length > 0) && filters.query === "";
 
   // The MOBILE Filters count counts the view's locked Status filter as well
   // (Daniel, 2026-08-18): on every view but "All" a filter IS applied, and
   // mobile has no filter bar to show it. So "Pending" with nothing else on
   // reads 1.
-  const activeCount = activeFilterCount(selection) + (tabById(branch, tab).statuses.length > 0 ? 1 : 0);
+  const activeCount = activeFilterCount(selection) + (lockedStatuses.length > 0 ? 1 : 0);
 
   return (
     <>
@@ -2537,6 +2655,8 @@ function MobileViewBar({
         views={branchViews(branch)}
         view={tab}
         onViewChange={onTabChange}
+        search={search}
+        onSearchChange={onSearchChange}
         filtersCount={activeCount}
         onFiltersClick={() => setFiltersOpen(true)}
         filtersPressed={filtersOpen}
@@ -2562,6 +2682,31 @@ function MobileViewBar({
         open={filtersOpen}
         onClose={() => setFiltersOpen(false)}
         title="Filters"
+        // The drawer's TITLE ROW carries the bulk action (Daniel, 2026-09-09
+        // — option B of the placement proposals, "use md ghost button"):
+        // "Filters" on the left, the ghost/md Button on the right — "Clear
+        // all", or "Reset" on a view with a locked filter — the desktop
+        // bar's right-slot rule. With nothing applied (or only the locked
+        // chip) there is no button: nothing to clear. Clearing keeps the
+        // drawer open, so the result is visible in place.
+        // FLAGGED: PopoverHeaderContent's `actions` slot documents "up to 2
+        // md ghost IconButtons"; the TEXT Button here is Daniel's call — a
+        // DS doc update candidate if the pattern stays.
+        drawerHeader={
+          <DrawerHeader>
+            <PopoverHeaderContent
+              actions={
+                activeFilterCount(selection) > 0 ? (
+                  <Button variant="ghost" size="md" onClick={() => onSelectionChange([])}>
+                    {lockedStatuses.length > 0 ? "Reset" : "Clear all"}
+                  </Button>
+                ) : undefined
+              }
+            >
+              <PopoverHeaderText variant="title" title="Filters" />
+            </PopoverHeaderContent>
+          </DrawerHeader>
+        }
         header={filters.header}
         breakpoint="mobile"
       >
@@ -2570,7 +2715,20 @@ function MobileViewBar({
             the search hides it too, since it filters the list below and
             the chips are not part of that list. */}
         {showApplied && (
-          <AppliedFilters defs={FILTERS_BY_BRANCH[branch]} selection={selection} onSelectionChange={onSelectionChange} />
+          <AppliedFilters
+            defs={FILTERS_BY_BRANCH[branch]}
+            lockedStatuses={lockedStatuses}
+            selection={selection}
+            onSelectionChange={onSelectionChange}
+            scheduleHorizon={horizonOf(viewSettings)}
+            // "Show settings" from the conflict hint: the Filters drawer
+            // makes way for the View one. Closing the drawer unmounts the
+            // chip, which takes the hint drawer down with it.
+            onShowViewMenu={() => {
+              setFiltersOpen(false);
+              setViewMenuOpen(true);
+            }}
+          />
         )}
         <AddFilterSection rows={filters.rows} extra={mobileRowHandlers} labelled={showApplied} />
       </Menu>
@@ -2920,9 +3078,19 @@ interface FilterBarProps {
   lockedStatuses: BadgeJobStatusStatus[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
+  /** The view's Schedule horizon + the hint's View-menu opener — the conflict warning. */
+  scheduleHorizon?: ScheduleHorizon | null;
+  onShowViewMenu?: () => void;
 }
 
-const FilterBar = ({ defs, lockedStatuses, selection, onSelectionChange }: FilterBarProps) => {
+const FilterBar = ({
+  defs,
+  lockedStatuses,
+  selection,
+  onSelectionChange,
+  scheduleHorizon = null,
+  onShowViewMenu,
+}: FilterBarProps) => {
   const chips = activeFilters(defs, selection);
   const statusDef = defs.find((def) => def.id === "status")!;
   const addCard = useAnchoredCard("left", "[data-concept-filters-sub]");
@@ -2952,6 +3120,8 @@ const FilterBar = ({ defs, lockedStatuses, selection, onSelectionChange }: Filte
             instance={instance}
             selection={selection}
             onSelectionChange={onSelectionChange}
+            scheduleHorizon={scheduleHorizon}
+            onShowViewMenu={onShowViewMenu}
           />
         ))}
       </TopBarFilter>
@@ -2999,13 +3169,29 @@ function lockedStatusList(def: FilterDef, statuses: BadgeJobStatusStatus[]) {
   return { items, width: openListWidth(def, newFilterInstance(def), filterList(def, newFilterInstance(def), noop).width) };
 }
 
-// The DS FilterChip's `isFixed` IS this chip (migrated 2026-09-08): no remove
-// box, a non-interactive condition box. Per the component's documented rule,
-// the VALUE box is wired only when it holds SEVERAL values — a single-value
-// locked chip ("is | Completed") already says everything, so its value box is
-// plain. (The old local chip opened the read-only list for one value too —
-// behavior change, FLAGGED.)
-const LockedStatusChip = ({ def, statuses }: { def: FilterDef; statuses: BadgeJobStatusStatus[] }) => {
+// The DS FilterChip's `isLocked` IS this chip (migrated 2026-09-08; the prop
+// was RENAMED from `isFixed` with the Figma component, 2026-09-09): no remove
+// box, a non-interactive condition box. The VALUE box is always wired here —
+// the documented rule was CORRECTED 2026-09-10 (Daniel: "the doc was wrong",
+// DS doc 29552-12681): a value from the filter's OPTION LIST opens the
+// read-only list whether it holds one value or several ("is | Finalized"
+// opens it too, as the old local chip did); only a CUSTOM, Dialog-edited
+// value would render a plain box, and a locked Status value never is one.
+//
+// `mobile` is the Filters sheet's presentation (2026-09-09): the chip fills
+// the row like the user chips there, and the multi-value read-only list
+// arrives as a DRAWER — a card anchored inside a drawer would clip. FLAGGED:
+// the mobile sheet's node predates the locked chip, so this state is not
+// drawn; built to the desktop chip's rules.
+const LockedStatusChip = ({
+  def,
+  statuses,
+  mobile = false,
+}: {
+  def: FilterDef;
+  statuses: BadgeJobStatusStatus[];
+  mobile?: boolean;
+}) => {
   const valueCard = useAnchoredCard("left");
   const shown = valueDisplay(def, { ids: statuses, negated: false });
   const list = lockedStatusList(def, statuses);
@@ -3013,37 +3199,40 @@ const LockedStatusChip = ({ def, statuses }: { def: FilterDef; statuses: BadgeJo
   return (
     <>
       <FilterChip
-        isFixed
+        isLocked
+        breakpoint={mobile ? "mobile" : "desktop"}
         slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
         property={def.label}
         condition={statuses.length > 1 ? "is any of" : "is"}
         value={shown.label}
         valueSlotLeft={shown.slotLeft}
-        onValueClick={
-          statuses.length > 1
-            ? (e) => {
-                valueCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
-                valueCard.setOpen(!valueCard.open);
-              }
-            : undefined
-        }
+        onValueClick={(e) => {
+          valueCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
+          valueCard.setOpen(!valueCard.open);
+        }}
         valuePressed={valueCard.open}
       />
-      {valueCard.pos != null &&
-        createPortal(
-          <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
-            <SelectList
-              variant="inline"
-              open={valueCard.open}
-              onClose={() => valueCard.setOpen(false)}
-              multiSelect
-              style={listWidth(list.width)}
-            >
+      {mobile
+        ? valueCard.open && (
+            <SelectList variant="drawer" open onClose={() => valueCard.setOpen(false)} title={def.label}>
               {list.items}
             </SelectList>
-          </div>,
-          document.body,
-        )}
+          )
+        : valueCard.pos != null &&
+          createPortal(
+            <div ref={valueCard.cardRef} className={styles.filtersSub} style={valueCard.pos}>
+              <SelectList
+                variant="inline"
+                open={valueCard.open}
+                onClose={() => valueCard.setOpen(false)}
+                multiSelect
+                style={listWidth(list.width)}
+              >
+                {list.items}
+              </SelectList>
+            </div>,
+            document.body,
+          )}
     </>
   );
 };
@@ -3058,12 +3247,50 @@ const LockedStatusChip = ({ def, statuses }: { def: FilterDef; statuses: BadgeJo
 // cards anchor to the box buttons via the click event (the DS chip owns the
 // elements), and `conditionPressed` / `valuePressed` hold a box's fill while
 // its list is on screen.
+// ---- the schedule-horizon conflict ------------------------------------------
+
+// The "Scheduled for" filter and the View menu's Schedule horizon narrow the
+// SAME dimension, so a filter window reaching past the horizon's last day is
+// silently capped — the trap the CONFLICT warning marks (Daniel's design,
+// section 14101-46526, 2026-09-10). The chip turns `--text-warning` with the
+// `warning` icon in the property slot, and the property box carries a Hint —
+// hover (desktop) / tap (mobile drawer) — whose body is an EmptyState:
+// AvatarWarning square, "Beyond the schedule horizon", the caption naming the
+// horizon, and a GHOST "Show settings" (the EmptyState action-variant
+// addition rides on this design). The rule lives in `scheduledValueEnd`.
+interface ScheduleHorizon {
+  /** The horizon's last day, offset from today (`SCHEDULED_WINDOW_DAYS`). */
+  days: number;
+  /** Its View-menu label — "Next 1 week" — for the hint's caption. */
+  label: string;
+}
+
+/** The view's horizon, or null on "All dates" (nothing can conflict). */
+const horizonOf = (settings: ViewSettings): ScheduleHorizon | null => {
+  const days = SCHEDULED_WINDOW_DAYS[settings.scheduledKey] ?? null;
+  if (days == null) return null;
+  return { days, label: SCHEDULED_OPTIONS.find((o) => o.key === settings.scheduledKey)?.label ?? "" };
+};
+
+const conflictHint = (horizon: ScheduleHorizon, onShowViewMenu: () => void) => (
+  <EmptyState
+    slot={<AvatarWarning size="xl" />}
+    title="Beyond the schedule horizon"
+    caption={`The filter reaches beyond the view's schedule horizon (${horizon.label})`}
+    primaryAction={{ label: "Show settings", variant: "ghost", onClick: onShowViewMenu }}
+  />
+);
+
 interface AppliedChipProps {
   def: FilterDef;
   /** The application this chip stands for. */
   instance: FilterInstance;
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
+  /** The view's Schedule horizon — the conflict warning's other half. */
+  scheduleHorizon?: ScheduleHorizon | null;
+  /** The conflict hint's "Show settings" — opens the View menu. */
+  onShowViewMenu?: () => void;
   /**
    * The chip inside the mobile Filters sheet (Figma node 13932-9592) — the DS
    * chip's `mobile` presentation: 36px boxes, 12px paddings, fills the row,
@@ -3073,10 +3300,26 @@ interface AppliedChipProps {
   mobile?: boolean;
 }
 
-const AppliedChip = ({ def, instance, selection, onSelectionChange, mobile = false }: AppliedChipProps) => {
+const AppliedChip = ({
+  def,
+  instance,
+  selection,
+  onSelectionChange,
+  scheduleHorizon = null,
+  onShowViewMenu,
+  mobile = false,
+}: AppliedChipProps) => {
   const conditionCard = useAnchoredCard("left");
   const valueCard = useAnchoredCard("left");
   const shown = valueDisplay(def, instance);
+  // The conflict: only the "Scheduled for" chip, only under a finite horizon,
+  // and only when the value's last matching day reaches past the horizon's
+  // (`null` end = an open "after", beyond every horizon).
+  let conflict = false;
+  if (def.id === "scheduledFor" && scheduleHorizon != null) {
+    const end = scheduledValueEnd(instance.date);
+    conflict = end !== false && (end == null || end > scheduleHorizon.days);
+  }
   // A date or duration chip's Custom DIALOG, opened from the value list's
   // "Custom" row. It is a centred modal, so this is a flag, not an anchor.
   const [customOpen, setCustomOpen] = useState(false);
@@ -3101,6 +3344,12 @@ const AppliedChip = ({ def, instance, selection, onSelectionChange, mobile = fal
   // cursor over that segment to say it is not interactive). Leaving `within` is
   // the Custom dialog's job, reached from the VALUE segment.
   const fixedCondition = conditionChoices(instance).length < 2;
+  // A WINDOW preset ("Next 3 days") is a complete answer with NO condition —
+  // the chip renders WITHOUT the condition box entirely (the FilterChip
+  // `condition=false` variant; the Scheduled for section's chip example,
+  // 14101-46531). A CUSTOM value on the same filter keeps its dialog
+  // condition ("after · Jan 1").
+  const noCondition = def.dateWindows != null && instance.date?.preset != null;
 
   const setCondition = (choice: ConditionChoice) => {
     change(withCondition(instance, choice));
@@ -3123,11 +3372,20 @@ const AppliedChip = ({ def, instance, selection, onSelectionChange, mobile = fal
           offer presets, which is not what that chip holds. */}
       <FilterChip
         breakpoint={mobile ? "mobile" : "desktop"}
+        // Conflicted, the CHIP swaps the property icon to `warning` itself
+        // (the master's isWarning behavior since 2026-09-10) — the def icon
+        // is simply what it shows the rest of the time.
         slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
+        isWarning={conflict}
+        propertyHint={
+          conflict && scheduleHorizon != null && onShowViewMenu != null
+            ? conflictHint(scheduleHorizon, onShowViewMenu)
+            : undefined
+        }
         property={def.label}
-        condition={conditionLabel(instance)}
+        condition={noCondition ? undefined : conditionLabel(instance)}
         onConditionClick={
-          fixedCondition
+          noCondition || fixedCondition
             ? undefined
             : (e) => {
                 conditionCard.anchorRef.current = e.currentTarget as unknown as HTMLDivElement;
@@ -3208,7 +3466,7 @@ const AppliedChip = ({ def, instance, selection, onSelectionChange, mobile = fal
               variant="inline"
               open={valueCard.open}
               onClose={() => valueCard.setOpen(false)}
-              multiSelect={!isSingleValue(def)}
+              multiSelect={!isSingleSelect(def)}
               // SelectList's own search — the header here is the search and
               // nothing else, which IS the DS `SelectListHeader`. It was a
               // hand-built block while the SearchField `bar` was 36px; the bar
@@ -3715,9 +3973,16 @@ interface JobsTableProps {
   sort: TableSort;
   /** Clicking a sortable header — the toggle rule lives with the state. */
   onSortChange: (column: SortColumn) => void;
+  /**
+   * MOBILE has no pin functionality (Daniel, 2026-09-09), so the desktop's
+   * pinned columns do not freeze there — they render as ordinary leading
+   * columns and scroll with the rest. The View menu's arrangement (pinned
+   * group first) still decides the ORDER on both breakpoints.
+   */
+  mobile?: boolean;
 }
 
-const JobsTable = ({ jobs, columnsState, sort, onSortChange }: JobsTableProps) => {
+const JobsTable = ({ jobs, columnsState, sort, onSortChange, mobile = false }: JobsTableProps) => {
   // The three sorting props of a sortable header, from one place: the active
   // column shows its direction, every other one the neutral pair.
   const sortable = (column: string) => ({
@@ -3737,15 +4002,19 @@ const JobsTable = ({ jobs, columnsState, sort, onSortChange }: JobsTableProps) =
   const unpinnedDefs = visibleDefs(columnsState.unpinned);
   const ordered = [...pinnedDefs, ...unpinnedDefs];
 
+  // On MOBILE the map stays empty — no pin functionality there (see the
+  // `mobile` prop) — so every column gets the plain, scrolling cell.
   const pinPropsByKey = new Map<string, CellPinProps>();
-  let pinnedOffset = 0;
-  for (const [index, def] of pinnedDefs.entries()) {
-    pinPropsByKey.set(def.key, {
-      isPinned: true,
-      pinnedOffset,
-      isLastPinned: index === pinnedDefs.length - 1,
-    });
-    pinnedOffset += def.width;
+  if (!mobile) {
+    let pinnedOffset = 0;
+    for (const [index, def] of pinnedDefs.entries()) {
+      pinPropsByKey.set(def.key, {
+        isPinned: true,
+        pinnedOffset,
+        isLastPinned: index === pinnedDefs.length - 1,
+      });
+      pinnedOffset += def.width;
+    }
   }
   const pinProps = (key: string): CellPinProps => pinPropsByKey.get(key) ?? {};
 
@@ -3879,24 +4148,336 @@ function useSingleAxisScroll(enabled: boolean) {
 
 // ---- layouts ---------------------------------------------------------------
 
-// When the filters match nothing the table is replaced by the DS `EmptyState`,
-// with a "Clear filters" way out — otherwise the only thing on screen is a
-// header row and no explanation. FLAGGED to Daniel: not designed. It also takes
-// the table's place rather than sitting under its header, because the Table's
-// children are TableRows and an EmptyState among them would break the grid roles.
-const NoResults = ({ onClear }: { onClear: () => void }) => (
+// ---- the table's empty states ----------------------------------------------
+
+// NO MATCH — the "No Objects Match" section, REBUILT 2026-09-09 on the DS
+// `EmptyState` (Daniel: "I decided to use the existing EmptyState component
+// there" — the section's custom bordered-card block from earlier the same day
+// is gone), UPDATED 2026-09-10 to Daniel's copy/state pass: the layer's
+// user-facing name is "schedule horizon" now — "view settings" is gone from
+// every string (the code keeps `viewSettings` for the View-menu state object,
+// which holds more than the horizon). Read off the nodes (14118-59272,
+// 14189-54104, 14189-54588, 14189-55064 + mobile twins; "Max Width" pin 384):
+//
+//   icon    every state icon is REGULAR now (the solid weights are gone —
+//           and regular became EmptyState's default, so no iconPack here):
+//           `bars-filter` for the filters states, `calendar` (was `sliders`)
+//           for the schedule-horizon-only state;
+//   title   "No jobs matching the filters" / "No jobs within the schedule
+//           horizon" (Daniel 2026-09-10: jobs don't "match" a horizon — they
+//           fall inside or outside it);
+//   caption the counts — "N jobs" strong, the words subtle: "N jobs hidden by
+//           filters", "N jobs hidden by schedule horizon", or the combined
+//           "N jobs hidden by filters + N by schedule horizon";
+//   actions subtle/lg — "Clear filters", or "Reset filters" when the view has
+//           locked filters ("Depends if the view has locked filters"), and
+//           "Show settings" (opens the View menu). The combined state shows
+//           BOTH, filters button left — which is what turned EmptyState's
+//           secondary action subtle.
+//
+// Jobs the LOCKED filter hides are not counted here either; a view whose
+// locked filter alone leaves nothing shows NoJobsYet below instead (the
+// Locked "Status" Filter frame 14192-60794: "we treat it as if no objects
+// exist — even though the 'Status' filter is only hiding them").
+interface NoMatchProps {
+  hidden: HiddenCounts;
+  /** The filters button: "Reset filters" with locked filters, else "Clear filters". */
+  viewHasLockedFilters: boolean;
+  onClearFilters: () => void;
+  onShowViewMenu: () => void;
+}
+
+const NoMatch = ({ hidden, viewHasLockedFilters, onClearFilters, onShowViewMenu }: NoMatchProps) => {
+  // The view-settings-ONLY state has its own icon and title; as soon as the
+  // filters hide anything the state is the filters one, schedule horizon or not.
+  const byViewOnly = hidden.user < 1;
+  const filtersAction = {
+    label: viewHasLockedFilters ? "Reset filters" : "Clear filters",
+    onClick: onClearFilters,
+  };
+  const showAction = { label: "Show settings", onClick: onShowViewMenu };
+  return (
+    <div className={styles.noResults}>
+      <EmptyState
+        className={styles.tableEmptyState}
+        icon={byViewOnly ? "calendar" : "bars-filter"}
+        title={byViewOnly ? "No jobs within the schedule horizon" : "No jobs matching the filters"}
+        caption={
+          byViewOnly ? (
+            <>
+              <strong>{countLabel(hidden.view)}</strong> hidden by schedule horizon
+            </>
+          ) : hidden.view > 0 ? (
+            <>
+              <strong>{countLabel(hidden.user)}</strong> hidden by filters + <strong>{hidden.view}</strong> by
+              schedule horizon
+            </>
+          ) : (
+            <>
+              <strong>{countLabel(hidden.user)}</strong> hidden by filters
+            </>
+          )
+        }
+        // Combined: filters button LEFT of Show settings (node 14189-55064) —
+        // the secondary slot is the left one.
+        secondaryAction={!byViewOnly && hidden.view > 0 ? filtersAction : undefined}
+        primaryAction={byViewOnly || hidden.view > 0 ? showAction : filtersAction}
+      />
+    </div>
+  );
+};
+
+// NO OBJECTS EXIST — the "No Objects Exist" section (14192-55585) and the
+// Locked "Status" Filter frames (14192-60794 / 14192-61579): the DS
+// `EmptyState`, centered in the table area. Shown when the view has NOTHING
+// to offer before the counted layers — no jobs in the system, or a view whose
+// locked Status filter matches none ("Once we build the 'View' functionality,
+// this state won't exist. Until then, we treat it as if no objects exist").
+// The locked chip stays in the filter bar in that case.
+//
+// The node's content, with the "[objects]" placeholders filled for jobs: the
+// icon is "the object icon from the SidebarNav" (`semanticIcons.job`), title
+// "No jobs", caption "There are no jobs here yet" (Daniel fixed the template's
+// grammar in Figma, 2026-09-09), the "Create job" primary action with the
+// `plus` icon (REGULAR, like every state icon since 2026-09-10 — the Button's
+// Icon default). Create job goes nowhere in this prototype — no create flow —
+// which Daniel OK'd.
+const NoJobsYet = () => (
   <div className={styles.noResults}>
     <EmptyState
-      icon="bars-filter"
-      title="No jobs match these filters"
-      caption="Change or clear the filters to see jobs here."
-      primaryAction={{ label: "Clear filters", leftIcon: "xmark", onClick: onClear }}
+      className={styles.tableEmptyState}
+      icon={semanticIcons.job}
+      title="No jobs"
+      caption="There are no jobs here yet"
+      primaryAction={{ label: "Create job", leftIcon: "plus", onClick: noop }}
     />
   </div>
 );
 
+// NO SEARCH RESULTS — the "Search" section (14205-65621), UPDATED 2026-09-10
+// to Daniel's copy/state pass. Both states are the EmptyState with a REGULAR
+// `search` icon (was solid) and the title "No jobs matching the search":
+//
+//   MATCHING SEARCH (frames 14238-36927 / 37395 / 14205-65622 + mobile
+//     twins) — the search DOES match jobs, but the filters and/or schedule
+//     horizon hide them. The caption is a full sentence now — "N jobs match
+//     the search but are hidden by filters + N by schedule horizon" (it
+//     replaced "N matching jobs hidden by …"; Daniel's fix for the title
+//     saying "no jobs match" while the caption counted matches) — and each
+//     part shows ONLY when that layer hides matches. Only the Ns are strong
+//     here (the nodes bold the bare number, not "N jobs" — unlike the No
+//     Match captions). The actions follow the same per-layer rule: "Clear
+//     filters" (locked-view label rule applies — its annotation's "Reset" is
+//     the settled "Reset filters", per the bar's 2026-09-09 naming) and
+//     "Show settings". NO "Clear search" here — the search field sits open
+//     in the bar with its own clear.
+//   NO MATCH (frames 14235-22441 / 22449) — nothing matches anywhere in the
+//     view's world: caption "No jobs exist that match the search" (was "Try
+//     another search"), one subtle "Clear search".
+interface NoSearchResultsProps {
+  /** MATCHING jobs hidden per layer — the search-aware counts. */
+  hidden: HiddenCounts;
+  viewHasLockedFilters: boolean;
+  onClearFilters: () => void;
+  onShowViewMenu: () => void;
+  onClearSearch: () => void;
+}
+
+const NoSearchResults = ({
+  hidden,
+  viewHasLockedFilters,
+  onClearFilters,
+  onShowViewMenu,
+  onClearSearch,
+}: NoSearchResultsProps) => {
+  const byFilters = hidden.user > 0;
+  const byView = hidden.view > 0;
+  const filtersAction = {
+    label: viewHasLockedFilters ? "Reset filters" : "Clear filters",
+    onClick: onClearFilters,
+  };
+  const showAction = { label: "Show settings", onClick: onShowViewMenu };
+  return (
+    <div className={styles.noResults}>
+      <EmptyState
+        className={styles.tableEmptyState}
+        icon="search"
+        title="No jobs matching the search"
+        caption={
+          // The node's template is plural ("N [object]s match … are hidden");
+          // the singular is the same small grammar fix the copy takes
+          // everywhere else ("1 job matches … is hidden").
+          byFilters && byView ? (
+            <>
+              <strong>{hidden.user}</strong>{" "}
+              {hidden.user === 1 ? "job matches the search but is" : "jobs match the search but are"} hidden by
+              filters + <strong>{hidden.view}</strong> by schedule horizon
+            </>
+          ) : byFilters ? (
+            <>
+              <strong>{hidden.user}</strong>{" "}
+              {hidden.user === 1 ? "job matches the search but is" : "jobs match the search but are"} hidden by
+              filters
+            </>
+          ) : byView ? (
+            <>
+              <strong>{hidden.view}</strong>{" "}
+              {hidden.view === 1 ? "job matches the search but is" : "jobs match the search but are"} hidden by
+              schedule horizon
+            </>
+          ) : (
+            "No jobs exist that match the search"
+          )
+        }
+        // Filters button LEFT of Show settings when both show — the No Match
+        // family's arrangement, which the section's frames repeat.
+        secondaryAction={byFilters && byView ? filtersAction : undefined}
+        primaryAction={
+          byView ? showAction : byFilters ? filtersAction : { label: "Clear search", onClick: onClearSearch }
+        }
+      />
+    </div>
+  );
+};
+
+// ---- the Hidden Data Bar ----------------------------------------------------
+
+// The "Hidden Data Bar" — the "Partially Hidden Objects" section (14189-49658,
+// updated 2026-09-09; it superseded the states boards 14178-47650 /
+// 14178-47306 and the first draft 14113-54698 / 14113-54705). The placement
+// rule holds: after the table's scroll container, "fixed at the bottom of the
+// list" — and the bar exists only while the table SHOWS something; with every
+// row hidden the No Match state takes over (see NoMatch below). Every state
+// is the DS Divider (medium) over a 40px centered row of caption text (13/20,
+// the numbers strong 500, the words subtle 400) and ghost/sm Buttons; no fill
+// of its own.
+//
+// Jobs the LOCKED status filter hides are NOT counted (the Locked "Status"
+// Filter frame's annotation, 14192-61579: "the objects hidden by the locked
+// 'Status' filter does not count. The default view with a single locked
+// 'Status' filter doesn't have 'hidden object' bar") — so the bar measures
+// the APPLIED filters and the schedule horizon only, and the old locked-only
+// state is gone. The states, each with its node's annotation:
+//
+//   applied filters        "N jobs hidden by filters" + a button that
+//                          "Depends if the view has locked filters"
+//                          (14186-49625): "Clear filters" on a view without
+//                          locked filters (14113-55510, "Removes all the
+//                          applied filters"), "Reset filters" on a view WITH
+//                          them (14186-48271, "Removes all the filters
+//                          applied by the user" — the locked one stays);
+//   schedule horizon only  "N jobs hidden by schedule horizon" + "Show
+//                          settings" (14186-48783; the button "Opens the
+//                          'View' menu". "Relevant to 'Jobs' only" — which
+//                          this page is);
+//   filters + horizon      DESKTOP (14186-49251): both groups side by side,
+//                          16px apart — "N jobs hidden by filters" + its
+//                          button and "+N by schedule horizon" + "Show
+//                          settings". MOBILE (14186-49261): ONE compact line,
+//                          no buttons — "N jobs hidden by filters + N by
+//                          schedule horizon".
+//
+// "Reset filters" and "Clear filters" are the same write — the selection
+// empties; the locked filter never lives in the selection, so it survives by
+// construction. "Show settings" opens the View menu, wired through the
+// shells.
+//
+// NAMING SETTLED (Daniel, 2026-09-09): "Reset filters" is intentional — it
+// superseded the plain "Reset" he asked for earlier the same day. ("Show"
+// grew to "Show settings" in the same update.) COPY RENAMED 2026-09-10:
+// "view settings" became "schedule horizon" in every user-facing string,
+// bar and empty states alike (the article rule Daniel settled the same day:
+// "by + mechanism" takes no article — "hidden by filters" / "by schedule
+// horizon" — while descriptive phrases keep "the" — "matching the filters",
+// "within the schedule horizon").
+
+/** The bar's two counted layers, each measured against the layer before it. */
+interface HiddenCounts {
+  /** Hidden by the USER's applied filters (out of what the locked view shows). */
+  user: number;
+  /** Hidden by the View menu's Schedule horizon window (out of what the filters show). */
+  view: number;
+}
+
+interface HiddenDataBarProps {
+  hidden: HiddenCounts;
+  /** Picks the filters button: "Reset filters" with locked filters, else "Clear filters". */
+  viewHasLockedFilters: boolean;
+  /** The combined state collapses to the compact buttonless line on mobile. */
+  mobile?: boolean;
+  onClearFilters: () => void;
+  onShowViewMenu: () => void;
+}
+
+const HiddenDataBar = ({ hidden, viewHasLockedFilters, mobile = false, onClearFilters, onShowViewMenu }: HiddenDataBarProps) => {
+  if (hidden.user < 1 && hidden.view < 1) return null;
+
+  const filtersGroup = hidden.user > 0 && (
+    <span className={styles.hiddenBarGroup}>
+      <p className={styles.hiddenBarText}>
+        {/* countLabel — "1 job" / "13 jobs", the same copy the option rows use. */}
+        <strong>{countLabel(hidden.user)}</strong> hidden by filters
+      </p>
+      <Button variant="ghost" size="sm" onClick={onClearFilters}>
+        {viewHasLockedFilters ? "Reset filters" : "Clear filters"}
+      </Button>
+    </span>
+  );
+
+  const showButton = (
+    <Button variant="ghost" size="sm" onClick={onShowViewMenu}>
+      Show settings
+    </Button>
+  );
+
+  return (
+    <div className={styles.hiddenBar}>
+      <Divider contrast="medium" />
+      <div className={styles.hiddenBarRow}>
+        {hidden.user > 0 && hidden.view > 0 ? (
+          mobile ? (
+            // The compact combined line — "no buttons" is its annotation.
+            <p className={styles.hiddenBarText}>
+              <strong>{countLabel(hidden.user)}</strong> hidden by filters +{" "}
+              <strong>{hidden.view}</strong> by schedule horizon
+            </p>
+          ) : (
+            <>
+              {filtersGroup}
+              <span className={styles.hiddenBarGroup}>
+                <p className={styles.hiddenBarText}>
+                  <strong>+{hidden.view}</strong> by schedule horizon
+                </p>
+                {showButton}
+              </span>
+            </>
+          )
+        ) : hidden.user > 0 ? (
+          filtersGroup
+        ) : (
+          <span className={styles.hiddenBarGroup}>
+            <p className={styles.hiddenBarText}>
+              <strong>{countLabel(hidden.view)}</strong> hidden by schedule horizon
+            </p>
+            {showButton}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface ShellProps {
   jobs: Job[];
+  /** The Hidden Data Bar's three layers — see `HiddenCounts`. */
+  hidden: HiddenCounts;
+  /** The SEARCH emptied an otherwise non-empty table — its own empty state. */
+  searchEmptied: boolean;
+  /** MATCHING jobs the filters / schedule horizon hide from the empty search. */
+  searchHidden: HiddenCounts;
+  /** The view bar's keyword search — per view, applied after everything else. */
+  search: string;
+  onSearchChange: (next: string) => void;
   /** The active branch (phase) — Open or Closed. */
   branch: BranchId;
   onBranchChange: (next: BranchId) => void;
@@ -3918,6 +4499,11 @@ interface ShellProps {
 
 const DesktopShell = ({
   jobs,
+  hidden,
+  searchEmptied,
+  searchHidden,
+  search,
+  onSearchChange,
   branch,
   onBranchChange,
   tab,
@@ -3930,46 +4516,98 @@ const DesktopShell = ({
   onSortSet,
   viewSettings,
   onViewSettingsChange,
-}: ShellProps) => (
-  <div className={styles.desktop}>
-    <Sidebar />
-    <div className={styles.workArea}>
-      <TopBar branch={branch} onBranchChange={onBranchChange} />
-      <DesktopViewBar
-        branch={branch}
-        tab={tab}
-        onTabChange={onTabChange}
-        selection={selection}
-        onSelectionChange={onSelectionChange}
-        viewSettings={viewSettings}
-        onViewSettingsChange={onViewSettingsChange}
-        sort={sort}
-        onSortChange={onSortSet}
-      />
-      {/* Only rendered while the view locks a status or something is applied. */}
-      <FilterBar
-        defs={FILTERS_BY_BRANCH[branch]}
-        lockedStatuses={lockedStatuses}
-        selection={selection}
-        onSelectionChange={onSelectionChange}
-      />
-      {/* The Table is its own scroll container (that is what lets its header
-          stick), so it replaces the page ScrollArea rather than nesting in one. */}
-      <div className={styles.mainArea}>
-        {jobs.length > 0 ? <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} /> : <NoResults onClear={() => onSelectionChange([])} />}
+}: ShellProps) => {
+  // The Hidden Data Bar's "Show" opens the View menu, which the view bar owns
+  // — an incrementing SIGNAL, not a boolean, so pressing Show again after the
+  // menu was dismissed re-opens it.
+  const [viewMenuSignal, setViewMenuSignal] = useState(0);
+
+  return (
+    <div className={styles.desktop}>
+      <Sidebar />
+      <div className={styles.workArea}>
+        <TopBar branch={branch} onBranchChange={onBranchChange} />
+        <DesktopViewBar
+          branch={branch}
+          tab={tab}
+          onTabChange={onTabChange}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
+          viewSettings={viewSettings}
+          onViewSettingsChange={onViewSettingsChange}
+          sort={sort}
+          onSortChange={onSortSet}
+          openViewMenuSignal={viewMenuSignal}
+          search={search}
+          onSearchChange={onSearchChange}
+        />
+        {/* Only rendered while the view locks a status or something is applied. */}
+        <FilterBar
+          defs={FILTERS_BY_BRANCH[branch]}
+          lockedStatuses={lockedStatuses}
+          selection={selection}
+          onSelectionChange={onSelectionChange}
+          scheduleHorizon={horizonOf(viewSettings)}
+          onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+        />
+        {/* The Table is its own scroll container (that is what lets its header
+            stick), so it replaces the page ScrollArea rather than nesting in one.
+            EMPTY, it holds the No Match block when the counted layers hid
+            everything, and the NoJobsYet EmptyState when the view had nothing
+            to begin with (no jobs, or a locked filter matching none). */}
+        <div className={styles.mainArea}>
+          {jobs.length > 0 ? (
+            <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} />
+          ) : searchEmptied ? (
+            <NoSearchResults
+              hidden={searchHidden}
+              viewHasLockedFilters={lockedStatuses.length > 0}
+              onClearFilters={() => onSelectionChange([])}
+              onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+              onClearSearch={() => onSearchChange("")}
+            />
+          ) : hidden.user > 0 || hidden.view > 0 ? (
+            <NoMatch
+              hidden={hidden}
+              viewHasLockedFilters={lockedStatuses.length > 0}
+              onClearFilters={() => onSelectionChange([])}
+              onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+            />
+          ) : (
+            <NoJobsYet />
+          )}
+        </div>
+        {/* AFTER the scroll container, so it stays put at the bottom while the
+            table scrolls — the annotation's "Fixed at the bottom of the list".
+            Only while the table SHOWS rows: empty, the No Match block above
+            carries the counts instead. */}
+        {jobs.length > 0 && (
+          <HiddenDataBar
+            hidden={hidden}
+            viewHasLockedFilters={lockedStatuses.length > 0}
+            onClearFilters={() => onSelectionChange([])}
+            onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+          />
+        )}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // No filter bar on mobile (the node has none): the tab Button shows the tab and
 // the Filters button shows how many of the user's filters are on.
 const MobileShell = ({
   jobs,
+  hidden,
+  searchEmptied,
+  searchHidden,
+  search,
+  onSearchChange,
   branch,
   onBranchChange,
   tab,
   onTabChange,
+  lockedStatuses,
   selection,
   onSelectionChange,
   sort,
@@ -3980,6 +4618,8 @@ const MobileShell = ({
 }: ShellProps) => {
   // A drag scrolls the table one way at a time — see useSingleAxisScroll.
   const tableRef = useSingleAxisScroll(true);
+  // The Hidden Data Bar's "Show" → the view bar's View drawer (see DesktopShell).
+  const [viewMenuSignal, setViewMenuSignal] = useState(0);
 
   return (
     <div className={styles.mobile}>
@@ -3994,10 +4634,44 @@ const MobileShell = ({
         onViewSettingsChange={onViewSettingsChange}
         sort={sort}
         onSortChange={onSortSet}
+        openViewMenuSignal={viewMenuSignal}
+        search={search}
+        onSearchChange={onSearchChange}
       />
       <div className={styles.mainArea} ref={tableRef}>
-        {jobs.length > 0 ? <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} /> : <NoResults onClear={() => onSelectionChange([])} />}
+        {jobs.length > 0 ? (
+          <JobsTable jobs={jobs} columnsState={viewSettings.columns} sort={sort} onSortChange={onSortChange} mobile />
+        ) : searchEmptied ? (
+          <NoSearchResults
+            hidden={searchHidden}
+            viewHasLockedFilters={lockedStatuses.length > 0}
+            onClearFilters={() => onSelectionChange([])}
+            onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+            onClearSearch={() => onSearchChange("")}
+          />
+        ) : hidden.user > 0 || hidden.view > 0 ? (
+          <NoMatch
+            hidden={hidden}
+            viewHasLockedFilters={lockedStatuses.length > 0}
+            onClearFilters={() => onSelectionChange([])}
+            onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+          />
+        ) : (
+          <NoJobsYet />
+        )}
       </div>
+      {/* Between the list and the bottom bar, exactly where the mobile frame
+          draws it (14113-54705) — after the scroll container, so it stays put.
+          Only while the table SHOWS rows — empty, No Match carries the counts. */}
+      {jobs.length > 0 && (
+        <HiddenDataBar
+          hidden={hidden}
+          viewHasLockedFilters={lockedStatuses.length > 0}
+          mobile
+          onClearFilters={() => onSelectionChange([])}
+          onShowViewMenu={() => setViewMenuSignal((n) => n + 1)}
+        />
+      )}
       {/* The bar owns its own home-indicator inset, so the shell reserves none. */}
       <BottomBarNav breakpoint="mobile" className={styles.bottomBar}>
         <BottomBarNavItem icon="house" label="Home" />
@@ -4015,6 +4689,27 @@ const MobileShell = ({
 
 /** One shared empty list, so an untouched tab keeps the same reference. */
 const EMPTY_SELECTION: FilterSelection = [];
+
+// What the view bar's keyword search MATCHES (wired 2026-09-09 — it was
+// display-only): the row's readable text — id, service, client, location
+// (name + address), source (name + reference) and the assignees' names — as a
+// case-insensitive substring. FLAGGED: the field set is my choice, no node
+// names one.
+const searchHaystack = (job: Job) => {
+  const location = locationOf(job);
+  return [
+    job.id,
+    serviceOf(job).name,
+    clientOf(job).name,
+    location.name ?? "",
+    locationAddress(location),
+    sourceOf(job).name,
+    job.sourceRef ?? "",
+    ...assigneesOf(job).map((tech) => tech.name),
+  ]
+    .join(" ")
+    .toLowerCase();
+};
 
 // Two pieces of state live HERE, above both shells, because the view bar writes
 // them and the table reads them:
@@ -4078,25 +4773,76 @@ const Filters = ({ breakpoint = "auto" }: FiltersProps) => {
   const settings = viewSettings[tab] ?? DEFAULT_VIEW_SETTINGS;
   const setSettings = (next: ViewSettings) => setViewSettings((current) => ({ ...current, [tab]: next }));
 
-  const jobs = useMemo(() => {
-    let list = applyFilters(JOBS, filters, selection);
-    // The PHASE always filters — the branch's "All" view lists that phase's
-    // jobs, not everything ("All Open — ... All open jobs are listed", section
-    // 14032-23326). A view with its own locked statuses narrows further.
-    const phase = lockedStatuses.length > 0 ? lockedStatuses : branchStatuses(branch);
-    list = list.filter((job) => phase.includes(job.status));
+  // The view bar's keyword SEARCH, per view like everything else a view owns
+  // (wired 2026-09-09 — it was display-only). FLAGGED: keeping it per tab is
+  // my reading of "a tab is a view"; say the word if a search should clear on
+  // every view switch instead.
+  const [searches, setSearches] = useState<Record<string, string>>({});
+  const search = searches[tab] ?? "";
+  const setSearch = (next: string) => setSearches((current) => ({ ...current, [tab]: next }));
+
+  // The pipeline runs in LAYERS, each measured against the one before, so the
+  // Hidden Data Bar and the No Match state can attribute what hides a job:
+  //
+  //   branch jobs → the view's LOCKED statuses → the USER's filters → the
+  //   View menu's window ("schedule horizon" in the copy).
+  //
+  // Only the LAST TWO are counted (Daniel, 2026-09-09: "We don't show the
+  // objects hidden by locked filter" — the Locked "Status" Filter frames,
+  // 14192-61579: "the objects hidden by the locked 'Status' filter does not
+  // count", so a locked view shows no bar until something ELSE hides). The
+  // BRANCH is page context, not a filter (Daniel confirmed 2026-09-09) — so
+  // closed jobs are never "hidden" on the open page. A job hidden by two
+  // counted layers is counted once, at the first.
+  const { jobs, hidden, searchEmptied, searchHidden } = useMemo(() => {
+    const branchJobs = JOBS.filter((job) => branchStatuses(branch).includes(job.status));
+    const afterLocked =
+      lockedStatuses.length > 0 ? branchJobs.filter((job) => lockedStatuses.includes(job.status)) : branchJobs;
+    const afterFilters = applyFilters(afterLocked, filters, selection);
     // The View menu's "Schedule horizon" window (jobs only). The Figma
     // annotation's rule: N days = through the end of that day, and only
     // FUTURE-scheduled jobs are hidden — unscheduled and past ones stay.
     const windowDays = SCHEDULED_WINDOW_DAYS[settings.scheduledKey] ?? null;
-    if (windowDays != null) {
-      list = list.filter((job) => job.scheduledFor == null || dayOffset(job.scheduledFor) <= windowDays);
+    const afterWindow =
+      windowDays == null
+        ? afterFilters
+        : afterFilters.filter((job) => job.scheduledFor == null || dayOffset(job.scheduledFor) <= windowDays);
+    // The keyword SEARCH is the LAST layer. It narrows the table but not the
+    // Hidden Data Bar — the bar attributes hiding to filters and view
+    // settings, and a search is neither. When the search leaves NOTHING, the
+    // designed Search section takes over (14205-65621, 2026-09-09): the
+    // empty state then counts the MATCHING jobs the filters / schedule horizon
+    // hide — the honest, search-aware numbers, so every count is exactly
+    // what its button would reveal. Locked-hidden matches stay invisible,
+    // the standing rule.
+    const query = search.trim().toLowerCase();
+    const searched = query === "" ? afterWindow : afterWindow.filter((job) => searchHaystack(job).includes(query));
+    let searchHidden: HiddenCounts = { user: 0, view: 0 };
+    if (query !== "" && searched.length === 0) {
+      const matchesQuery = (job: Job) => searchHaystack(job).includes(query);
+      const inLocked = afterLocked.filter(matchesQuery).length;
+      const inFilters = afterFilters.filter(matchesQuery).length;
+      const inWindow = afterWindow.filter(matchesQuery).length;
+      searchHidden = { user: inLocked - inFilters, view: inFilters - inWindow };
     }
-    return sortJobs(list, sort);
-  }, [selection, filters, lockedStatuses, branch, sort, settings.scheduledKey]);
+    return {
+      jobs: sortJobs(searched, sort),
+      hidden: {
+        user: afterLocked.length - afterFilters.length,
+        view: afterFilters.length - afterWindow.length,
+      },
+      searchEmptied: query !== "" && searched.length === 0 && afterWindow.length > 0,
+      searchHidden,
+    };
+  }, [selection, filters, lockedStatuses, branch, sort, settings.scheduledKey, search]);
 
   const shellProps = {
     jobs,
+    hidden,
+    searchEmptied,
+    searchHidden,
+    search,
+    onSearchChange: setSearch,
     branch,
     onBranchChange: setBranch,
     tab,

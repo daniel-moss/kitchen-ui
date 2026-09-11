@@ -25,7 +25,7 @@ export interface TopBarFilterProps {
    */
   onClearAll?: (event: MouseEvent<HTMLButtonElement>) => void;
   /**
-   * Renders the "Reset" button in the right slot (views with fixed
+   * Renders the "Reset" button in the right slot (views with locked
    * filters, once the user has added their own filters). Never together with
    * `onClearAll`.
    */

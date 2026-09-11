@@ -13,6 +13,10 @@ export default function EmptyState({
   caption,
   error = false,
   icon,
+  // "regular" since 2026-09-10 (Daniel, with the Filters states update): every
+  // EmptyState icon in the new boards is regular — the error `circle-xmark`
+  // included — so the old "solid" default flipped.
+  iconPack = "regular",
   slot,
   primaryAction,
   secondaryAction,
@@ -21,7 +25,8 @@ export default function EmptyState({
 }: EmptyStateProps) {
   const topSlot = icon ? (
     <span className={styles.icon}>
-      <Icon icon={icon} pack="solid" size={16} />
+      {/* 20px since 2026-09-09 (was 16 — the component update). */}
+      <Icon icon={icon} pack={iconPack} size={20} />
     </span>
   ) : (
     slot ?? null
@@ -40,13 +45,26 @@ export default function EmptyState({
 
       {hasActions && (
         <div className={styles.actions}>
+          {/* Default SUBTLE since 2026-09-09 (the No Objects Match states,
+              node 14205-65570); per-action `variant` since 2026-09-10 — the
+              FilterChip conflict Hint draws its action GHOST. */}
           {secondaryAction && (
-            <Button size="lg" variant="ghost" leftIcon={secondaryAction.leftIcon} onClick={secondaryAction.onClick}>
+            <Button
+              size="lg"
+              variant={secondaryAction.variant ?? "subtle"}
+              leftIcon={secondaryAction.leftIcon}
+              onClick={secondaryAction.onClick}
+            >
               {secondaryAction.label}
             </Button>
           )}
           {primaryAction && (
-            <Button size="lg" variant="subtle" leftIcon={primaryAction.leftIcon} onClick={primaryAction.onClick}>
+            <Button
+              size="lg"
+              variant={primaryAction.variant ?? "subtle"}
+              leftIcon={primaryAction.leftIcon}
+              onClick={primaryAction.onClick}
+            >
               {primaryAction.label}
             </Button>
           )}

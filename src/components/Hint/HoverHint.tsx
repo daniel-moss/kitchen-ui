@@ -11,6 +11,14 @@ export type HintPosition = "top" | "bottom" | "left" | "right";
 interface HoverHintProps extends Pick<HintProps, "state" | "indicator" | "title" | "caption"> {
   /** The trigger — usually a HintTrigger. */
   children: ReactNode;
+  /**
+   * Free-slot content — the Hint's slot variant, replacing title/caption
+   * (e.g. the FilterChip conflict hint's EmptyState). With `content` set the
+   * desktop bubble becomes INTERACTIVE: it accepts the pointer, and hiding
+   * gets a short grace period so the pointer can travel from the trigger
+   * into the bubble (to reach a button inside).
+   */
+  content?: ReactNode;
   /** Hint side relative to the trigger. Default "top" (pops up on top). */
   position?: HintPosition;
   /**
@@ -44,6 +52,7 @@ const TONGUE_INSET = 18;
 // into a drawer, opened by tapping the trigger. See the Hint documentation.
 export default function HoverHint({
   children,
+  content,
   position = "top",
   align = "center",
   width = 320,
@@ -61,12 +70,33 @@ export default function HoverHint({
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Interactive bubbles (`content`) hide on a short grace period, so the
+  // pointer can cross the 10px gap into the bubble without closing it.
+  const hideTimer = useRef<number | null>(null);
+  const cancelHide = () => {
+    if (hideTimer.current != null) {
+      window.clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+    }
+  };
 
   const show = () => {
+    cancelHide();
     const el = ref.current;
     if (el != null) setAnchor(el.getBoundingClientRect());
   };
-  const hide = () => setAnchor(null);
+  const hide = () => {
+    cancelHide();
+    setAnchor(null);
+  };
+  const hideSoon = () => {
+    if (content == null) {
+      hide();
+      return;
+    }
+    cancelHide();
+    hideTimer.current = window.setTimeout(() => setAnchor(null), 150);
+  };
   // Keyboard focus only — a click also focuses, and on touch the hint would
   // stay stuck with no hover to end it.
   const showOnKeyboardFocus = (e: React.FocusEvent) => {
@@ -78,7 +108,14 @@ export default function HoverHint({
   const bubbleStyle = (r: DOMRect): CSSProperties => {
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
-    const style: CSSProperties = { position: "fixed", width, zIndex: "var(--z-tooltip)" as never, pointerEvents: "none" };
+    const style: CSSProperties = {
+      position: "fixed",
+      width,
+      zIndex: "var(--z-tooltip)" as never,
+      // A plain text hint never takes the pointer; an interactive one
+      // (`content` — it can hold buttons) must.
+      pointerEvents: content == null ? "none" : "auto",
+    };
     if (position === "top" || position === "bottom") {
       style.left = align === "start" ? cx - TONGUE_INSET : align === "center" ? cx - width / 2 : cx + TONGUE_INSET - width;
       // Anchor with top + translateY(-100%), never `bottom: innerHeight - …`:
@@ -113,9 +150,14 @@ export default function HoverHint({
         }}
       >
         {children}
-        {drawerOpen && (
-          <Hint variant="drawer" state={state} indicator={indicator} title={title} caption={caption} onClose={() => setDrawerOpen(false)} />
-        )}
+        {drawerOpen &&
+          (content != null ? (
+            <Hint variant="drawer" state={state} onClose={() => setDrawerOpen(false)}>
+              {content}
+            </Hint>
+          ) : (
+            <Hint variant="drawer" state={state} indicator={indicator} title={title} caption={caption} onClose={() => setDrawerOpen(false)} />
+          ))}
       </span>
     );
   }
@@ -126,22 +168,33 @@ export default function HoverHint({
       className={className}
       style={{ display: "inline-flex" }}
       onMouseEnter={canHover ? show : undefined}
-      onMouseLeave={canHover ? hide : undefined}
+      onMouseLeave={canHover ? hideSoon : undefined}
       onFocus={showOnKeyboardFocus}
       onBlur={hide}
     >
       {children}
       {anchor != null &&
         createPortal(
-          <div style={bubbleStyle(anchor)}>
-            <Hint
-              state={state}
-              indicator={indicator}
-              title={title}
-              caption={caption}
-              tongue={TONGUE_FOR_POSITION[position]}
-              tongueAlignment={align}
-            />
+          <div
+            style={bubbleStyle(anchor)}
+            // Keep an interactive bubble open while the pointer is inside it.
+            onMouseEnter={content != null ? cancelHide : undefined}
+            onMouseLeave={content != null ? hideSoon : undefined}
+          >
+            {content != null ? (
+              <Hint state={state} tongue={TONGUE_FOR_POSITION[position]} tongueAlignment={align}>
+                {content}
+              </Hint>
+            ) : (
+              <Hint
+                state={state}
+                indicator={indicator}
+                title={title}
+                caption={caption}
+                tongue={TONGUE_FOR_POSITION[position]}
+                tongueAlignment={align}
+              />
+            )}
           </div>,
           document.body,
         )}

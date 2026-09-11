@@ -522,7 +522,12 @@ export default function ViewMenu({
               {pinned.map(columnRow)}
             </ItemGroup>
           )}
-          {pinned.length > 0 && <UnpinnedDivider />}
+          {/* Mobile has no pin functionality (the rows already hide the pin
+              button), so it gets no "Unpinned" divider either (Daniel,
+              2026-09-10). The two regions render as one continuous list —
+              drags still stay within their region, so a phone can never
+              change the desktop's pinned set. */}
+          {pinned.length > 0 && !mobile && <UnpinnedDivider />}
           <ItemGroup onReorder={reorder(unpinned, (next) => onColumnsStateChange({ ...columnsState, unpinned: next }))}>
             {unpinned.map(columnRow)}
           </ItemGroup>

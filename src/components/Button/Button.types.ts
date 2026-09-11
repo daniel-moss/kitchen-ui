@@ -3,7 +3,7 @@ import { ButtonHTMLAttributes, MouseEvent } from "react";
 import { IconPack } from "../Icon/Icon.types";
 import { Size } from "../../types";
 
-type ButtonVariant = "solid" | "subtle" | "ghost" | "danger";
+export type ButtonVariant = "solid" | "subtle" | "ghost" | "danger";
 
 type OnClickEvent = (event: MouseEvent<HTMLButtonElement>) => void;
 

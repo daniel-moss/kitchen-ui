@@ -255,6 +255,23 @@ function Drawer({
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Is any scroll container between `target` and the sheet's body scrolled
+  // DOWN? Such a NESTED scroller still owns downward drags — it can scroll
+  // back up — so the sheet must not dismiss on them. The body's own scrollTop
+  // is not enough: the Timeframe dialog's Month/Year period list is its own
+  // scroller inside a non-scrolling body, and it OPENS scrolled to the
+  // current period, so every downward drag dismissed the dialog instead of
+  // scrolling the list (Daniel, 2026-09-09).
+  const nestedScrolledDown = (target: EventTarget | null): boolean => {
+    let el = target instanceof Element ? target : null;
+    const body = bodyRef.current;
+    while (el != null && el !== body) {
+      if (el.scrollTop > 0) return true;
+      el = el.parentElement;
+    }
+    return false;
+  };
+
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     // React events bubble through the React TREE, not the DOM — a drawer opened
     // from inside another drawer (e.g. a SelectList/DatePicker over this form) is
@@ -263,11 +280,12 @@ function Drawer({
     e.stopPropagation();
     if (!dismissible) return; // no swipe-to-dismiss (e.g. a Prompt)
     // A drag that STARTS inside the scrolling body may only dismiss when the
-    // body is at the top (so the list scrolls first, then hands off). A drag
-    // from the header/handle (outside the body) always arms — you can pull the
-    // sheet down by its handle even when the list is scrolled down.
+    // body — and every nested scroller under the finger — is at the top (so
+    // the list scrolls first, then hands off). A drag from the header/handle
+    // (outside the body) always arms — you can pull the sheet down by its
+    // handle even when the list is scrolled down.
     const inBody = bodyRef.current?.contains(e.target as Node) ?? false;
-    armed.current = !inBody || (bodyRef.current?.scrollTop ?? 0) <= 0;
+    armed.current = !inBody || ((bodyRef.current?.scrollTop ?? 0) <= 0 && !nestedScrolledDown(e.target));
     startY.current = e.clientY;
     dragYRef.current = 0;
   };
@@ -280,12 +298,16 @@ function Drawer({
     const el = bodyRef.current;
     if (el == null || !dismissible) return;
     let touchStartY = 0;
+    let touchTarget: EventTarget | null = null;
     const onTouchStart = (e: TouchEvent) => {
       touchStartY = e.touches[0]?.clientY ?? 0;
+      touchTarget = e.target;
     };
     const onTouchMove = (e: TouchEvent) => {
       const dy = (e.touches[0]?.clientY ?? 0) - touchStartY;
-      if (draggingRef.current || (el.scrollTop <= 0 && dy > 0)) e.preventDefault();
+      // A nested scroller that is scrolled down keeps its native scroll — the
+      // same rule the arming follows (see nestedScrolledDown above).
+      if (draggingRef.current || (el.scrollTop <= 0 && dy > 0 && !nestedScrolledDown(touchTarget))) e.preventDefault();
     };
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });

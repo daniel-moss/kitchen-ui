@@ -7,17 +7,20 @@
   src: url("../assets/fonts/InterVariable.woff2") format("woff2");
 }
 
-/* Font Awesome Pro, used by the Icon component (rendered by codepoint) */
+/* Font Awesome Pro, used by the Icon component (rendered by codepoint).
+   The woff2 files come from the kit ca85bd147f web download (webfonts/) —
+   refresh them together with icons-glyphs.css:
+   node scripts/generate-icon-glyphs.mjs <kit folder> */
 @font-face {
   font-family: "FA Classic";
-  src: url("../assets/fonts/fa7-pro-regular.otf") format("opentype");
+  src: url("../assets/fonts/fa-regular-400.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: block;
 }
 @font-face {
   font-family: "FA Classic";
-  src: url("../assets/fonts/fa7-pro-solid.otf") format("opentype");
+  src: url("../assets/fonts/fa-solid-900.woff2") format("woff2");
   font-weight: 900;
   font-style: normal;
   font-display: block;
@@ -26,7 +29,7 @@
 /* Brand pack (FA Brands) */
 @font-face {
   font-family: "FA Brands";
-  src: url("../assets/fonts/fa7-brands.otf") format("opentype");
+  src: url("../assets/fonts/fa-brands-400.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: block;

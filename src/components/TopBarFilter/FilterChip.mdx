@@ -7,9 +7,9 @@ import { FigmaLinks } from "../../stories/FigmaLinks";
 
 # FilterChip
 
-We use **FilterChip** to show one applied filter as a 'property – condition –
-value' expression. Users can change the condition and the value in place, or
-remove the filter.
+**FilterChip** shows one applied filter as a 'property – condition – value'
+expression. Users adjust the condition and the value in place, or remove the
+filter.
 
 <FigmaLinks
   component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=29544-9195"
@@ -32,90 +32,88 @@ remove the filter.
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Chip container](#chip-container)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Content box](#content-box)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Content boxes](#content-boxes)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Remove" box](#remove-box)<br />
 ↳&nbsp;&nbsp;[Behavior](#behavior)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Content box](#content-box-1)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Interactivity](#interactivity)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Property" box](#property-box)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Condition" box](#condition-box)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Value" box](#value-box)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Remove" box](#remove-box-1)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Fixed filter](#fixed-filter)<br />
+↳&nbsp;&nbsp;[Locked — isLocked](#locked--islocked)<br />
+↳&nbsp;&nbsp;[Warning — isWarning](#warning--iswarning)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-Supports 2 variants: mobile and desktop. They are identical from a
-functionality perspective but slightly differ visually.
+Supports 2 variants: desktop and mobile. They are functionally identical and
+differ only visually.
 
 ### Chip container
 
+Fixed height. Consists of the "property", "condition", "value" and "remove"
+boxes, separated by
+<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>s
+(vertical, medium contrast). Boxes fill the height. The chip surface is
+`--surface-interactive-default` with a `--border-radius-1_5` (6px) radius and
+the `--box-shadow-xs-down` shadow.
+
 #### Desktop
 
-Fixed height — `--size-8` (32px). Consists of "property", "condition", "value"
-and "remove" boxes separated by a
-<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
-component (vertical, medium contrast). Boxes fill the height. The chip hugs
-the content. "property", "condition" and "value" boxes hug the content as
-well. The "remove" box has a fixed width — `--size-8` (32px). The chip
-surface is `--surface-interactive-default` with a `--border-radius-1_5` (6px)
-radius and the `--box-shadow-xs-down` shadow.
+`--size-8` (32px) tall. The chip hugs its content horizontally, and so do the
+"property", "condition" and "value" boxes. The "remove" box has a fixed
+width — `--size-8` (32px).
 
 <Canvas of={FilterChipStories.ChipContainerDesktop} />
 
 #### Mobile
 
-Fixed height — `--size-9` (36px). Consists of "property", "condition", "value"
-and "remove" boxes separated by a
-<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
-component (vertical, medium contrast). Boxes fill the height. The chip fills
-the width. "property" and "condition" boxes hug the content. "value" box
-fills the width. The "remove" box has a fixed width — `--size-9` (36px). The
-surface is the same as on desktop.
+`--size-9` (36px) tall. The chip fills the width. The "property" and
+"condition" boxes hug their content; the "value" box takes the remaining
+width. The "remove" box has a fixed width — `--size-9` (36px).
 
 <Canvas of={FilterChipStories.ChipContainerMobile} />
 
-### Content box
+### Content boxes
 
-The only difference between the desktop and the mobile versions is the left
-and right padding — `--size-2_5` (10px) on desktop, `--size-3` (12px) on
-mobile.
+The "property", "condition" and "value" boxes share one anatomy — a content
+box. Desktop and mobile differ only in the side paddings — `--size-2_5`
+(10px) on desktop, `--size-3` (12px) on mobile.
 
 <Canvas of={FilterChipStories.ContentBoxPaddings} />
 
-The bare minimum the box can contain is text only. The text is
-`body-400-compact` (Regular 14/20), `--text-strong`.
+At minimum, a content box holds text — `body-400-compact` (Regular 14/20),
+`--text-strong`.
 
 <Canvas of={FilterChipStories.ContentBoxText} />
 
-The box supports a left slot. The left slot supports an
+A content box supports a left slot: an
 <a href="/?path=/story/components-icon--playground" target="_top">Icon</a>
-and an
-<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>.
-The slot sits `--size-2` (8px) before the text.
+or an
+<a href="/?path=/docs/components-avatar-avatar--docs" target="_top">Avatar</a>,
+`--size-2` (8px) before the text.
 
 - Icon: all parameters are flexible; the default is 14px, regular, `--gray-12`;
-- Avatar: the size is fixed — **xs (20px)**. All avatars are supported.
+- Avatar: the size is fixed — **xs (20px)**; every Avatar type is supported.
 
 <Canvas of={FilterChipStories.ContentBoxSlot} />
 
 ### "Remove" box
 
-The only difference between the desktop and the mobile versions is the width —
-`--size-8` (32px) on desktop, `--size-9` (36px) on mobile. The icon is
-identical — `xmark`, 14px, regular, `--gray-a9`.
+Icon-only. Desktop and mobile differ only in the box width — `--size-8`
+(32px) on desktop, `--size-9` (36px) on mobile; the icon is identical —
+`xmark`, 14px, regular, `--gray-a9`.
 
 <Canvas of={FilterChipStories.RemoveBox} />
 
 ## Behavior
 
-### Content box
+### Interactivity
 
-"isClickable" property controls interactivity
-
-In code, a box is interactive when its click handler is set
-(`onConditionClick` / `onValueClick`) — without a handler the box renders
-non-interactive. (The example below is live — hover the clickable box.)
+"isClickable" controls whether a content box is interactive. In code, a box
+is interactive when its click handler is set (`onConditionClick` /
+`onValueClick`) — without a handler the box renders non-interactive. (The
+example below is live — hover the clickable box.)
 
 <Canvas of={FilterChipStories.IsClickable} />
 
@@ -129,41 +127,50 @@ Interaction states:
 
 <Canvas of={FilterChipStories.InteractionStates} />
 
-The content box on the desktop has a max width — 240px. The text truncates if
-it does not fit. If truncated, we show a tooltip with the full value — the
-whole box is the tooltip's trigger. (The example below is live — hover the
-box.)
+A box that opened a list stays pressed while the list is on screen — in code,
+hold `conditionPressed` / `valuePressed` to the list's open state.
+
+<Canvas of={FilterChipStories.PressedWhileOpen} />
+
+On desktop a content box has a max width — 240px: longer text truncates, and
+hovering shows a tooltip with the full value — the whole box is the tooltip's
+trigger. (The example below is live — hover the box.)
 
 <Canvas of={FilterChipStories.MaxWidth} />
 
+On mobile the "value" box label fills the width by default; the text
+truncates if it does not fit.
+
+<Canvas of={FilterChipStories.MobileTruncation} />
+
 #### "Property" box
 
-Usually consists of an icon and text. Non-interactive.
+An icon and text. Never interactive.
 
 <Canvas of={FilterChipStories.PropertyBox} />
 
 #### "Condition" box
 
-Usually consists of text only. It is usually clickable but in fixed filters it
-is not. Usually triggers a
+Text only. Opens a
 <a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>
-with the list of condition options.
+with the condition options. A filter without conditions renders the chip
+without this box — in code, leave `condition` unset.
 
 <Canvas of={FilterChipStories.ConditionBox} />
 
 #### "Value" box
 
-It is usually clickable but in fixed filters with one value it is not.
-Usually triggers either a
+Opens a
 <a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>
-with the list of value options or a
-<a href="/?path=/story/components-dialog--playground" target="_top">Dialog</a>.
+with the value options, or a
+<a href="/?path=/story/components-dialog--playground" target="_top">Dialog</a>
+for custom values.
 
 <Canvas of={FilterChipStories.ValueBox} />
 
 #### "Remove" box
 
-Is clickable. Removes the filter chip from the list.
+Always clickable. Removes the filter chip from the list.
 
 <Canvas of={FilterChipStories.RemoveStates} />
 
@@ -171,26 +178,56 @@ Hovering it triggers a tooltip. (The example below is live — hover the box.)
 
 <Canvas of={FilterChipStories.RemoveTooltip} />
 
-### Fixed filter
+## Locked — isLocked
 
-"isFixed" property controls whether the chip is adjustable. The fixed chip
-doesn't have the "remove" box.
+"isLocked" makes the chip read-only: users can see the applied filter but not
+change it. A locked chip has no "remove" box.
 
-<Canvas of={FilterChipStories.IsFixed} />
+<Canvas of={FilterChipStories.IsLocked} />
 
-The "condition" box is not clickable.
+The "condition" box, when present, is read-only.
 
-<Canvas of={FilterChipStories.FixedCondition} />
+<Canvas of={FilterChipStories.LockedCondition} />
 
-If the "value" box contains one value only, it is not clickable.
+A value from the filter's option list opens a
+<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>:
+the selection first, then the rest of the options. All the items are
+read-only.
 
-<Canvas of={FilterChipStories.FixedValueSingle} />
+<Canvas of={FilterChipStories.LockedValueMultiple} />
 
-If the "value" box contains multiple selected value options, it opens a
-<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>
-with a list of all selected options in `readOnly` state.
+A custom value — one a Dialog would edit — is not clickable.
 
-<Canvas of={FilterChipStories.FixedValueMultiple} />
+<Canvas of={FilterChipStories.LockedValueSingle} />
+
+## Warning — isWarning
+
+"isWarning" marks a chip whose filter conflicts with something outside it —
+for example, a view setting that hides part of what the filter asks for. The
+"property", "condition" and "value" boxes turn the warning color, and the
+chip swaps the "property" slot to the `warning` icon itself (`slotLeft` is
+set aside while it warns). The "remove" box keeps its colors, and the
+interaction states are unchanged — the warning recolors the text only.
+
+<Canvas of={FilterChipStories.IsWarning} />
+
+A default-colored slot icon inherits the warning color. An icon whose color
+was customized keeps its own color in the warning state.
+
+<Canvas of={FilterChipStories.WarningIconColors} />
+
+A warning chip explains the conflict with a
+<a href="/?path=/story/components-hint-hint--playground" target="_top">Hint</a>
+anchored to the "property" box — hovering over (desktop) or tapping on
+(mobile) the box triggers it. In code the content goes in `propertyHint`;
+the bubble stays while the pointer is inside it, so interactive content
+stays reachable. (The example below is live — hover the box.)
+
+<Canvas of={FilterChipStories.WarningHint} />
+
+The Hint on mobile is a drawer. (Live — click the "property" box.)
+
+<Canvas of={FilterChipStories.WarningHintMobile} />
 
 ## Props
 

@@ -61,6 +61,20 @@
   min-width: 0;
 }
 
+// The CONFLICT treatment (Figma section 14101-46526): the content boxes'
+// text — and with it a default-colored slot Icon — turns amber. Fills and
+// dividers stay; the "remove" box never takes this class. The label span
+// (`.copy`) pins its own `--text-strong`, so it needs its own override —
+// inheritance alone only reached the icons (the bug Daniel caught on the
+// doc page, 2026-09-10).
+.warning {
+  color: var(--text-warning);
+
+  .copy {
+    color: var(--text-warning);
+  }
+}
+
 // Interactive box (a <button>). Fills: hover/focus `--gray-a3`, press
 // `--gray-a4` (Daniel, 2026-09-08 — stepped up from the a2/a3 the Figma parts
 // node 29544-9456 draws; the node needs updating); focus = a 2px `--gray-12`

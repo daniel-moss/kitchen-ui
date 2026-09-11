@@ -177,6 +177,24 @@ export interface FilterDef {
    */
   matchMode?: boolean;
   /**
+   * This OPTIONS filter holds ONE option at a time — the Type section's
+   * annotation (desktop node 14101-53834, 2026-09-09): "Single-select filter.
+   * Only one option might be selected at a time." Its rows are single-select
+   * (no checkboxes; the picked row shows the right check), picking REPLACES
+   * the pick and closes the list, and the mobile drawer has no Apply bar —
+   * the pick is the decision, the same rule the date and duration lists
+   * follow. Unlike those, there is no "Custom..." row behind it. Only Type
+   * is on it.
+   */
+  singleSelect?: boolean;
+  /**
+   * WINDOW presets for a date filter — see `SCHEDULED_WINDOWS`. Set only on
+   * Scheduled for; unset means the shared past-anchored `DATE_PRESETS` with
+   * the after/before pair. A window-preset VALUE has no condition, which is
+   * what drops the list's header chips and the chip's condition box.
+   */
+  dateWindows?: DateWindowPreset[];
+  /**
    * An option that stands for the ABSENCE of a value and can only be used
    * ALONE — Labels' "No labels" row (documented section 13999-17090; the
    * annotation on the list's first row: "Selecting this option unselects all
@@ -600,6 +618,47 @@ export const DATE_PRESETS: { id: string; label: string; days: number }[] = [
   { id: "1y", label: "1 year ago", days: 365 },
 ];
 
+/** One forward WINDOW: day offsets from TODAY, both ends inclusive. */
+export interface DateWindowPreset {
+  id: string;
+  label: string;
+  /**
+   * ABSENT on the one row that stands for NO date at all — "Not scheduled"
+   * (the updated list's first row, 2026-09-09). Every real window has both.
+   */
+  from?: number;
+  to?: number;
+}
+
+/**
+ * Scheduled for's presets — WINDOWS, not the shared past-anchored list (the
+ * updated section 14101-46526, 2026-09-09; it replaced the "1 day ago …"
+ * copy this filter inherited, which could never say "next week"). The edges
+ * are Daniel's rule: "from today + N days; Tomorrow is tomorrow only" — so
+ * "Next N days" runs today through the END of today+N (the same counting the
+ * View menu's horizon documents), Today is day 0 alone and Tomorrow day 1
+ * alone.
+ *
+ * A window is a COMPLETE answer, so a value holding one has NO condition:
+ * the list draws no condition chips (no header at all) and the chip renders
+ * without its condition box (the FilterChip `condition=false` variant).
+ * The Custom dialog is unchanged — a custom value keeps the dialog's own
+ * conditions ("after · Jan 1", the section's second chip example).
+ */
+export const SCHEDULED_WINDOWS: DateWindowPreset[] = [
+  // "Not scheduled" FIRST (added in the 2026-09-09 list update) — the row for
+  // jobs with NO scheduled date at all, which closed the old flag about them
+  // matching nothing. Single-select like every preset, so it needs none of
+  // Labels' exclusive machinery.
+  { id: "none", label: "Not scheduled" },
+  { id: "today", label: "Today", from: 0, to: 0 },
+  { id: "tomorrow", label: "Tomorrow", from: 1, to: 1 },
+  { id: "next3", label: "Next 3 days", from: 0, to: 3 },
+  { id: "next7", label: "Next 7 days", from: 0, to: 7 },
+  { id: "next14", label: "Next 14 days", from: 0, to: 14 },
+  { id: "next30", label: "Next 30 days", from: 0, to: 30 },
+];
+
 const PRESET_BY_ID = new Map(DATE_PRESETS.map((preset) => [preset.id, preset]));
 
 /** "2026-08-17" → the day offset from TODAY, the same scale as `dayOffset`. */
@@ -629,6 +688,44 @@ const periodEndIso = (iso: string, timeframe: DateTimeframe) => {
  */
 export const formatChipDate = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+/**
+ * The LAST day (offset from today, `dayOffset` scale) a "Scheduled for" value
+ * can match — the schedule-horizon CONFLICT rule (Figma section 14101-46526,
+ * agreed with Daniel 2026-09-10). Returns:
+ *   `false`  — the value can never reach beyond a horizon ("Not scheduled",
+ *              no date picked): never warn;
+ *   `null`   — no end at all (an open "after"): warns against EVERY finite
+ *              horizon;
+ *   a number — the value's last matching day: warns when it is beyond the
+ *              horizon's last day.
+ * Mirrors `dateFilter`'s matching exactly — "before X" ends the day before X,
+ * "on"/"within" end at their period's last day (month/year expanded).
+ */
+export function scheduledValueEnd(date: DateValue | null | undefined): number | null | false {
+  if (date == null) return false;
+  if (date.preset != null) {
+    const window = SCHEDULED_WINDOWS.find((w) => w.id === date.preset);
+    // "Not scheduled" (a windowless preset) matches only unscheduled jobs,
+    // which the horizon never hides.
+    if (window == null || window.from == null || window.to == null) return false;
+    return window.to;
+  }
+  if (date.from == null) return false;
+  const timeframe = date.timeframe ?? "day";
+  const startOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodStartIso(iso, timeframe));
+  const endOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodEndIso(iso, timeframe));
+  if (isDateRange(date)) return date.to == null ? false : endOf(date.to);
+  switch (date.compare) {
+    case "before":
+      return startOf(date.from) - 1;
+    case "after":
+      return null;
+    // "on" — the day, or the whole month / year it falls in.
+    default:
+      return endOf(date.from);
+  }
+}
 
 /**
  * "Jan 1, 2027" — the Custom dialog's footer, which shows the picked date next
@@ -681,20 +778,38 @@ export const formatValueEnd = (date: DateValue, iso: string) => {
  *   after N days ago  = received later than that day   → before = on it or earlier
  *   within [from, to] = received on or between the two → outside = neither
  */
-function dateFilter(read: (job: Job) => string | null): { options: FilterOption[]; matches: FilterDef["matches"] } {
+function dateFilter(
+  read: (job: Job) => string | null,
+  /** WINDOW presets instead of the shared past-anchored list — Scheduled for. */
+  windows?: DateWindowPreset[],
+): { options: FilterOption[]; matches: FilterDef["matches"] } {
   return {
-    options: DATE_PRESETS.map((preset) => ({ id: preset.id, label: preset.label })),
+    options: (windows ?? DATE_PRESETS).map((preset) => ({ id: preset.id, label: preset.label })),
     matches: (job, value) => {
       const date = value.date;
       if (date == null) return true;
       const iso = read(job);
-      // A job with NOTHING in this field matches nothing — only Scheduled for
-      // can be empty, and "after 1 week ago" cannot be true of a job that has
-      // no scheduled date. The old bucket list had a "Not scheduled" row for
-      // those; the timeframe list has no equivalent. FLAGGED, twice over: the
-      // row is gone, and `applyFilters` FLIPS this false for the negative half
-      // ("before"), so an unscheduled job shows up under every "before" /
-      // "outside" condition. The node does not say which way is meant.
+      // A WINDOW preset first, BEFORE the no-date bail: "Not scheduled" (the
+      // windowless row, first in the 2026-09-09 list update) is exactly the
+      // jobs with nothing in this field. A real window is a whole range, both
+      // ends inclusive — "Next 7 days" = today through the end of today+7
+      // (Daniel: "from today + N days; Tomorrow is tomorrow only"). Window
+      // values never flip: there is no condition on them.
+      if (date.preset != null) {
+        const window = windows?.find((w) => w.id === date.preset);
+        if (window != null) {
+          if (window.from == null || window.to == null) return iso == null;
+          if (iso == null) return false;
+          const dayOff = dayOffset(iso);
+          return dayOff >= window.from && dayOff <= window.to;
+        }
+      }
+      // A job with NOTHING in this field matches nothing else — "after 1 week
+      // ago" cannot be true of a job that has no date. (The old flag about
+      // unscheduled jobs having no row is RESOLVED by "Not scheduled" above;
+      // what remains: `applyFilters` FLIPS this false for the negative half
+      // ("before"), so an unscheduled job still shows up under every
+      // "before" / "outside" condition on the PAST-anchored filters.)
       if (iso == null) return false;
       const offset = dayOffset(iso);
       if (date.preset != null) {
@@ -776,7 +891,7 @@ function durationFilter(): { options: FilterOption[]; matches: FilterDef["matche
 
 const receivedDates = dateFilter((job) => job.receivedAt);
 const lastModifiedDates = dateFilter((job) => job.lastModifiedAt);
-const scheduledDates = dateFilter((job) => job.scheduledFor);
+const scheduledDates = dateFilter((job) => job.scheduledFor, SCHEDULED_WINDOWS);
 const statusChangedDates = dateFilter((job) => job.statusChangedAt);
 const durationValues = durationFilter();
 
@@ -1172,28 +1287,26 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       matches: (job, { ids }) => ids.includes(job.priority == null ? "none" : String(job.priority)),
     },
     {
-      // Scheduled for — DOCUMENTED as a Timeframe filter on 2026-09-03 (section
-      // 14101-46526; the annotation links the pattern documentation 14038-21304).
-      // Identical to Date received's and Last modified's build — the same seven
-      // presets over a "Custom..." row, the same after / before chips-only
-      // header, the same Custom dialog — reading the job's SCHEDULED date. It
-      // replaced this entry's invented buckets (Overdue / Today / Tomorrow /
-      // Next 7 days / Later / Not scheduled).
+      // Scheduled for — REDESIGNED 2026-09-09 (the updated section
+      // 14101-46526): the past-anchored presets this filter inherited are
+      // GONE, replaced by forward WINDOWS — Today / Tomorrow / Next 3 / 7 /
+      // 14 / 30 days over the same "Custom..." row (see SCHEDULED_WINDOWS
+      // for the edge rules). A window is a complete answer, so this list has
+      // NO condition chips — `dsHeader` is off, the one timeframe filter
+      // without a header — and a preset-valued chip renders WITHOUT its
+      // condition box ("Scheduled for · Next 3 days · ×", the section's
+      // chip example). The Custom dialog is unchanged and its values keep
+      // their conditions ("after · Jan 1").
       //
-      // FLAGGED, twice:
-      //   - the node's presets read "1 day ago" … "1 year ago" — the same
-      //     PAST-anchored copy the other timeframe filters use — although a
-      //     scheduled date is usually AHEAD of today. "Scheduled for after
-      //     1 week ago" works, but nothing on the list can say "next week".
-      //     Built as drawn;
-      //   - a job with NO scheduled date has no row to catch it any more (the
-      //     buckets had "Not scheduled") — see the null note in `dateFilter`.
+      // "Not scheduled" leads the list since the same day's second update —
+      // the row for jobs with no scheduled date, which closed the old flag
+      // about them matching nothing.
       id: "scheduledFor",
       kind: "date",
       noun: { one: "date", many: "dates" },
       label: "Scheduled for",
       icon: "calendar",
-      dsHeader: true,
+      dateWindows: SCHEDULED_WINDOWS,
       ...scheduledDates,
     },
     {
@@ -1221,9 +1334,9 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       //
       // The `inbox` icon is Daniel's pick (2026-09-03) — Source means the
       // channel a request arrived through, and it ends the diamonds-4 clash
-      // with Type. FLAGGED: the Figma nodes still draw the old glyphs (the
-      // menu diamonds-4; the chip 14101-47392 even wrench-simple, a
-      // duplication slip) — the file is behind the decision, not the code.
+      // with Type. The MENU row has caught up (14032-20321 draws `inbox`,
+      // checked 2026-09-09); FLAGGED still: the chip node 14101-47392 was
+      // last seen drawing wrench-simple (a duplication slip) — not re-checked.
       id: "source",
       noun: { one: "source", many: "sources" },
       label: "Source",
@@ -1310,16 +1423,23 @@ export function buildFilters(priorityUrgentClass: string, phase: "open" | "close
       // DS header ("is" / "is not", no search — two rows need none), and the
       // rows KEEP their icons (the node draws sparkle / clock-rotate-left) but
       // drop the job counts.
+      //
+      // SINGLE-select since 2026-09-09 — the section's annotation (desktop
+      // node 14101-53834): "Single-select filter. Only one option might be
+      // selected at a time." A job is either New or Recall, never both, so a
+      // set of the two could only ever mean "any type". See `singleSelect`.
       id: "type",
       noun: { one: "type", many: "types" },
       label: "Type",
       // `shapes` — Daniel's pick (2026-09-03), the category metaphor; it
-      // replaced the `diamonds-4` the nodes still draw (menu and chip
-      // 14101-53840), which Source used to share. FLAGGED: Figma is behind
-      // this decision.
+      // replaced the `diamonds-4` Source used to share. Figma has CAUGHT UP
+      // (checked 2026-09-09): the menu row (14032-20321) and this section's
+      // chips (14101-53840 / 14101-54207) all draw `shapes` now — the old
+      // "Figma is behind" flag is resolved.
       icon: "shapes",
       hideCounts: true,
       dsHeader: true,
+      singleSelect: true,
       // The values are the Job Details page's: New = sparkle, Recall =
       // clock-rotate-left, the same icons the table's Type column shows.
       options: [
@@ -1607,7 +1727,12 @@ export function valueDisplay(def: FilterDef, value: FilterValue): { label: strin
   }
   const date = value.date;
   if (date != null) {
-    if (date.preset != null) return { label: PRESET_BY_ID.get(date.preset)?.label ?? "" };
+    // A WINDOW preset's label comes from the filter's own list (Scheduled
+    // for); everything else from the shared DATE_PRESETS.
+    if (date.preset != null) {
+      const window = def.dateWindows?.find((w) => w.id === date.preset);
+      return { label: window?.label ?? PRESET_BY_ID.get(date.preset)?.label ?? "" };
+    }
     if (isDateRange(date) && date.from != null && date.to != null) {
       return { label: `${formatValueEnd(date, date.from)} — ${formatValueEnd(date, date.to)}` };
     }

@@ -32,17 +32,17 @@ type Story = StoryObj<typeof TopBarFilter>;
 const diamond = <Icon icon="diamonds-4" size={14} />;
 
 // The default chip from the Figma examples: icon slot + Property/condition/Value.
-const defaultChip = (key: number, isFixed = false) => (
+const defaultChip = (key: number, isLocked = false) => (
   <FilterChip
     key={key}
     slotLeft={diamond}
     property="Property"
     condition="condition"
     value="Value"
-    isFixed={isFixed}
-    onConditionClick={isFixed ? undefined : noop}
+    isLocked={isLocked}
+    onConditionClick={isLocked ? undefined : noop}
     onValueClick={noop}
-    onRemove={isFixed ? undefined : noop}
+    onRemove={isLocked ? undefined : noop}
   />
 );
 
@@ -103,8 +103,8 @@ export const StandardView: Story = {
   ),
 };
 
-/** A fixed filter (no "remove" box), no own filters yet — the right slot is empty. */
-export const FixedFiltersEmpty: Story = {
+/** A locked filter (no "remove" box), no own filters yet — the right slot is empty. */
+export const LockedFiltersEmpty: Story = {
   render: () => (
     <div style={docsFrame}>
       <TopBarFilter breakpoint="desktop" addMenu={addMenu}>
@@ -114,8 +114,8 @@ export const FixedFiltersEmpty: Story = {
   ),
 };
 
-/** A fixed filter plus the user's own — "Reset" in the right slot. */
-export const FixedFiltersReset: Story = {
+/** A locked filter plus the user's own — "Reset" in the right slot. */
+export const LockedFiltersReset: Story = {
   render: () => (
     <div style={docsFrame}>
       <TopBarFilter breakpoint="desktop" addMenu={addMenu} onReset={noop}>

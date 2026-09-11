@@ -85,11 +85,13 @@
 }
 
 // SelectList gives a drawer WITH a header the full screen height, so a search
-// does not make the sheet jump on every keystroke. The date list has a header
-// but NO search, and its node hugs its content (13912-12054: 467px of 812), so
-// that height comes off again. Doubled class name to out-specify the
+// does not make the sheet jump on every keystroke. A filter drawer with NO
+// search never needs that, and its nodes hug the content — the date list
+// (13912-12054: 467px of 812), the single-select Type drawer (14101-53837:
+// 250px) and, since 2026-09-09, Priority (13855-23306: 358px) — so the height
+// comes off every searchless drawer. Doubled class name to out-specify the
 // component's own `.drawerFull` whatever order the two stylesheets land in.
-.dateDrawer.dateDrawer {
+.hugDrawer.hugDrawer {
   height: auto;
 }
 
@@ -131,12 +133,15 @@
 }
 
 // SELECTION — what belongs to the chosen timeframe: the date field(s) and the
-// calendar. NO top padding — the Condition block above closes with its own 16.
+// calendar. 16px on ALL sides since 2026-09-09: the new Divider closes the
+// Condition block now, so the Selection carries its own top padding again
+// (the Day nodes' Selection frames put the field at y=16 — 14073-18714 and
+// twins). It was 0 on top while the Condition's 16 did the separating.
 .dateCustomSelection {
   display: flex;
   flex-direction: column;
   gap: var(--size-4); // 16px
-  padding: 0 var(--size-4) var(--size-4); // 0 / 16px / 16px
+  padding: var(--size-4); // 16px
 }
 
 // "Date from" and "Date to" share the row, 16px apart — 280px each of the
@@ -412,15 +417,58 @@
   overflow: hidden;
 }
 
+// ---- the Hidden Data Bar (the states boards 14178-47650 / 14178-47306) -----
+// The DS Divider (medium) over a 40px centered row; no fill of its own — the
+// node draws none, so the app background shows through. `flex: none` keeps
+// the row's height out of the shells' space-sharing (`.mainArea` gives the
+// height up). Each text + its button is a GROUP with a 4px gap; the combined
+// desktop state puts two groups 16px apart (node 14178-47701), which is the
+// row's gap — with one group it never shows.
+.hiddenBar {
+  flex: none;
+  width: 100%;
+}
+.hiddenBarRow {
+  display: flex;
+  gap: var(--size-4); // 16px — between the combined state's two groups
+  align-items: center;
+  justify-content: center;
+  height: var(--size-10); // 40px
+  padding: 0 var(--size-4); // 16px
+  overflow: hidden;
+}
+.hiddenBarGroup {
+  display: flex;
+  gap: var(--size-1); // 4px — text to its button
+  align-items: center;
+}
+.hiddenBarText {
+  @include font("caption-medium-400"); // 13/20
+  margin: 0;
+  color: var(--text-subtle);
+  white-space: nowrap;
+
+  strong {
+    @include font("caption-medium-500");
+    color: var(--text-strong);
+  }
+}
+
 // ---- no results ------------------------------------------------------------
-// The filters-match-nothing state, in place of the table. Centred in whatever
-// height the content area has.
+// The NoJobsYet EmptyState, in place of the table. Centred in whatever height
+// the content area has.
 .noResults {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   padding: var(--size-4);
+}
+
+// The table-area EmptyStates (No Match 14205-65447…65570 and No Objects
+// Exist 14192-60361): the nodes pin a 384 "Max Width" on the block.
+.tableEmptyState {
+  max-width: 384px;
 }
 
 // ---- the filter bar / chips ------------------------------------------------

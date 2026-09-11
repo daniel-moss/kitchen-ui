@@ -16,9 +16,10 @@ import { MenuHeaderProps } from "./MenuHeader.types";
 //
 // It TAKES FOCUS on mount by default (Daniel, 2026-08-17: the search is active
 // as soon as the menu opens), with the two exclusions the DS already applies to
-// SelectList's search — see `autoFocusSearch` in MenuHeader.types.ts.
+// SelectList's search — and, like SelectList, an EXPLICIT `autoFocusSearch`
+// bypasses them. See MenuHeader.types.ts.
 const MenuHeader = forwardRef<HTMLInputElement, MenuHeaderProps>(function MenuHeader(
-  { autoFocusSearch = true, ...props },
+  { autoFocusSearch, ...props },
   ref,
 ) {
   // Own the input node so the focus can be applied here, and still hand it to
@@ -38,14 +39,19 @@ const MenuHeader = forwardRef<HTMLInputElement, MenuHeaderProps>(function MenuHe
   const isDesktop = menuCtx ? menuCtx.isDesktop : autoDesktop;
 
   useLayoutEffect(() => {
-    if (!autoFocusSearch) return;
-    // A DRAWER never auto-focuses: on mobile the keyboard would open over the
-    // list (Daniel, 2026-08-17 — the Filters menu must not do this).
-    if (!isDesktop) return;
-    // And no device without a real pointer does either, even on the desktop
-    // presentation — an iPad in landscape gets the desktop card but is still
-    // touch, so the BREAKPOINT is not the signal, the input modality is.
-    if (!window.matchMedia("(hover: hover)").matches) return;
+    if (autoFocusSearch === false) return;
+    // The two DS exclusions apply unless the consumer EXPLICITLY opted in
+    // with `true` (the mobile Filters menu — Daniel, 2026-09-09, reversing
+    // the 2026-08-17 blanket rule for that one menu):
+    if (autoFocusSearch !== true) {
+      // A DRAWER never auto-focuses by default: on mobile the keyboard would
+      // open over the list (Daniel, 2026-08-17).
+      if (!isDesktop) return;
+      // And no device without a real pointer does either, even on the desktop
+      // presentation — an iPad in landscape gets the desktop card but is still
+      // touch, so the BREAKPOINT is not the signal, the input modality is.
+      if (!window.matchMedia("(hover: hover)").matches) return;
+    }
     inputRef.current?.focus({ preventScroll: true });
   }, [autoFocusSearch, isDesktop]);
 
