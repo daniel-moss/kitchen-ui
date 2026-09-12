@@ -54,7 +54,31 @@ export type EquipmentCategory =
   | "Other";
 
 /** Production `Estimate.Statuses` (estimates/models.py). */
-export type EstimateStatus = "Pending" | "Sent" | "Approved" | "Won" | "Lost" | "Cancelled";
+/**
+ * An estimate's ONE status — the DS `BadgeEstimateStatus` keys, minus
+ * `expired`, which is derived (a sent estimate whose `dueAt` has passed).
+ *
+ * It replaced production's two-level model on 2026-09-11 (Daniel: "this
+ * concept of state is redundant and we won't use it anymore"). Production
+ * stores a STATE (`Estimate.Statuses`: Pending / Sent / Approved / Won / Lost
+ * / Cancelled) plus `is_draft` and a conversion path, and derives the badge
+ * from all three — so the same estimate could be Approved-and-jobbed or
+ * Won-and-unconverted, and a list could group it two different ways. The demo
+ * stores the answer instead. Nothing is lost: every production combination
+ * maps onto exactly one of these.
+ *
+ * The open / closed PHASE is no longer a property of the row either — it is
+ * whichever statuses a list's views group together (see the Estimates page).
+ */
+export type EstimateStatus =
+  | "draft"
+  | "unsent"
+  | "awaitingApproval"
+  | "unconverted"
+  | "jobbed"
+  | "invoiced"
+  | "lost"
+  | "cancelled";
 
 /** Production `Invoice.Statuses` (invoices/models.py). */
 export type InvoiceStatus = "Pending" | "Sent" | "Paid" | "Voided" | "Forgiven";
@@ -237,8 +261,18 @@ export interface Job {
   sourceRef?: string;
   /** ISO. When the request came in. */
   receivedAt: string;
-  /** ISO. When the status last changed. */
-  statusChangedAt: string;
+  /**
+   * ISO. When the status last REALLY changed — null until it ever does
+   * (Daniel, 2026-09-12). The status a job is born with is not a change, and
+   * neither is leaving Draft (a draft is "not created yet" to the user), so:
+   * a draft is always null; an unscheduled job carries a date only when it
+   * came back from a schedule; a scheduled job only when someone scheduled it
+   * later, out of Unscheduled. From Active on there is always a date — those
+   * statuses can only be reached by a transition. Upcoming → Past due is the
+   * clock, not an action, and never writes one; a SUB-status swap
+   * (Active ↔ Quick-paused, On hold external ↔ internal) does.
+   */
+  statusChangedAt: string | null;
   /** ISO. Any edit to the job. */
   lastModifiedAt: string;
   /** Who reported the issue — the job's own contact. */
@@ -248,12 +282,9 @@ export interface Job {
   notes?: string;
 }
 
-/**
- * Production `Estimate.ConversionPaths` — what an Approved (or Won) estimate
- * turned into. Keys aligned with the DS BadgeEstimateStatus set, which shows
- * the path AS the display status for those two states.
- */
-export type EstimateConversionPath = "unconverted" | "jobbed" | "invoiced";
+// (`EstimateConversionPath` is GONE with the state model, 2026-09-11: what an
+// estimate turned into IS its status now — `unconverted` / `jobbed` /
+// `invoiced` are three of the eight `EstimateStatus` values.)
 
 /**
  * Production derives this from the down-payment amounts
@@ -267,12 +298,10 @@ export interface EstimateLabel {
   name: string;
 }
 
-// TWO status levels, exactly like production (estimates/models.py): `status`
-// is the DB status (`Estimate.Statuses`), which is also the phase split —
-// Pending / Sent / Approved are open, Won / Lost / Cancelled closed. The
-// DISPLAY status (the badge) is derived from it: Pending → Draft (isDraft)
-// or Unsent; Sent → Expired (dueAt passed) or Awaiting approval; Approved
-// and Won → the conversion path; Lost / Cancelled → themselves.
+// ONE status level since 2026-09-11 — see `EstimateStatus`. The row carries
+// the status the badge shows; the single exception is EXPIRED, which stays
+// derived, because it depends on the clock rather than on anything stored
+// (an "awaitingApproval" estimate whose `dueAt` has passed).
 export interface Estimate {
   id: string;
   locationId: string;
@@ -287,11 +316,8 @@ export interface Estimate {
   serviceId?: string;
   /** The estimate's OWN service name, which may differ from the pricebook's. */
   serviceName: string;
+  /** The status the badge shows. EXPIRED is derived from `dueAt`, not stored. */
   status: EstimateStatus;
-  /** Pending only — still being written (production `is_draft`). */
-  isDraft?: boolean;
-  /** Approved / Won only — meaningless in the other states. */
-  conversionPath?: EstimateConversionPath;
   /** ESTIMATE_LABELS ids (production `EstimateLabel`). */
   labelIds: string[];
   /** Dollars. */
@@ -301,8 +327,14 @@ export interface Estimate {
   /** ISO. When the estimate expires — production `date_due`, the "Expires" column. */
   dueAt: string;
   downPayment: EstimateDownPayment;
-  /** ISO. Production `last_status_transition_time`. */
-  statusChangedAt: string;
+  /**
+   * ISO. Production `last_status_transition_time` — null until the status
+   * really changes, the same rule the jobs carry: a draft and an unsent
+   * estimate are both sitting in their FIRST status, so neither has one.
+   * Everything from "sent" on does (sending is a real transition), and an
+   * estimate cannot go back to Unsent.
+   */
+  statusChangedAt: string | null;
   /** ISO. Any edit. */
   lastModifiedAt: string;
   /** ISO — the client opened it (production `last_viewed`). Unset = never. */

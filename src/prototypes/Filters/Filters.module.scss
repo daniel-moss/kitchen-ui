@@ -179,17 +179,32 @@
 // the documented section, the old node drew none), then the fields.
 
 // CONDITION — the four measures (over / under / is / within) in a 16px row.
-.durationCustomCondition {
+.amountCustomCondition {
   padding: var(--size-4); // 16px
 }
 
 // CONTENT — one "N hr / NN min" field row, or two 16px apart in `within`.
 // 16px all round: the Divider above separates it from the Condition block.
-.durationCustomContent {
+.amountCustomContent {
   display: flex;
   flex-direction: column;
   gap: var(--size-4); // 16px
   padding: var(--size-4); // 16px
+}
+
+// The MONEY dialog's fields (node 14299-49210). The same 16px frame as the
+// duration's, but a ROW: its range puts "From" and "To" side by side on BOTH
+// breakpoints (280px each in the 608px card, 163.5px each in the drawer), where
+// a duration's two hr/min rows stack.
+.moneyCustomContent {
+  display: flex;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
 }
 
 // ---- the ADDRESS dialog ----------------------------------------------------
@@ -344,7 +359,7 @@
 
 // Concept 1's table sizing: taller rows than the DS default (40/48). Shared
 // by BOTH pages' tables since 2026-09-11 — the Estimates table
-// (EstimatesList.tsx) uses the same class. A
+// (estimatesTable.tsx) uses the same class. A
 // TableRow renders [cells][divider], and the Table wraps them in a header
 // rowgroup and a body rowgroup — so the rows are reachable structurally
 // without depending on the components' hashed class names.
@@ -492,3 +507,59 @@
 // The bar and the chips are the DS components now (TopBarFilter + FilterChip,
 // migrated 2026-09-08) — every local bar/chip style that lived here is gone
 // with the hand-built markup. See the notes in the tsx.
+
+// ---- "No matching options" -------------------------------------------------
+
+// NOTHING MATCHED THE SEARCH — plain TEXT, not the DS EmptyState (Daniel,
+// 2026-09-12: "I want to try an option without the EmptyState component. Just
+// simple text"). It is the same block on all four surfaces the nodes draw it
+// on: the Filters menu (14310-59924 desktop / 14310-59921 mobile) and a
+// multi-select filter's option list (14310-60254 / 14310-60389).
+//
+// Read off the nodes: the card's own `body` slot gets 16px all round and holds
+// ONE centred line — body/400 compact (14/20) in --text-subtle. No icon, no
+// title, no action.
+//
+// `height: 100%` is the MOBILE half of it, and it is what `EmptyState` used to
+// do here. Those drawers fill the screen (a sheet with a search always does)
+// and both mobile nodes centre the line in that tall empty body. A percentage
+// height only resolves while every box above it has one, so it has to be handed
+// down — see `.menuFillBody`. On the desktop card the body sizes to its
+// content, so the same rule computes to `auto` and the padding alone decides
+// the height. One rule, both nodes.
+.noMatches {
+  // The padding has to sit INSIDE the 100%, or the block is 32px taller than
+  // the body it fills and the sheet grows a scrollbar (EmptyState does the
+  // same).
+  box-sizing: border-box;
+  display: flex;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: var(--size-4); // 16px
+  color: var(--text-subtle);
+  text-align: center;
+  @include font("body-400-compact"); // Inter 14/20
+}
+
+// The two boxes between the mobile Filters sheet's body and that line: `Menu`
+// wraps its children in a `[role="menu"]` box, and the Add-filter section adds
+// its own. Neither has a height of its own, and a percentage height stops at
+// the first box that sizes to its content — so the line sat at the top of the
+// sheet until both passed the height down.
+//
+// Set ONLY while the sheet is empty (the tsx puts the class on then), so the
+// ordinary list keeps sizing to its rows. `[role="menu"]` is Menu's own ARIA
+// role, not a class name, so this does not depend on the DS's hashing.
+.menuFillBody [role="menu"],
+.menuFillBody .filterSection {
+  height: 100%;
+}
+
+// ---- the Down payment cell -------------------------------------------------
+// NOTHING local any more (Daniel, 2026-09-12: "it shouldn't be overridden — Not
+// required and Not paid should inherit the subtle variant. No overrides").
+// The two neutral cells used to re-point --cell-text-color at --text-subtle to
+// match their node, and to paint their icon with it; both are gone, so the
+// column runs on CellBody's own `subtle` and `error` schemes.

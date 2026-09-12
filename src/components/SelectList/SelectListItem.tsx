@@ -31,6 +31,7 @@ export default function SelectListItem({
   label,
   searchText: _searchText, // consumed by SelectList's search filter, not rendered
   caption,
+  captionPlaceholder,
   tag,
   slotLeft,
   avatar,
@@ -124,6 +125,17 @@ export default function SelectListItem({
   const effectiveCaption = isCounter && !isObject ? undefined : caption;
   const contentProps = { slotLeft: squaredSlotLeft, label, caption: effectiveCaption, tag: effectiveTag } as SelectListItemContentProps;
 
+  // The object row's caption, or — where there is no value — its PLACEHOLDER,
+  // dimmed to --text-placeholder. The ListItem Template copy doc's standard
+  // empty behaviour: "The placeholder is shown if the value is missing"
+  // (Figma 27171-15212). A row with neither renders no caption line at all.
+  const objectCaption =
+    caption != null ? (
+      <span className={styles.objectCaption}>{caption}</span>
+    ) : captionPlaceholder != null ? (
+      <span className={clsx(styles.objectCaption, styles.objectCaptionEmpty)}>{captionPlaceholder}</span>
+    ) : null;
+
   // The object copy: Slot Left (title/caption, flex-1) + optional Slot Right
   // (right-aligned title/caption block, or the tag/count). `reversed` flips a
   // block to caption-above-title (Figma titleCaptionReversed).
@@ -185,13 +197,13 @@ export default function SelectListItem({
             <div className={styles.objectLeft}>
               {reversed ? (
                 <>
-                  {caption != null && <span className={styles.objectCaption}>{caption}</span>}
+                  {objectCaption}
                   <span className={styles.objectTitle}>{label}</span>
                 </>
               ) : (
                 <>
                   <span className={styles.objectTitle}>{label}</span>
-                  {caption != null && <span className={styles.objectCaption}>{caption}</span>}
+                  {objectCaption}
                 </>
               )}
             </div>

@@ -49,6 +49,24 @@ interface SelectListItemBaseProps extends HTMLAttributes<HTMLDivElement> {
    */
   readOnly?: boolean;
 
+  /**
+   * OBJECT only — what the caption reads when the value is missing, e.g.
+   * "No Location name" on a location with no name of its own.
+   *
+   * The row's standard empty behaviour, from the ListItem Template copy doc
+   * (Figma 27171-15212): "The placeholder is shown if the value is missing.
+   * The placeholder inherits the `--text-placeholder` token." The doc gives
+   * the copy per object — Location, Equipment, Warranty, Contact — always
+   * "No " + the field as it is named ("No Location name", "No Manufacturer",
+   * "No End date").
+   *
+   * It is shown INSTEAD of `caption` whenever `caption` is null or
+   * undefined, so the caller passes the value it has and this in case it has
+   * none. Without it a missing caption simply renders nothing, which is what
+   * every row did before 2026-09-12.
+   */
+  captionPlaceholder?: ReactNode;
+
   /** Object only — caption ABOVE the title (Figma titleCaptionReversed). */
   reversed?: boolean;
   /** Object only — right text block title (Medium 14, right-aligned). */

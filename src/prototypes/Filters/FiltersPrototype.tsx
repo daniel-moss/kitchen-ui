@@ -3,8 +3,8 @@ import { useState } from "react";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 
 import { Page, Sidebar } from "./appShell";
-import EstimatesList from "./EstimatesList";
-import JobsPage from "./Filters";
+import EstimatesPage from "./EstimatesPage";
+import JobsPage from "./JobsPage";
 
 import styles from "./Filters.module.scss";
 
@@ -12,11 +12,12 @@ import styles from "./Filters.module.scss";
 // stand inside.
 //
 // It exists as its own file to break an import cycle (2026-09-11). The filter
-// UI — the Filters menu, its option lists, the chips and the filter bar —
-// lives in Filters.tsx alongside the Jobs page, and the Estimates page imports
-// it from there. If Filters.tsx ALSO reached back for the Estimates page to
-// render it, the two modules would import each other. Owning the switch here
-// means Filters.tsx does not know the Estimates page exists.
+// UI — the Filters menu, its option lists, the chips and the filter bar — used
+// to live in the Jobs page, and the Estimates page imported it from there; if
+// the Jobs page had ALSO reached back for the Estimates page to render it, the
+// two modules would import each other. The UI moved out to `filterUI.tsx` in
+// the same day's re-organisation, so that cycle can no longer form — but the
+// switch stays here, because NEITHER page should know the other exists.
 //
 // The SIDEBAR is rendered here, outside the switch, so it stays mounted when
 // the page changes. That is what lets its Jobs stack animate closed when the
@@ -41,7 +42,7 @@ const FiltersPrototype = ({ breakpoint = "auto", initialPage = "jobs" }: Filters
 
   const workArea =
     page === "estimates" ? (
-      <EstimatesList breakpoint={breakpoint} onNavigate={setPage} />
+      <EstimatesPage breakpoint={breakpoint} onNavigate={setPage} />
     ) : (
       <JobsPage breakpoint={breakpoint} onNavigate={setPage} />
     );

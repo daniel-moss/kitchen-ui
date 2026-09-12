@@ -1,33 +1,23 @@
 import { ReactNode } from "react";
 
-import AvatarClient from "../../components/Avatar/AvatarClient";
-import AvatarLocation from "../../components/Avatar/AvatarLocation";
-import AvatarUser from "../../components/Avatar/AvatarUser";
-import { STATUS } from "../../components/Badge/BadgeJobStatus";
-import { Icon } from "../../components/Icon/Icon";
 import { IconPack } from "../../components/Icon/Icon.types";
-import { semanticIcons } from "../../styles/semanticIcons";
 
-import {
-  CLIENTS,
-  JOBS,
-  Job,
-  LocationRecord,
-  LABELS,
-  LOCATIONS,
-  PriorityLevel,
-  SERVICES,
-  SOURCES,
-  TECHS,
-  dayOffset,
-  formatDuration,
-  locationAddressWithUnit,
-  locationLabel,
-  locationOf,
-} from "./jobsData";
+import { formatDuration } from "./listData";
 
-// Filters — the Filters prototype's filter registry (filterDefs). ONE entry per row of the Filters menu
-// (Figma nodes 13857-25343 / 13857-25352), in the node's order.
+// Filters — what a FILTER IS. The types every registry is written in, the
+// value model behind an application, and the pure helpers that apply, count
+// and describe one. No registry and no UI: this module knows nothing about
+// jobs, estimates or the Filters menu.
+//
+// The 2026-09-11 re-organisation emptied it out, onto Daniel's Figma split:
+//   - the KINDS' predicates and their Custom dialogs → filterKinds.tsx
+//     ("Filter Functionality", 14267-23297);
+//   - the seven filters that are the same on every object →
+//     filterTemplates.tsx ("Filter Template", 14267-23337);
+//   - the JOBS registry → jobsFilters.tsx, the ESTIMATES one →
+//     estimateFilters.tsx (the per-object pages);
+//   - the menu, the lists, the chips and the bar → filterUI.tsx
+//     ("The Shell", 14199-63395).
 //
 // Each entry owns three things, so a parameter is mapped in exactly one place:
 //   - how the row looks in the menu (label + icon, read off the node);
@@ -51,16 +41,21 @@ export type FilterId =
   | "assignees"
   | "client"
   | "received"
+  | "downPayment"
   | "duration"
+  | "expires"
+  | "issued"
   | "labels"
   | "lastModified"
   | "location"
   | "priority"
   | "scheduledFor"
+  | "seen"
   | "service"
   | "source"
   | "status"
   | "statusChanged"
+  | "total"
   | "type";
 
 export interface FilterOption {
@@ -73,6 +68,13 @@ export interface FilterOption {
    * title. Location puts the site's NAME here and its address in `label`.
    */
   caption?: ReactNode;
+  /**
+   * OBJECT rows only: what the caption reads when this option HAS no value for
+   * it — the DS row's standard empty behaviour, dimmed to --text-placeholder
+   * (see `SelectListItem.captionPlaceholder` and the ListItem Template copy
+   * doc, 27171-15212). Location uses it for the sites with no name of their own.
+   */
+  captionPlaceholder?: ReactNode;
   /** OBJECT rows only: the mandatory xl (36px) avatar on the left. */
   avatar?: ReactNode;
   /**
@@ -98,15 +100,24 @@ export interface FilterOption {
  * list gained filters): everything about a filter except its predicate — the
  * label, the icon, the options, the conditions, the whole UI — is the same
  * whatever the list holds, so only `matches` needs to know the row type.
- * Defaults to `Job`, which keeps the jobs registry and its callers unchanged.
+ *
+ * There is no default row type on purpose. It used to default to `Job`, which
+ * meant this module — the one that defines what a filter IS — had to import a
+ * jobs type. A registry names its own row.
  */
-export interface FilterDef<TRow = Job> {
+export interface FilterDef<TRow> {
   id: FilterId;
   /** The menu row's label, and the sub-list's title on mobile. */
   label: string;
   /** The menu row's icon, read off the node. */
   icon: string;
   pack?: IconPack;
+  /**
+   * Turn the icon, in degrees. NO registry sets it today — the Jobs Status
+   * filter was the only one, and its 180° went on 2026-09-12 (Daniel: "the
+   * status icon should not have rotation"). Kept because a def's icon is
+   * whatever its node draws, and the DS `Icon` takes the prop.
+   */
   rotate?: number;
   options: FilterOption[];
   /**
@@ -123,7 +134,7 @@ export interface FilterDef<TRow = Job> {
    * in all). Either way the closing Divider is the component's own.
    *
    * Since the documented sections (2026-09-03) EVERY filter with a list is on
-   * it, so the old prototype-local chips block is gone from Filters.tsx.
+   * it, so the old prototype-local chips block is gone from filterUI.tsx.
    */
   dsHeader?: boolean;
   /**
@@ -153,7 +164,7 @@ export interface FilterDef<TRow = Job> {
   // (`listMinWidth` — the per-filter "Min Width" pin, which only Location
   // carried at 384 — is GONE since 2026-09-11: its node now pins the same 208
   // every other list does, so ONE floor serves them all. See LIST_MIN_WIDTH in
-  // Filters.tsx.)
+  // filterUI.tsx.)
   /**
    * Let the search take focus as the list OPENS, on touch devices too — the
    * mobile nodes draw the drawer with the caret in the field and the keyboard
@@ -181,12 +192,17 @@ export interface FilterDef<TRow = Job> {
    *                hr + min value, measured over / under / is / within. Built
    *                exactly like a date filter — single-select list, condition
    *                chips in the header, a "Custom..." row in the footer.
+   *   "money"    — ONE amount of money, and the duration's twin in every way
+   *                that is not the unit (Figma section 14299-49183, the "Money"
+   *                kind, 2026-09-12): the same four measures, the same list, the
+   *                same Custom dialog with a "$" field instead of hr + min. Both
+   *                store an `AmountValue`.
    *   "address"  — five TYPED fields, matched against the job's location
    *                (Figma section 13988-53503). The only kind with NO option
    *                list: its row in the Filters menu opens the dialog itself,
    *                and so does the chip's value segment.
    */
-  kind?: "options" | "date" | "duration" | "address";
+  kind?: "options" | "date" | "duration" | "money" | "address";
   /**
    * Let the user choose how several ticked values combine — ALL of them or ANY
    * of them (Figma section 13984-38887). Only Labels is on it: a job carries a
@@ -231,12 +247,30 @@ export interface FilterDef<TRow = Job> {
    */
   matches: (row: TRow, value: FilterValue) => boolean;
   /**
-   * The per-option row counts this filter's list shows in each row's tag, when
-   * it shows them at all (`hideCounts` turns them off). The REGISTRY supplies
-   * it, because only the registry knows which rows to count — see the cache in
-   * `buildFilters`. A filter without counts leaves it unset.
+   * Is this row OUTSIDE this filter's answer altogether? A row that is excluded
+   * matches neither half — `applyFilters` drops it before the flip, so it
+   * appears under "after" and under "before" alike.
+   *
+   * Only date filters set it, for rows with NO date (Daniel, 2026-09-12): a job
+   * whose status never changed cannot be "changed after Aug 1", and it is not
+   * "changed before Aug 1" either — it is simply not part of that question. The
+   * flip would otherwise list every dateless row under every negative
+   * condition. The one exception lives inside `dateFilter`: an ABSENCE window
+   * ("Not scheduled") is the value that asks for exactly those rows, so it is
+   * never excluded.
    */
-  counts?: () => Record<string, number>;
+  excluded?: (row: TRow, value: FilterValue) => boolean;
+  /**
+   * What each option row shows in its `tag` — "13 jobs", "1 estimate" — keyed
+   * by option id, when the filter shows tags at all (`hideCounts` turns them
+   * off). A filter without tags leaves it unset.
+   *
+   * The REGISTRY supplies the whole STRING, not the number (changed
+   * 2026-09-11). Only the registry knows which rows to count AND what they are
+   * called, so this is what keeps the filter UI from ever having to know which
+   * list it is filtering — it just prints what the def hands it.
+   */
+  optionTags?: () => Record<string, string>;
 }
 
 /**
@@ -372,14 +406,14 @@ export function addressSummary(address: AddressValue): string {
  * PRESET ("2 hours") or a custom length in MINUTES — never both, the same rule
  * the date filter follows.
  */
-export interface DurationValue {
+export interface AmountValue {
   /**
    * How the duration is measured — this filter's condition. Four choices do not
    * fit `negated`, which is a boolean, so this IS the condition and `negated` is
    * held at false (see `conditionChoices` / `isConditionActive` /
    * `withCondition`), exactly like a date's `compare`.
    */
-  compare: DurationCompare;
+  compare: AmountCompare;
   /** A DURATION_PRESETS id, or null when a custom duration is in use. */
   preset: string | null;
   /** The custom duration in MINUTES. `to` is the second end, `within` only. */
@@ -405,7 +439,7 @@ export interface DurationValue {
  * include the boundary, the copy has to say so (`at least` / `at most`) and
  * `matches` below changes with it.
  */
-export type DurationCompare = "over" | "under" | "is" | "within";
+export type AmountCompare = "over" | "under" | "is" | "within";
 
 /**
  * The three the CHIP's condition list and the option list's header chips offer
@@ -419,30 +453,76 @@ export type DurationCompare = "over" | "under" | "is" | "within";
  * (14100-37994's annotation: "The 'Condition' box is not clickable when the
  * condition is set to 'within'"). The same rule a date RANGE follows.
  */
-export const DURATION_CONDITIONS: DurationCompare[] = ["over", "under", "is"];
+export const AMOUNT_CONDITIONS: AmountCompare[] = ["over", "under", "is"];
 
 /** The Custom dialog's ChipGroup — the same three plus `within` (node 13923-24049). */
-export const DURATION_DIALOG_CONDITIONS: DurationCompare[] = [...DURATION_CONDITIONS, "within"];
+export const AMOUNT_DIALOG_CONDITIONS: AmountCompare[] = [...AMOUNT_CONDITIONS, "within"];
+
+/**
+ * An amount preset — one row of a duration or money list. `amount` is in the
+ * kind's own unit: minutes for a duration, dollars for money.
+ */
+export interface AmountPreset {
+  id: string;
+  label: string;
+  amount: number;
+}
 
 /**
  * The four durations the list offers, in the node's order (13874-11407). Bare
  * labels — no icon, no count — and SINGLE-select, like the date presets.
  */
-export const DURATION_PRESETS: { id: string; label: string; minutes: number }[] = [
-  { id: "1h", label: "1 hour", minutes: 60 },
-  { id: "2h", label: "2 hours", minutes: 120 },
-  { id: "3h", label: "3 hours", minutes: 180 },
-  { id: "4h", label: "4 hours", minutes: 240 },
+export const DURATION_PRESETS: AmountPreset[] = [
+  { id: "1h", label: "1 hour", amount: 60 },
+  { id: "2h", label: "2 hours", amount: 120 },
+  { id: "3h", label: "3 hours", amount: 180 },
+  { id: "4h", label: "4 hours", amount: 240 },
 ];
 
-const DURATION_PRESET_BY_ID = new Map(DURATION_PRESETS.map((preset) => [preset.id, preset]));
+/**
+ * The eight amounts the MONEY list offers, in the node's order (14297-48913,
+ * the Total filter). Same shape as the durations — bare labels, single-select
+ * — and the labels are the money format the chip and the Total column use.
+ */
+export const MONEY_PRESETS: AmountPreset[] = [
+  { id: "100", label: "$100", amount: 100 },
+  { id: "250", label: "$250", amount: 250 },
+  { id: "500", label: "$500", amount: 500 },
+  { id: "1000", label: "$1,000", amount: 1000 },
+  { id: "1500", label: "$1,500", amount: 1500 },
+  { id: "2500", label: "$2,500", amount: 2500 },
+  { id: "5000", label: "$5,000", amount: 5000 },
+  { id: "10000", label: "$10,000", amount: 10000 },
+];
 
-/** The minutes a value stands for — its preset's, or its own custom number. */
-export const durationMinutesOf = (duration: DurationValue): number | null =>
-  duration.preset != null ? (DURATION_PRESET_BY_ID.get(duration.preset)?.minutes ?? null) : duration.from;
+const AMOUNT_PRESETS_BY_KIND: Record<string, AmountPreset[]> = {
+  duration: DURATION_PRESETS,
+  money: MONEY_PRESETS,
+};
 
-/** The preset behind an id, for the chip's copy. */
-export const durationPreset = (id: string | null) => (id == null ? undefined : DURATION_PRESET_BY_ID.get(id));
+/** This kind's preset table — duration's or money's. */
+export const amountPresets = (kind: FilterDef<never>["kind"]) => AMOUNT_PRESETS_BY_KIND[kind ?? ""] ?? [];
+
+/** The preset behind an id, within one kind's table — for the chip's copy. */
+export const amountPreset = (kind: FilterDef<never>["kind"], id: string | null) =>
+  id == null ? undefined : amountPresets(kind).find((preset) => preset.id === id);
+
+/**
+ * The number a value stands for, in the kind's own unit — its preset's, or its
+ * own custom number.
+ */
+export const amountOf = (kind: FilterDef<never>["kind"], value: AmountValue): number | null =>
+  value.preset != null ? (amountPreset(kind, value.preset)?.amount ?? null) : value.from;
+
+/**
+ * A money amount as the chip and the lists print it: "$1,000" — US currency
+ * with NO cents (every node draws whole dollars: 14297-48913's rows,
+ * 14297-48920's chip). The TABLE's Total column keeps its own cents format
+ * (`formatCurrency` in estimatesData) — a column of money is read down, where a
+ * chip is read across.
+ */
+export const formatMoney = (dollars: number): string =>
+  dollars.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
 // A CUSTOM duration in the chip is the TABLE's own compact format — "1h 30m" /
 // "1h" / "30m" — imported from jobsData (`formatDuration`), not written again
@@ -456,8 +536,8 @@ export const durationPreset = (id: string | null) => (id == null ? undefined : D
 /**
  * The measures the CHIP's condition list offers for a custom date — the
  * dialog's four minus `within`, which needs a second date the chip's list
- * cannot collect. The same split the duration filter has (DURATION_CONDITIONS
- * vs DURATION_DIALOG_CONDITIONS); a value that already holds `within` gets no
+ * cannot collect. The same split the duration filter has (AMOUNT_CONDITIONS
+ * vs AMOUNT_DIALOG_CONDITIONS); a value that already holds `within` gets no
  * choices at all, so its condition segment is inert.
  *
  * Figma node 13994-16309 draws exactly these three, in this order, and carries
@@ -490,8 +570,13 @@ export interface FilterValue {
   negated: boolean;
   /** Date filters only. */
   date?: DateValue;
-  /** Duration filters only. */
-  duration?: DurationValue;
+  /**
+   * The two AMOUNT kinds — `duration` (minutes) and `money` (dollars). One
+   * shape serves both: a number with a condition, or a preset instead. Only the
+   * unit and the formatting differ, and those belong to the kind, not here (see
+   * `AmountValue`).
+   */
+  amount?: AmountValue;
   /** Address filters only. */
   address?: AddressValue;
   /** Match-mode filters only (Labels) — see `MatchMode`. */
@@ -538,10 +623,14 @@ export const newFilterInstance = (def: AnyFilterDef): FilterInstance => ({
   // No `compare` yet: a fresh date starts on the PRESET list, whose condition is
   // the after / before pair. The Custom dialog is what gives it a `compare`.
   date: def.kind === "date" ? { preset: null, from: null, to: null } : undefined,
-  // "over" is the condition a fresh duration opens on — the FIRST chip, drawn
-  // active in the list header and in the Custom dialog (13874-11407 /
-  // 13923-24049, both spelling it "over" since the documented section).
-  duration: def.kind === "duration" ? { compare: "over", preset: null, from: null, to: null } : undefined,
+  // "over" is the condition a fresh AMOUNT opens on — a duration or a money
+  // value alike — the FIRST chip, drawn active in the list header and in the
+  // Custom dialog (13874-11407 / 13923-24049 for the duration, 14297-48913 /
+  // 14299-49211 for money; all four spell it "over").
+  amount:
+    def.kind === "duration" || def.kind === "money"
+      ? { compare: "over", preset: null, from: null, to: null }
+      : undefined,
   // Five blank fields. `negated` stays false, which is "contains" — the first
   // and default condition (node 13995-16953 draws it checked).
   address: def.kind === "address" ? emptyAddress() : undefined,
@@ -563,7 +652,7 @@ export function isEmptyValue(value: FilterValue): boolean {
   // field is optional on its own, so any ONE of them makes a real question.
   const address = value.address;
   if (address != null) return ADDRESS_FIELDS.every((field) => address[field.key].trim() === "");
-  const duration = value.duration;
+  const duration = value.amount;
   if (duration != null) {
     if (duration.preset != null) return false;
     if (duration.from == null) return true;
@@ -597,44 +686,6 @@ export function upsertFilter(selection: FilterSelection, instance: FilterInstanc
 export const removeFilter = (selection: FilterSelection, key: string) =>
   selection.filter((entry) => entry.key !== key);
 
-// ---- option helpers --------------------------------------------------------
-
-const icon = (name: string, pack: IconPack = "regular", className?: string) => (
-  <Icon icon={name} pack={pack} size={14} container="square" className={className} />
-);
-
-// Priority — the ONE designed list (node 13855-22268): five options, ASCENDING
-// (No priority first, then Low → Urgent), each with the table's own glyph.
-// Urgent is the only coloured one; its --orange-9 comes from the caller, which
-// is why this takes a class name.
-const PRIORITY_OPTION_DEFS: { id: string; label: string; level: PriorityLevel | null; icon: string; pack: IconPack }[] = [
-  { id: "none", label: "No priority", level: null, icon: semanticIcons.priorityNone, pack: "custom" },
-  { id: "4", label: "Low", level: 4, icon: "duotone-solid-priority-low", pack: "custom-duotone" },
-  { id: "3", label: "Medium", level: 3, icon: "duotone-solid-priority-medium", pack: "custom-duotone" },
-  { id: "2", label: "High", level: 2, icon: semanticIcons.priorityHigh, pack: "custom" },
-  { id: "1", label: "Urgent", level: 1, icon: semanticIcons.priorityUrgent, pack: "solid" },
-];
-
-// The two PHASES' status sets, in the STATUS map's order — the documented
-// Status lists: the OPEN phase's nine (node 14101-47650) and the CLOSED
-// phase's two (14101-48863). Which set the Status filter offers follows the
-// branch the page is on — `buildFilters`' `phase`.
-const STATUS_KEYS = Object.keys(STATUS) as (keyof typeof STATUS)[];
-const CLOSED_KEYS: readonly string[] = ["finalized", "cancelled"];
-const OPEN_STATUSES = STATUS_KEYS.filter((key) => !CLOSED_KEYS.includes(key));
-const CLOSED_STATUSES = STATUS_KEYS.filter((key) => CLOSED_KEYS.includes(key));
-
-/**
- * The two on-holds carry their SUB-STATUS as the row label — the Status
- * section's annotation: "Sub-statuses — If exist, they are shown instead of
- * the generic status". The badge map calls both plain "On hold", which would
- * make two identical rows.
- */
-const STATUS_FILTER_LABELS: Partial<Record<keyof typeof STATUS, string>> = {
-  onHoldExternal: "On hold (external)",
-  onHoldInternal: "On hold (internal)",
-};
-
 // ---- the date filter (Figma section 13903-25906) ---------------------------
 
 /**
@@ -652,115 +703,41 @@ export const DATE_PRESETS: { id: string; label: string; days: number }[] = [
   { id: "1y", label: "1 year ago", days: 365 },
 ];
 
-/** One forward WINDOW: day offsets from TODAY, both ends inclusive. */
+/**
+ * One WINDOW of days, as offsets from TODAY, both ends inclusive. An end left
+ * unset is OPEN: "Past due" / "Expired" are `{ to: -1 }` — everything up to
+ * yesterday, however far back it goes (Daniel, 2026-09-12; both lists gained
+ * that row, nodes 14101-46526 and 14297-48370).
+ */
 export interface DateWindowPreset {
   id: string;
   label: string;
-  /**
-   * ABSENT on the one row that stands for NO date at all — "Not scheduled"
-   * (the updated list's first row, 2026-09-09). Every real window has both.
-   */
+  /** Unset = no lower bound. */
   from?: number;
+  /** Unset = no upper bound. */
   to?: number;
+  /**
+   * The row that stands for NO date at all — "Not scheduled" (2026-09-09). It
+   * is the ONE window that matches an empty field, and it takes no bounds.
+   * Daniel, 2026-09-12: it must match ONLY the jobs with nothing in the field,
+   * which is why the past needed a row of its own rather than being folded in
+   * here.
+   */
+  absent?: boolean;
 }
-
-/**
- * Scheduled for's presets — WINDOWS, not the shared past-anchored list (the
- * updated section 14101-46526, 2026-09-09; it replaced the "1 day ago …"
- * copy this filter inherited, which could never say "next week"). The edges
- * are Daniel's rule: "from today + N days; Tomorrow is tomorrow only" — so
- * "Next N days" runs today through the END of today+N (the same counting the
- * View menu's horizon documents), Today is day 0 alone and Tomorrow day 1
- * alone.
- *
- * A window is a COMPLETE answer, so a value holding one has NO condition:
- * the list draws no condition chips (no header at all) and the chip renders
- * without its condition box (the FilterChip `condition=false` variant).
- * The Custom dialog is unchanged — a custom value keeps the dialog's own
- * conditions ("after · Jan 1", the section's second chip example).
- */
-export const SCHEDULED_WINDOWS: DateWindowPreset[] = [
-  // "Not scheduled" FIRST (added in the 2026-09-09 list update) — the row for
-  // jobs with NO scheduled date at all, which closed the old flag about them
-  // matching nothing. Single-select like every preset, so it needs none of
-  // Labels' exclusive machinery.
-  { id: "none", label: "Not scheduled" },
-  { id: "today", label: "Today", from: 0, to: 0 },
-  { id: "tomorrow", label: "Tomorrow", from: 1, to: 1 },
-  { id: "next3", label: "Next 3 days", from: 0, to: 3 },
-  { id: "next7", label: "Next 7 days", from: 0, to: 7 },
-  { id: "next14", label: "Next 14 days", from: 0, to: 14 },
-  { id: "next30", label: "Next 30 days", from: 0, to: 30 },
-];
-
 const PRESET_BY_ID = new Map(DATE_PRESETS.map((preset) => [preset.id, preset]));
 
-/** "2026-08-17" → the day offset from TODAY, the same scale as `dayOffset`. */
-const isoOffset = (iso: string) => dayOffset(`${iso}T12:00:00`);
-
+/** The shared past-anchored preset behind an id — the Timeframe kind's lookup. */
+export const datePreset = (id: string | null) => (id == null ? undefined : PRESET_BY_ID.get(id));
 /** A Date → ISO `yyyy-mm-dd`, in LOCAL time (never `toISOString`, which is UTC). */
 export const isoOf = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-/**
- * A MONTH value is stored as the first of that month and a YEAR value as the
- * first of January; these turn either one into its real bounds, which is what
- * `matches` compares against.
- */
-const periodStartIso = (iso: string, timeframe: DateTimeframe) =>
-  timeframe === "year" ? `${iso.slice(0, 4)}-01-01` : `${iso.slice(0, 7)}-01`;
-const periodEndIso = (iso: string, timeframe: DateTimeframe) => {
-  const date = new Date(`${iso}T12:00:00`);
-  return timeframe === "year"
-    ? `${date.getFullYear()}-12-31`
-    : isoOf(new Date(date.getFullYear(), date.getMonth() + 1, 0));
-};
-
 /**
  * "Jan 1" — the chip's copy for a custom date (Figma node 13914-15296). No year:
  * the node has none, and the chip is already tight. FLAGGED.
  */
 export const formatChipDate = (iso: string) =>
   new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-/**
- * The LAST day (offset from today, `dayOffset` scale) a "Scheduled for" value
- * can match — the schedule-horizon CONFLICT rule (Figma section 14101-46526,
- * agreed with Daniel 2026-09-10). Returns:
- *   `false`  — the value can never reach beyond a horizon ("Not scheduled",
- *              no date picked): never warn;
- *   `null`   — no end at all (an open "after"): warns against EVERY finite
- *              horizon;
- *   a number — the value's last matching day: warns when it is beyond the
- *              horizon's last day.
- * Mirrors `dateFilter`'s matching exactly — "before X" ends the day before X,
- * "on"/"within" end at their period's last day (month/year expanded).
- */
-export function scheduledValueEnd(date: DateValue | null | undefined): number | null | false {
-  if (date == null) return false;
-  if (date.preset != null) {
-    const window = SCHEDULED_WINDOWS.find((w) => w.id === date.preset);
-    // "Not scheduled" (a windowless preset) matches only unscheduled jobs,
-    // which the horizon never hides.
-    if (window == null || window.from == null || window.to == null) return false;
-    return window.to;
-  }
-  if (date.from == null) return false;
-  const timeframe = date.timeframe ?? "day";
-  const startOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodStartIso(iso, timeframe));
-  const endOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodEndIso(iso, timeframe));
-  if (isDateRange(date)) return date.to == null ? false : endOf(date.to);
-  switch (date.compare) {
-    case "before":
-      return startOf(date.from) - 1;
-    case "after":
-      return null;
-    // "on" — the day, or the whole month / year it falls in.
-    default:
-      return endOf(date.from);
-  }
-}
-
 /**
  * "Jan 1, 2027" — the Custom dialog's footer, which shows the picked date next
  * to Apply (Figma node 13962-8889). WITH the year, unlike the chip: the footer
@@ -804,717 +781,6 @@ export const formatValueEnd = (date: DateValue, iso: string) => {
   return isDateRange(date) ? formatFooterDate(new Date(`${iso}T12:00:00`)) : formatChipDate(iso);
 };
 
-/**
- * Options + matcher for a date filter over one job field.
- *
- * The POSITIVE half of each pair is what `matches` answers; `applyFilters` flips
- * it for the negative half, so the two are exact opposites:
- *   after N days ago  = received later than that day   → before = on it or earlier
- *   within [from, to] = received on or between the two → outside = neither
- */
-export function dateFilter<TRow = Job>(
-  read: (row: TRow) => string | null,
-  /** WINDOW presets instead of the shared past-anchored list — Scheduled for. */
-  windows?: DateWindowPreset[],
-): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
-  return {
-    options: (windows ?? DATE_PRESETS).map((preset) => ({ id: preset.id, label: preset.label })),
-    matches: (row, value) => {
-      const date = value.date;
-      if (date == null) return true;
-      const iso = read(row);
-      // A WINDOW preset first, BEFORE the no-date bail: "Not scheduled" (the
-      // windowless row, first in the 2026-09-09 list update) is exactly the
-      // jobs with nothing in this field. A real window is a whole range, both
-      // ends inclusive — "Next 7 days" = today through the end of today+7
-      // (Daniel: "from today + N days; Tomorrow is tomorrow only"). Window
-      // values never flip: there is no condition on them.
-      if (date.preset != null) {
-        const window = windows?.find((w) => w.id === date.preset);
-        if (window != null) {
-          if (window.from == null || window.to == null) return iso == null;
-          if (iso == null) return false;
-          const dayOff = dayOffset(iso);
-          return dayOff >= window.from && dayOff <= window.to;
-        }
-      }
-      // A job with NOTHING in this field matches nothing else — "after 1 week
-      // ago" cannot be true of a job that has no date. (The old flag about
-      // unscheduled jobs having no row is RESOLVED by "Not scheduled" above;
-      // what remains: `applyFilters` FLIPS this false for the negative half
-      // ("before"), so an unscheduled job still shows up under every
-      // "before" / "outside" condition on the PAST-anchored filters.)
-      if (iso == null) return false;
-      const offset = dayOffset(iso);
-      if (date.preset != null) {
-        const preset = PRESET_BY_ID.get(date.preset);
-        return preset == null ? true : offset > -preset.days;
-      }
-      // A MONTH value holds the first of its month and a YEAR value the first
-      // of January; either is compared as the WHOLE period, first day to last
-      // (nodes 13962-14374 / 13965-24022 / 13965-29278 / 13965-31488). A DAY is
-      // just itself.
-      const timeframe = date.timeframe ?? "day";
-      const startOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodStartIso(iso, timeframe));
-      const endOf = (iso: string) => isoOffset(timeframe === "day" ? iso : periodEndIso(iso, timeframe));
-
-      // `within` reads BOTH ends — it is the old Range toggle (Daniel,
-      // 2026-08-24) — and the two ends are whole periods: the FIRST day of
-      // `from`'s period to the LAST day of `to`'s.
-      if (isDateRange(date)) {
-        if (date.from == null || date.to == null) return true;
-        return offset >= startOf(date.from) && offset <= endOf(date.to);
-      }
-      if (date.from == null) return true;
-      const start = startOf(date.from);
-      const end = endOf(date.from);
-      // `compare` is the Custom dialog's own condition and is never flipped by
-      // `applyFilters` (its values always carry `negated: false`).
-      switch (date.compare) {
-        case "before":
-          return offset < start;
-        case "after":
-          return offset > end;
-        // "on" — the day itself, or the WHOLE month / year it falls in. Also the
-        // fallback for a custom value that somehow carries no `compare`.
-        default:
-          return offset >= start && offset <= end;
-      }
-    },
-  };
-}
-
-/**
- * Options + matcher for the DURATION filter (Figma section 13874-10420).
- *
- * `compare` IS the condition, so `applyFilters` never flips this — every value
- * carries `negated: false`, the same contract the date filter's `compare` has.
- *
- * A job with NO duration (nothing scheduled) matches nothing: "longer than an
- * hour" cannot be true of a job that has no length. The old bucket list had a
- * "No duration" option for those; the new design has no equivalent row, so they
- * simply drop out. FLAGGED — say the word and it comes back as a fifth preset.
- */
-function durationFilter(): { options: FilterOption[]; matches: FilterDef["matches"] } {
-  return {
-    options: DURATION_PRESETS.map((preset) => ({ id: preset.id, label: preset.label })),
-    matches: (job, value) => {
-      const duration = value.duration;
-      if (duration == null) return true;
-      const from = durationMinutesOf(duration);
-      if (from == null) return true;
-      const minutes = job.durationMinutes;
-      if (minutes == null) return false;
-      // `over` and `under` are STRICT — a job of exactly `from` minutes matches
-      // only `is`. See the note on DurationCompare: if the boundary should be
-      // included, this is the place, and the copy changes with it.
-      switch (duration.compare) {
-        case "under":
-          return minutes < from;
-        case "is":
-          return minutes === from;
-        case "within":
-          return duration.to == null ? true : minutes >= from && minutes <= duration.to;
-        // "over" — the first chip, and the fallback.
-        default:
-          return minutes > from;
-      }
-    },
-  };
-}
-
-const receivedDates = dateFilter((job) => job.receivedAt);
-const lastModifiedDates = dateFilter((job) => job.lastModifiedAt);
-const scheduledDates = dateFilter((job) => job.scheduledFor, SCHEDULED_WINDOWS);
-const statusChangedDates = dateFilter((job) => job.statusChangedAt);
-const durationValues = durationFilter();
-
-/** Client id → name, for the Location list's group headers and its search. */
-const CLIENT_NAME = new Map(CLIENTS.map((client) => [client.id, client.name]));
-
-/**
- * Does a typed field match the job's? A BLANK field is not part of the question
- * and always passes; a filled one is a case-insensitive SUBSTRING test, which is
- * what "contains" says — typing "Mission" finds "418 Mission St".
- */
-const addressFieldMatches = (typed: string, actual: string | null | undefined) => {
-  const query = typed.trim().toLowerCase();
-  return query === "" || (actual ?? "").toLowerCase().includes(query);
-};
-
-/**
- * The ADDRESS matcher (Figma section 13988-53503). Every filled field has to
- * match — Daniel, 2026-08-24: "if typed in 'Street address' matches location
- * address 'Street address' of one of the jobs on the list, we show those jobs."
- * Field against FIELD, so "Mission" typed into City does not match a job on
- * Mission St.
- *
- * `matches` answers the POSITIVE half only; `applyFilters` flips it for "does
- * not contain", which makes that the exact opposite: NOT every field matches.
- * FLAGGED — that reading means a job matching only some of the typed fields IS
- * shown by "does not contain". The alternative ("no field matches") is a
- * different question; the node does not settle it.
- */
-export const addressFilter =
-  <TRow = Job,>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow>["matches"] =>
-  (row, value) => {
-  const address = value.address;
-  if (address == null) return true;
-  const location = locationOfRow(row);
-  return (
-    addressFieldMatches(address.street, location.street) &&
-    addressFieldMatches(address.suite, location.unit) &&
-    addressFieldMatches(address.city, location.city) &&
-    addressFieldMatches(address.state, location.state) &&
-    addressFieldMatches(address.postalCode, location.postalCode)
-  );
-};
-
-// ---- the registry ----------------------------------------------------------
-
-/**
- * `priorityUrgentClass` is the prototype's own --orange-9 class, handed in so
- * this module stays free of the concept's stylesheet.
- *
- * `phase` is the branch the page is on (the Views section 14032-23326,
- * 2026-09-03). Only the STATUS filter reads it: the open branch offers the
- * nine open statuses over a search, the closed branch the two closed ones
- * with no search.
- */
-export function buildFilters(priorityUrgentClass: string, phase: "open" | "closed" = "open"): FilterDef[] {
-  const defs: FilterDef[] = [
-    {
-      // Address — the eighth designed filter (Figma section 13988-53503,
-      // 2026-08-24), and the FIRST row of the menu: the rows are alphabetical
-      // and this one is new at the top (node 13857-25352).
-      //
-      // It is unlike every filter before it. There is no option list, because
-      // there is nothing to list — a workspace's addresses are free text. The
-      // menu row opens a DIALOG of five typed fields (13988-53606 desktop /
-      // 13988-53696 mobile), all optional, and each one is matched against the
-      // matching field of the job's LOCATION. Its condition is a plain pair,
-      // "contains" / "does not contain" (13995-16956).
-      //
-      // The mobile dialog stacks all five; the desktop one puts State / Province
-      // and Postal code side by side on one row.
-      id: "address",
-      kind: "address",
-      noun: { one: "address", many: "addresses" },
-      label: "Address",
-      // Plain FA `text` (node 14032-20321, 2026-09-03) — was the KIT icon
-      // `regular-text-location-pin`.
-      icon: "text",
-      // No list, so no options — `matches` reads `address`, never `ids`.
-      options: [],
-      matches: addressFilter(locationOf),
-    },
-    {
-      // Assignee — the first filter Daniel designed in full (Figma section
-      // 13902-21570). Three things set it apart from the rest:
-      //   - it is "Assignee", singular;
-      //   - its option list carries a SEARCH field ("Assignee...") — nine people
-      //     is already more than a glance, and a real workspace has hundreds;
-      //   - its rows show NO job count, just the face and the name;
-      //   - its search takes focus on mobile as well. Client does that too; no
-      //     other filter has a search to focus.
-      //
-      // Its header is the DS `SelectListHeader` in the chipGroup + search
-      // variant (`dsHeader`) — the chips came BACK on 2026-08-20 and the whole
-      // block is now a DS component: nodes 13923-21709 (desktop) and 13923-21079
-      // (mobile) draw the two plain Chips, "is" active, over the full 40px
-      // search bar. So the local chip overrides are gone from this filter.
-      //
-      // Since 2026-09-04 the list opens with a "No assignees" row — the absence
-      // of a value as a pickable option. It combines with the people since
-      // 2026-09-11 (see `matches`).
-      id: "assignees",
-      noun: { one: "assignee", many: "assignees" },
-      label: "Assignee",
-      icon: "user",
-      // The ellipsis is BACK (Daniel, 2026-08-24). It went away on 2026-08-20
-      // with Client's node 13947-15859; Labels' node (13984-38897) draws
-      // "Label..." with it, so all three carry it again.
-      searchPlaceholder: "Assignee...",
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      // xs (20px) user avatars — SelectListItem's left slot takes an Icon or an
-      // xs avatar, and a person reads better as a face than as an icon.
-      // Sorted by name, the order the node lists them in (the data's own order
-      // is by user id, which reads as random here).
-      options: [
-        // "No assignees" FIRST, over the people (2026-09-04 — both breakpoints
-        // draw it as the list's first row: 14143-63387 desktop, 14037-50110
-        // mobile). Its dashed-ring avatar with the small user glyph IS
-        // AvatarUser's `placeholder` content — the DS empty slot, read off the
-        // node (dashed --gray-a9 ring, 10px regular `user` icon).
-        // FLAGGED: the mobile node's copy reads "No assignee", SINGULAR, where
-        // the desktop node reads "No assignees". Built with the plural — the
-        // desktop copy, and what Daniel asked for.
-        { id: "none", label: "No assignees", slotLeft: <AvatarUser size="xs" content="placeholder" /> },
-        ...[...TECHS]
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((tech) => ({
-            id: String(tech.id),
-            label: tech.name,
-            slotLeft: <AvatarUser size="xs" content="image" imageSrc={tech.avatar} />,
-          })),
-      ],
-      // "No assignees" = the job carries nobody, and it is ORed with whoever
-      // else is ticked (2026-09-11), so "No assignees" + Dana matches the
-      // unassigned jobs AND Dana's. Its negative ("is not") is the flip
-      // `applyFilters` makes.
-      matches: (job, { ids }) =>
-        (ids.includes("none") && job.assigneeIds.length === 0) ||
-        job.assigneeIds.some((id) => ids.includes(String(id))),
-    },
-    {
-      // Client — the second filter Daniel designed in full (Figma section
-      // 13934-13189). It is built EXACTLY like Assignee and differs only in the
-      // row's left slot: an AvatarClient instead of a face.
-      //
-      // That sameness is a decision, not a coincidence. On 2026-08-19 Daniel
-      // drew Client through five header variants — no fill under the chips, no
-      // fill under the search, the search and the chips swapped, 28px chips, the
-      // bordered SearchField inset in the list — compared each against
-      // Assignee's, and settled on Assignee's. So the trial props those needed
-      // are gone from FilterDef; the shapes are in the Figma section's history
-      // if any of them comes back.
-      //
-      // Since 2026-08-20 that shared header is the DS `SelectListHeader`
-      // (`dsHeader`) — nodes 13933-10525 desktop / 13933-9967 mobile, identical
-      // to Assignee's but for the row avatars.
-      id: "client",
-      noun: { one: "client", many: "clients" },
-      label: "Client",
-      icon: "building", // was building-user (node 14032-20321, 2026-09-03)
-      searchPlaceholder: "Client...", // the ellipsis is back (Daniel, 2026-08-24)
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      // xs (20px) client avatars, `image` content — the node draws the DS's
-      // generic company image (the "companyAvatar/Generic" style) on every row,
-      // which is AvatarClient's own default image. The prototype's clients have
-      // no logos of their own, so they all show that placeholder.
-      // Sorted by name, the order the node lists them in.
-      options: [...CLIENTS]
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((client) => ({
-          id: client.id,
-          label: client.name,
-          slotLeft: <AvatarClient size="xs" content="image" />,
-        })),
-      matches: (job, { ids }) => ids.includes(job.clientId),
-    },
-    {
-      // Date received — the third designed filter, and the first of the new
-      // DATE kind (Figma section 13903-25906, 2026-08-19). It is single-select:
-      // one relative date ("1 week ago") or one custom date / range, never a
-      // set. Its condition pair is after/before, or within/outside once the
-      // Custom popover's "Range" box is ticked.
-      //
-      // Last modified joined it on 2026-08-24 (section 13986-45329) and shares
-      // every part of this build. Scheduled for and Status changed still use my
-      // invented buckets — no node for them yet.
-      //
-      // Its header is the DS `SelectListHeader` too, since 2026-08-23 (Figma
-      // node 13962-8817): the CHIPS-ONLY variant — a 16px-padded row of `md`
-      // Chips closed by the component's own Divider, 65px in all. Date received
-      // has no search, so that variant is the whole header. The prototype-local
-      // chip block and its two trial props (a flat unselected chip, no fill
-      // behind the block) are gone with it — the DS Chip's resting look IS the
-      // flat one now, and the DS header has no fill of its own.
-      id: "received",
-      kind: "date",
-      noun: { one: "date", many: "dates" },
-      label: "Date received",
-      // Back to plain `calendar` (node 14032-20321, 2026-09-03) — the same
-      // glyph Scheduled for carries, which is what the node draws. Was the KIT
-      // icon `regular-calendar-circle-arrow-right-bl`, `calendar-lines-pen`
-      // before that, and plain `calendar` at the start.
-      icon: "calendar",
-      dsHeader: true,
-      ...receivedDates,
-    },
-    {
-      // Duration — the fourth designed filter, and the first of the new DURATION
-      // kind (Figma section 13874-10420, 2026-08-24). It is built like Date
-      // received and reads the same way: ONE value, a condition of its own, a
-      // single-select list of presets over a "Custom..." row.
-      //
-      // What is different from a date: the condition is a set of THREE
-      // (over / under / is) rather than a pair of opposites, and a fourth —
-      // `within` — that only the Custom dialog can produce, because it needs two
-      // values. So `negated` is never used here; `compare` is the condition.
-      //
-      // Its header is the DS `SelectListHeader` in the chips-only variant, the
-      // same one Date received uses (node 13874-11407 draws md Chips over the
-      // component's own Divider, 65px in all). It has no search — four presets
-      // need none.
-      id: "duration",
-      kind: "duration",
-      noun: { one: "duration", many: "durations" },
-      label: "Duration",
-      icon: "hourglass",
-      dsHeader: true,
-      ...durationValues,
-    },
-    {
-      // Labels — the fifth designed filter; DOCUMENTED since 2026-09-03
-      // (section 13999-17090: Empty 13999-17124 / 13999-17223, Selected
-      // 14101-42749 / 14101-42751, the 2+ sub-menu 14101-43497 / 14101-43499 —
-      // it replaced the first draft, section 13984-38887). Still an OPTIONS
-      // filter, ticked with checkboxes, but three things set it apart:
-      //
-      //   - it carries a SEARCH ("Label...") over the condition chips, so its
-      //     header is the DS `SelectListHeader` in the chipGroup + search
-      //     variant — Assignee's and Client's header — and its search takes
-      //     focus on the phone too (the mobile nodes draw the keyboard up);
-      //   - it is the one filter that lets the user pick how several values
-      //     COMBINE, ALL of them or ANY of them (`matchMode`). A job holds a set
-      //     of labels, so both are real questions; a status or a client is one
-      //     value per job, where "all of" could never match;
-      //   - its list opens with a "No labels" row — the absence of a value as a
-      //     pickable option, which combines with the labels themselves.
-      //
-      // Its rows are a checkbox and a name — no icon and no job count. Its card
-      // is sized by nothing but the component (2026-09-11): it hugs to 223 with
-      // the two conditions (node 13999-17141) and to the 384 maximum once a
-      // second ticked label brings the four, which then wrap to two rows (node
-      // 14101-42750). Both come out of the DS card's own fit-content.
-      id: "labels",
-      noun: { one: "label", many: "labels" },
-      label: "Labels",
-      icon: "tag",
-      searchPlaceholder: "Label...", // the node draws the ellipsis
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      matchMode: true,
-      // "No labels" FIRST, over the labels themselves (node 13999-17141's row
-      // order).
-      options: [
-        { id: "none", label: "No labels" },
-        ...LABELS.map((label) => ({ id: label.id, label: label.name })),
-      ],
-      // The POSITIVE half only — `applyFilters` flips it for the "do not
-      // include …" half, which is what makes each pair a true opposite:
-      //   include all of = carries every ticked label → do not include all of = not all
-      //   include any of = carries at least one       → do not include any of = none
-      // With ONE label ticked the two modes are the same test, which is why the
-      // condition collapses to include / do not include.
-      //
-      // "No labels" JOINS the modes since 2026-09-11, where it used to stand
-      // alone. Under "any of" it is one more alternative — "No labels" plus
-      // Warranty matches the unlabelled jobs and the Warranty ones. Under "all
-      // of" it can only be satisfied on its own: a job cannot carry no labels
-      // AND carry Warranty, so that combination matches nothing, which is what
-      // the condition literally asks for.
-      matches: (job, { ids, match }) => {
-        const wantsNone = ids.includes("none");
-        const labelIds = ids.filter((id) => id !== "none");
-        if (match === "any") {
-          return (wantsNone && job.labelIds.length === 0) || labelIds.some((id) => job.labelIds.includes(id));
-        }
-        if (wantsNone) return labelIds.length === 0 && job.labelIds.length === 0;
-        return labelIds.every((id) => job.labelIds.includes(id));
-      },
-    },
-    {
-      // Last modified — the sixth designed filter, and the SECOND of the date
-      // kind; since 2026-09-03 it is DOCUMENTED as a Timeframe filter (section
-      // 14100-40610), identical to Date received's (13962-8766) — every piece
-      // is the same one:
-      //   - the same seven presets in the same order over the same "Custom..."
-      //     row;
-      //   - the same chips-only `SelectListHeader`, md Chips "after" (active,
-      //     first) / "before", closed by the component's own Divider;
-      //   - the same Custom dialog (the Timeframe filter section 14038-21304):
-      //     Day / Month / Year over after / before / on-in / within, the
-      //     period lists, the Cancel + Apply footer.
-      // So it takes the date machinery unchanged and only reads another field.
-      //
-      // What is its own: the label, and the `pen` icon (regular, classic pack —
-      // node 13986-45363), which is what this entry already carried as a bucket
-      // filter. Date received's kit calendar icon is NOT reused here.
-      id: "lastModified",
-      kind: "date",
-      noun: { one: "date", many: "dates" },
-      label: "Last modified",
-      icon: "pen",
-      dsHeader: true,
-      ...lastModifiedDates,
-    },
-    {
-      // Location — REDESIGNED 2026-09-11 (section 14101-44921, list node
-      // 14101-44923). It was a one-line row, "name · address", which truncated
-      // as soon as a real address ran past the card's 384px maximum. The row is
-      // the DS SelectListItem's OBJECT variant now — 60px, an xl AvatarLocation,
-      // the ADDRESS as the Medium title and the site's NAME as the caption under
-      // it — so both halves are readable and neither has to share a line.
-      //
-      // Read off the node: `variant=object`, `select=multi`, a 36px
-      // AvatarLocation, title "123 Main Street, Suite 45, San Francisco, CA
-      // 98765" (the address INCLUDING the unit — see `locationAddressWithUnit`)
-      // over caption "Headquarters" (the name). No tag: the object variant may
-      // not combine a caption with one, and Location shows no counts anyway.
-      //
-      // Unchanged from the first build, per the section's "The List" annotation:
-      //   1. GROUPED BY CLIENT — a SelectListItemGroup with a `secondary`
-      //      GroupLabel per client;
-      //   2. clients sorted A to Z;
-      //   3. locations sorted "by a name or street address from A to Z" — still
-      //      `locationLabel`, which leads with the name where there is one.
-      //
-      // The search placeholder is the node's own "Location or client...", which
-      // also says out loud what `searchText` has always done: match the client's
-      // name as well as the row's.
-      id: "location",
-      noun: { one: "location", many: "locations" },
-      label: "Location",
-      icon: "location-dot",
-      searchPlaceholder: "Location or client...",
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      objectRows: true,
-      // Clients in name order, and only those that HAVE a location — an empty
-      // group would be a header with nothing under it.
-      //
-      // Each group header carries the client's own AVATAR, read off the node
-      // (the GroupLabel's `slotLeft` → `AvatarClient`, size sm / 24px, in
-      // 14101-44923's header).
-      //
-      // FLAGGED: the node sets that avatar's `logo: true`, i.e. an IMAGE. No
-      // client in the demo database has a logo — there is no such field — so
-      // this renders the type icon instead, which at least tells a business
-      // from an individual. Add a `logo` to the db's clients and it becomes an
-      // image with one prop.
-      groups: [...CLIENTS]
-        .filter((client) => LOCATIONS.some((location) => location.clientId === client.id))
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map((client) => ({
-          id: client.id,
-          label: client.name,
-          slotLeft: <AvatarClient size="sm" type={client.clientType === "Individual" ? "individual" : "business"} />,
-        })),
-      options: [...LOCATIONS]
-        .sort((a, b) => locationLabel(a).localeCompare(locationLabel(b)))
-        .map((location) => ({
-          id: location.id,
-          // Title = the address; caption = the site's name, when it has one
-          // (ferry-main and presidio-canteen do not — the address stands alone).
-          label: locationAddressWithUnit(location),
-          caption: location.name,
-          avatar: <AvatarLocation size="xl" />,
-          groupId: location.clientId,
-          // Both lines PLUS the client, so the search finds "Wildwood" too —
-          // what the placeholder now promises.
-          searchText: `${locationAddressWithUnit(location)} ${location.name ?? ""} ${CLIENT_NAME.get(location.clientId) ?? ""}`,
-        })),
-      matches: (job, { ids }) => ids.includes(job.locationId),
-    },
-    {
-      // Priority — the FIRST designed filter, DOCUMENTED on 2026-09-03 (section
-      // 13874-9043, a Multi-Select Filter — pattern documentation 14038-14033).
-      // Against the first build:
-      //   - the rows are an icon and a label ONLY — the "N jobs" counts are
-      //     gone (`hideCounts`; neither node draws a tag);
-      //   - the header is the DS `SelectListHeader` in its CHIPS-ONLY variant —
-      //     "is" / "is not", no search. (The section briefly drew no header at
-      //     all; Daniel put the chips back the same day, 2026-09-03.)
-      id: "priority",
-      noun: { one: "priority", many: "priorities" },
-      label: "Priority",
-      icon: semanticIcons.priorityHigh,
-      pack: "custom",
-      hideCounts: true,
-      dsHeader: true,
-      options: PRIORITY_OPTION_DEFS.map((option) => ({
-        id: option.id,
-        label: option.label,
-        slotLeft: icon(option.icon, option.pack, option.id === "1" ? priorityUrgentClass : undefined),
-      })),
-      matches: (job, { ids }) => ids.includes(job.priority == null ? "none" : String(job.priority)),
-    },
-    {
-      // Scheduled for — REDESIGNED 2026-09-09 (the updated section
-      // 14101-46526): the past-anchored presets this filter inherited are
-      // GONE, replaced by forward WINDOWS — Today / Tomorrow / Next 3 / 7 /
-      // 14 / 30 days over the same "Custom..." row (see SCHEDULED_WINDOWS
-      // for the edge rules). A window is a complete answer, so this list has
-      // NO condition chips — `dsHeader` is off, the one timeframe filter
-      // without a header — and a preset-valued chip renders WITHOUT its
-      // condition box ("Scheduled for · Next 3 days · ×", the section's
-      // chip example). The Custom dialog is unchanged and its values keep
-      // their conditions ("after · Jan 1").
-      //
-      // "Not scheduled" leads the list since the same day's second update —
-      // the row for jobs with no scheduled date, which closed the old flag
-      // about them matching nothing.
-      id: "scheduledFor",
-      kind: "date",
-      noun: { one: "date", many: "dates" },
-      label: "Scheduled for",
-      icon: "calendar",
-      dateWindows: SCHEDULED_WINDOWS,
-      ...scheduledDates,
-    },
-    {
-      // Service — DOCUMENTED on 2026-09-03 (section 14101-46745, a Multi-Select
-      // Filter): the DS `SelectListHeader` in the chipGroup + search variant
-      // ("is" / "is not" over a 40px "Service..." search; the mobile node draws
-      // the keyboard up), and rows that are a checkbox and the service's name —
-      // the wrench icon and the job count are GONE from the rows. The chip's
-      // name segment keeps the wrench (node 14101-46752).
-      id: "service",
-      noun: { one: "service", many: "services" },
-      label: "Service",
-      icon: "wrench-simple",
-      searchPlaceholder: "Service...",
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      options: SERVICES.map((service) => ({ id: service.id, label: service.name })),
-      matches: (job, { ids }) => ids.includes(job.serviceId),
-    },
-    {
-      // Source — DOCUMENTED on 2026-09-03 (section 14101-47385), built exactly
-      // like Service: chipGroup + search header ("Source...", keyboard up on
-      // the phone), bare name rows — no icon, no count.
-      //
-      // The `inbox` icon is Daniel's pick (2026-09-03) — Source means the
-      // channel a request arrived through, and it ends the diamonds-4 clash
-      // with Type. The MENU row has caught up (14032-20321 draws `inbox`,
-      // checked 2026-09-09); FLAGGED still: the chip node 14101-47392 was
-      // last seen drawing wrench-simple (a duplication slip) — not re-checked.
-      id: "source",
-      noun: { one: "source", many: "sources" },
-      label: "Source",
-      icon: "inbox",
-      searchPlaceholder: "Source...",
-      hideCounts: true,
-      autoFocusSearch: true,
-      dsHeader: true,
-      options: SOURCES.map((source) => ({ id: source.id, label: source.name })),
-      matches: (job, { ids }) => ids.includes(job.sourceId),
-    },
-    {
-      // Status — DOCUMENTED on 2026-09-03 (section 14101-47648, a Multi-Select
-      // Filter): the chipGroup + search header ("Status...", keyboard up on
-      // the phone), icon + label rows with NO job counts.
-      //
-      // The documented list is PHASE-SPLIT, and since the Views section
-      // (14032-23326) both halves are REAL: the OPEN branch draws the nine
-      // open statuses over the search; the CLOSED branch its own two-row list
-      // (Finalized / Cancelled) with no search (the "'Closed' Phase — No
-      // Search" annotation) — two rows need none. `phase` picks the half.
-      id: "status",
-      noun: { one: "status", many: "statuses" },
-      label: "Status",
-      // REGULAR `circle-dashed`, still turned 180° (node 14032-20321,
-      // 2026-09-03 — the node wraps the glyph in a 180° rotation) — was the
-      // solid `circle-half-stroke`. This is the row's icon in the Filters menu
-      // and the chip's icon, from one place.
-      icon: "circle-dashed",
-      rotate: 180,
-      searchPlaceholder: phase === "open" ? "Status..." : undefined,
-      hideCounts: true,
-      autoFocusSearch: phase === "open",
-      dsHeader: true,
-      // The statuses, their icons, their colors and (but for the two on-holds)
-      // their labels all come from BadgeJobStatus's own STATUS map — the same
-      // source the table's badges use, so a status can never be spelled two
-      // ways.
-      //
-      // The icons are SOLID, each in its scheme's own a9 — every row of both
-      // node lists draws them that way (open 14101-47650: gray / violet / blue
-      // / tomato / jade / amber / crimson / brown / orange; closed 14101-48863:
-      // jade circle-check, gray circle-xmark). Only the ICON is colored — the
-      // label stays --text-strong, body-400.
-      options: (phase === "open" ? OPEN_STATUSES : CLOSED_STATUSES).map((key) => ({
-        id: key,
-        label: STATUS_FILTER_LABELS[key] ?? STATUS[key].label,
-        slotLeft: (
-          <Icon
-            icon={STATUS[key].icon}
-            pack="solid"
-            size={14}
-            container="square"
-            rotate={"rotate" in STATUS[key] ? (STATUS[key] as { rotate?: number }).rotate : undefined}
-            style={{ color: `var(--${STATUS[key].scheme}-a9)` }}
-          />
-        ),
-      })),
-      matches: (job, { ids }) => ids.includes(job.status),
-    },
-    {
-      // Status changed — DOCUMENTED as a Timeframe filter on 2026-09-03
-      // (section 14101-53614, pattern documentation 14038-21304), identical to
-      // Date received, Last modified and Scheduled for: the same seven presets
-      // over "Custom...", the same after / before chips, the same Custom
-      // dialog — reading the day the job's status last changed. It replaced
-      // the LAST of the invented bucket lists, so the bucket machinery is gone
-      // with it.
-      //
-      // `arrow-left-arrow-right` — Daniel's pick (2026-09-03): a transition
-      // between two states, which is what a status change is. It replaced the
-      // `pen` the chip node draws (14101-53620), which Last modified already
-      // owns. FLAGGED: Figma is behind this decision.
-      id: "statusChanged",
-      kind: "date",
-      noun: { one: "date", many: "dates" },
-      label: "Status changed",
-      icon: "arrow-left-arrow-right",
-      dsHeader: true,
-      ...statusChangedDates,
-    },
-    {
-      // Type — DOCUMENTED on 2026-09-03 (section 14101-53833): the chips-only
-      // DS header ("is" / "is not", no search — two rows need none), and the
-      // rows KEEP their icons (the node draws sparkle / clock-rotate-left) but
-      // drop the job counts.
-      //
-      // SINGLE-select since 2026-09-09 — the section's annotation (desktop
-      // node 14101-53834): "Single-select filter. Only one option might be
-      // selected at a time." A job is either New or Recall, never both, so a
-      // set of the two could only ever mean "any type". See `singleSelect`.
-      id: "type",
-      noun: { one: "type", many: "types" },
-      label: "Type",
-      // `shapes` — Daniel's pick (2026-09-03), the category metaphor; it
-      // replaced the `diamonds-4` Source used to share. Figma has CAUGHT UP
-      // (checked 2026-09-09): the menu row (14032-20321) and this section's
-      // chips (14101-53840 / 14101-54207) all draw `shapes` now — the old
-      // "Figma is behind" flag is resolved.
-      icon: "shapes",
-      hideCounts: true,
-      dsHeader: true,
-      singleSelect: true,
-      // The values are the Job Details page's: New = sparkle, Recall =
-      // clock-rotate-left, the same icons the table's Type column shows.
-      options: [
-        { id: "new", label: "New", slotLeft: icon("sparkle") },
-        { id: "recall", label: "Recall", slotLeft: icon("clock-rotate-left") },
-      ],
-      matches: (job, { ids }) => ids.includes(job.type),
-    },
-  ];
-
-  // Every filter that SHOWS counts gets its own counting function, so the
-  // filter UI never has to know where the rows come from — it just asks the
-  // def (see `FilterDef.counts`). Cached per def, because a count walks every
-  // job once per option (Status: 9 × 78) and the list re-renders on every
-  // keystroke in its search. The counts are of the whole data set, never of
-  // the current view, so for a given def they are a constant.
-  for (const def of defs) {
-    if (def.hideCounts === true) continue;
-    let cached: Record<string, number> | undefined;
-    def.counts = () => (cached ??= optionCounts(JOBS, def));
-  }
-  return defs;
-}
-
 // ---- applying and counting -------------------------------------------------
 
 /**
@@ -1529,6 +795,9 @@ export function applyFilters<TRow>(jobs: TRow[], filters: FilterDef<TRow>[], sel
     active.every((entry) => {
       const def = byId.get(entry.id);
       if (def == null) return true;
+      // Out of this filter's answer entirely — before the flip, so it cannot
+      // come back through the negative half (see `excluded`).
+      if (def.excluded?.(job, entry)) return false;
       const hit = def.matches(job, entry);
       return entry.negated ? !hit : hit;
     }),
@@ -1562,8 +831,10 @@ export function optionCounts<TRow>(jobs: TRow[], def: FilterDef<TRow>): Record<s
   return counts;
 }
 
-/** "1 job" / "13 jobs" — the node's copy. */
-export const countLabel = (count: number) => `${count} ${count === 1 ? "job" : "jobs"}`;
+// (`countLabel` is GONE, 2026-09-11: it was hard-wired to "job" / "jobs" in a
+// module that must not know what a list holds. `countOf(noun, n)` in
+// listData.ts is the noun-aware replacement, and a registry builds its own
+// option tags with it — see `FilterDef.optionTags`.)
 
 /** How many applications are on — the mobile Filters button's counter. */
 export const activeFilterCount = (selection: FilterSelection) =>
@@ -1606,7 +877,7 @@ export interface ConditionChoice {
   /** The `negated` this choice sets. Always false for a `compare` choice. */
   negated: boolean;
   /** Date and duration filters: the `compare` this choice sets. */
-  compare?: DateCompare | DurationCompare;
+  compare?: DateCompare | AmountCompare;
   /**
    * Match-mode filters: the `match` this choice sets. Set together with
    * `negated`, since the four choices are two modes × the two halves of the
@@ -1677,15 +948,15 @@ export const conditionChoices = (value: FilterValue): ConditionChoice[] => {
       { label: "does not contain", negated: true },
     ];
   }
-  // A DURATION offers the three of DURATION_CONDITIONS (node 13877-16124) —
+  // A DURATION offers the three of AMOUNT_CONDITIONS (node 13877-16124) —
   // unless it is already a `within`, which is measured ONE way and so is a list
   // of one. That is what makes the chip's condition segment inert, exactly as a
   // date RANGE's is: node 13877-14876 draws the DEFAULT cursor over it (Daniel,
   // 2026-08-24). Leaving `within` is the Custom dialog's job, not the chip's.
-  const duration = value.duration;
+  const duration = value.amount;
   if (duration != null) {
     if (duration.compare === "within") return [{ label: "within", negated: false, compare: "within" }];
-    return DURATION_CONDITIONS.map((compare) => ({ label: compare, negated: false, compare }));
+    return AMOUNT_CONDITIONS.map((compare) => ({ label: compare, negated: false, compare }));
   }
   const date = value.date;
   if (date != null) {
@@ -1728,31 +999,37 @@ export const isConditionActive = (value: FilterValue, choice: ConditionChoice) =
   // to the plain comparison below, which is right: the mode is not on offer.
   if (choice.match != null) return choice.negated === value.negated && value.match === choice.match;
   if (choice.compare == null) return choice.negated === value.negated;
-  if (value.duration != null) return value.duration.compare === choice.compare;
+  if (value.amount != null) return value.amount.compare === choice.compare;
   return value.date?.compare === choice.compare;
 };
 
 /**
  * The value with one condition choice applied. A `compare` choice writes into
- * `date` or `duration` and holds `negated` at false — `matches` answers it in
+ * `date` or `amount` and holds `negated` at false — `matches` answers it in
  * full, so a flip would invert an already-complete condition. A `match` choice
  * writes BOTH halves, since it is one of two modes × one of the two halves.
+ *
+ * The key it writes MUST be `amount`, and TypeScript will not catch it if it is
+ * not: the return type is the generic `T`, and a spread object literal in that
+ * position is not excess-property-checked, so a stale `duration:` key compiled
+ * happily and silently did nothing (found 2026-09-12 — the amount chips' whole
+ * condition list was dead).
  */
 export function withCondition<T extends FilterValue>(value: T, choice: ConditionChoice): T {
   if (choice.match != null) return { ...value, negated: choice.negated, match: choice.match };
   if (choice.compare == null) return { ...value, negated: choice.negated };
-  if (value.duration != null) {
-    const compare = choice.compare as DurationCompare;
+  if (value.amount != null) {
+    const compare = choice.compare as AmountCompare;
     return {
       ...value,
       negated: false,
-      duration: {
-        ...value.duration,
+      amount: {
+        ...value.amount,
         compare,
         // A single-value condition has no second end. Unreachable from the chip
         // — a `within` value has only its own choice, so this never runs on one
         // — but it keeps the value honest wherever the call comes from.
-        to: compare === "within" ? value.duration.to : null,
+        to: compare === "within" ? value.amount.to : null,
       },
     };
   }
@@ -1779,15 +1056,18 @@ export function valueDisplay(def: AnyFilterDef, value: FilterValue): { label: st
   // icon (documented nodes 14100-37398, 14100-37990 and 14100-37994). A custom
   // value is the table's own compact format — see the note over the jobsData
   // import of `formatDuration`.
-  const duration = value.duration;
-  if (duration != null) {
-    const preset = durationPreset(duration.preset);
+  const amount = value.amount;
+  if (amount != null) {
+    // The unit is the KIND's: minutes print as the table's compact duration,
+    // dollars as "$1,000" (node 14297-48920's chip).
+    const format = def.kind === "money" ? formatMoney : formatDuration;
+    const preset = amountPreset(def.kind, amount.preset);
     if (preset != null) return { label: preset.label };
-    if (duration.from == null) return { label: "" };
-    if (duration.compare === "within" && duration.to != null) {
-      return { label: `${formatDuration(duration.from)} — ${formatDuration(duration.to)}` };
+    if (amount.from == null) return { label: "" };
+    if (amount.compare === "within" && amount.to != null) {
+      return { label: `${format(amount.from)} — ${format(amount.to)}` };
     }
-    return { label: formatDuration(duration.from) };
+    return { label: format(amount.from) };
   }
   const date = value.date;
   if (date != null) {

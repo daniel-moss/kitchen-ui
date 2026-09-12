@@ -17,8 +17,8 @@ import styles from "./Filters.module.scss";
 // The prototype's shared APP SHELL — everything both list pages (Jobs and
 // Estimates) stand inside: the sidebar, the mobile bottom bar, and the two
 // positioning hooks the pages' floating cards and tables share. Split out of
-// Filters.tsx on 2026-09-11, when the Estimates page arrived — one copy, two
-// pages, and Filters.tsx stops being the only home for shell chrome.
+// the Jobs page on 2026-09-11, when the Estimates page arrived — one copy,
+// two pages, and no page is the home for shell chrome any more.
 
 /** The prototype's pages. The sidebar and the bottom bar navigate between them. */
 export type Page = "jobs" | "estimates";

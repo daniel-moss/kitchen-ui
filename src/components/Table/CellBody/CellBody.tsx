@@ -183,7 +183,7 @@ export function CellBody({
       return content === "assignee" ? (
         <AvatarUser content="placeholder" size="md" />
       ) : (
-        <span ref={textRef} className={clsx(styles.text, styles.subtle)}>
+        <span ref={textRef} className={clsx(styles.text, styles.placeholder)}>
           {EMPTY_PLACEHOLDER}
         </span>
       );

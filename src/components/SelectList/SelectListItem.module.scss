@@ -173,3 +173,10 @@
 
   @include font("caption-medium-400"); // Inter Regular 13/20
 }
+
+// The caption's PLACEHOLDER, shown when the row has no value for it (see
+// `captionPlaceholder`). Same line, one token dimmer: the copy doc's rule is
+// "The placeholder inherits the --text-placeholder token" (27171-15212).
+.objectCaptionEmpty {
+  color: var(--text-placeholder);
+}

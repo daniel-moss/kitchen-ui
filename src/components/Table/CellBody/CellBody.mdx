@@ -106,12 +106,13 @@ size is unchangeable, but the slot supports any avatar.
 <Canvas of={CellBodyStories.TextSlotLeft} />
 
 Supports several color schemes. **The icon inherits the color on all variants
-except the `default` and the `subtle`.**
+except the `default`** — a default cell's slot often holds something with a
+colour of its own, so the cell leaves it alone.
 
 <Canvas of={CellBodyStories.ColorSchemes} />
 
 - `default` — `--text-strong`
-- `subtle` — `--text-placeholder`
+- `subtle` — `--text-subtle`
 - `success` — `--text-success`
 - `warning` — `--text-warning`
 - `caution` — `--text-caution`
@@ -209,7 +210,7 @@ parameters are flexible. By default, inherits the default parameters.
 <Canvas of={CellBodyStories.NumberSlotLeft} />
 
 Supports several color schemes. The icon inherits the color on all variants
-except the `default` and the `subtle`.
+except the `default`.
 
 <Canvas of={CellBodyStories.NumberColorSchemes} />
 

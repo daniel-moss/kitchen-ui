@@ -642,10 +642,14 @@ prototype must not generate or hand-copy its own row data any more: if a list
 needs a field or rows the db lacks, EXTEND the db (schema + data), then read
 it. The old "small curated list" idea is retired. Two consequences already in
 place:
-- `db.ts` exports **`TODAY`** — the demo's ONE fixed clock (2026-09-04
-  09:00), the moment the curated stories imply. Every "today"-relative read
-  measures from it; moving it means re-checking rows around it and
-  re-running `scripts/regenerate-db-rows.mjs` (which re-derives the
+- `db.ts` exports **`TODAY`** — the demo's ONE clock, and since 2026-09-12 it
+  is the REAL today (Daniel: "'Today' should be the actual today"). The file's
+  dates are literals written against an ANCHOR (2026-09-04 09:00, the moment
+  the curated stories imply) and the date-carrying tables are shifted by whole
+  days onto the real calendar as the module loads, so every row keeps its place
+  in the story and the demo never goes stale. Read the clock from `TODAY` or
+  `dayOffset`, never from `new Date()`; write new db dates against the anchor.
+  Re-running `scripts/regenerate-db-rows.mjs` (which re-derives the
   materialized mass rows from the old seeded generators — its inlined copies
   of the reference arrays must stay in step with `db.ts`).
 - The Filters pages' MASS tables live in `db.ts` as literals: 78 jobs (the
@@ -684,13 +688,17 @@ so it cannot drift.
 
 ## Prototypes (`src/prototypes/`)
 
-> **Filters prototype — read `src/prototypes/Filters/REORGANISATION.md` before
-> touching it.** It is the handoff for the re-organisation Daniel asked for
-> (2026-09-11): the Figma taxonomy the code should mirror, the current file map,
-> the target module layout, the order to do it in, and the INVARIANTS that each
-> cost a round of rework when broken (width floors, the freeze-on-open, the
-> import cycle, the un-animated sub-list, memoised tables). Verify any change
-> with `node scripts/measure-filters.mjs` (Storybook must be on :6006).
+> **Filters prototype — read `src/prototypes/Filters/MODULES.md` before touching
+> it.** The folder was RE-ORGANISED on 2026-09-11 to mirror Daniel's Figma
+> taxonomy: shared modules (`viewStates` / `filterUI` / `filterKinds` /
+> `filterTemplates` / `filterDefs`) owned by neither object, then a per-object
+> set each (`JobsPage` + `jobsTable` + `jobsFilters` + `jobsData`, and the
+> estimates twin). MODULES.md is the map: which Figma node each file is, which
+> way the imports point, the INVARIANTS that each cost a round of rework when
+> broken (width floors, the freeze-on-open, the import cycle, the un-animated
+> sub-list, memoised tables), what is still not built, and the open flags.
+> Verify any change with `npx tsc --noEmit` and
+> `node scripts/measure-filters.mjs` (Storybook must be on :6006).
 
 
 The point of the DS: **assemble working feature prototypes Daniel can share

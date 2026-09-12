@@ -39,7 +39,21 @@ const EXPECTED_WIDTHS = {
   Type: 208,
 };
 
-const ESTIMATE_FILTERS = ["Address", "Client", "Labels", "Last modified", "Location", "Service", "Status changed"];
+const ESTIMATE_FILTERS = [
+  "Address",
+  "Client",
+  "Down payment",
+  "Expires",
+  "Issued",
+  "Labels",
+  "Last modified",
+  "Location",
+  "Seen",
+  "Service",
+  "Status",
+  "Status changed",
+  "Total",
+];
 
 const MENU_WIDTH = 208; // the documented floor — node 14310-59652
 
@@ -141,6 +155,16 @@ const subList = () =>
       offscreen: box.left < 0 || box.right > window.innerWidth,
     });
   })()`);
+const clickSubRow = async (text) => {
+  await js(`(() => {
+    const items = [...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')]
+      .filter(el => /_item_/.test(el.className));
+    const row = items.find(r => r.textContent.trim() === ${JSON.stringify(text)});
+    if (row) row.click();
+    return 1;
+  })()`);
+  await sleep(800);
+};
 const rowRect = (name) =>
   js(`(() => {
     const rows = [...document.querySelectorAll('[class*="filtersMenu"] [class*="item"]')];
@@ -269,14 +293,14 @@ if (run("menu")) {
 
 // ---- estimates: the seven shared filters, and they filter ------------------
 if (run("estimates")) {
-  console.log("\nestimates — the seven filters, and they apply");
+  console.log("\nestimates — its filters, and they apply");
   await load(ESTIMATES_STORY);
   const before = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   await openMenu();
   const rows = JSON.parse(await menuRows());
   report(
     JSON.stringify(rows) === JSON.stringify(ESTIMATE_FILTERS),
-    "menu lists the seven",
+    "menu lists them all",
     JSON.stringify(rows),
   );
   await hoverRow("Client");
@@ -289,6 +313,96 @@ if (run("estimates")) {
   await sleep(800);
   const after = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   report(after > 0 && after < before, `Client = Wildwood Kitchen`, `${before} → ${after} rows`);
+
+  // Down payment — the estimates' own multi-select (node 14293-45032): four
+  // rows in the node's order, at the 208px floor, and it filters.
+  await load(ESTIMATES_STORY);
+  const dpBefore = await js(`document.querySelectorAll('[role="row"]').length - 1`);
+  await openMenu();
+  await hoverRow("Down payment");
+  const dpList = JSON.parse(await subList());
+  const dpRows = JSON.parse(
+    await js(`JSON.stringify([...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')]
+        .map(r => r.textContent.trim()).filter(t => t && t.length < 24))`),
+  );
+  report(
+    JSON.stringify(dpRows) === JSON.stringify(["Not required", "Paid", "Partially paid", "Not paid"]),
+    "Down payment rows",
+    JSON.stringify(dpRows),
+  );
+  report(dpList.width === MENU_WIDTH, "Down payment list width", `${dpList.width}px`);
+  await js(`(() => {
+    const rows = [...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')];
+    const row = rows.find(r => r.textContent.trim() === "Partially paid");
+    if (row) row.click();
+    return 1;
+  })()`);
+  await sleep(800);
+  const dpAfter = await js(`document.querySelectorAll('[role="row"]').length - 1`);
+  report(dpAfter > 0 && dpAfter < dpBefore, "Down payment = Partially paid", `${dpBefore} → ${dpAfter} rows`);
+
+  // A chip's CONDITION list must actually apply — the amount kinds wrote their
+  // condition to a dead key once (2026-09-12, the `duration` → `amount` rename;
+  // TypeScript could not see it because the writer returns a generic). Money
+  // stands in for both amount kinds here.
+  await load(ESTIMATES_STORY);
+  await openMenu();
+  await hoverRow("Total");
+  await clickSubRow("$1,000");
+  const overRows = await js(`Math.max(0, document.querySelectorAll('[role="row"]').length - 1)`);
+  await js(`(() => {
+    const box = [...document.querySelectorAll('[class*="_box_"]')].find(b => b.textContent.trim() === "over");
+    if (box) box.click();
+    return 1;
+  })()`);
+  await sleep(600);
+  await js(`(() => {
+    const row = [...document.querySelectorAll('[class*="_item_"]')].find(r => r.textContent.trim() === "under");
+    if (row) row.click();
+    return 1;
+  })()`);
+  await sleep(800);
+  const underRows = await js(`Math.max(0, document.querySelectorAll('[role="row"]').length - 1)`);
+  const chipCondition = await js(
+    `[...document.querySelectorAll('[class*="_box_"]')].map(b => b.textContent.trim()).join(" ")`,
+  );
+  report(
+    underRows !== overRows && /under/.test(chipCondition),
+    "Total chip: over → under applies",
+    `${overRows} → ${underRows} rows, chip "${chipCondition}"`,
+  );
+
+  // The three built on 2026-09-12: Expires (forward windows, no condition
+  // header), Issued (the shared past presets) and Total (the MONEY kind).
+  for (const [filter, rows, pick] of [
+    ["Expires", ["Expired", "Today", "Tomorrow", "Next 3 days", "Next 7 days", "Next 14 days", "Next 30 days"], "Expired"],
+    ["Issued", ["1 day ago", "3 days ago", "1 week ago", "1 month ago", "3 months ago", "6 months ago", "1 year ago"], "1 month ago"],
+    ["Total", ["$100", "$250", "$500", "$1,000", "$1,500", "$2,500", "$5,000", "$10,000"], "$1,000"],
+    ["Seen", ["Seen", "Not seen"], "Not seen"],
+  ]) {
+    await load(ESTIMATES_STORY);
+    const before = await js(`document.querySelectorAll('[role="row"]').length - 1`);
+    await openMenu();
+    await hoverRow(filter);
+    const listed = JSON.parse(
+      await js(`JSON.stringify([...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')]
+          .map(r => r.textContent.trim()).filter(t => t && t.length < 24))`),
+    );
+    report(
+      rows.every((row) => listed.includes(row)),
+      `${filter} rows`,
+      JSON.stringify(listed),
+    );
+    await js(`(() => {
+      const items = [...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')];
+      const row = items.find(r => r.textContent.trim() === ${JSON.stringify(pick)});
+      if (row) row.click();
+      return 1;
+    })()`);
+    await sleep(800);
+    const after = await js(`document.querySelectorAll('[role="row"]').length - 1`);
+    report(after >= 0 && after < before, `${filter} = ${pick}`, `${before} → ${after} rows`);
+  }
 }
 
 console.log(failures === 0 ? "\nAll checks passed.\n" : `\n${failures} check(s) FAILED.\n`);

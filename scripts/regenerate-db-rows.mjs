@@ -136,6 +136,21 @@ function dumpJobs() {
     const receivedOffset = Math.min(-1, (scheduledOffset ?? 0) - int(1, 12));
     const statusChangedOffset = int(receivedOffset, 0);
     const lastModifiedOffset = int(statusChangedOffset, 0);
+    // A date ONLY when the job really changed status (Daniel, 2026-09-12; the
+    // rule lives on `Job.statusChangedAt` in the db types). The status a job is
+    // born with is not a change, and neither is leaving Draft — so a draft
+    // never has one, an unscheduled job has one only when it came back from a
+    // schedule, and a scheduled job only when someone scheduled it later. From
+    // Active on it always has one. The shares come from the seeded rng, so a
+    // re-run against the same anchor keeps the same rows empty.
+    const everChanged =
+      status === "draft"
+        ? false
+        : status === "unscheduled"
+          ? rand() < 1 / 3
+          : status === "upcoming" || status === "pastDue"
+            ? rand() < 1 / 2
+            : true;
 
     const type = rand() < 0.22 ? "recall" : "new";
 
@@ -168,7 +183,7 @@ function dumpJobs() {
       receivedAt: dayAt(receivedOffset, int(8, 16), pick([0, 15, 30, 45])),
       scheduledFor,
       durationMinutes,
-      statusChangedAt: dayAt(statusChangedOffset, int(8, 17)),
+      statusChangedAt: everChanged ? dayAt(statusChangedOffset, int(8, 17)) : null,
       lastModifiedAt: dayAt(lastModifiedOffset, int(8, 17)),
     };
   }
@@ -210,6 +225,13 @@ function dumpEstimates() {
   const pick = (list) => list[Math.floor(rand() * list.length)];
   const int = (min, max) => min + Math.floor(rand() * (max - min + 1));
 
+  // The generator still thinks in production's STATE, because that is what
+  // correlates an estimate's issue window, its down payment and how likely the
+  // client is to have opened it — and because the seeded pick() sequence
+  // depends on it, so changing it would change every generated row. The state
+  // is never STORED any more (Daniel, 2026-09-11): `statusOf` below collapses
+  // it, `isDraft` and the conversion path into the single `EstimateStatus` the
+  // db now carries.
   const STATE_MIX = [
     ...Array(5).fill("Sent"),
     ...Array(4).fill("Pending"),
@@ -217,6 +239,15 @@ function dumpEstimates() {
     ...Array(2).fill("Won"),
     "Lost", "Cancelled",
   ];
+
+  // state (+ isDraft / conversionPath) → the stored status. EXPIRED is not here:
+  // it is derived from `dueAt` at render time, never stored.
+  const statusOf = (state, isDraft, conversionPath) => {
+    if (state === "Pending") return isDraft ? "draft" : "unsent";
+    if (state === "Sent") return "awaitingApproval";
+    if (state === "Approved" || state === "Won") return conversionPath;
+    return state.toLowerCase(); // Lost / Cancelled
+  };
 
   function issueWindow(state) {
     switch (state) {
@@ -266,20 +297,25 @@ function dumpEstimates() {
     const isDraft = state === "Pending" && rand() < 0.4;
     const conversionPath = pick(["unconverted", "unconverted", "jobbed", "jobbed", "invoiced"]);
 
+    const status = statusOf(state, isDraft, conversionPath);
+    // The jobs' rule, for estimates: a draft and an unsent estimate are both
+    // sitting in their FIRST status, so neither has a status-change date.
+    // Everything from "sent" on does — sending is a real transition, and an
+    // estimate cannot go back to Unsent.
+    const everChanged = status !== "draft" && status !== "unsent";
+
     return {
       id: `EST-${2207 + index}`,
       locationId: location.id,
       serviceId: service.id,
       serviceName: service.name,
-      status: state,
-      isDraft,
-      conversionPath,
+      status,
       labelIds,
       total,
       issuedAt: dayAt(issuedOffset, int(8, 17), pick([0, 15, 30, 45])),
       dueAt: dayAt(dueOffset, 17),
       downPayment,
-      statusChangedAt: dayAt(statusChangedOffset, int(8, 17)),
+      statusChangedAt: everChanged ? dayAt(statusChangedOffset, int(8, 17)) : null,
       lastModifiedAt: dayAt(lastModifiedOffset, int(8, 17)),
       lastViewedAt,
     };
@@ -297,8 +333,6 @@ function dumpEstimates() {
       `serviceName: ${q(e.serviceName)}`,
       `status: ${q(e.status)}`,
     ];
-    if (e.status === "Pending" && e.isDraft) parts.push(`isDraft: true`);
-    if (e.status === "Approved" || e.status === "Won") parts.push(`conversionPath: ${q(e.conversionPath)}`);
     parts.push(`labelIds: [${e.labelIds.map(q).join(", ")}]`);
     parts.push(`total: ${e.total}`);
     parts.push(`issuedAt: ${q(e.issuedAt)}`);

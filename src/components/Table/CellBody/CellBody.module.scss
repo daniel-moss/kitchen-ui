@@ -104,8 +104,14 @@
 }
 
 // A colour scheme paints the value AND the left slot's icon — except on
-// "default" and "subtle", where the icon keeps whatever colour the caller gave
-// it (the doc's rule). Those two schemes simply set no icon colour.
+// "default", where the icon keeps whatever colour the caller gave it (a default
+// cell's slot often holds something with a colour of its own).
+//
+// SUBTLE joined the painted list on 2026-09-12 (Daniel: "the subtle variant
+// means that the text and the icon color is set to --text-subtle"). It used to
+// sit with "default" and leave the icon alone, which left a near-black glyph
+// beside pale grey words wherever a subtle cell had one.
+.subtle .slotLeft,
 .success .slotLeft,
 .warning .slotLeft,
 .caution .slotLeft,
@@ -117,7 +123,17 @@
   --cell-text-color: var(--text-strong);
 }
 
+// `--text-subtle` (gray-a11), NOT `--text-placeholder` (gray-a9) — corrected
+// 2026-09-12, the same conversation. The scheme is named for this token; it was
+// set one step lighter, which is what made the Filters prototype's Down payment
+// column override it locally.
 .subtle {
+  --cell-text-color: var(--text-subtle);
+}
+
+// The EMPTY cell's "—" keeps the lighter placeholder tone; it borrowed the
+// `subtle` class before the correction above, and that is not the same job.
+.placeholder {
   --cell-text-color: var(--text-placeholder);
 }
 
