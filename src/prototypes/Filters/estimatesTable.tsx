@@ -130,7 +130,12 @@ export function sortEstimates(estimates: EstimateRow[], sort: TableSort): Estima
 const COLUMNS = {
   id: 144,
   client: 224,
-  status: 176,
+  // 192 = `--size-48`, up from production's 176 (`--size-44`), which could not
+  // hold the widest badge: "Awaiting approval" measures 149px and the cell's
+  // own 16px sides leave 144 (Daniel, 2026-09-12 — "it can not handle the
+  // Awaiting approval status"). 192 leaves 160 inside, so the badge sits with
+  // room to spare and no status on this list has to squeeze.
+  status: 192,
   service: 224,
   locationName: 288,
   locationAddress: 288,
