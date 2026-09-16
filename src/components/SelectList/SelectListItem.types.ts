@@ -37,15 +37,16 @@ interface SelectListItemBaseProps extends HTMLAttributes<HTMLDivElement> {
   /** Dimmed, non-interactive. */
   disabled?: boolean;
   /**
-   * Non-interactive, but READABLE: only the checkbox dims to 30% — the label,
-   * caption, avatar and tag keep their normal colours, and the row takes no
-   * hover, press or focus state. Use it to SHOW what is ticked when the user
-   * may not change it; `disabled` instead says the option is unavailable and
-   * dims the whole row.
+   * Non-interactive, but READABLE: the label, caption, avatar and tag keep
+   * their normal colours, and the row takes no hover, press or focus state.
+   * Only the SELECTION CONTROL dims to 30% — the multi row's checkbox and
+   * the single row's selected check alike (the single state joined
+   * 2026-09-16, for the locked filter chips' read-only lists). Use it to
+   * SHOW what is picked when the user may not change it; `disabled` instead
+   * says the option is unavailable and dims the whole row.
    *
-   * MULTI-SELECT only — Figma draws `state=readOnly` for `select=multi` in both
-   * variants and nowhere else (nodes 29462-25287 / 25291 / 25342 / 25345). On a
-   * single or counter row it is ignored, with a console warning.
+   * NOT supported on a `counter` row — its whole point is the decrement
+   * action. There it is ignored, with a console warning.
    */
   readOnly?: boolean;
 

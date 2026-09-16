@@ -3,10 +3,15 @@
 // `Icon` takes a name and builds a `.g-<name>` class, so it needs these as JS
 // values. Keep this in sync with icons-semantic.css.
 //
-// [custom pack]: timelineView, priorityNone and priorityHigh live only in the
-// kit custom font — render them with pack="custom". Without it the Icon falls
-// back to the classic font, which has no glyph at that codepoint, and the row
-// shows a blank box.
+// Source: the Figma Design System "Icons" variable collection (updated
+// 2026-09-16 — Daniel reorganised it into objects/ views/ priority/ progress/
+// groups, deleted the status icon trio (statuses are dots now) and the bare
+// `client` token, and renamed job-request/job-series to request/series).
+//
+// [custom pack]: timelineView, priorityNone, priorityLow, priorityMedium and
+// priorityHigh live only in the kit custom font — render them with
+// pack="custom". Without it the Icon falls back to the classic font, which has
+// no glyph at that codepoint, and the row shows a blank box.
 export const semanticIcons = {
   // navigation & app chrome
   menu: "bars",
@@ -18,36 +23,42 @@ export const semanticIcons = {
   whatIsNew: "bullhorn",
   requestFeature: "circle-info",
   logOut: "arrow-right-from-bracket",
-  home: "house",
+  delete: "trash-can",
 
   // files
-  filePrivate: "lock",
-  filePublic: "globe",
+  private: "lock",
+  public: "globe",
 
-  // statuses
-  active: "circle-minus",
-  review: "clock",
-  inactive: "ban",
-
-  // entities
+  // objects
+  home: "house",
   estimate: "clock",
-  jobRequest: "wrench-simple",
+  request: "wrench-simple",
   job: "wrench-simple",
-  jobSeries: "layer-group",
+  /** A newly created job (Figma objects/job-new, added 2026-09-16). */
+  jobNew: "sparkle",
+  /** A recall job (Figma objects/job-recall, added 2026-09-16). */
+  jobRecall: "clock-rotate-left",
+  series: "layer-group",
   invoice: "circle-dollar",
   creditNote: "circle-dollar",
-  purchaseOrder: "basket-shopping",
+  purchaseOrder: "shopping-basket",
   bill: "file-invoice-dollar",
   vendor: "store",
-  client: "building-user",
+  // Each client type has its own icon since 2026-09-16 (generic no longer
+  // shares the business glyph — Figma objects/client-generic = buildings).
+  clientGeneric: "buildings",
   clientBusiness: "building",
-  clientIndividual: "user",
+  clientIndividual: "building-user",
+  /** The client's industry sector (Daniel added the token 2026-09-16). */
+  clientIndustry: "industry",
+  /** The client's credit limit (Daniel added the token 2026-09-16). */
+  creditLimit: "gauge-high",
   pricebook: "tag",
   labor: "tag",
   product: "box-taped",
   other: "tag",
   discount: "tag",
-  taxRate: "tag",
+  taxRate: "percent",
   equipment: "cube",
   location: "location-dot",
   user: "user",
@@ -63,6 +74,10 @@ export const semanticIcons = {
 
   // priority
   priorityNone: "solid-priority-none", // [custom pack]
+  // Figma stores low/medium as duotone layer pairs ("…-low#"/"…-low##");
+  // our single-font rendering maps them to the one glyph class.
+  priorityLow: "duotone-solid-priority-low", // [custom pack]
+  priorityMedium: "duotone-solid-priority-medium", // [custom pack]
   priorityHigh: "solid-priority-high", // [custom pack]
   priorityUrgent: "fire",
 

@@ -17,7 +17,7 @@ import { noop } from "../../stories/helpers";
 import { AppBottomBar, Page, useAnchoredCard, useSingleAxisScroll } from "./appShell";
 import { FilterDef, FilterSelection, activeFilterCount, applyFilters } from "./filterDefs";
 import { FilterBar, FiltersDrawer, FiltersMenuCard, ScheduleHorizon } from "./filterUI";
-import { JOBS_FILTERS, JobsPhase } from "./jobsFilters";
+import { JOBS_FILTERS, JobsPhase, lockedStatusOptionIds } from "./jobsFilters";
 import {
   JobsTable,
   SORT_DEFAULT,
@@ -101,10 +101,12 @@ const TopBar = ({
   mobile = false,
   branch,
   onBranchChange,
+  onNavigate,
 }: {
   mobile?: boolean;
   branch: BranchId;
   onBranchChange: (next: BranchId) => void;
+  onNavigate: (next: Page) => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
@@ -133,7 +135,8 @@ const TopBar = ({
     <TopBarNavLeftElements>
       {/* The sub-pages read "Requests" / "Series", not "Job requests" / "Job
           series" (Daniel, 2026-08-17) — the same labels the sidebar's Jobs
-          stack already uses. */}
+          stack already uses. Since the SERIES page exists (2026-09-14),
+          picking it here NAVIGATES there; Requests stays a label. */}
       <TopBarNavTitle
         title="Jobs"
         subPages={[
@@ -141,7 +144,10 @@ const TopBar = ({
           { id: "jobs", label: "Jobs" },
           { id: "series", label: "Series" },
         ]}
-        defaultSubPage="jobs"
+        subPage="jobs"
+        onSubPageChange={(id) => {
+          if (id === "series") onNavigate("series");
+        }}
       />
     </TopBarNavLeftElements>
   </TopBarNav>
@@ -450,7 +456,8 @@ function MobileViewBar({
   }, [openViewMenuSignal]);
   // The sheet, its search, its per-visit drafts and the applied-filters
   // section are all `FiltersDrawer`'s (filterUI.tsx) — this bar only opens it.
-  const lockedStatuses = tabById(branch, tab).statuses;
+  // The chip shows OPTION ids (sub-statuses included), not the raw statuses.
+  const lockedStatuses = lockedStatusOptionIds(tabById(branch, tab).statuses);
 
   // The MOBILE Filters count counts the view's locked Status filter as well
   // (Daniel, 2026-08-18): on every view but "All" a filter IS applied, and
@@ -644,8 +651,15 @@ interface ShellProps {
   onBranchChange: (next: BranchId) => void;
   tab: string;
   onTabChange: (next: string) => void;
-  /** The current view's locked Status filter — the filter bar's first chip. */
-  lockedStatuses: BadgeJobStatusStatus[];
+  /**
+   * The current view's locked Status filter — the filter bar's first chip.
+   *
+   * These are the filter's OPTION ids, not raw status keys: a status drawn as
+   * its sub-statuses is represented by them, so the chip's read-only list ticks
+   * the rows it actually shows (`lockedStatusOptionIds`). The page filters on
+   * the view's own statuses, which is a different list.
+   */
+  lockedStatuses: string[];
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /** The table's sort — the header cells set it, the jobs arrive sorted by it. */
@@ -681,6 +695,7 @@ const DesktopShell = ({
   onSortSet,
   viewSettings,
   onViewSettingsChange,
+  onNavigate,
 }: ShellProps) => {
   // The Hidden Data Bar's "Show" opens the View menu, which the view bar owns
   // — an incrementing SIGNAL, not a boolean, so pressing Show again after the
@@ -692,7 +707,7 @@ const DesktopShell = ({
   return (
     <>
       <div className={styles.workArea}>
-        <TopBar branch={branch} onBranchChange={onBranchChange} />
+        <TopBar branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
         <DesktopViewBar
           branch={branch}
           tab={tab}
@@ -745,8 +760,9 @@ const DesktopShell = ({
             <NoObjectsExist noun={JOB_NOUN} />
           )}
         </div>
-        {/* AFTER the scroll container, so it stays put at the bottom while the
-            table scrolls — the annotation's "Fixed at the bottom of the list".
+        {/* AFTER the scroll container: below the LAST ROW while the list is
+            short, at the screen bottom once the rows overflow and scroll (the
+            content-area hug rule in Filters.module.scss — Daniel, 2026-09-16).
             Only while the table SHOWS rows: empty, the No Match block above
             carries the counts instead. */}
         {jobs.length > 0 && (
@@ -793,7 +809,7 @@ const MobileShell = ({
 
   return (
     <div className={styles.mobile}>
-      <TopBar mobile branch={branch} onBranchChange={onBranchChange} />
+      <TopBar mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
       <MobileViewBar
         branch={branch}
         tab={tab}
@@ -832,9 +848,10 @@ const MobileShell = ({
           <NoObjectsExist noun={JOB_NOUN} />
         )}
       </div>
-      {/* Between the list and the bottom bar, exactly where the mobile frame
-          draws it (14113-54705) — after the scroll container, so it stays put.
-          Only while the table SHOWS rows — empty, No Match carries the counts. */}
+      {/* Between the list and the bottom bar (14113-54705): below the last
+          row while the list is short, at the screen bottom once it scrolls
+          (the hug rule in Filters.module.scss). Only while the table SHOWS
+          rows — empty, No Match carries the counts. */}
       {jobs.length > 0 && (
         <HiddenDataBar
           noun={JOB_NOUN}
@@ -910,7 +927,12 @@ const JobsPage = ({ breakpoint = "auto", onNavigate }: JobsPageProps) => {
     setSelections((current) => ({ ...current, [tab]: next }));
 
   const filters = VIEW_FILTERS[tab]!;
+  // What the view LOCKS — the statuses themselves, which is what the rows are
+  // filtered by. The chip and its read-only list get the option ids instead
+  // (`lockedStatusOptionIds`): a status shown as its sub-statuses has no row of
+  // its own to tick.
   const lockedStatuses = tabById(branch, tab).statuses;
+  const lockedStatusIds = lockedStatusOptionIds(lockedStatuses);
 
   // The table's sort, PER VIEW like the filters (Daniel, 2026-09-03: "Each
   // view should have its own sorting parameters") — the view id keys both
@@ -1034,7 +1056,7 @@ const JobsPage = ({ breakpoint = "auto", onNavigate }: JobsPageProps) => {
     onBranchChange: setBranch,
     tab,
     onTabChange: setTab,
-    lockedStatuses,
+    lockedStatuses: lockedStatusIds,
     selection,
     onSelectionChange: setSelection,
     sort,

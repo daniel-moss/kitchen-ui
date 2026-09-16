@@ -11,7 +11,7 @@ const STATUSES: AvatarProductStatus[] = ["none", "active", "inactive", "review"]
 
 /**
  * AvatarProduct — an Avatar template: object avatar with the `product` semantic
- * icon (or an image), and a `status` shown as the corner icon addOn. xxs
+ * icon (or an image), and a `status` shown as the corner statusDot. xxs
  * supports `none` only.
  */
 const meta: Meta<typeof AvatarProduct> = {

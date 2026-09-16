@@ -69,11 +69,24 @@
   text-align: left;
 }
 
-// The left slot, so a colour scheme can reach the icon inside it.
+// The left slot. EVERY scheme paints it, "default" included (2026-09-14) — the
+// doc page's rule, node 29284-19562: "Supports several color schemes. The icon
+// inherits the color unless it's different from the default one."
+//
+// INHERITANCE is what makes the "unless" work, so this must stay a `color` on
+// the slot and never a colour forced onto the glyph: a caller that gives its
+// icon a colour of its own — the priority glyphs, a status icon — keeps it, and
+// a caller that gives it none takes the scheme's.
+//
+// It went in two steps: `subtle` joined the painted list on 2026-09-12 ("the
+// subtle variant means that the text and the icon color is set to
+// --text-subtle"), and `default` followed with the rule above.
 .slotLeft {
   display: flex;
   flex: none;
   align-items: center;
+
+  color: var(--cell-text-color, var(--text-strong));
 }
 
 .left .content {
@@ -101,22 +114,6 @@
 
 .tabular {
   @include font("body-400-compact-tabular");
-}
-
-// A colour scheme paints the value AND the left slot's icon — except on
-// "default", where the icon keeps whatever colour the caller gave it (a default
-// cell's slot often holds something with a colour of its own).
-//
-// SUBTLE joined the painted list on 2026-09-12 (Daniel: "the subtle variant
-// means that the text and the icon color is set to --text-subtle"). It used to
-// sit with "default" and leave the icon alone, which left a near-black glyph
-// beside pale grey words wherever a subtle cell had one.
-.subtle .slotLeft,
-.success .slotLeft,
-.warning .slotLeft,
-.caution .slotLeft,
-.error .slotLeft {
-  color: var(--cell-text-color);
 }
 
 .default {

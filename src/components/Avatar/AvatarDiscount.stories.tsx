@@ -11,7 +11,7 @@ const STATUSES: AvatarDiscountStatus[] = ["none", "active", "review", "inactive"
 
 /**
  * AvatarDiscount — an Avatar template: object/icon avatar with the `discount`
- * semantic icon, and a `status` shown as the corner icon addOn. xxs supports
+ * semantic icon, and a `status` shown as the corner statusDot. xxs supports
  * `none` only (no addOns on xxs).
  */
 const meta: Meta<typeof AvatarDiscount> = {

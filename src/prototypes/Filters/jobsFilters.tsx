@@ -2,6 +2,7 @@ import AvatarUser from "../../components/Avatar/AvatarUser";
 import { STATUS } from "../../components/Badge/BadgeJobStatus";
 import { Icon } from "../../components/Icon/Icon";
 import { IconPack } from "../../components/Icon/Icon.types";
+import { JOB_SUB_STATUSES } from "../../data/db";
 import { semanticIcons } from "../../styles/semanticIcons";
 
 import { DateWindowPreset, FilterDef, optionCounts } from "./filterDefs";
@@ -12,6 +13,7 @@ import {
   labelsTemplate,
   lastModifiedTemplate,
   locationTemplate,
+  receivedTemplate,
   serviceTemplate,
   statusChangedTemplate,
 } from "./filterTemplates";
@@ -24,9 +26,11 @@ import styles from "./Filters.module.scss";
 // (Figma node 14032-20321), in the node's alphabetical order.
 //
 // TWO kinds of entry, which is exactly Daniel's Figma split:
-//   - the OBJECT-SPECIFIC ones, his Jobs page 14267-33379: Assignee, Date
-//     received, Duration, Priority, Scheduled for, Source, Status, Type. They
-//     are written out below, because they exist on no other list;
+//   - the OBJECT-SPECIFIC ones, his Jobs page 14267-33379: Assignee,
+//     Est. duration, Priority, Scheduled for, Source, Status, Type. They
+//     are written out below, because they exist on no other list. (Received
+//     — "Date received" until 2026-09-14 — moved OUT to the templates when
+//     Daniel made it sharable.)
 //   - the shared TEMPLATES (14267-23337), taken from filterTemplates.tsx and
 //     handed the one thing that differs — how to read a JOB. Until 2026-09-11
 //     they lived HERE and the Estimates list derived its copies from them; now
@@ -76,15 +80,43 @@ const OPEN_STATUSES = STATUS_KEYS.filter((key) => !CLOSED_KEYS.includes(key));
 const CLOSED_STATUSES = STATUS_KEYS.filter((key) => CLOSED_KEYS.includes(key));
 
 /**
- * The two on-holds carry their SUB-STATUS as the row label — the Status
- * section's annotation: "Sub-statuses — If exist, they are shown instead of
- * the generic status". The badge map calls both plain "On hold", which would
- * make two identical rows.
+ * How the two on-holds are spelled when they have NO sub-status to name them.
+ * The badge map calls both plain "On hold", which would make two identical
+ * rows. With sub-statuses in the workspace these labels are never reached —
+ * see `SUB_STATUSES_BY_STATUS` and the Status filter's options.
  */
 const STATUS_FILTER_LABELS: Partial<Record<keyof typeof STATUS, string>> = {
   onHoldExternal: "On hold (external)",
   onHoldInternal: "On hold (internal)",
 };
+
+/**
+ * The workspace's sub-statuses, grouped under the status they belong to. Only
+ * the paused / on-hold statuses can have any, and a workspace that never wrote
+ * one has none at all — then every status keeps its own generic row.
+ */
+const SUB_STATUSES_BY_STATUS = JOB_SUB_STATUSES.reduce((map, sub) => {
+  map.set(sub.status, [...(map.get(sub.status) ?? []), sub]);
+  return map;
+}, new Map<string, typeof JOB_SUB_STATUSES>());
+
+/**
+ * The Status filter OPTION IDS behind a set of statuses — a status that has
+ * sub-statuses is represented by theirs, because its own row is not in the list
+ * any more (see the filter's `options`).
+ *
+ * A VIEW locks statuses, and its locked chip has to tick the rows the user can
+ * see: "In progress" locks Active + Quick-paused, and Quick-paused is drawn as
+ * "Lunch break" and "Pulled to another call", so all three tick (Daniel,
+ * 2026-09-14). The page still FILTERS on the statuses themselves — a locked view
+ * shows every job in those statuses, sub-status or not; this is only what the
+ * chip says and what its read-only list shows.
+ */
+export const lockedStatusOptionIds = (statuses: readonly string[]): string[] =>
+  statuses.flatMap((status) => {
+    const subs = SUB_STATUSES_BY_STATUS.get(status) ?? [];
+    return subs.length > 0 ? subs.map((sub) => sub.id) : [status];
+  });
 
 /**
  * Scheduled for's presets — WINDOWS, not the shared past-anchored list (the
@@ -114,9 +146,8 @@ export const SCHEDULED_WINDOWS: DateWindowPreset[] = [
 ];
 
 // The date and duration KINDS, pointed at the job fields the object-specific
-// filters read. The shared ones (Last modified, Status changed) build their own
-// inside filterTemplates.
-const receivedDates = dateFilter<Job>((job) => job.receivedAt);
+// filters read. The shared ones (Received, Last modified, Status changed)
+// build their own inside filterTemplates.
 const scheduledDates = dateFilter<Job>((job) => job.scheduledFor, SCHEDULED_WINDOWS);
 const durationValues = durationFilter<Job>((job) => job.durationMinutes);
 
@@ -199,53 +230,20 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
     // Client — shared (see filterTemplates).
     clientTemplate((job) => job.clientId),
     {
-      // Date received — the third designed filter, and the first of the new
-      // DATE kind (Figma section 13903-25906, 2026-08-19). It is single-select:
-      // one relative date ("1 week ago") or one custom date / range, never a
-      // set. Its condition pair is after/before, or within/outside once the
-      // Custom popover's "Range" box is ticked.
-      //
-      // Last modified joined it on 2026-08-24 (section 13986-45329) and shares
-      // every part of this build. Scheduled for and Status changed still use my
-      // invented buckets — no node for them yet.
-      //
-      // Its header is the DS `SelectListHeader` too, since 2026-08-23 (Figma
-      // node 13962-8817): the CHIPS-ONLY variant — a 16px-padded row of `md`
-      // Chips closed by the component's own Divider, 65px in all. Date received
-      // has no search, so that variant is the whole header. The prototype-local
-      // chip block and its two trial props (a flat unselected chip, no fill
-      // behind the block) are gone with it — the DS Chip's resting look IS the
-      // flat one now, and the DS header has no fill of its own.
-      id: "received",
-      kind: "date",
-      noun: { one: "date", many: "dates" },
-      label: "Date received",
-      // `calendar-arrow-down` (Daniel, 2026-09-12, agreeing with the reasoning
-      // below). A calendar with an arrow coming INTO it: the day a request
-      // arrived. It does not collide with Source's `inbox`.
-      //
-      // FLAGGED: node 14032-20321 still draws `calendar-plus`, which is what
-      // this row carried for a few hours. A PLUS reads as “add” everywhere else
-      // in this product — the sidebar's Create, the list's “New” — so on a
-      // filter it suggested MAKING a date rather than the date a job came in
-      // on. (Before that it was plain `calendar`, shared with Scheduled for;
-      // that one is `calendar-day` now, so the two date filters no longer
-      // use one glyph. Before the plain calendar: the KIT icon
-      // `regular-calendar-circle-arrow-right-bl`, and `calendar-lines-pen`.)
-      icon: "calendar-arrow-down",
-      dsHeader: true,
-      ...receivedDates,
-    },
-    {
-      // Duration — the fourth designed filter, and the first of the new DURATION
-      // kind (Figma section 13874-10420, 2026-08-24). It is built like Date
-      // received and reads the same way: ONE value, a condition of its own, a
-      // single-select list of presets over a "Custom..." row.
+      // Est. duration — the fourth designed filter, and the first of the AMOUNT
+      // kind (Figma section 13874-10420, named "Amount"; this list's own section
+      // is 14267-33380, 2026-08-24). It is built like Date received and reads the
+      // same way: ONE value, a condition of its own, a single-select list of
+      // presets over a "Custom..." row.
       //
       // What is different from a date: the condition is a set of THREE
-      // (over / under / is) rather than a pair of opposites, and a fourth —
+      // (at least / at most / is) rather than a pair of opposites, and a fourth —
       // `within` — that only the Custom dialog can produce, because it needs two
       // values. So `negated` is never used here; `compare` is the condition.
+      //
+      // The LABEL is "Est. duration" (Daniel, 2026-09-14, node 14267-33380 and
+      // the menu node 14032-20321) — the value is an estimate made when the job
+      // is booked, not a measured length. The table column says the same.
       //
       // Its header is the DS `SelectListHeader` in the chips-only variant, the
       // same one Date received uses (node 13874-11407 draws md Chips over the
@@ -254,7 +252,7 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
       id: "duration",
       kind: "duration",
       noun: { one: "duration", many: "durations" },
-      label: "Duration",
+      label: "Est. duration",
       icon: "hourglass",
       dsHeader: true,
       ...durationValues,
@@ -288,6 +286,13 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
       })),
       matches: (job, { ids }) => ids.includes(job.priority == null ? "none" : String(job.priority)),
     },
+    // Received — shared since 2026-09-14 (see filterTemplates). It was this
+    // registry's own "Date received" — the third filter Daniel designed, and
+    // the first of the date kind (section 13903-25906) — until he renamed it
+    // and made it sharable the same day. It sits HERE, after Priority — the
+    // rename moved it down the alphabet, and the menu node (14032-20321)
+    // draws it in this position (Daniel re-pointed it out the same day).
+    receivedTemplate((job) => job.receivedAt),
     {
       // Scheduled for — REDESIGNED 2026-09-09 (the updated section
       // 14101-46526): the past-anchored presets this filter inherited are
@@ -379,10 +384,15 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
       // / tomato / jade / amber / crimson / brown / orange; closed 14101-48863:
       // jade circle-check, gray circle-xmark). Only the ICON is colored — the
       // label stays --text-strong, body-400.
-      options: (phase === "open" ? OPEN_STATUSES : CLOSED_STATUSES).map((key) => ({
-        id: key,
-        label: STATUS_FILTER_LABELS[key] ?? STATUS[key].label,
-        slotLeft: (
+      //
+      // SUB-STATUSES take the place of their status's row (Daniel, 2026-09-14:
+      // "the Status filter SelectList also should show the exact sub-status
+      // names if sub-statuses exist"). A status that has none keeps its own row.
+      // The icon and its colour stay the STATUS's either way — a job on hold
+      // for parts is still on hold — so the rows under one status read as a
+      // family.
+      options: (phase === "open" ? OPEN_STATUSES : CLOSED_STATUSES).flatMap((key) => {
+        const slotLeft = (
           <Icon
             icon={STATUS[key].icon}
             pack="solid"
@@ -391,9 +401,14 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
             rotate={"rotate" in STATUS[key] ? (STATUS[key] as { rotate?: number }).rotate : undefined}
             style={{ color: `var(--${STATUS[key].scheme}-a9)` }}
           />
-        ),
-      })),
-      matches: (job, { ids }) => ids.includes(job.status),
+        );
+        const subs = SUB_STATUSES_BY_STATUS.get(key) ?? [];
+        if (subs.length > 0) return subs.map((sub) => ({ id: sub.id, label: sub.name, slotLeft }));
+        return [{ id: key, label: STATUS_FILTER_LABELS[key] ?? STATUS[key].label, slotLeft }];
+      }),
+      // An option id is either a STATUS key or a SUB-STATUS id — the two sets
+      // cannot collide, so one test covers both.
+      matches: (job, { ids }) => ids.includes(job.status) || (job.subStatusId != null && ids.includes(job.subStatusId)),
     },
     // Status changed — shared (see filterTemplates).
     statusChangedTemplate((job) => job.statusChangedAt),

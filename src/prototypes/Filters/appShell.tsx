@@ -14,14 +14,28 @@ import { noop } from "../../stories/helpers";
 
 import styles from "./Filters.module.scss";
 
-// The prototype's shared APP SHELL — everything both list pages (Jobs and
-// Estimates) stand inside: the sidebar, the mobile bottom bar, and the two
-// positioning hooks the pages' floating cards and tables share. Split out of
-// the Jobs page on 2026-09-11, when the Estimates page arrived — one copy,
-// two pages, and no page is the home for shell chrome any more.
+// The prototype's shared APP SHELL — everything the list pages (Jobs,
+// Estimates and Invoices) stand inside: the sidebar, the mobile bottom bar,
+// and the two positioning hooks the pages' floating cards and tables share.
+// Split out of the Jobs page on 2026-09-11, when the Estimates page arrived —
+// one copy, every page, and no page is the home for shell chrome any more.
 
 /** The prototype's pages. The sidebar and the bottom bar navigate between them. */
-export type Page = "jobs" | "estimates";
+export type Page =
+  | "jobs"
+  | "series"
+  | "estimates"
+  | "invoices"
+  | "creditNotes"
+  | "pos"
+  | "bills"
+  | "vendors"
+  | "clients"
+  | "labor"
+  | "products"
+  | "other"
+  | "discounts"
+  | "taxRates";
 
 // MenuItem left icon (square 16px box) — same helper the other prototypes use.
 const slot = (icon: string) => <Icon icon={icon} container="square" />;
@@ -54,7 +68,10 @@ const createMenu = (
       subMenu={
         <MenuItemGroup>
           <MenuItem label="Job" slotLeft={slot(semanticIcons.job)} />
-          <MenuItem label="Job series" slotLeft={slot(semanticIcons.jobSeries)} />
+          {/* "Series", not "Job series" (Daniel, 2026-09-14) — the sub-menu's
+              title already says "Create job", like the sidebar stack's short
+              labels (Requests / Jobs / Series). */}
+          <MenuItem label="Series" slotLeft={slot(semanticIcons.series)} />
         </MenuItemGroup>
       }
       subMenuTitle="Create job"
@@ -73,7 +90,7 @@ const createMenu = (
     <MenuItem label="Purchase order" slotLeft={slot(semanticIcons.purchaseOrder)} />
     <MenuItem label="Bill" slotLeft={slot(semanticIcons.bill)} />
     <MenuItem label="Vendor" slotLeft={slot(semanticIcons.vendor)} />
-    <MenuItem label="Client" slotLeft={slot(semanticIcons.client)} />
+    <MenuItem label="Client" slotLeft={slot(semanticIcons.clientGeneric)} />
     <MenuItem
       label="Pricebook item"
       slotLeft={slot(semanticIcons.pricebook)}
@@ -92,16 +109,22 @@ const createMenu = (
 );
 
 // The nav items BELOW the built-in Search row (SidebarNav renders Search
-// itself when `onSearchClick` is set). TWO items navigate since 2026-09-11 —
-// "Estimates" and the Jobs stack's "Jobs" sub-item switch the page and carry
-// the active state; everything else stays display-only.
+// itself when `onSearchClick` is set). NINE items navigate since 2026-09-16
+// — "Estimates", the Jobs stack's "Jobs" and "Series" sub-items, the
+// Invoices stack's "Invoices" and "Credit notes" sub-items, and the
+// top-level "Purchase orders", "Bills", "Vendors" and "Clients" switch the
+// page and carry the active state; everything else stays display-only.
 //
-// The Jobs stack is CONTROLLED by the page (see `Sidebar`): it collapses when
-// the user navigates out of it.
+// The Jobs and Invoices stacks are CONTROLLED by the page (see `Sidebar`):
+// each collapses when the user navigates out of it.
+type ControlledStack = { open: boolean; onOpenChange: (next: boolean) => void };
+
 const navContent = (
   page: Page,
   onNavigate: (next: Page) => void,
-  jobsStack: { open: boolean; onOpenChange: (next: boolean) => void },
+  jobsStack: ControlledStack,
+  invoicesStack: ControlledStack,
+  pricebookStack: ControlledStack,
 ) => (
   <>
     <SidebarNavItem icon="house">Home</SidebarNavItem>
@@ -122,22 +145,72 @@ const navContent = (
       <SidebarNavItem type="stackItem" active={page === "jobs"} onClick={() => onNavigate("jobs")}>
         Jobs
       </SidebarNavItem>
-      <SidebarNavItem type="stackItem">Series</SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "series"} onClick={() => onNavigate("series")}>
+        Series
+      </SidebarNavItem>
     </SidebarNavItemGroup>
-    <SidebarNavItemGroup icon={semanticIcons.invoice} label="Invoices">
-      <SidebarNavItem type="stackItem">Invoices</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Credit notes</SidebarNavItem>
+    <SidebarNavItemGroup
+      icon={semanticIcons.invoice}
+      label="Invoices"
+      open={invoicesStack.open}
+      onOpenChange={invoicesStack.onOpenChange}
+    >
+      <SidebarNavItem type="stackItem" active={page === "invoices"} onClick={() => onNavigate("invoices")}>
+        Invoices
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "creditNotes"} onClick={() => onNavigate("creditNotes")}>
+        Credit notes
+      </SidebarNavItem>
     </SidebarNavItemGroup>
-    <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
-    <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
-      <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Products</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
+    {/* Navigates since 2026-09-15 — the POs page. A top-level item like
+        Bills: POs are the buying side of the vendor relationship, so no
+        group collapses around it. The sidebar spells the name out (the
+        design's own copy); the page's title says "POs". */}
+    <SidebarNavItem icon={semanticIcons.purchaseOrder} active={page === "pos"} onClick={() => onNavigate("pos")}>
+      Purchase orders
+    </SidebarNavItem>
+    {/* Navigates since 2026-09-15 — the Bills page. A top-level item, not a
+        stack: bills are the vendors' side (accounts payable), so no group
+        collapses around it. */}
+    <SidebarNavItem icon={semanticIcons.bill} active={page === "bills"} onClick={() => onNavigate("bills")}>
+      Bills
+    </SidebarNavItem>
+    {/* Navigates since 2026-09-15 — the Vendors page. A top-level item like
+        Bills and Purchase orders: the third of the vendor-side trio. */}
+    <SidebarNavItem icon={semanticIcons.vendor} active={page === "vendors"} onClick={() => onNavigate("vendors")}>
+      Vendors
+    </SidebarNavItem>
+    {/* Navigates since 2026-09-16 — the Clients page, the customer
+        directory. A top-level item like Vendors. */}
+    <SidebarNavItem icon={semanticIcons.clientGeneric} active={page === "clients"} onClick={() => onNavigate("clients")}>
+      Clients
+    </SidebarNavItem>
+    {/* ALL FIVE pricebook types navigate since 2026-09-16 — Labor and
+        Products first, then Other, Discounts and Tax rates later the same
+        day. The stack is the first in the sidebar with no display-only
+        children left, and it follows the page like the Jobs and Invoices
+        ones. */}
+    <SidebarNavItemGroup
+      icon={semanticIcons.pricebook}
+      label="Pricebook"
+      open={pricebookStack.open}
+      onOpenChange={pricebookStack.onOpenChange}
+    >
+      <SidebarNavItem type="stackItem" active={page === "labor"} onClick={() => onNavigate("labor")}>
+        Labor
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "products"} onClick={() => onNavigate("products")}>
+        Products
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "other"} onClick={() => onNavigate("other")}>
+        Other
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "discounts"} onClick={() => onNavigate("discounts")}>
+        Discounts
+      </SidebarNavItem>
+      <SidebarNavItem type="stackItem" active={page === "taxRates"} onClick={() => onNavigate("taxRates")}>
+        Tax rates
+      </SidebarNavItem>
     </SidebarNavItemGroup>
     <SidebarNavItemGroup icon={semanticIcons.reports} label="Reports">
       <SidebarNavItem type="stackItem">Clients &amp; locations</SidebarNavItem>
@@ -181,19 +254,37 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   // in or out of it, so a stack the user opened BY HAND while another page is
   // active stays open — `onOpenChange` writes the same state the page writes.
   // Only the group holding the page being left collapses, which is what the
-  // rule says; the display-only stacks (Invoices, Pricebook, Reports) keep
-  // whatever the user set.
+  // rule says; the display-only stacks (Pricebook, Reports) keep whatever the
+  // user set. The Invoices stack joined the rule on 2026-09-14, when the
+  // Invoices page arrived.
   //
   // FLAGGED: this is consumer wiring, because only the consumer knows what the
   // active page is — the DS `SidebarNavItemGroup` cannot see it. If the rule
   // should hold for every app automatically, the DS component would have to
   // watch its children's `active` props, which is a DS change to approve, not
   // a prototype one.
-  const pageInJobsStack = page === "jobs";
+  // The Jobs stack holds TWO pages since 2026-09-14 — Jobs and Series — so
+  // it stays open while either is active.
+  const pageInJobsStack = page === "jobs" || page === "series";
   const [jobsOpen, setJobsOpen] = useState(pageInJobsStack);
   useEffect(() => {
     setJobsOpen(pageInJobsStack);
   }, [pageInJobsStack]);
+  // The Invoices stack holds TWO pages since 2026-09-14 — Invoices and Credit
+  // notes — so it stays open while either is active.
+  const pageInInvoicesStack = page === "invoices" || page === "creditNotes";
+  const [invoicesOpen, setInvoicesOpen] = useState(pageInInvoicesStack);
+  useEffect(() => {
+    setInvoicesOpen(pageInInvoicesStack);
+  }, [pageInInvoicesStack]);
+  // The Pricebook stack holds ALL FIVE of its pages since 2026-09-16, so it
+  // stays open while any pricebook list is active.
+  const pageInPricebookStack =
+    page === "labor" || page === "products" || page === "other" || page === "discounts" || page === "taxRates";
+  const [pricebookOpen, setPricebookOpen] = useState(pageInPricebookStack);
+  useEffect(() => {
+    setPricebookOpen(pageInPricebookStack);
+  }, [pageInPricebookStack]);
 
   return (
     <SidebarNav
@@ -206,7 +297,13 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
       createMenu={createMenu}
       bottomItems={bottomItems}
     >
-      {navContent(page, onNavigate, { open: jobsOpen, onOpenChange: setJobsOpen })}
+      {navContent(
+        page,
+        onNavigate,
+        { open: jobsOpen, onOpenChange: setJobsOpen },
+        { open: invoicesOpen, onOpenChange: setInvoicesOpen },
+        { open: pricebookOpen, onOpenChange: setPricebookOpen },
+      )}
     </SidebarNav>
   );
 };
@@ -214,10 +311,10 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
 // ---- the mobile bottom bar --------------------------------------------------
 
 // The design's bar holds Home · Jobs · Create · Search · Menu and has NO
-// Estimates item — in the app the Estimates list would be reached through
-// "Menu", which this prototype does not build. So on the Estimates page no
-// item is active, and "Jobs" navigates back to the Jobs list — FLAGGED: say
-// the word if the bar should behave differently there.
+// Estimates, Invoices or Credit notes item — in the app those lists would be
+// reached through "Menu", which this prototype does not build. So on those
+// pages no item is active, and "Jobs" navigates back to the Jobs list —
+// FLAGGED: say the word if the bar should behave differently there.
 export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (next: Page) => void }) => (
   <BottomBarNav breakpoint="mobile" className={styles.bottomBar}>
     <BottomBarNavItem icon="house" label="Home" />

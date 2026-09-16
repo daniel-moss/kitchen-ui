@@ -11,7 +11,7 @@ const STATUSES: AvatarTaxRateStatus[] = ["none", "active", "review", "inactive"]
 
 /**
  * AvatarTaxRate — an Avatar template: object/icon avatar with the `tax-rate`
- * semantic icon, and a `status` shown as the corner icon addOn. xxs supports
+ * semantic icon, and a `status` shown as the corner statusDot. xxs supports
  * `none` only.
  */
 const meta: Meta<typeof AvatarTaxRate> = {

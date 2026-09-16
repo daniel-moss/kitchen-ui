@@ -62,6 +62,12 @@ const meta: Meta<typeof ListItem> = {
       description: "The caption line — `caption-md-400` (Inter Regular 13/20) in `--text-subtle`. Shown for the two caption variants.",
       table: { type: { summary: "ReactNode" } },
     },
+    captionPlaceholder: {
+      control: { type: "text" },
+      description:
+        "What the caption line shows when `caption` has no value — \"No Location name\", \"No End date\". One token dimmer (`--text-placeholder`), the copy doc's standard empty behaviour. With neither, the caption line renders nothing.",
+      table: { type: { summary: "ReactNode" } },
+    },
     titleLines: {
       options: LINES,
       control: { type: "inline-radio" },
@@ -238,6 +244,17 @@ export const CaptionSlot: Story = {
         captionClassName={styles.errorText}
         captionSlotLeft={<Icon icon="house" pack="solid" size={10} container="square" rotate={180} className={styles.errorText} />}
       />
+    </Stack>
+  ),
+};
+
+export const CaptionPlaceholder: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Fisherman's Wharf" caption="Pier 39 Kitchen" avatar={objectAvatar} />
+      <ListItem variant="titleCaption" title="Fisherman's Wharf" captionPlaceholder="No Location name" avatar={objectAvatar} />
+      <ListItem variant="titleCaption" title="Fisherman's Wharf" avatar={objectAvatar} />
     </Stack>
   ),
 };

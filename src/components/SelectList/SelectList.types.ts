@@ -85,9 +85,10 @@ interface SelectListBaseProps {
   /**
    * Replaces the built-in "noResults" block entirely — for a surface whose
    * no-match state is designed differently. The Filters prototype's filter
-   * lists pass a caption-only EmptyState ("No matching options"), which is what
-   * their nodes draw (14310-60254 / 14310-60389), where the built-in state is
-   * an icon over a title and a caption.
+   * lists and the View menu's Column list both pass a caption-only EmptyState
+   * reading "No matches", which is what their nodes draw (14310-60254 /
+   * 14310-60389 and 14767-81877 / 14767-81874), where the built-in state is an
+   * icon over a title and a caption.
    *
    * It wins over `noResultsCaption` / `noResultsAction`, which describe the
    * built-in block.
@@ -125,6 +126,15 @@ interface SelectListBaseProps {
  * drawer = the mobile bottom sheet. On mobile, inline and dialog fall back to
  * the drawer. The drawer shows `title` in its header when given (drag handle
  * only otherwise); the dialog variant requires a title.
+ *
+ * WIDTH (inline): the card hugs its content up to 384px and has NO minimum of
+ * its own — so it opens at the width that shows every option without
+ * truncation. A SEARCH never changes that width (Daniel, 2026-09-14): the
+ * measurement taken with the full list is held as a floor for as long as
+ * something is typed, so filtering rows out cannot make the card shrink under
+ * the cursor. It works for the built-in `searchable` and for a consumer's own
+ * SelectListHeader alike, and it combines with a floor the consumer sets in
+ * `style.minWidth` (the Filters lists set 208) rather than replacing it.
  */
 export type SelectListProps =
   | (SelectListBaseProps & { variant?: "inline"; title?: string })

@@ -57,17 +57,19 @@ export default function SelectListItem({
   const counterCount = isCounter ? (count ?? 0) : 0;
   // A counter row is "selected" while it holds at least one copy.
   const isSelected = isCounter ? counterCount > 0 : selected;
-  // readOnly exists for MULTI-SELECT only — Figma draws no such variant for a
-  // single or counter row, and neither has a checkbox to dim, so the state
-  // would have nothing to show. TypeScript cannot express "this prop only with
-  // that mode" here (the deprecated `multiSelect` alias also picks the mode), so
+  // readOnly exists for SINGLE and MULTI select (Daniel added the single
+  // variants 2026-09-16 — the Labor list's locked Status chip is the first
+  // single-select filter a view locks). A COUNTER row still has no such
+  // variant: its whole point is the decrement action, which a read-only row
+  // could not offer. TypeScript cannot express "this prop only with those
+  // modes" here (the deprecated `multiSelect` alias also picks the mode), so
   // it is a runtime check — the same approach as ListItem's
   // CONTROLS_BLOCKING_CLICK warning.
-  const isReadOnly = readOnly && mode === "multi";
+  const isReadOnly = readOnly && mode !== "counter";
   const readOnlyMisused = readOnly && !isReadOnly;
   useEffect(() => {
     if (readOnlyMisused) {
-      console.warn(`SelectListItem: \`readOnly\` is multi-select only — ignored on select="${mode}".`);
+      console.warn(`SelectListItem: \`readOnly\` is not supported on select="counter" — ignored.`);
     }
   }, [readOnlyMisused, mode]);
   // Both states switch the row off; only `disabled` also dims it.

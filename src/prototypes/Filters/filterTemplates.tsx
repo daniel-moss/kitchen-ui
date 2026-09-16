@@ -1,11 +1,21 @@
 import AvatarClient from "../../components/Avatar/AvatarClient";
 import AvatarLocation from "../../components/Avatar/AvatarLocation";
+import { STATUS as PRICEBOOK_STATUS } from "../../components/Badge/BadgePricebookStatus";
 import { Icon } from "../../components/Icon/Icon";
+import { PricebookStatus, PricebookSubtype } from "../../data/db";
+import { semanticIcons } from "../../styles/semanticIcons";
 import { joinWithSeparator } from "../../utils/textSeparator";
 
-import { FilterDef, FilterOption } from "./filterDefs";
-import { addressFilter, dateFilter, moneyFilter } from "./filterKinds";
-import { CLIENTS, LOCATIONS, LocationRecord, SERVICES, locationAddress } from "./listData";
+import { FilterDef, FilterOption, FreeformValue } from "./filterDefs";
+import { FreeformFieldDef, dateFilter, forwardWindows, freeformFilter, moneyFilter } from "./filterKinds";
+import {
+  CLIENTS,
+  LOCATIONS,
+  LocationRecord,
+  SERVICES,
+  formatPaymentTerms,
+  locationAddress,
+} from "./listData";
 
 // FILTER TEMPLATE. Daniel's Figma node 14267-23337 ("Filter Template", inside
 // the "Filters ↳ Shared Behavior" page 14199-65429) holds the filters that are
@@ -37,13 +47,9 @@ import { CLIENTS, LOCATIONS, LocationRecord, SERVICES, locationAddress } from ".
 // the Estimates list uses them today. Total brought the MONEY kind with it
 // (filterKinds).
 //
-// NOT BUILT, still on the node with no code behind it:
-//   - **Due Date**. A Timeframe filter like Issued, so it is
-//     `lastModifiedTemplate`'s shape with another field read. It belongs to the
-//     INVOICES list, which this prototype does not have yet — SETTLED with
-//     Daniel on 2026-09-12: Due Date and the Estimates page's own **Expires**
-//     (14297-48370) are two different filters on two different objects, and
-//     both stay. Neither replaces the other.
+// DUE DATE joined on 2026-09-14, when the Invoices list got its filters —
+// the LAST row of the shared node with no code behind it. Every template on
+// 14267-23337 is built now.
 
 /**
  * The address INCLUDING the unit — "418 Mission St, Suite 200, San Francisco,
@@ -106,7 +112,9 @@ export function clientTemplate<TRow>(clientIdOf: (row: TRow) => string): FilterD
     id: "client",
     noun: { one: "client", many: "clients" },
     label: "Client",
-    icon: "building", // was building-user (node 14032-20321, 2026-09-03)
+    // The node drew `building` first (14032-20321, 2026-09-03); the
+    // `--client` token itself followed on 2026-09-16.
+    icon: semanticIcons.clientGeneric,
     searchPlaceholder: "Client...", // the ellipsis is back (Daniel, 2026-08-24)
     hideCounts: true,
     autoFocusSearch: true,
@@ -272,6 +280,112 @@ export function issuedTemplate<TRow>(read: (row: TRow) => string | null): Filter
   };
 }
 
+// ---- Received ----------------------------------------------------------------
+
+/**
+ * Received — the day a request came in (the Job's `receivedAt`). RENAMED from
+ * "Date received" and PROMOTED to a template on 2026-09-14 (Daniel: rename
+ * the filter and the column, and "'Received' is a sharable filter. It'll be
+ * used on other objects") — its section 13962-8766 is renamed "Received" and
+ * the Jobs menu node 14032-20321 draws the new row (both re-read the same
+ * day). It was the Jobs registry's own filter from the first build — the
+ * THIRD filter Daniel designed, and the first of the date kind.
+ *
+ * A TIMEFRAME filter with nothing of its own but the label and the icon: the
+ * shared seven past-anchored presets over "Custom...", the chips-only header
+ * (after / before), the shared Custom dialog.
+ *
+ * The icon is `calendar-arrow-down` (Daniel, 2026-09-12): a calendar with an
+ * arrow coming INTO it — the day a request arrived — the exact mirror of
+ * Issued's `calendar-arrow-up`. (Its history: `calendar-plus` for a few
+ * hours — a plus reads as "add" everywhere else in this product — plain
+ * `calendar` before that, shared with Scheduled for, and two kit glyphs
+ * before that.)
+ */
+export function receivedTemplate<TRow>(read: (row: TRow) => string | null): FilterDef<TRow> {
+  return {
+    id: "received",
+    kind: "date",
+    noun: { one: "date", many: "dates" },
+    label: "Received",
+    icon: "calendar-arrow-down",
+    dsHeader: true,
+    ...dateFilter(read),
+  };
+}
+
+// ---- Created at ---------------------------------------------------------------
+
+/**
+ * Created at — the day the record itself was made (production `created_at`).
+ * Built 2026-09-14 for the Series list; its menu row's documentation link
+ * points at a "Created At" SECTION on the shared Filter Template page
+ * (14767-79168), so it is a template like the other shared dates.
+ *
+ * Another TIMEFRAME filter — the shared presets, header and Custom dialog,
+ * reading another field.
+ *
+ * The icon is `calendar-plus` (Daniel, 2026-09-14: "I agree. Use it") — the
+ * day the record was ADDED. The reason this glyph was rejected for Received
+ * ("a plus reads as add everywhere in this product") is exactly why it is
+ * right here. The Series menu node still draws the placeholder; Daniel is
+ * updating it.
+ */
+export function createdAtTemplate<TRow>(read: (row: TRow) => string | null): FilterDef<TRow> {
+  return {
+    id: "createdAt",
+    kind: "date",
+    noun: { one: "date", many: "dates" },
+    label: "Created at",
+    icon: "calendar-plus",
+    dsHeader: true,
+    ...dateFilter(read),
+  };
+}
+
+// ---- Due date ----------------------------------------------------------------
+
+/**
+ * Due date — when the money is expected (production `date_due`). Section
+ * 14320-66655 on the shared page, built 2026-09-14 with the Invoices list's
+ * filters; only that list uses it today. SETTLED 2026-09-12: NOT a second name
+ * for the Estimates page's own Expires — two objects, two filters.
+ *
+ * A FORWARD-window Timeframe filter, the Expires shape: a window is a complete
+ * answer, so the list has NO condition chips (the desktop node draws body +
+ * footer only) and a preset-valued chip renders WITHOUT its condition box —
+ * the section's own two annotations, word for word the Expires ones ("Preset
+ * Value — the chip with the preset value renders without the condition box";
+ * "Custom Value — the chip with the custom value behaves as a regular
+ * 'Timeframe' filter", its chip example "Due date · after · Jan 1").
+ *
+ * OVERDUE leads the list (Daniel updated the node on 2026-09-14, after the
+ * first build shipped without it): the same open-ended past window every
+ * forward filter carries, worded with the OBJECT's own derived status — a
+ * job is "Past due", an estimate "Expired", an invoice "Overdue". One list,
+ * `forwardWindows(pastLabel)`. What Due date still does NOT have is the
+ * absence row: an invoice cannot exist without a due date (production
+ * enforces `date_due`), where Scheduled for needs its "Not scheduled".
+ *
+ * The icon is `calendar-exclamation` — the node's own (its chips draw it).
+ * The same glyph is Expires' on the ESTIMATES menu — SETTLED with Daniel,
+ * 2026-09-14: "Expires" and "Due date" never appear on one list, and the two
+ * concepts are close kin, so one urgent calendar serves both.
+ */
+const DUE_DATE_WINDOWS = forwardWindows("Overdue");
+
+export function dueDateTemplate<TRow>(read: (row: TRow) => string | null): FilterDef<TRow> {
+  return {
+    id: "dueDate",
+    kind: "date",
+    noun: { one: "date", many: "dates" },
+    label: "Due date",
+    icon: "calendar-exclamation",
+    dateWindows: DUE_DATE_WINDOWS,
+    ...dateFilter(read, DUE_DATE_WINDOWS),
+  };
+}
+
 // ---- Seen --------------------------------------------------------------------
 
 /**
@@ -281,10 +395,11 @@ export function issuedTemplate<TRow>(read: (row: TRow) => string | null): Filter
  *
  * An OPTIONS filter with two rows and, per the node's own annotation, SINGLE
  * select: "Only one selected option at a time" — a document has been opened or
- * it has not, so a set of the two would only ever mean "any". Its header is the
- * chips-only `SelectListHeader` ("is" / "is not"), no search, and the rows carry
- * their icons in the default colour with no counts: `eye` Seen · `eye-slash`
- * Not seen (desktop node 14267-13152).
+ * it has not, so a set of the two would only ever mean "any". Its header is
+ * the chips-only `SelectListHeader` ("is" / "is not"), no search, and the
+ * rows are BARE — Seen · Not seen, no counts and, since Daniel's 2026-09-15
+ * update (the node re-read: the `eye` / `eye-slash` row icons are gone), no
+ * icons either. The MENU row keeps its `eye`.
  *
  * `read` returns WHEN it was last opened, or null for never — the same shape the
  * column reads, so the two can never disagree.
@@ -299,10 +414,55 @@ export function seenTemplate<TRow>(read: (row: TRow) => string | null): FilterDe
     dsHeader: true,
     singleSelect: true,
     options: [
-      { id: "seen", label: "Seen", slotLeft: <Icon icon="eye" size={14} container="square" /> },
-      { id: "notSeen", label: "Not seen", slotLeft: <Icon icon="eye-slash" size={14} container="square" /> },
+      { id: "seen", label: "Seen" },
+      { id: "notSeen", label: "Not seen" },
     ],
     matches: (row, { ids }) => ids.includes(read(row) == null ? "notSeen" : "seen"),
+  };
+}
+
+// ---- Payment terms -----------------------------------------------------------
+
+/**
+ * Payment terms — a vendor's net-days terms. PROMOTED to a template on
+ * 2026-09-15, when Daniel moved its section onto the shared Filter Template
+ * page (14944-4762, re-read after the update) — it was the POs list's own
+ * filter first, and the Vendors list is its second consumer. The chips-only
+ * header ("is" / "is not"), NO search — the values are few — and bare rows
+ * led by "NO TERMS" (the node's updated absence row; it said "No payment
+ * terms" until the same update — inside this list the short word is
+ * unambiguous, the "No carrier" / "No method" pattern). The chip counts
+ * "N options" (the node's own copy; "2 terms" read wrong because one value
+ * IS "terms").
+ *
+ * The options are only the values in use, worded exactly as the columns
+ * print them — "Same Day" / "Net 30" — through the same `formatPaymentTerms`
+ * (its annotation: "Only the actual values that exist on the list"). WHICH
+ * values are in use differs per list — the POs list counts the vendors that
+ * HAVE orders, the Vendors list counts every row — so the list is a
+ * parameter, like the labels table on Labels.
+ *
+ * The icon is `square-n` — the node's own (the "N" of "Net N").
+ */
+export function paymentTermsTemplate<TRow>(
+  termsInUse: number[],
+  read: (row: TRow) => number | null,
+): FilterDef<TRow> {
+  return {
+    id: "paymentTerms",
+    noun: { one: "option", many: "options" },
+    label: "Payment terms",
+    icon: "square-n",
+    hideCounts: true,
+    dsHeader: true,
+    options: [
+      { id: "none", label: "No terms" },
+      ...termsInUse.map((terms) => ({ id: String(terms), label: formatPaymentTerms(terms) })),
+    ],
+    matches: (row, { ids }) => {
+      const terms = read(row);
+      return ids.includes(terms == null ? "none" : String(terms));
+    },
   };
 }
 
@@ -434,7 +594,14 @@ export function serviceTemplate<TRow>(serviceIdOf: (row: TRow) => string | null)
     id: "service",
     noun: { one: "service", many: "services" },
     label: "Service",
-    icon: "wrench-simple",
+    // `screwdriver-wrench` (Daniel, 2026-09-14) — the crossed-tools "service
+    // work" glyph. It REPLACED `wrench-simple`, which he gave to the Series
+    // list's Open jobs (the JOB icon — that filter counts jobs), so the two
+    // could no longer share. Being a template this changed on every menu at
+    // once (Jobs, Estimates, Invoices, Series); the menu NODES still draw
+    // the old wrench — Daniel is updating them. The chip's name segment
+    // follows automatically (it draws the def's icon).
+    icon: "screwdriver-wrench",
     searchPlaceholder: "Service...",
     hideCounts: true,
     autoFocusSearch: true,
@@ -475,37 +642,273 @@ export function statusChangedTemplate<TRow>(read: (row: TRow) => string | null):
   };
 }
 
-// ---- Address ----------------------------------------------------------------
+// ---- Address + Billing address (the two FREEFORM filters) -------------------
 
 /**
- * Address — the eighth designed filter (Figma section 13988-53503, 2026-08-24),
- * and the FIRST row of every menu: the rows are alphabetical and this one sorts
- * to the top (node 13857-25352).
- *
- * It is unlike every filter around it. There is no option list, because there
- * is nothing to list — a workspace's addresses are free text. The menu row
- * opens a DIALOG of five typed fields (the documented section 14100-36446), all
- * optional, and each one is matched against the matching field of the row's
- * LOCATION. Its condition is a plain pair, "contains" / "does not contain"
- * (13995-16956).
- *
- * The mobile dialog stacks all five; the desktop one puts State / Province and
- * Postal code side by side on one row.
- *
- * (See the module note: Figma files this under the KIND page, not the Template
- * page, even though both lists carry the identical filter. FLAGGED.)
+ * The five matchable parts of ANY address — a location's, or a vendor's /
+ * client's billing address. `LocationRecord` satisfies it structurally, so
+ * the location-based callers pass their record through unchanged; a row
+ * whose address is not a location hands in a plain object. (Moved here from
+ * filterKinds in the 2026-09-16 reorganisation: the KIND is generic
+ * "Freeform" now, and the address SHAPE belongs to the address FILTERS.)
+ */
+export interface AddressParts {
+  street?: string | null;
+  unit?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postalCode?: string | null;
+}
+
+/**
+ * The address filters' five fields, in the dialog's order — the labels are
+ * the nodes' copy (Address 14947-21952 / Billing address 14947-34564 draw
+ * the same five). State / Province and Postal code share a desktop row
+ * (`half`); mobile stacks all five.
+ */
+const addressFields = <TRow,>(read: (row: TRow) => AddressParts): FreeformFieldDef<TRow>[] => [
+  { key: "street", label: "Street address", read: (row) => read(row).street },
+  { key: "suite", label: "Suite, unit, etc.", read: (row) => read(row).unit },
+  { key: "city", label: "City", read: (row) => read(row).city },
+  { key: "state", label: "State / Province", half: true, read: (row) => read(row).state },
+  { key: "postalCode", label: "Postal code", half: true, read: (row) => read(row).postalCode },
+];
+
+/**
+ * The chip's value segment, both address filters' own format (their nodes'
+ * "Value" annotation: "[street_address], [suite], [city], [state]
+ * [postal_code]" — the value is only shown if it exists). State and postal
+ * code are ONE unit joined by a space, the same rule `locationAddress`
+ * follows, so dropping either leaves the other reading whole.
+ */
+export function addressSummary(value: FreeformValue): string {
+  const part = (key: string) => (value[key] ?? "").trim();
+  const region = [part("state"), part("postalCode")].filter((v) => v !== "").join(" ");
+  return [part("street"), part("suite"), part("city"), region].filter((v) => v !== "").join(", ");
+}
+
+/**
+ * What the two address filters share — everything but the id, the label and
+ * the reader: the FREEFORM kind (section 14100-36446) over the five address
+ * fields, the plain "contains" / "does not contain" pair, no option list
+ * (there is nothing to list — a workspace's addresses are free text; the
+ * menu row opens the dialog straight away), the address chip format, and
+ * the plain FA `text` icon (node 14032-20321, 2026-09-03).
+ */
+const addressFreeform = <TRow,>(read: (row: TRow) => AddressParts) => ({
+  kind: "freeform" as const,
+  noun: { one: "address", many: "addresses" },
+  icon: "text",
+  // No list, so no options — `matches` reads `freeform`, never `ids`.
+  options: [] as FilterOption[],
+  freeformSummary: addressSummary,
+  ...freeformFilter(addressFields(read)),
+});
+
+/**
+ * Address — the eighth designed filter (its own section 14947-21952 since
+ * the 2026-09-16 reorganisation — a FILTER built on the Freeform kind,
+ * 14100-36446), and the FIRST row of every menu: the rows are alphabetical
+ * and this one sorts to the top (node 13857-25352). Each field is matched
+ * against the matching field of the row's LOCATION.
  */
 export function addressTemplate<TRow>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow> {
   return {
     id: "address",
-    kind: "address",
-    noun: { one: "address", many: "addresses" },
     label: "Address",
-    // Plain FA `text` (node 14032-20321, 2026-09-03) — was the KIT icon
-    // `regular-text-location-pin`.
-    icon: "text",
-    // No list, so no options — `matches` reads `address`, never `ids`.
-    options: [] as FilterOption[],
-    matches: addressFilter(locationOfRow),
+    ...addressFreeform(locationOfRow),
+  };
+}
+
+/**
+ * Billing address — the Address filter's twin over a row's OWN `billing_*`
+ * fields (its section 14947-34564, also built on the Freeform kind; a
+ * shared TEMPLATE since the 2026-09-16 reorganisation — the Vendors and
+ * Clients lists carried identical local copies before). The reader hands in
+ * the row's billing parts; this list-side shape has no location anywhere.
+ */
+export function billingAddressTemplate<TRow>(read: (row: TRow) => AddressParts): FilterDef<TRow> {
+  return {
+    id: "address",
+    label: "Billing address",
+    ...addressFreeform(read),
+  };
+}
+
+// ---- the PRICEBOOK family's shared filters -----------------------------------
+//
+// PROMOTED on 2026-09-16, when the Products list became the second pricebook
+// type — the `receivedTemplate` / `paymentTermsTemplate` /
+// `billingAddressTemplate` precedent: a filter goes here the moment a second
+// list reads the same one.
+//
+// Figma files them under the LABOR canvas rather than the shared Filter
+// Template page (Cost 15056-60848, Status 15307-68262, Subtype 15049-71446,
+// Taxability 15049-71299) — and the PRODUCTS menu node's rows link to those
+// same four sections, which is the design saying "the same filter", in the
+// only way that node can. FLAGGED for Daniel: if the four should become
+// sections of the shared Filter Template page, nothing in the code moves.
+//
+// The two pricebook fields that are NOT here stay with their lists, because
+// they are not the same filter: `default_price` is Labor's "Rate" and
+// Products' "Price" (different name, different icon), and Est. duration /
+// Unit type / Inventory / Stock / MFG exist on one type only.
+
+/**
+ * Cost — what the company PAYS for a pricebook item (production `cost`;
+ * system-created Review items carry its 0 default). The MONEY kind
+ * unchanged: the shared eight presets, at least / at most / is, the "$"
+ * Custom dialog. Icon `coins` — an expense, distinct from the plain money
+ * glyph the list's own price filter uses.
+ */
+export function costTemplate<TRow>(read: (row: TRow) => number): FilterDef<TRow> {
+  return {
+    id: "cost",
+    kind: "money",
+    noun: { one: "amount", many: "amounts" },
+    label: "Cost",
+    icon: "coins",
+    dsHeader: true,
+    ...moneyFilter(read),
+  };
+}
+
+/**
+ * Price — what the client is charged for a pricebook item (production
+ * `default_price`). The MONEY kind over the shared ladder; its section is
+ * 15339-3946, on the PRODUCTS canvas, and the Other and Discounts menus both
+ * link their Price row to it — which is the design saying "the same filter",
+ * so it is a template (promoted 2026-09-16 with those two lists).
+ *
+ * Icon `money-bill`, the standing Amount glyph. The Labor list is the one
+ * type that does NOT use this: the same field is its "Rate", a different name
+ * with a different meaning, so it keeps its own def.
+ *
+ * NOTE for the Discounts list: production heads this column "Discount" there
+ * and stores the value NEGATIVE, so its money ladder ("at least $250") reads
+ * against negative numbers. Daniel's menu still calls the filter "Price" —
+ * FLAGGED in `discountFilters`.
+ */
+export function priceTemplate<TRow>(read: (row: TRow) => number): FilterDef<TRow> {
+  return {
+    id: "price",
+    kind: "money",
+    noun: { one: "amount", many: "amounts" },
+    label: "Price",
+    icon: "money-bill",
+    dsHeader: true,
+    ...moneyFilter(read),
+  };
+}
+
+/**
+ * Status — the pricebook's two-state review model over production's boolean
+ * `confirmed` (section 15307-68262). SINGLE-select (the frame's annotation:
+ * "Single-select. Only one selected option at a time" — with two options,
+ * "is any of both" could only mean "all"), the DS SelectListHeader in its
+ * chips-only variant ("is" / "is not"), no search, no counts.
+ *
+ * The rows are the node's own: a `circle-small` dot-glyph in the status's
+ * colour — amber-a9 Review, jade-a9 Active — and the label, the SAME dot
+ * `BadgePricebookStatus` draws, read from the badge's own STATUS map so a
+ * status can never be spelled or coloured two ways. The menu row's icon is
+ * `circle-dashed`, the standing Status glyph.
+ *
+ * ACTIVE-phase only on every pricebook list (the menu row's own annotation:
+ * "Only shown on the 'Active' phase views") — the registry decides that, not
+ * this template.
+ */
+export function pricebookStatusTemplate<TRow>(
+  statuses: PricebookStatus[],
+  read: (row: TRow) => PricebookStatus,
+): FilterDef<TRow> {
+  return {
+    id: "status",
+    noun: { one: "status", many: "statuses" },
+    label: "Status",
+    icon: "circle-dashed",
+    hideCounts: true,
+    dsHeader: true,
+    singleSelect: true,
+    options: statuses.map((key) => ({
+      id: key,
+      label: PRICEBOOK_STATUS[key].label,
+      // size 10 in the square container = the node's 12px icon box with the
+      // fs-10 glyph (read off 15307:68279 and the views' fixed chips) — the
+      // same dot the badge draws, NOT the 14px the other filters' row icons
+      // use.
+      slotLeft: (
+        <Icon
+          icon="circle-small"
+          pack="solid"
+          size={10}
+          container="square"
+          style={{ color: `var(--${PRICEBOOK_STATUS[key].scheme}-a9)` }}
+        />
+      ),
+    })),
+    matches: (row, { ids }) => ids.includes(read(row)),
+  };
+}
+
+/**
+ * Subtype — production `subtype`, the nullable revenue-category FK (section
+ * 15049-71446 links the Multi-Select documentation). A MULTI-select: "is" /
+ * "is not" over a "Subtype..." search, rows led by "No subtype" (the absence
+ * value — production's null, and a system-created item's normal state), then
+ * the workspace's subtypes A to Z. No counts, no row icons. Icon
+ * `diagram-subtask` — the type-tree glyph (`shapes`, the standing Type icon,
+ * is Labor's Unit type).
+ *
+ * The SUBTYPES are the parameter: production scopes each row to one
+ * `pricebook_item_type`, so Labor and Products pass their own tables.
+ */
+export function subtypeTemplate<TRow>(
+  subtypes: PricebookSubtype[],
+  read: (row: TRow) => string | null,
+): FilterDef<TRow> {
+  return {
+    id: "subtype",
+    noun: { one: "subtype", many: "subtypes" },
+    label: "Subtype",
+    icon: "diagram-subtask",
+    searchPlaceholder: "Subtype...",
+    hideCounts: true,
+    autoFocusSearch: true,
+    dsHeader: true,
+    options: [
+      { id: "none", label: "No subtype" },
+      ...[...subtypes].sort((a, b) => a.name.localeCompare(b.name)).map((subtype) => ({ id: subtype.id, label: subtype.name })),
+    ],
+    matches: (row, { ids }) => {
+      const subtypeId = read(row);
+      return (ids.includes("none") && subtypeId == null) || (subtypeId != null && ids.includes(subtypeId));
+    },
+  };
+}
+
+/**
+ * Taxability — production's `default_is_taxable` boolean, worded as the two
+ * values (section 15049-71299: "Single-select. Only one selected option at a
+ * time"): Non-taxable · Taxable, in the node's order, bare rows. The NAME
+ * settled 2026-09-16 (Daniel kept "Taxability" over "Tax" — on a pricebook
+ * screen whose sibling nav item is "Tax rates", "Tax" reads as a rate). Icon
+ * `percent` — the tax family's glyph, shared with the tax-rate OBJECT icon
+ * on purpose (the Labels = tag precedent).
+ */
+export function taxabilityTemplate<TRow>(read: (row: TRow) => boolean): FilterDef<TRow> {
+  return {
+    id: "taxability",
+    noun: { one: "option", many: "options" },
+    label: "Taxability",
+    icon: "percent",
+    hideCounts: true,
+    dsHeader: true,
+    singleSelect: true,
+    options: [
+      { id: "nonTaxable", label: "Non-taxable" },
+      { id: "taxable", label: "Taxable" },
+    ],
+    matches: (row, { ids }) => ids.includes(read(row) ? "taxable" : "nonTaxable"),
   };
 }

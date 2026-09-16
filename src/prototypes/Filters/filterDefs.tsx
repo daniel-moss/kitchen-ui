@@ -27,8 +27,10 @@ import { formatDuration } from "./listData";
 //     the jobs behind each option. One function, so a count can never disagree
 //     with what applying the filter actually does.
 //
-// EVERY filter is designed and DOCUMENTED now (2026-09-03): Address
-// (14100-36446), Assignee (13902-21570), Client (13934-13189), Date received
+// EVERY filter is designed and DOCUMENTED now (2026-09-03): Freeform
+// (14100-36446 — RENAMED from Address 2026-09-16; the Address and Billing
+// address FILTERS built on it are 14947-21952 / 14947-34564, in
+// filterTemplates), Assignee (13902-21570), Client (13934-13189), Date received
 // (13903-25906), Duration (13874-10420), Labels (13999-17090), Last modified
 // (14100-40610), Location (14101-44921), Priority (13874-9043), Scheduled for
 // (14101-46526), Service (14101-46745), Source (14101-47385), Status
@@ -38,25 +40,65 @@ import { formatDuration } from "./listData";
 
 export type FilterId =
   | "address"
+  | "amount"
+  | "amountDue"
   | "assignees"
+  | "associatedEstimates"
+  | "associatedInvoices"
+  | "associatedJobs"
+  | "availableCredit"
+  | "billsTo"
+  | "billsVia"
   | "client"
+  | "commitments"
+  | "cost"
+  | "createdAt"
+  | "creditLimit"
+  | "currentPOs"
+  | "discount"
   | "received"
   | "downPayment"
+  | "dueDate"
   | "duration"
+  | "estArrival"
+  | "estimateExpiration"
   | "expires"
+  | "industry"
+  | "inventory"
   | "issued"
+  | "items"
   | "labels"
   | "lastModified"
   | "location"
+  | "locations"
+  | "manufacturer"
+  | "openJobs"
+  | "outstandingBalance"
+  | "partNumber"
+  | "payables"
+  | "paymentTerms"
+  | "price"
   | "priority"
+  | "rate"
+  | "recurrence"
   | "scheduledFor"
   | "seen"
+  | "seriesEnd"
+  | "seriesStart"
   | "service"
+  | "shippingCarrier"
+  | "shippingMethod"
   | "source"
   | "status"
   | "statusChanged"
+  | "stock"
+  | "subtype"
+  | "taxRate"
+  | "taxability"
   | "total"
-  | "type";
+  | "type"
+  | "unitType"
+  | "vendor";
 
 export interface FilterOption {
   id: string;
@@ -197,12 +239,38 @@ export interface FilterDef<TRow> {
    *                kind, 2026-09-12): the same four measures, the same list, the
    *                same Custom dialog with a "$" field instead of hr + min. Both
    *                store an `AmountValue`.
-   *   "address"  — five TYPED fields, matched against the job's location
-   *                (Figma section 13988-53503). The only kind with NO option
-   *                list: its row in the Filters menu opens the dialog itself,
-   *                and so does the chip's value segment.
+   *   "count"    — ONE plain number of objects, the FOURTH amount kind
+   *                (2026-09-14, the Series list's "Open jobs" — its section's
+   *                annotation links the shared Amount documentation
+   *                13874-10420): the same machinery again with a bare number
+   *                as the unit — no "$", no hr + min.
+   *   "freeform" — one or more TYPED text fields (Figma section 14100-36446 —
+   *                RENAMED from "Address" 2026-09-16: "This type is used for
+   *                any freeform filters: address, name, etc. It does not
+   *                define what inputs and how many the filter uses"). The
+   *                KIND brings the behaviour — the dialog shell titled with
+   *                the filter's name, the contains / does-not-contain pair,
+   *                Apply gated until something is typed — and the DEF brings
+   *                the fields (`freeformFields`). The only kind with NO
+   *                option list: its row in the Filters menu opens the dialog
+   *                itself, and so does the chip's value segment. The Address
+   *                and Billing address filters are built on it
+   *                (filterTemplates).
    */
-  kind?: "options" | "date" | "duration" | "money" | "address";
+  kind?: "options" | "date" | "duration" | "money" | "count" | "percent" | "discount" | "freeform";
+  /**
+   * FREEFORM only — the dialog's inputs, in order: the kind does not define
+   * them, the filter does (the 2026-09-16 reorganisation). `half` marks a
+   * field that shares a desktop row with the next half field (the Address
+   * filters' State / Postal pair); mobile stacks everything.
+   */
+  freeformFields?: FreeformField[];
+  /**
+   * FREEFORM only — how the chip's value segment words the typed fields.
+   * Unset = the filled fields joined ", " in `freeformFields` order; the
+   * Address filters pass their own (state and postal join with a space).
+   */
+  freeformSummary?: (value: FreeformValue) => string;
   /**
    * Let the user choose how several ticked values combine — ALL of them or ANY
    * of them (Figma section 13984-38887). Only Labels is on it: a job carries a
@@ -220,10 +288,20 @@ export interface FilterDef<TRow> {
    * (no checkboxes; the picked row shows the right check), picking REPLACES
    * the pick and closes the list, and the mobile drawer has no Apply bar —
    * the pick is the decision, the same rule the date and duration lists
-   * follow. Unlike those, there is no "Custom..." row behind it. Only Type
-   * is on it.
+   * follow. Unlike those, there is no "Custom..." row behind it. Type, Seen
+   * and the POs' three Associated filters are on it.
    */
   singleSelect?: boolean;
+  /**
+   * This filter has NO condition at all (2026-09-15, the POs' Associated
+   * filters — their sections draw no is / is-not chips and their FilterChips
+   * no condition box): the two options are each a COMPLETE answer and each
+   * other's opposite ("is not None" would just be "Has any" again), so a
+   * condition would only duplicate the list. The def leaves `dsHeader`
+   * unset — no header chips — and this flag drops the chip's condition box,
+   * the way a date WINDOW value does.
+   */
+  noConditions?: boolean;
   /**
    * WINDOW presets for a date filter — see `SCHEDULED_WINDOWS`. Set only on
    * Scheduled for; unset means the shared past-anchored `DATE_PRESETS` with
@@ -359,46 +437,52 @@ export const dateCompareLabel = (compare: DateCompare, timeframe: DateTimeframe 
 export const isDateRange = (date: DateValue) => date.compare === "within";
 
 /**
- * An address filter's value (Figma section 13988-53503, 2026-08-24) — the five
- * fields of the dialog, in its order. Plain strings, never null: a blank field
- * is simply not part of the question, which is why every label carries
- * "(optional)".
- *
- * This filter has NO option list at all. There is nothing to choose from — a
- * workspace's addresses are free text — so the user types, and the row in the
- * Filters menu opens the dialog straight away.
+ * One input of a FREEFORM filter (the 2026-09-16 reorganisation of section
+ * 14100-36446): the KIND does not define what inputs and how many a filter
+ * uses — the filter does, through `FilterDef.freeformFields`. The generic
+ * documentation draws one labelled field; the Address filters declare five.
  */
-export interface AddressValue {
-  street: string;
-  /** "Suite, unit, etc." in the dialog. */
-  suite: string;
-  city: string;
-  /** "State / Province" in the dialog. */
-  state: string;
-  postalCode: string;
+export interface FreeformField {
+  key: string;
+  /**
+   * The Input's label — the node's copy; a labelled field is always
+   * "(optional)". UNSET draws the field with NO header at all, which is what
+   * a ONE-field freeform filter does: the dialog's title already names what
+   * is being typed, so a label under it would only repeat it (the Products
+   * list's MFG and MFG part # dialogs, 15339-34587 / 15339-34950, both draw
+   * their Input with `header: false`).
+   */
+  label?: string;
+  /** Shares a desktop row with the NEXT half field (Address: State + Postal). */
+  half?: boolean;
 }
 
-/** The dialog's fields, in the node's order — the labels are the node's copy. */
-export const ADDRESS_FIELDS: { key: keyof AddressValue; label: string }[] = [
-  { key: "street", label: "Street address" },
-  { key: "suite", label: "Suite, unit, etc." },
-  { key: "city", label: "City" },
-  { key: "state", label: "State / Province" },
-  { key: "postalCode", label: "Postal code" },
-];
+/**
+ * A freeform filter's value — what was typed into each of the def's fields,
+ * keyed by `FreeformField.key`. Plain strings, never null: a blank field is
+ * simply not part of the question, which is why every label carries
+ * "(optional)".
+ *
+ * This kind has NO option list at all. There is nothing to choose from — the
+ * values are free text — so the user types, and the row in the Filters menu
+ * opens the dialog straight away.
+ */
+export type FreeformValue = Record<string, string>;
 
-export const emptyAddress = (): AddressValue => ({ street: "", suite: "", city: "", state: "", postalCode: "" });
+/** Every declared field, blank — the dialog's starting draft. */
+export const emptyFreeform = (def: AnyFilterDef): FreeformValue =>
+  Object.fromEntries((def.freeformFields ?? []).map((field) => [field.key, ""]));
 
 /**
- * The chip's value segment — the filled fields only, in the dialog's order:
- * "Street address, Suite, City, State Postal code" (Figma node 13995-16947).
- * State and postal code are ONE unit joined by a space, the same rule
- * `locationAddress` follows, so dropping either leaves the other reading whole.
+ * The chip's value segment, when the def brings no `freeformSummary` of its
+ * own: the filled fields only, joined ", " in the def's field order.
  */
-export function addressSummary(address: AddressValue): string {
-  const part = (value: string) => value.trim();
-  const region = [part(address.state), part(address.postalCode)].filter((v) => v !== "").join(" ");
-  return [part(address.street), part(address.suite), part(address.city), region].filter((v) => v !== "").join(", ");
+export function freeformSummary(def: AnyFilterDef, value: FreeformValue): string {
+  if (def.freeformSummary != null) return def.freeformSummary(value);
+  return (def.freeformFields ?? [])
+    .map((field) => (value[field.key] ?? "").trim())
+    .filter((part) => part !== "")
+    .join(", ");
 }
 
 /**
@@ -428,18 +512,15 @@ export interface AmountValue {
  * The strings are the LABELS as well as the stored values — what the chip's
  * condition segment, its condition list and the dialog's chips all print.
  *
- * COPY SETTLED with the documented section (2026-09-03): the nodes themselves
- * now draw `over` / `under` / `is` (13874-11407 header, 14100-37396 condition
- * list, 13923-24049 dialog). They replaced the original `greater` / `less`,
- * which were comparatives and could not stand alone — "Duration greater 2
- * hours" is not a sentence. The old flag about that mismatch is resolved.
- *
- * STILL OPEN: `over` / `under` are STRICT — a job of exactly 2 hours matches
- * neither "over 2 hours" nor "under 2 hours", only "is 2 hours". If they should
- * include the boundary, the copy has to say so (`at least` / `at most`) and
- * `matches` below changes with it.
+ * COPY SETTLED 2026-09-14: `at least` / `at most` / `is`, and the comparison is
+ * INCLUSIVE with them — a job of exactly 2 hours matches "at least 2 hours" and
+ * "at most 2 hours" as well as "is 2 hours". This replaced `over` / `under`
+ * (Daniel: "let's change it to at least / at most"), which were strict and left
+ * a job sitting exactly on the number out of both halves. The condition list
+ * node 14100-37396 draws the new copy. Before that came `greater` / `less`,
+ * comparatives that could not stand alone.
  */
-export type AmountCompare = "over" | "under" | "is" | "within";
+export type AmountCompare = "at least" | "at most" | "is" | "within";
 
 /**
  * The three the CHIP's condition list and the option list's header chips offer
@@ -453,26 +534,52 @@ export type AmountCompare = "over" | "under" | "is" | "within";
  * (14100-37994's annotation: "The 'Condition' box is not clickable when the
  * condition is set to 'within'"). The same rule a date RANGE follows.
  */
-export const AMOUNT_CONDITIONS: AmountCompare[] = ["over", "under", "is"];
+export const AMOUNT_CONDITIONS: AmountCompare[] = ["at least", "at most", "is"];
 
 /** The Custom dialog's ChipGroup — the same three plus `within` (node 13923-24049). */
 export const AMOUNT_DIALOG_CONDITIONS: AmountCompare[] = [...AMOUNT_CONDITIONS, "within"];
 
 /**
- * An amount preset — one row of a duration or money list. `amount` is in the
- * kind's own unit: minutes for a duration, dollars for money.
+ * An amount preset — one row of a duration, money or count list. `amount` is
+ * in the kind's own unit: minutes for a duration, dollars for money, a plain
+ * number for a count.
  */
 export interface AmountPreset {
   id: string;
   label: string;
   amount: number;
+  /**
+   * A COMPLETE answer — the amount kinds' twin of a date WINDOW preset
+   * (2026-09-14, the Open jobs "None" row): picking it means EXACTLY this
+   * amount, the at least / at most / is condition does not apply to it, and
+   * its chip renders WITHOUT the condition box ("Open jobs · None"). "At
+   * least none" would mean everything and "at most none" the same as "is
+   * none", which is why the conditions add nothing to it.
+   */
+  complete?: boolean;
+  /**
+   * A complete answer about ABSENCE — the row matches the rows whose field is
+   * EMPTY, not zero (2026-09-16, the Clients list's "No credit limit": a
+   * client with no limit configured is not a client with a $0 limit). Behaves
+   * like `complete` everywhere else — no condition applies, the chip drops
+   * its condition box — and `amount` is unused.
+   */
+  absent?: boolean;
 }
 
 /**
- * The four durations the list offers, in the node's order (13874-11407). Bare
- * labels — no icon, no count — and SINGLE-select, like the date presets.
+ * Every duration the DURATION lists can offer — since 2026-09-16 a UNION
+ * table like the money one's: the four shared hour rows (13874-11407 — bare
+ * labels, no icon, no count, SINGLE-select like the date presets) plus the
+ * Labor list's leading ABSENT row (its own Est. duration section 15339-20649:
+ * a pricebook item's `default_job_duration` is optional, so "No est.
+ * duration" finds the items with nothing in the field). Which rows one list
+ * SHOWS is its LADDER — `DURATION_LADDER` below for the Jobs list, whose
+ * rows always have a duration (only a draft can miss one, the 2026-09-14
+ * rule), so it never shows the absence row.
  */
 export const DURATION_PRESETS: AmountPreset[] = [
+  { id: "noDuration", label: "No est. duration", amount: 0, absent: true },
   { id: "1h", label: "1 hour", amount: 60 },
   { id: "2h", label: "2 hours", amount: 120 },
   { id: "3h", label: "3 hours", amount: 180 },
@@ -480,11 +587,29 @@ export const DURATION_PRESETS: AmountPreset[] = [
 ];
 
 /**
- * The eight amounts the MONEY list offers, in the node's order (14297-48913,
- * the Total filter). Same shape as the durations — bare labels, single-select
- * — and the labels are the money format the chip and the Total column use.
+ * The ladder the JOBS duration list shows — the four hour rows, exactly what
+ * it offered before the union row arrived. The default `durationFilter`
+ * ladder; the Labor list prepends its absence row.
+ */
+export const DURATION_LADDER: string[] = ["1h", "2h", "3h", "4h"];
+
+/**
+ * Every amount the MONEY lists can offer — since 2026-09-16 a UNION table
+ * like the counts': the eight shared dollar rows (14297-48913, the Total
+ * filter — bare labels, single-select, the money format the chip and the
+ * Total column use) plus the Clients list's three leading rows. Which rows
+ * one list SHOWS is its LADDER — `MONEY_LADDER` below for the plain-amount
+ * filters; the Clients registry prepends its own leading row.
+ *
+ * The three leading rows are NOT the same answer: "No balance" and "No
+ * credit" mean exactly ZERO (`complete` — the count filters' "None"), where
+ * "No credit limit" means the field is EMPTY (`absent` — a client with no
+ * limit configured is not a client with a $0 limit).
  */
 export const MONEY_PRESETS: AmountPreset[] = [
+  { id: "noLimit", label: "No credit limit", amount: 0, absent: true },
+  { id: "noBalance", label: "No balance", amount: 0, complete: true },
+  { id: "noCredit", label: "No credit", amount: 0, complete: true },
   { id: "100", label: "$100", amount: 100 },
   { id: "250", label: "$250", amount: 250 },
   { id: "500", label: "$500", amount: 500 },
@@ -495,9 +620,107 @@ export const MONEY_PRESETS: AmountPreset[] = [
   { id: "10000", label: "$10,000", amount: 10000 },
 ];
 
+/**
+ * The ladder most money lists SHOW — the eight dollar rows, exactly what
+ * every money filter offered before the union rows arrived. The default
+ * `moneyFilter` ladder; a list with a leading row of its own passes one
+ * (the Clients list's three money filters).
+ */
+export const MONEY_LADDER: string[] = ["100", "250", "500", "1000", "1500", "2500", "5000", "10000"];
+
+/**
+ * Every count the COUNT lists can offer — the UNION table the machinery
+ * RESOLVES against (the chip's copy, `amountOf`, the complete check). Which
+ * rows one list SHOWS is the def's own LADDER — `COUNT_LADDER` below for
+ * most, the Vendors list's denser Current POs ladder in vendorFilters
+ * (2026-09-15, the first list whose node draws its own steps). Bare
+ * numbers — the label IS the amount, and the chip prints the same plain
+ * number (14767-79590 draws "Open jobs · at least · 5").
+ *
+ * "NONE" LEADS every ladder (Daniel, 2026-09-14: "'None' makes sense", and
+ * his updated node draws it first) — the COMPLETE row, see
+ * `AmountPreset.complete`: it asks the question the numbers cannot, "which
+ * series have nothing in flight".
+ */
+export const COUNT_PRESETS: AmountPreset[] = [
+  { id: "none", label: "None", amount: 0, complete: true },
+  { id: "1", label: "1", amount: 1 },
+  { id: "2", label: "2", amount: 2 },
+  { id: "3", label: "3", amount: 3 },
+  { id: "4", label: "4", amount: 4 },
+  { id: "5", label: "5", amount: 5 },
+  { id: "10", label: "10", amount: 10 },
+  { id: "15", label: "15", amount: 15 },
+  { id: "20", label: "20", amount: 20 },
+  { id: "50", label: "50", amount: 50 },
+];
+
+/**
+ * The ladder most count lists SHOW — Open jobs (14767-79588) and Items
+ * (14854-31182) both draw None over 1 · 2 · 5 · 10 · 20 · 50. The default
+ * `countFilter` ladder; a list whose node draws its own steps passes one
+ * (Current POs, 14947-34881).
+ */
+export const COUNT_LADDER: string[] = ["none", "1", "2", "5", "10", "20", "50"];
+
+/**
+ * The PERCENT ladder — the Tax rates list's own filter (section 15368-50064,
+ * 2026-09-16), and the FOURTH amount unit after duration, money and count.
+ * The node's nine rows exactly: 0% · 1% · 2% · 3% · 4% · 5% · 10% · 15% ·
+ * 20%, then "Custom...".
+ *
+ * "0%" is a plain numeric preset, NOT a `complete` one: a 0% tax rate is a
+ * real rate a workspace writes ("Tax exempt" is one of the demo's four), so
+ * "at least 0%" honestly means every rate. The Series list's "None" is the
+ * other case — there, zero is the absence of anything in flight.
+ */
+export const PERCENT_PRESETS: AmountPreset[] = [
+  { id: "0", label: "0%", amount: 0 },
+  { id: "1", label: "1%", amount: 1 },
+  { id: "2", label: "2%", amount: 2 },
+  { id: "3", label: "3%", amount: 3 },
+  { id: "4", label: "4%", amount: 4 },
+  { id: "5", label: "5%", amount: 5 },
+  { id: "10", label: "10%", amount: 10 },
+  { id: "15", label: "15%", amount: 15 },
+  { id: "20", label: "20%", amount: 20 },
+];
+
+/**
+ * The DISCOUNT ladder — the Discounts list's own filter (section 15416-61777),
+ * and the SIXTH amount unit. The node's ten rows, $100 through $5,000.
+ *
+ * The values are written WITHOUT a minus (Daniel, 2026-09-16, after the
+ * review): a minus and a comparison word fight each other — "at least -$500"
+ * literally means "≥ -$500", which on a number line is the SMALLEST
+ * discounts, the opposite of what the filter returns. The filter's NAME
+ * already carries the sign, so "Discount at least $500" is unambiguous with
+ * no special vocabulary. The minus stays in the COLUMN, which reports the
+ * stored value (production keeps a discount negative) rather than asking a
+ * question about its size.
+ *
+ * The `amount` is therefore the MAGNITUDE, which is also what
+ * `discountFilter` reads off the row — see there.
+ */
+export const DISCOUNT_PRESETS: AmountPreset[] = [
+  { id: "100", label: "$100", amount: 100 },
+  { id: "200", label: "$200", amount: 200 },
+  { id: "300", label: "$300", amount: 300 },
+  { id: "400", label: "$400", amount: 400 },
+  { id: "500", label: "$500", amount: 500 },
+  { id: "1000", label: "$1,000", amount: 1000 },
+  { id: "2000", label: "$2,000", amount: 2000 },
+  { id: "3000", label: "$3,000", amount: 3000 },
+  { id: "4000", label: "$4,000", amount: 4000 },
+  { id: "5000", label: "$5,000", amount: 5000 },
+];
+
 const AMOUNT_PRESETS_BY_KIND: Record<string, AmountPreset[]> = {
   duration: DURATION_PRESETS,
   money: MONEY_PRESETS,
+  count: COUNT_PRESETS,
+  percent: PERCENT_PRESETS,
+  discount: DISCOUNT_PRESETS,
 };
 
 /** This kind's preset table — duration's or money's. */
@@ -515,6 +738,18 @@ export const amountOf = (kind: FilterDef<never>["kind"], value: AmountValue): nu
   value.preset != null ? (amountPreset(kind, value.preset)?.amount ?? null) : value.from;
 
 /**
+ * Does this value hold a COMPLETE amount preset ("None") — or an ABSENT one
+ * ("No credit limit")? The chip drops its condition box for either — the
+ * date WINDOW rule, applied to the amount kinds (see `AmountPreset.complete`
+ * and `AmountPreset.absent`).
+ */
+export const isCompleteAmountValue = (def: AnyFilterDef, value: FilterValue): boolean => {
+  if (value.amount == null) return false;
+  const preset = amountPreset(def.kind, value.amount.preset);
+  return preset?.complete === true || preset?.absent === true;
+};
+
+/**
  * A money amount as the chip and the lists print it: "$1,000" — US currency
  * with NO cents (every node draws whole dollars: 14297-48913's rows,
  * 14297-48920's chip). The TABLE's Total column keeps its own cents format
@@ -523,6 +758,15 @@ export const amountOf = (kind: FilterDef<never>["kind"], value: AmountValue): nu
  */
 export const formatMoney = (dollars: number): string =>
   dollars.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+
+/**
+ * A percent as the chips, the filter rows and the Tax rate COLUMN all print
+ * it: "5%" / "8.63%" — the number followed by the sign, production's own
+ * `NumericalDataCell type="percentage"` format. Trailing zeros are dropped,
+ * so a whole rate never reads "8.00%"; unlike money there is one format for
+ * both the chip and the column, because a rate is short either way.
+ */
+export const formatPercent = (percent: number): string => `${Number(percent.toFixed(3))}%`;
 
 // A CUSTOM duration in the chip is the TABLE's own compact format — "1h 30m" /
 // "1h" / "30m" — imported from jobsData (`formatDuration`), not written again
@@ -577,8 +821,8 @@ export interface FilterValue {
    * `AmountValue`).
    */
   amount?: AmountValue;
-  /** Address filters only. */
-  address?: AddressValue;
+  /** FREEFORM filters only — keyed by the def's `freeformFields`. */
+  freeform?: FreeformValue;
   /** Match-mode filters only (Labels) — see `MatchMode`. */
   match?: MatchMode;
 }
@@ -623,17 +867,19 @@ export const newFilterInstance = (def: AnyFilterDef): FilterInstance => ({
   // No `compare` yet: a fresh date starts on the PRESET list, whose condition is
   // the after / before pair. The Custom dialog is what gives it a `compare`.
   date: def.kind === "date" ? { preset: null, from: null, to: null } : undefined,
-  // "over" is the condition a fresh AMOUNT opens on — a duration or a money
-  // value alike — the FIRST chip, drawn active in the list header and in the
-  // Custom dialog (13874-11407 / 13923-24049 for the duration, 14297-48913 /
-  // 14299-49211 for money; all four spell it "over").
+  // "at least" is the condition a fresh AMOUNT opens on — a duration, a money
+  // or a count value alike — the FIRST chip, drawn active in the list header
+  // and in the Custom dialog (13874-11407 / 13923-24049 for the duration,
+  // 14297-48913 / 14299-49211 for money, 14767-79588 / 14767-79595 for the
+  // count).
   amount:
-    def.kind === "duration" || def.kind === "money"
-      ? { compare: "over", preset: null, from: null, to: null }
+    def.kind === "duration" || def.kind === "money" || def.kind === "count"
+      ? { compare: "at least", preset: null, from: null, to: null }
       : undefined,
-  // Five blank fields. `negated` stays false, which is "contains" — the first
-  // and default condition (node 13995-16953 draws it checked).
-  address: def.kind === "address" ? emptyAddress() : undefined,
+  // The def's declared fields, blank. `negated` stays false, which is
+  // "contains" — the first and default condition (node 13995-16953 draws it
+  // checked).
+  freeform: def.kind === "freeform" ? emptyFreeform(def) : undefined,
   // "all" is the mode a fresh Labels filter opens on — the documented condition
   // list (14101-43505) draws "include all of" selected, and the Empty header's
   // annotation marks "include" as the default condition. It stays unseen until
@@ -648,10 +894,11 @@ export const newFilterInstance = (def: AnyFilterDef): FilterInstance => ({
  * same shape, with `within` as its two-ended condition.
  */
 export function isEmptyValue(value: FilterValue): boolean {
-  // An ADDRESS is empty until at least one field has been typed into. Every
-  // field is optional on its own, so any ONE of them makes a real question.
-  const address = value.address;
-  if (address != null) return ADDRESS_FIELDS.every((field) => address[field.key].trim() === "");
+  // A FREEFORM value is empty until at least one field has been typed into.
+  // Every field is optional on its own, so any ONE of them makes a real
+  // question.
+  const freeform = value.freeform;
+  if (freeform != null) return Object.values(freeform).every((typed) => typed.trim() === "");
   const duration = value.amount;
   if (duration != null) {
     if (duration.preset != null) return false;
@@ -822,8 +1069,8 @@ export function applyFilters<TRow>(jobs: TRow[], filters: FilterDef<TRow>[], sel
 export function optionCounts<TRow>(jobs: TRow[], def: FilterDef<TRow>): Record<string, number> {
   const counts: Record<string, number> = {};
   // A date or duration filter shows no counts at all (its rows are bare labels),
-  // so there is nothing to measure — and its value does not live in `ids`. An
-  // address filter has no rows in the first place.
+  // so there is nothing to measure — and its value does not live in `ids`. A
+  // freeform filter has no rows in the first place.
   if (def.kind !== "options" && def.kind != null) return counts;
   for (const option of def.options) {
     counts[option.id] = jobs.filter((job) => def.matches(job, { ids: [option.id], negated: false })).length;
@@ -939,10 +1186,10 @@ export const conditionChoices = (value: FilterValue): ConditionChoice[] => {
       { label: "do not include all of", negated: true, match: "all" },
     ];
   }
-  // An ADDRESS has one pair, and they are true opposites, so `negated` carries
-  // it like an options filter's "is" / "is not" — no `compare` needed (Figma
-  // node 13995-16956, "contains" checked).
-  if (value.address != null) {
+  // A FREEFORM value has one pair, and they are true opposites, so `negated`
+  // carries it like an options filter's "is" / "is not" — no `compare` needed
+  // (Figma node 13995-16956, "contains" checked).
+  if (value.freeform != null) {
     return [
       { label: "contains", negated: false },
       { label: "does not contain", negated: true },
@@ -1047,10 +1294,12 @@ export function withCondition<T extends FilterValue>(value: T, choice: Condition
  * custom range ("Jan 1 — Jan 10"), never an icon.
  */
 export function valueDisplay(def: AnyFilterDef, value: FilterValue): { label: string; slotLeft?: ReactNode } {
-  // An ADDRESS shows the fields that were typed into, in the dialog's order
-  // (Figma node 13995-16947). It can get long; the chip truncates.
-  const address = value.address;
-  if (address != null) return { label: addressSummary(address) };
+  // A FREEFORM value shows the fields that were typed into, in the def's
+  // field order — worded by the def's own `freeformSummary` where it has one
+  // (the Address filters' "[street], [suite], [city], [state] [postal]",
+  // node 13995-16947). It can get long; the chip truncates.
+  const freeform = value.freeform;
+  if (freeform != null) return { label: freeformSummary(def, freeform) };
   // A DURATION shows its preset's own words ("2 hours"), one custom length
   // ("1h 30m") or both ends of a custom range ("1h 30m — 2h 45m"), never an
   // icon (documented nodes 14100-37398, 14100-37990 and 14100-37994). A custom
@@ -1059,8 +1308,19 @@ export function valueDisplay(def: AnyFilterDef, value: FilterValue): { label: st
   const amount = value.amount;
   if (amount != null) {
     // The unit is the KIND's: minutes print as the table's compact duration,
-    // dollars as "$1,000" (node 14297-48920's chip).
-    const format = def.kind === "money" ? formatMoney : formatDuration;
+    // dollars as "$1,000" (node 14297-48920's chip), a count as the plain
+    // number (node 14767-79590's chip), a percent as "5%" (node 15368-50099's
+    // chip, and the Tax rate column's own format).
+    // A DISCOUNT prints like money — its values carry no minus (see
+    // DISCOUNT_PRESETS), so there is no formatter of its own.
+    const format =
+      def.kind === "money" || def.kind === "discount"
+        ? formatMoney
+        : def.kind === "count"
+          ? String
+          : def.kind === "percent"
+            ? formatPercent
+            : formatDuration;
     const preset = amountPreset(def.kind, amount.preset);
     if (preset != null) return { label: preset.label };
     if (amount.from == null) return { label: "" };

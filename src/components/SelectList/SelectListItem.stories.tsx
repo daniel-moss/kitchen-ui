@@ -53,8 +53,8 @@ const meta: Meta<StoryArgs> = {
     selected: { control: { type: "boolean" } },
     count: { control: { type: "number", min: 0 }, if: { arg: "select", eq: "counter" } },
     disabled: { control: { type: "boolean" } },
-    // readOnly is multi-select only — Figma draws no such variant elsewhere.
-    readOnly: { control: { type: "boolean" }, if: { arg: "select", eq: "multi" } },
+    // readOnly exists for single + multi (2026-09-16); counter has no such state.
+    readOnly: { control: { type: "boolean" } },
     state: { options: ["default", "hover", "press", "focus"], control: { type: "inline-radio" } },
   },
 };
@@ -66,7 +66,7 @@ type Story = StoryObj<StoryArgs>;
 export const Playground: Story = {
   render: ({ variant, label, extra, extraText, leftSlot, select, selected, count, disabled, readOnly, state }) => {
     const common = { variant, label, disabled, onClick: noop };
-    const pick = { selected, readOnly: select === "multi" && readOnly };
+    const pick = { selected, readOnly: select !== "counter" && readOnly };
     return (
       <div className={PSEUDO_ALL[state]} style={frame}>
         {select === "counter" ? (
@@ -98,9 +98,9 @@ const COLS: { label: string; select: SelectMode; selected: boolean }[] = [
 ];
 // A matrix cell: counter columns derive selection from the count.
 const matrixItem = (c: (typeof COLS)[number], s: (typeof STATES)[number], objectProps?: object) => {
-  // readOnly is multi-select only, so the other columns stay on their default
-  // row in that line — the same thing Figma draws (no readOnly variant there).
-  const readOnly = s.readOnly === true && c.select === "multi";
+  // readOnly exists for single + multi (2026-09-16); the counter columns stay
+  // on their default row in that line — Figma draws no readOnly variant there.
+  const readOnly = s.readOnly === true && c.select !== "counter";
   return c.select === "counter" ? (
     <SelectListItem label={objectProps != null ? "Title" : "Option"} select="counter" count={c.selected ? 1 : 0} onDecrement={noop} disabled={s.disabled} onClick={noop} {...objectProps} />
   ) : (
@@ -113,7 +113,7 @@ const STATES: { label: string; pseudo?: string; disabled?: boolean; readOnly?: b
   { label: "press", pseudo: "pseudo-active-all" },
   { label: "focus", pseudo: "pseudo-focus-visible-all" },
   { label: "disabled", disabled: true },
-  // multi-select only — see the readOnly note in the types.
+  // single + multi (2026-09-16) — see the readOnly note in the types.
   { label: "readOnly", readOnly: true },
 ];
 

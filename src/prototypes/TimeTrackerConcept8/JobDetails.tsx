@@ -355,7 +355,7 @@ const createMenu = (
       subMenu={
         <MenuItemGroup>
           <MenuItem label="Job" slotLeft={slot(semanticIcons.job)} />
-          <MenuItem label="Job series" slotLeft={slot(semanticIcons.jobSeries)} />
+          <MenuItem label="Job series" slotLeft={slot(semanticIcons.series)} />
         </MenuItemGroup>
       }
       subMenuTitle="Create job"
@@ -374,7 +374,7 @@ const createMenu = (
     <MenuItem label="Purchase order" slotLeft={slot(semanticIcons.purchaseOrder)} />
     <MenuItem label="Bill" slotLeft={slot(semanticIcons.bill)} />
     <MenuItem label="Vendor" slotLeft={slot(semanticIcons.vendor)} />
-    <MenuItem label="Client" slotLeft={slot(semanticIcons.client)} />
+    <MenuItem label="Client" slotLeft={slot(semanticIcons.clientGeneric)} />
     <MenuItem
       label="Pricebook item"
       slotLeft={slot(semanticIcons.pricebook)}
@@ -411,7 +411,7 @@ const navContent = (
     <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.clientGeneric}>Clients</SidebarNavItem>
     <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
       <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
       <SidebarNavItem type="stackItem">Products</SidebarNavItem>

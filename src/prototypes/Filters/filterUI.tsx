@@ -46,6 +46,7 @@ import {
   activeFilters,
   conditionChoices,
   conditionLabel,
+  isCompleteAmountValue,
   isConditionActive,
   isEmptyValue,
   newFilterInstance,
@@ -77,7 +78,7 @@ import styles from "./Filters.module.scss";
 // not object-neutral, and is passed in from outside, is the JOBS-only schedule
 // horizon (`ScheduleHorizon`): the Estimates page has none and does not pass it.
 //
-// A KIND's own UI is NOT here — the date / duration / address Custom dialogs
+// A KIND's own UI is NOT here — the date / duration / freeform Custom dialogs
 // live with their kind in filterKinds.tsx.
 
 // ---- the "Filters" menu ----------------------------------------------------
@@ -135,22 +136,26 @@ const filterRows = (
 // row (14310-59924 desktop / 14310-59921 mobile) and a multi-select filter's
 // option list with no matching option (14310-60254 / 14310-60389).
 //
-// PLAIN TEXT since 2026-09-12 (Daniel: "I want to try an option without the
-// EmptyState component. Just simple text") — it was the DS `EmptyState` with
-// its caption only, which brought the component's own 32px padding and its
-// block layout with it. All four nodes now draw one centred line in the card's
-// own `body` slot: 16px around it, body/400 compact, --text-subtle. No icon,
-// no title, no action. The measurements live in `.noMatches` — including how
-// the line centres itself in the taller mobile drawer.
+// The DS `EmptyState` in its CAPTION-ONLY form (Daniel, 2026-09-14: "use this
+// component for the Filters menu"). All four nodes draw one centred line in the
+// card's own `body` slot: 16px around it, body/400 compact, --text-subtle. No
+// icon, no title, no action — so the component carries everything but the
+// padding, which is 16 here against its own 32 (that one is for the block state,
+// where an icon and a title sit above the line). `.noMatches` is the override,
+// and nothing else.
+//
+// It was PLAIN TEXT between 2026-09-12 and 2026-09-14 (Daniel: "I want to try
+// an option without the EmptyState component. Just simple text"); the trial
+// ended when the View menu's Column list got the same state DRAWN as an
+// EmptyState instance (nodes 14767-81877 / 14767-81874), which settled that the
+// picture and the component are not in conflict.
 //
 // In the menu it stands in for the rows; in the lists it replaces the DS
 // SelectList's built-in no-results block (an icon over a title and a caption)
-// through the component's `noResultsState` slot. FLAGGED, and now a bigger
-// difference than before: the DS's own no-results state is still the
-// EmptyState one. If this plain-text trial is kept, that default is worth
-// revisiting — the other consumers (JobDetails' service picker, the address
-// autocomplete) still take the built-in block.
-const noMatches = <p className={styles.noMatches}>No matching options</p>;
+// through the component's `noResultsState` slot. That built-in block is still
+// the DS default, and the other consumers (JobDetails' service picker, the
+// address autocomplete) still take it.
+const noMatches = <EmptyState caption="No matches" className={styles.noMatches} />;
 
 // ---- the mobile sheet's "Applied filters" section --------------------------
 
@@ -339,60 +344,17 @@ const MIN_WIDTH = "var(--size-52)"; // 208px
 const LIST_STYLE: CSSProperties = { minWidth: MIN_WIDTH };
 
 /**
- * Holds a card at the width it HUGGED TO when it opened, for as long as it
- * stays open — the rule the Filters menu already follows (Daniel, 2026-09-11:
- * "the width of the menu should not change" while typing), now applied to the
- * option lists as well: "Service and Source SelectLists change their width
- * while typing within the search."
- *
- * Only those two showed it, and that is the whole story: every other list
- * either sits on the 208 floor (its rows are narrower) or against the 384
- * ceiling, so filtering rows out cannot move it. Service (291) and Source
- * (231) are the ones that float in between, where the widest VISIBLE row
- * decides the width and so changes with every keystroke.
- *
- * A FLOOR, never a fixed width: filtering only removes rows, so the content can
- * only get narrower and the floor is what it settles on — but if a row ever
- * needs more, the card can still take it, so this can never clip a label.
- *
- * `offsetWidth`, not `getBoundingClientRect()`: the card opens under a
- * `scale(0.98)` transition and the rect would report the scaled width.
- */
-function useFrozenWidth(open: boolean, enabled: boolean, key: string) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [frozen, setFrozen] = useState<number | null>(null);
-
-  // RELEASE first. `key` is the filter the card is showing, and on desktop the
-  // card stays mounted while the pointer moves from row to row — only the
-  // contents change — so a floor measured for Service would otherwise still be
-  // holding Source's list open at 291px.
-  useLayoutEffect(() => {
-    setFrozen(null);
-  }, [open, enabled, key]);
-
-  // MEASURE on the pass after that, when the card is hugging its own rows with
-  // nothing but the 208 floor under it.
-  useLayoutEffect(() => {
-    if (!open || !enabled || frozen != null) return;
-    const el = ref.current;
-    if (el != null) setFrozen(el.offsetWidth);
-  }, [open, enabled, frozen, key]);
-
-  return {
-    ref,
-    style: {
-      minWidth: frozen != null ? `max(${MIN_WIDTH}, ${frozen}px)` : MIN_WIDTH,
-    } as CSSProperties,
-  };
-}
-
-/**
  * The two AMOUNT kinds: a duration in minutes and money in dollars. They share
  * one value shape (`AmountValue`), one list, one condition set and one Custom
  * dialog — only the unit, the presets and the formatting differ, and those come
  * from the kind. Written once here so a third amount kind is one line.
  */
-const isAmountKind = (def: AnyFilterDef) => def.kind === "duration" || def.kind === "money";
+const isAmountKind = (def: AnyFilterDef) =>
+  def.kind === "duration" ||
+  def.kind === "money" ||
+  def.kind === "count" ||
+  def.kind === "percent" ||
+  def.kind === "discount";
 
 /**
  * Does this filter hold ONE value rather than a set? Date and the amount kinds
@@ -420,7 +382,7 @@ const isSingleSelect = (def: AnyFilterDef) => isSingleValue(def) || def.singleSe
  * Filters menu opens the dialog on CLICK instead of hovering a list open, and
  * its chip's value segment does the same.
  */
-const isDialogOnly = (def: AnyFilterDef) => def.kind === "address";
+const isDialogOnly = (def: AnyFilterDef) => def.kind === "freeform";
 
 // (DIALOG_MARKER — the Custom dialog's scrim class the anchored cards spare —
 // lives in appShell.tsx with useAnchoredCard now.)
@@ -501,7 +463,7 @@ function filterList(
   // KEEPS the condition, which the header's chips have already set.
   if (isAmountKind(def)) {
     const picked = instance.amount?.preset ?? null;
-    const compare = instance.amount?.compare ?? "over";
+    const compare = instance.amount?.compare ?? "at least";
     const items = (
       <SelectListItemGroup>
         {def.options.map((option) => (
@@ -516,7 +478,7 @@ function filterList(
                 // A preset is one value, so a `within` condition cannot survive
                 // it — it falls back to the list header's own three.
                 amount: {
-                  compare: compare === "within" ? "over" : compare,
+                  compare: compare === "within" ? "at least" : compare,
                   preset: option.id,
                   from: null,
                   to: null,
@@ -716,8 +678,6 @@ function FilterOptions({
   hideConditions = false,
   restoreFocus = true,
 }: FilterOptionsProps) {
-  // Desktop only — a drawer fills the screen width, so there is nothing to hold.
-  const frozenWidth = useFrozenWidth(open, variant === "inline", def.id);
   const [query, setQuery] = useState("");
   // Each filter's search is ITS OWN (Daniel, 2026-08-18). On desktop this one
   // component stays mounted while the pointer moves from row to row — only `def`
@@ -827,19 +787,17 @@ function FilterOptions({
       // above) and SelectList's built-in `searchable`, which decides the state
       // for itself on a chip-opened list.
       noResultsState={noMatches}
-      // The width it hugged to when it opened, held while the search narrows
-      // the rows — see `useFrozenWidth`. A drawer has no width of its own.
-      style={variant === "inline" ? frozenWidth.style : undefined}
+      // Nothing but the 208 FLOOR. Above it the card hugs its rows, and holding
+      // that width while the search narrows them is the DS SelectList's own
+      // behaviour now (Daniel, 2026-09-14) — this prototype used to do it here.
+      // A drawer has no width of its own.
+      style={variant === "inline" ? LIST_STYLE : undefined}
     >
       {list.items}
     </SelectList>
   );
 
-  // The desktop card is wrapped only so its width can be MEASURED: the div
-  // shrink-wraps the card inside the `max-content` portal, so its `offsetWidth`
-  // IS the card's. The drawer is portaled away by SelectList itself, so there
-  // is nothing to measure and nothing to wrap.
-  return variant === "inline" ? <div ref={frozenWidth.ref}>{selectList}</div> : selectList;
+  return selectList;
 }
 
 // MOBILE applies on "Apply" (Daniel, 2026-08-18) — every filter, Assignee and
@@ -903,7 +861,7 @@ function MobileFilterOptions({ def, instance, onCommit, onClose, hideConditions 
           // A single-value drawer has no Apply bar, so every change applies at
           // once. But the header's CONDITION chips come through here as well,
           // and only a VALUE pick is the decision that closes the sheet —
-          // tapping "under" has to leave the list open so a length can still be
+          // tapping "at most" has to leave the list open so a length can still be
           // chosen. (This closed the date drawer on a chip tap until 2026-08-24.)
           const picked = pickedValue(draft) !== pickedValue(next);
           commit(next);
@@ -1502,7 +1460,11 @@ function lockedStatusList(def: AnyFilterDef, statuses: string[]) {
         <SelectListItem
           key={option.id}
           label={option.label}
-          select="multi"
+          // A SINGLE-select filter's read-only list keeps the single rows —
+          // the DS state Daniel added 2026-09-16 (the Labor Status chip is
+          // the first single-select lock): the picked row's check dims to
+          // 30%, the multi checkbox rule applied to the single control.
+          select={def.singleSelect ? "single" : "multi"}
           selected={statuses.includes(option.id)}
           readOnly
           slotLeft={option.slotLeft}
@@ -1668,9 +1630,9 @@ const AppliedChip = ({
   const isCustomValue =
     (instance.date != null && instance.date.preset == null) ||
     (instance.amount != null && instance.amount.preset == null) ||
-    // An ADDRESS is only ever a typed value, so its value segment ALWAYS opens
+    // A FREEFORM value is only ever typed, so its value segment ALWAYS opens
     // the dialog — there is no preset list behind it to fall back to.
-    instance.address != null;
+    instance.freeform != null;
   // The chip edits ITS OWN application, by key — the other chips of the same
   // filter are untouched.
   const change = (next: FilterInstance) => onSelectionChange(upsertFilter(selection, next));
@@ -1688,8 +1650,12 @@ const AppliedChip = ({
   // the chip renders WITHOUT the condition box entirely (the FilterChip
   // `condition=false` variant; the Scheduled for section's chip example,
   // 14101-46531). A CUSTOM value on the same filter keeps its dialog
-  // condition ("after · Jan 1").
-  const noCondition = def.dateWindows != null && instance.date?.preset != null;
+  // condition ("after · Jan 1"). A COMPLETE amount preset — Open jobs'
+  // "None" (2026-09-14) — follows the same rule: "Open jobs · None".
+  const noCondition =
+    def.noConditions === true ||
+    (def.dateWindows != null && instance.date?.preset != null) ||
+    isCompleteAmountValue(def, instance);
 
   const setCondition = (choice: ConditionChoice) => {
     change(withCondition(instance, choice));

@@ -57,6 +57,105 @@ export const ESTIMATE_NOUN: ObjectNoun = {
   createLabel: "Create estimate",
 };
 
+export const INVOICE_NOUN: ObjectNoun = {
+  one: "invoice",
+  many: "invoices",
+  icon: semanticIcons.invoice,
+  createLabel: "Create invoice",
+};
+
+export const CREDIT_NOTE_NOUN: ObjectNoun = {
+  one: "credit note",
+  many: "credit notes",
+  icon: semanticIcons.creditNote,
+  createLabel: "Create credit note",
+};
+
+export const BILL_NOUN: ObjectNoun = {
+  one: "bill",
+  many: "bills",
+  icon: semanticIcons.bill,
+  createLabel: "Create bill",
+};
+
+// "PO" is the design's own word for the object (the page title and the view
+// annotations both say "POs"); the create action spells it out, like the
+// sidebar item and the Create menu do.
+export const PO_NOUN: ObjectNoun = {
+  one: "PO",
+  many: "POs",
+  icon: semanticIcons.purchaseOrder,
+  createLabel: "Create purchase order",
+};
+
+// "series" is its own plural — "1 series" / "5 series" both read right.
+export const SERIES_NOUN: ObjectNoun = {
+  one: "series",
+  many: "series",
+  icon: semanticIcons.series,
+  createLabel: "Create series",
+};
+
+export const VENDOR_NOUN: ObjectNoun = {
+  one: "vendor",
+  many: "vendors",
+  icon: semanticIcons.vendor,
+  createLabel: "Create vendor",
+};
+
+export const CLIENT_NOUN: ObjectNoun = {
+  one: "client",
+  many: "clients",
+  icon: semanticIcons.clientGeneric,
+  createLabel: "Create client",
+};
+
+// "Labor" is the page's name; one row of it is an ITEM (production
+// `PriceBookItem`), which is what every count reads best as — "3 labor
+// items", never "3 labors".
+export const LABOR_NOUN: ObjectNoun = {
+  one: "labor item",
+  many: "labor items",
+  icon: semanticIcons.labor,
+  createLabel: "Create labor item",
+};
+
+// "Product" is the design's own word for a part (production calls the type
+// "Parts & Materials"; the sidebar item, the page title and the Create menu
+// all say Product / Products), and one row IS one product — so unlike Labor
+// this noun needs no "item" suffix to count right.
+export const PRODUCT_NOUN: ObjectNoun = {
+  one: "product",
+  many: "products",
+  icon: semanticIcons.product,
+  createLabel: "Create product",
+};
+
+// "Other" is the page's NAME, not a noun you can count — "3 others" says
+// nothing. One row is an other CHARGE, which is what production calls the
+// type ("Other Charge", and "Miscellaneous Charge" in its form's picker), so
+// the counts read "3 other charges". The Labor arrangement.
+export const OTHER_NOUN: ObjectNoun = {
+  one: "other charge",
+  many: "other charges",
+  icon: semanticIcons.other,
+  createLabel: "Create other charge",
+};
+
+export const DISCOUNT_NOUN: ObjectNoun = {
+  one: "discount",
+  many: "discounts",
+  icon: semanticIcons.discount,
+  createLabel: "Create discount",
+};
+
+export const TAX_RATE_NOUN: ObjectNoun = {
+  one: "tax rate",
+  many: "tax rates",
+  icon: semanticIcons.taxRate,
+  createLabel: "Create tax rate",
+};
+
 /** "1 job" / "13 jobs" — the node's count copy, for any noun. */
 export const countOf = (noun: ObjectNoun, count: number) => `${count} ${count === 1 ? noun.one : noun.many}`;
 
@@ -103,13 +202,16 @@ export function locationAddress(location: LocationRecord): string {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-/** "Aug 12" — month FIRST, the US order (Daniel, 2026-09-04; was "12 Aug").
- *  Matches the production formatDate ("MMM D") and every other formatter in
- *  the DS (they use Intl en-US, which is month-first already). */
+/** "Aug 12, 2026" — month FIRST, the US order (Daniel, 2026-09-04; was
+ *  "12 Aug"), and the year ALWAYS shown (Daniel, 2026-09-15: "the year
+ *  should always be shown" — the old hide-the-current-year rule is removed
+ *  product-wide; the DS DateField and DatePicker dropped it earlier, and
+ *  before this the tables showed no year at all, even on last year's
+ *  dates). */
 export function formatDay(iso: string | null): string {
   if (iso == null) return "";
   const d = new Date(iso);
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
 }
 
 /** "9:00 AM" — the time half of `formatDateTime`, US 12-hour. */
@@ -123,16 +225,56 @@ export function formatTime(iso: string | null): string {
 }
 
 /**
- * "Aug 12, 9:00 AM" — US 12-hour time, date and time joined by a COMMA
+ * "Aug 12, 2026, 9:00 AM" — US 12-hour time, date and time joined by a COMMA
  * (Daniel, 2026-09-04, after the separator research: a date with its time is
  * one compound value, which style guides join with a comma or "at", never a
- * symbol). Was "12 Aug • 9:00 AM", and 24-hour "12 Aug • 09:00" before that.
- * FLAGGED: the production DateTimeCell still prints the bullet — the two now
- * differ on purpose, pending the product-wide separator decision.
+ * symbol). The year rides along since 2026-09-15 (formatDay's rule). Was
+ * "12 Aug • 9:00 AM", and 24-hour "12 Aug • 09:00" before that. FLAGGED: the
+ * production DateTimeCell still prints the bullet — the two differ on
+ * purpose, pending the product-wide separator decision.
+ *
+ * Since 2026-09-15 this is EVERY timestamp column's format (Daniel: "I like
+ * Date+Time. Let's use it everywhere") — Last modified and Status changed on
+ * every list, and any date column whose FIELD carries a time (production
+ * draws those as DateTimeCells). A DATE-only field (the bills' three dates,
+ * the POs' Issued and Est. arrival) keeps `formatDay` — there is no time to
+ * show, and printing a fake midnight would be worse than none.
  */
 export function formatDateTime(iso: string | null): string {
   if (iso == null) return "";
   return `${formatDay(iso)}, ${formatTime(iso)}`;
+}
+
+/**
+ * "$1,250.00" — US currency with cents, like production's Total column
+ * (NumericalDataCell type="currency"). Moved here from estimatesData on
+ * 2026-09-14: the Invoices list prints money too. (The money FILTER's
+ * `formatMoney` — "$1,000", no cents — stays in filterDefs on purpose: a
+ * column of money is read down, a chip's value alone.)
+ */
+export function formatCurrency(dollars: number): string {
+  // A NEGATIVE amount gets the true MINUS SIGN (U+2212), not the hyphen the
+  // formatter emits (Daniel, 2026-09-16: "I actually wanted to use the minus
+  // character. I think this is the most correct one"). Inter carries it, so
+  // there is no font fallback, and it is the right glyph in a right-aligned
+  // money column: 0.662em against the digit's 0.631em, where the hyphen is
+  // only 0.460em and sits lower. The Discounts list is what shows it —
+  // production stores a discount negative, and that column reports the stored
+  // value. Its FILTER carries no minus at all, on purpose (see
+  // DISCOUNT_PRESETS).
+  return dollars.toLocaleString("en-US", { style: "currency", currency: "USD" }).replace(/^-/, "−");
+}
+
+/**
+ * "Same Day" / "Net 30" — production's PaymentTermsCell formatting for a
+ * vendor's net-days integer; empty for a vendor with no terms. The columns
+ * and the filters' option labels all read this, so they can never disagree.
+ * MOVED here from posData on 2026-09-15, when the Vendors list became its
+ * second reader (the formatCurrency precedent).
+ */
+export function formatPaymentTerms(terms: number | null): string {
+  if (terms == null) return "";
+  return terms === 0 ? "Same Day" : `Net ${terms}`;
 }
 
 /** "2h 30m" / "45m" / "3h" */

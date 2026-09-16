@@ -4,24 +4,22 @@ import { objectPlaceholder } from "../../data/users";
 
 import { AvatarClientProps, AvatarClientStatus, AvatarClientType } from "./AvatarClient.types";
 
-// Client type → icon token.
+// Client type → icon token. Each type has its own icon since 2026-09-16.
 const TYPE_ICON: Record<AvatarClientType, string> = {
-  generic: semanticIcons.client, // building-user
+  generic: semanticIcons.clientGeneric, // buildings
   business: semanticIcons.clientBusiness, // building
-  individual: semanticIcons.clientIndividual, // user
+  individual: semanticIcons.clientIndividual, // building-user
 };
 
-// Status → the icon addOn: glyph, color override, and rotation.
-const STATUS: Record<
-  Exclude<AvatarClientStatus, "none">,
-  { icon: string; color: string; rotate: number }
-> = {
-  active: { icon: semanticIcons.active, color: "var(--jade-a9)", rotate: 90 },
-  inactive: { icon: semanticIcons.inactive, color: "var(--gray-a9)", rotate: 0 },
+// Status → the statusDot color (Figma 2026-09-16: dots replaced the corner
+// status icons).
+const DOT_COLOR: Record<Exclude<AvatarClientStatus, "none">, string> = {
+  active: "var(--jade-a9)",
+  inactive: "var(--gray-a9)",
 };
 
 // Avatar template for a Client: an object avatar whose icon depends on the
-// client type, optionally showing an image (logo) and a status addOn.
+// client type, optionally showing an image (logo) and a statusDot.
 export default function AvatarClient({
   size = "md",
   type = "business",
@@ -33,7 +31,7 @@ export default function AvatarClient({
   // generic is icon-only and has no addOns.
   const effectiveContent = type === "generic" ? "icon" : content;
   const effectiveStatus = type === "generic" ? "none" : status;
-  const s = effectiveStatus === "none" ? null : STATUS[effectiveStatus];
+  const dotColor = effectiveStatus === "none" ? undefined : DOT_COLOR[effectiveStatus];
 
   return (
     <Avatar
@@ -43,10 +41,8 @@ export default function AvatarClient({
       imageSrc={effectiveContent === "image" ? (imageSrc ?? objectPlaceholder) : undefined}
       size={size}
       className={className}
-      addOn={s ? "icon" : "none"}
-      addOnIcon={s?.icon}
-      addOnIconColor={s?.color}
-      addOnIconRotate={s?.rotate}
+      addOn={dotColor ? "statusDot" : "none"}
+      statusDotColor={dotColor}
     />
   );
 }

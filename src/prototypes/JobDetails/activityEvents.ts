@@ -134,7 +134,7 @@ export interface JobStatusLog {
    */
   color: string;
   text: string;
-  /** An emphasised field name that closes with a colon, e.g. "Duration". */
+  /** An emphasised field name that closes with a colon, e.g. "Est. duration". */
   label?: string;
   /** The value that is GONE — struck through (an old duration, a cleared slot). */
   strikeValue?: string;
@@ -244,7 +244,8 @@ export function diffJobProperties(before: JobProperties, after: JobProperties): 
  * same pattern as Service / Job properties). The form groups its inputs, so
  * the log follows the LABELS the user sees, not the raw state: the date and
  * the time share one "Date & time" field, the hours and minutes share one
- * "Duration". A field with nothing in it reads as "No value".
+ * "Est. duration" (renamed with the field, 2026-09-14). A field with nothing
+ * in it reads as "No value".
  */
 export function diffScheduling(before: Scheduling, after: Scheduling): FieldChange[] {
   const changes: FieldChange[] = [];
@@ -263,7 +264,7 @@ export function diffScheduling(before: Scheduling, after: Scheduling): FieldChan
     return total === 0 ? "" : durationLabel(s.hours, s.minutes);
   };
   if (duration(before) !== duration(after)) {
-    changes.push({ label: "Duration", oldValue: duration(before), newValue: duration(after) });
+    changes.push({ label: "Est. duration", oldValue: duration(before), newValue: duration(after) });
   }
 
   return changes;

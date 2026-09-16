@@ -269,9 +269,10 @@ export default function SchedulingForm({
           </RadioGroup>
         </Input>
 
-        {/* Duration */}
+        {/* Est. duration ("Duration" until 2026-09-14 — Figma 24522-84487
+            renames it in the Scheduling module and this, its edit form) */}
         <div className={styles.duration}>
-            <Input label="Duration">
+            <Input label="Est. duration">
               <InputGroup isValid={!(showErrors && durationBad)}>
                 <TextField
                   value={hours}

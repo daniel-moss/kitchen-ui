@@ -36,8 +36,9 @@ import { DOWN_PAYMENT_OPTIONS, EstimateRow, clientOf, displayStatus, locationOf 
 // ALL THIRTEEN rows of the menu node (14265-27090) are BUILT since 2026-09-12,
 // when Expires, Issued, Total and Seen arrived — Total brought the MONEY kind
 // with it (filterKinds' `moneyFilter` + `MoneyCustom`). The shared **Due Date**
-// template is still unbuilt, and stays that way until the INVOICES list exists:
-// it is that list's filter, not a second name for Expires (Daniel, 2026-09-12).
+// template is the INVOICES list's filter, not a second name for Expires
+// (Daniel, 2026-09-12) — built 2026-09-14 with that list's registry
+// (invoiceFilters.tsx); see `dueDateTemplate` for how the two differ.
 
 // ---- Status (object-specific) ----------------------------------------------
 
@@ -129,11 +130,12 @@ function statusFilter(phase: EstimatesPhase): FilterDef<EstimateRow> {
  * free for the Total filter, which is an amount.
  *
  * The chip's value noun is "option" — the node writes "N options"
- * (14293-45043), where the Status chip writes "N statuses". FLAGGED: the node's
- * single-value chip draws NO icon next to "Not required", where the Status one
- * draws its status icon. The shared chip always shows a single value's own
- * `slotLeft` (filterDefs' "one value names itself"), so this one shows the
- * `minus`; say the word if the value slot should be bare here.
+ * (14293-45043), where the Status chip writes "N statuses". SETTLED (Daniel,
+ * 2026-09-16): "Not required" renders WITHOUT an icon — in the select list and
+ * in the single-value chip — exactly as the node draws it (the list rows
+ * 14293-45034 and the chip 14293-45042 are both bare). The other three options
+ * keep their status icons. The table CELL is separate and keeps drawing the
+ * `minus` from DOWN_PAYMENT_VALUES.
  */
 function downPaymentFilter(): FilterDef<EstimateRow> {
   return {
@@ -146,16 +148,19 @@ function downPaymentFilter(): FilterDef<EstimateRow> {
     options: DOWN_PAYMENT_OPTIONS.map((option) => ({
       id: option.id,
       label: option.label,
-      slotLeft: (
-        <Icon
-          icon={option.icon}
-          pack={option.pack}
-          rotate={option.rotate}
-          size={14}
-          container="square"
-          style={option.scheme == null ? undefined : { color: `var(--${option.scheme}-a9)` }}
-        />
-      ),
+      // "Not required" is bare — no icon in the list row or the chip (the
+      // node draws none; Daniel 2026-09-16). The cell's `minus` is unchanged.
+      slotLeft:
+        option.id === "notRequired" ? undefined : (
+          <Icon
+            icon={option.icon}
+            pack={option.pack}
+            rotate={option.rotate}
+            size={14}
+            container="square"
+            style={option.scheme == null ? undefined : { color: `var(--${option.scheme}-a9)` }}
+          />
+        ),
     })),
     matches: (est, { ids }) => ids.includes(est.downPayment),
   };
@@ -187,9 +192,11 @@ function downPaymentFilter(): FilterDef<EstimateRow> {
  * `calendar-arrow-down`.
  *
  * NOT the same filter as the shared "Due Date" template on the Filter Template
- * page (14267-23337) — SETTLED with Daniel on 2026-09-12: Due Date belongs to
- * the INVOICES list, which this prototype does not have yet. Two objects, two
- * filters; both stay.
+ * page — SETTLED with Daniel on 2026-09-12: Due Date belongs to the INVOICES
+ * list (built 2026-09-14, `dueDateTemplate`). Two objects, two filters; both
+ * stay. Each leads with the past row worded as its object's derived status —
+ * "Expired" here, "Overdue" there — and both share this `calendar-exclamation`
+ * (Daniel, 2026-09-14: the two never appear on one list).
  */
 /**
  * EXPIRED first, then the six future windows — the node's order. "Expired" is

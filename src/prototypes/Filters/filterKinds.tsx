@@ -1,5 +1,6 @@
 import {
   MouseEvent,
+  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -28,9 +29,10 @@ import { isSameMonth } from "../../utils/calendar";
 
 import { DIALOG_MARKER } from "./appShell";
 import {
-  ADDRESS_FIELDS,
+  FreeformField,
+  FreeformValue,
+  emptyFreeform,
   DATE_PRESETS,
-  AddressValue,
   AnyFilterDef,
   DATE_CONDITIONS,
   AMOUNT_DIALOG_CONDITIONS,
@@ -49,9 +51,12 @@ import {
   conditionChoices,
   dateCompareLabel,
   amountOf,
+  amountPreset,
   amountPresets,
+  COUNT_LADDER,
+  DURATION_LADDER,
+  MONEY_LADDER,
   datePreset,
-  emptyAddress,
   formatFooterDate,
   formatLongDate,
   isDateRange,
@@ -66,7 +71,7 @@ import styles from "./Filters.module.scss";
 // lists what a filter can BE, as behaviour rather than as a named filter:
 // Multi-Select, Timeframe, Duration, Address and Money.
 //
-// A KIND is not a filter. "Duration" is a kind here AND a Jobs filter over
+// A KIND is not a filter. "Duration" is a kind here AND the Jobs filter over
 // there (jobsFilters.tsx); "Last modified" and "Status changed" are two shared
 // TEMPLATES that both run on the Timeframe kind. What lives in this module is
 // what a kind owns:
@@ -151,15 +156,20 @@ export function scheduledValueEnd(
 
 /**
  * The FORWARD windows — the preset list a date filter takes when the field it
- * reads points into the future. Both filters that do draw exactly these six, in
- * this order: Jobs' "Scheduled for" (node 14101-46526) and Estimates' "Expires"
- * (14297-48370). A window is a complete answer, so a list built on these has NO
- * condition chips and its chip renders without a condition box.
+ * reads points into the future. Three filters draw exactly these six, in this
+ * order: Jobs' "Scheduled for" (node 14101-46526), Estimates' "Expires"
+ * (14297-48370) and the shared "Due date" template (14320-66655, the
+ * Invoices list's). A window is a complete answer, so a list built on these
+ * has NO condition chips and its chip renders without a condition box.
  *
- * Scheduled for prepends its own "Not scheduled" row — an ABSENCE window, which
- * Expires has no use for (every estimate has a due date).
+ * All three lead with the PAST row through `forwardWindows(pastLabel)`, each
+ * wording it with its object's own derived status — "Past due" / "Expired" /
+ * "Overdue" (Due date's arrived 2026-09-14, after its first build shipped
+ * without one and Daniel updated the node). Scheduled for alone also
+ * prepends its ABSENCE row ("Not scheduled") — the one field of the three a
+ * row can lack.
  */
-const FUTURE_WINDOWS: DateWindowPreset[] = [
+export const FUTURE_WINDOWS: DateWindowPreset[] = [
   { id: "today", label: "Today", from: 0, to: 0 },
   { id: "tomorrow", label: "Tomorrow", from: 1, to: 1 },
   { id: "next3", label: "Next 3 days", from: 0, to: 3 },
@@ -292,15 +302,20 @@ export function dateFilter<TRow>(
  * `compare` IS the condition, so `applyFilters` never flips this — every value
  * carries `negated: false`, the same contract the date filter's `compare` has.
  *
- * A row with NO duration (nothing scheduled) matches nothing: "longer than an
- * hour" cannot be true of a job that has no length. The old bucket list had a
- * "No duration" option for those; the new design has no equivalent row, so they
- * simply drop out. FLAGGED — say the word and it comes back as a fifth preset.
+ * A row with NO duration matches nothing: "at least an hour" cannot be true of a
+ * job that has no length. SETTLED 2026-09-14 — a job cannot be created without
+ * a duration, so only a DRAFT can be missing one (the rule is on the db's
+ * `Job.durationMinutes`), and the db now holds that. The Jobs list therefore
+ * shows no "No duration" row — but the LABOR list does (2026-09-16, its own
+ * Est. duration section 15339-20649: a pricebook duration is optional), so
+ * `ladder` picks which of the union table's rows a list offers, the money /
+ * count arrangement.
  */
 export function durationFilter<TRow>(
   read: (row: TRow) => number | null,
+  ladder: string[] = DURATION_LADDER,
 ): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
-  return amountFilter("duration", read);
+  return amountFilter("duration", read, ladder);
 }
 
 // ---- the MONEY kind ---------------------------------------------------------
@@ -314,88 +329,196 @@ export function durationFilter<TRow>(
  * unit differs — dollars instead of minutes — so both share `amountFilter`
  * below and the `AmountValue` shape. A row with NO amount matches nothing, the
  * duration's rule.
+ *
+ * `ladder` picks WHICH of the money table's rows the list offers (the count
+ * filters' arrangement, since 2026-09-16 when the union rows arrived): the
+ * default is the eight dollar amounts every money filter always had; the
+ * Clients list's three money filters each prepend their own leading row
+ * ("No credit limit" / "No balance" / "No credit").
  */
 export function moneyFilter<TRow>(
   read: (row: TRow) => number | null,
+  ladder: string[] = MONEY_LADDER,
 ): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
-  return amountFilter("money", read);
+  return amountFilter("money", read, ladder);
+}
+
+// ---- the COUNT kind ---------------------------------------------------------
+
+/**
+ * Options + matcher for a COUNT filter — the FOURTH amount kind (2026-09-14,
+ * the Series list's "Open jobs", section 14767-79379; its own annotation
+ * links the shared Amount documentation 13874-10420).
+ *
+ * The unit is a bare NUMBER of objects: the presets are plain numbers, the
+ * chip prints the number as it is, and the Custom dialog's field has no "$"
+ * and no hr + min — otherwise every part is the shared machinery, which is
+ * exactly what it was shared for.
+ *
+ * `ladder` picks WHICH of the count table's rows the list offers (see
+ * COUNT_PRESETS — the table is the union; a def whose node draws its own
+ * steps passes a ladder, like the Vendors list's Current POs). The default
+ * is the Open jobs / Items ladder. Resolution — the chip's copy, the
+ * complete check, `amountOf` — always reads the whole table, so a custom
+ * ladder needs no machinery of its own.
+ */
+export function countFilter<TRow>(
+  read: (row: TRow) => number | null,
+  ladder: string[] = COUNT_LADDER,
+): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
+  return amountFilter("count", read, ladder);
+}
+
+// ---- the DISCOUNT kind ------------------------------------------------------
+
+/**
+ * Options + matcher for a DISCOUNT filter — the SIXTH amount kind
+ * (2026-09-16, the Discounts list's own "Discount", section 15416-61777;
+ * its frame annotation links the shared Amount documentation 13874-10420).
+ *
+ * `read` hands in the row's stored price, which production keeps NEGATIVE.
+ * The filter asks how BIG the discount is, so the absolute value is taken
+ * here, once, rather than in each registry where it could be forgotten —
+ * which is what lets "at least $500" mean a discount of $500 or more. The
+ * only thing this kind has of its own is its preset ladder; the chip copy and
+ * the Custom field are money's.
+ */
+export function discountFilter<TRow>(
+  read: (row: TRow) => number | null,
+  ladder?: string[],
+): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
+  return amountFilter(
+    "discount",
+    (row) => {
+      const price = read(row);
+      return price == null ? null : Math.abs(price);
+    },
+    ladder,
+  );
+}
+
+// ---- the PERCENT kind -------------------------------------------------------
+
+/**
+ * Options + matcher for a PERCENT filter — the FIFTH amount kind
+ * (2026-09-16, the Tax rates list's "Tax rate", section 15368-50064; its
+ * frame's own annotation links the shared Amount documentation
+ * 13874-10420).
+ *
+ * The unit is a percentage: the presets are the node's nine rows, the chip
+ * prints "5%", and the Custom dialog's field carries a "%" SUFFIX where the
+ * money one carries a "$" prefix — otherwise every part is the shared
+ * machinery. The whole table is the default ladder; the node offers all nine.
+ */
+export function percentFilter<TRow>(
+  read: (row: TRow) => number | null,
+  ladder?: string[],
+): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
+  return amountFilter("percent", read, ladder);
 }
 
 /**
  * What both amount kinds do, written once: read the number this value stands
  * for (its preset's, or the custom one) and compare the row's own against it.
  *
- * `over` and `under` are STRICT — a row sitting exactly on the number matches
- * only `is`. See the note on AmountCompare: if the boundary should be included,
- * this is the place, and the copy changes with it.
+ * `at least` and `at most` INCLUDE the boundary (2026-09-14) — a row sitting
+ * exactly on the number matches both of them and `is`. That is the whole reason
+ * for the copy: the strict `over` / `under` left such a row out of both halves,
+ * which read as a hole in the filter.
  */
 function amountFilter<TRow>(
-  kind: "duration" | "money",
+  kind: "duration" | "money" | "count" | "percent" | "discount",
   read: (row: TRow) => number | null,
+  /** WHICH of the kind's presets the list shows; unset = all of them. */
+  ladder?: string[],
 ): { options: FilterOption[]; matches: FilterDef<TRow>["matches"] } {
   return {
-    options: amountPresets(kind).map((preset) => ({ id: preset.id, label: preset.label })),
+    options: amountPresets(kind)
+      .filter((preset) => ladder == null || ladder.includes(preset.id))
+      .map((preset) => ({ id: preset.id, label: preset.label })),
     matches: (row, value) => {
       const amount = value.amount;
       if (amount == null) return true;
+      // An ABSENT preset ("No credit limit") matches the rows whose field is
+      // EMPTY; a COMPLETE one ("None") means exactly its amount. Neither
+      // takes a condition (see `AmountPreset.absent` / `.complete`).
+      const preset = amountPreset(kind, amount.preset);
+      if (preset?.absent) return read(row) == null;
+      if (preset?.complete) return read(row) === preset.amount;
       const from = amountOf(kind, amount);
       if (from == null) return true;
       const own = read(row);
       if (own == null) return false;
       switch (amount.compare) {
-        case "under":
-          return own < from;
+        case "at most":
+          return own <= from;
         case "is":
           return own === from;
         case "within":
           return amount.to == null ? true : own >= from && own <= amount.to;
-        // "over" — the first chip, and the fallback.
+        // "at least" — the first chip, and the fallback.
         default:
-          return own > from;
+          return own >= from;
       }
     },
   };
 }
 
-// ---- the ADDRESS kind -------------------------------------------------------
+// ---- the FREEFORM kind ------------------------------------------------------
 
 /**
- * Does a typed field match the job's? A BLANK field is not part of the question
+ * Does a typed field match the row's? A BLANK field is not part of the question
  * and always passes; a filled one is a case-insensitive SUBSTRING test, which is
  * what "contains" says — typing "Mission" finds "418 Mission St".
  */
-const addressFieldMatches = (typed: string, actual: string | null | undefined) => {
+const freeformFieldMatches = (typed: string, actual: string | null | undefined) => {
   const query = typed.trim().toLowerCase();
   return query === "" || (actual ?? "").toLowerCase().includes(query);
 };
 
 /**
- * The ADDRESS matcher (Figma section 13988-53503). Every filled field has to
- * match — Daniel, 2026-08-24: "if typed in 'Street address' matches location
- * address 'Street address' of one of the jobs on the list, we show those jobs."
- * Field against FIELD, so "Mission" typed into City does not match a job on
- * Mission St.
+ * One field of a FREEFORM filter, with its reader — the UI half ({key,
+ * label, half}) plus how to read the row's own value for it.
+ */
+export interface FreeformFieldDef<TRow> extends FreeformField {
+  read: (row: TRow) => string | null | undefined;
+}
+
+/**
+ * Fields + matcher for a FREEFORM filter (Figma section 14100-36446 —
+ * RENAMED from "Address" 2026-09-16: the kind serves ANY freeform filter and
+ * "does not define what inputs and how many the filter uses", so the FIELDS
+ * are the parameter). Spread into the def, the amount kinds' arrangement:
+ * it hands back `freeformFields` (what the dialog renders) and `matches`.
+ *
+ * Every filled field has to match — Daniel, 2026-08-24: "if typed in 'Street
+ * address' matches location address 'Street address' of one of the jobs on
+ * the list, we show those jobs." Field against FIELD, so "Mission" typed
+ * into City does not match a row on Mission St.
  *
  * `matches` answers the POSITIVE half only; `applyFilters` flips it for "does
  * not contain", which makes that the exact opposite: NOT every field matches.
- * FLAGGED — that reading means a job matching only some of the typed fields IS
- * shown by "does not contain". The alternative ("no field matches") is a
- * different question; the node does not settle it.
+ * SETTLED 2026-09-14 — that is what Daniel asked for: "if the user provides
+ * let's say 'city' and 'street' and sets the condition to 'does not contain',
+ * the filter hides the jobs where 'city' AND 'street' in their location address
+ * match the provided values". Hiding the rows where every typed field matches
+ * is exactly this flip, so a row matching only SOME of them is shown. The
+ * alternative reading ("no field matches") is a different question and is not
+ * what the filter asks.
  */
-export const addressFilter =
-  <TRow,>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow>["matches"] =>
-  (row, value) => {
-  const address = value.address;
-  if (address == null) return true;
-  const location = locationOfRow(row);
-  return (
-    addressFieldMatches(address.street, location.street) &&
-    addressFieldMatches(address.suite, location.unit) &&
-    addressFieldMatches(address.city, location.city) &&
-    addressFieldMatches(address.state, location.state) &&
-    addressFieldMatches(address.postalCode, location.postalCode)
-  );
-};
+export function freeformFilter<TRow>(fields: FreeformFieldDef<TRow>[]): {
+  freeformFields: FreeformField[];
+  matches: FilterDef<TRow>["matches"];
+} {
+  return {
+    freeformFields: fields.map(({ key, label, half }) => ({ key, label, half })),
+    matches: (row, value) => {
+      const freeform = value.freeform;
+      if (freeform == null) return true;
+      return fields.every((field) => freeformFieldMatches(freeform[field.key] ?? "", field.read(row)));
+    },
+  };
+}
 
 // ---- the kinds' Custom dialogs ----------------------------------------------
 
@@ -945,15 +1068,16 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
 // 13923-24742 mobile, Range 13923-24617 / 13923-24921, plus their Filled
 // twins). The DS `Dialog`, titled with the filter's own name, holding:
 //
-//   CONDITION (a 16px row) — a `ChipGroup` of `lg` Chips: over / under / is /
-//     within. This is the ONE place `within` can be chosen, because it is the
-//     only place that can collect a second value.
+//   CONDITION (a 16px row) — a `ChipGroup` of `lg` Chips: at least / at most /
+//     is / within. This is the ONE place `within` can be chosen, because it is
+//     the only place that can collect a second value.
 //   a `Divider`, FULL-BLEED — edge to edge, like the date and address
 //     dialogs'. NEW with the documented section; the old node drew none here.
 //   CONTENT (16px all round, 16px between items):
-//     - one `Input` labelled "Duration", or, in `within`, two stacked Inputs
-//       labelled "From" and "To" (the documented nodes' labels — they read
-//       "Duration from" / "Duration until" before);
+//     - one `Input` labelled with the FILTER's name ("Est. duration" on the
+//       jobs list — node 14758-68028 draws the label and the dialog title from
+//       it, the same rule the Money dialog follows), or, in `within`, two
+//       stacked Inputs labelled "From" and "To";
 //     - each is the DS `InputGroup` in its TextField + SelectField shape: hours
 //       typed with an "hr" suffix, minutes picked from a list with a "min" one.
 //   the FOOTER: a ghost Cancel and a solid Apply, like the date and address
@@ -1057,7 +1181,8 @@ function DurationInput({
   pop,
   mobile,
 }: {
-  label: string;
+  /** UNSET on a single value — see the amount dialogs' no-label rule. */
+  label?: string;
   value: DurationParts;
   onChange: (next: DurationParts) => void;
   pop: DialogSelect;
@@ -1099,13 +1224,13 @@ function DurationInput({
             }}
             keyboard="numeric"
             suffix="hr"
-            aria-label={`${label} hours`}
+            aria-label={`${label ?? "Duration"} hours`}
           />
           <SelectField
             value={value.minutes}
             suffix="min"
             open={pop.open}
-            aria-label={`${label} minutes`}
+            aria-label={`${label ?? "Duration"} minutes`}
             onClick={(e: MouseEvent<HTMLDivElement>) => pop.toggle(e.currentTarget)}
           />
         </InputGroup>
@@ -1157,10 +1282,10 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
   // Opening on a PRESET starts empty — a preset and a custom duration are
   // alternatives, so there is nothing to carry over (the same rule the date
   // dialog follows). The CONDITION does carry over: the list header's chips have
-  // already set it, and arriving on "over" after choosing "under" would undo a
+  // already set it, and arriving on "at least" after choosing "at most" would undo a
   // decision the user just made.
   const editing = value.amount != null && value.amount.preset == null ? value.amount : null;
-  const [compare, setCompare] = useState<AmountCompare>(value.amount?.compare ?? "over");
+  const [compare, setCompare] = useState<AmountCompare>(value.amount?.compare ?? "at least");
   const [from, setFrom] = useState<DurationParts>(() => splitDuration(editing?.from ?? null));
   const [to, setTo] = useState<DurationParts>(() => splitDuration(editing?.to ?? null));
 
@@ -1237,7 +1362,7 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
       <Divider contrast="medium" />
 
       {/* CONTENT — one field row, or two when the condition needs both ends.
-          The single "Duration" row and the range's "From" SHARE one state,
+          The single amount row and the range's "From" SHARE one state,
           which is the node's own annotation made real (13923-24617): "selecting
           'within' automatically populates 'From' duration with that value".
           Leaving `within` keeps whatever was typed into the second row, so a
@@ -1249,7 +1374,11 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
             <DurationInput label="To" value={to} onChange={setTo} pop={toPop} mobile={mobile} />
           </>
         ) : (
-          <DurationInput label="Duration" value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
+          // A SINGLE value carries NO label (Daniel, 2026-09-16 — node
+          // 13923-24049 draws the Input with `header: false`), which retired
+          // the 2026-09-15 unit-word relabel: the dialog's title already
+          // names what is being typed. The RANGE above keeps From / To.
+          <DurationInput value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
         )}
       </div>
     </Dialog>
@@ -1265,9 +1394,11 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
 // (the node's annotations: "Stays disabled until the value is provided" /
 // "until both inputs are filled out").
 //
-// What differs is the field: ONE `Input` labelled with the FILTER's name
-// ("Total" — the node's own text, which is the menu row's label) holding a
-// TextField with a "$" PREFIX and nothing else. A range swaps it for "From" and
+// What differs is the field: ONE `Input` labelled with the KIND's unit word —
+// "Amount" for money, "Number" for count (Daniel's 2026-09-15 relabel; the
+// nodes 14299-49210, 14787-82929, 14854-31217 and 14767-79594 all draw it, and
+// the duration dialog's "Duration" is the same rule) — holding a TextField
+// with a "$" PREFIX and nothing else. A range swaps it for "From" and
 // "To", and those two sit SIDE BY SIDE on both breakpoints (the node puts them
 // at 280px each in the 608px card, 163.5px each in the drawer), where the
 // duration's stack. Hence its own content class.
@@ -1285,6 +1416,14 @@ interface MoneyCustomProps {
   breakpoint: "desktop" | "mobile";
 }
 
+/**
+ * What sits in front of the number: "$" for money AND for a DISCOUNT (whose
+ * values carry no minus — see DISCOUNT_PRESETS), nothing for count and
+ * percent, which carries a "%" suffix instead.
+ */
+const amountPrefix = (def: AnyFilterDef): string | undefined =>
+  def.kind === "money" || def.kind === "discount" ? "$" : undefined;
+
 /** Digits only, no leading zeros — an empty field is `null`, not 0. */
 const moneyDigits = (raw: string) => raw.replace(/\D/g, "").slice(0, 9).replace(/^0+(?=\d)/, "");
 const moneyNumber = (digits: string) => (digits === "" ? null : Number(digits));
@@ -1294,7 +1433,7 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
   // alternatives (the duration dialog's rule). The CONDITION carries over: the
   // list header's chips have already set it.
   const editing = value.amount != null && value.amount.preset == null ? value.amount : null;
-  const [compare, setCompare] = useState<AmountCompare>(value.amount?.compare ?? "over");
+  const [compare, setCompare] = useState<AmountCompare>(value.amount?.compare ?? "at least");
   const [from, setFrom] = useState(editing?.from == null ? "" : String(editing.from));
   const [to, setTo] = useState(editing?.to == null ? "" : String(editing.to));
 
@@ -1311,8 +1450,9 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
     <Dialog
       open={open}
       onClose={onClose}
-      // The filter's own name titles the dialog, and labels the single field —
-      // both annotated "Inherits the name from the 'Filters' menu".
+      // The filter's own name titles the dialog (annotated "Inherits the name
+      // from the 'Filters' menu"); the FIELD is labelled with the kind's unit
+      // word since the 2026-09-15 relabel.
       title={def.label}
       breakpoint={breakpoint}
       className={DIALOG_MARKER}
@@ -1354,14 +1494,24 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
       {/* The single field and the range's "From" SHARE one state — the node's
           annotation made real: "If the user provides the value on 'over',
           'under' or 'is', then selecting 'within' automatically populates
-          'From' with that value". */}
+          'From' with that value". The "$" belongs to the MONEY kind alone: a
+          COUNT's field is a bare number (the Open jobs Custom nodes,
+          14767-79595 / 14767-80100, draw no prefix). */}
       <div className={styles.moneyCustomContent}>
-        <Input label={within ? "From" : def.label}>
+        {/* A SINGLE value carries NO label (Daniel, 2026-09-16 — node
+            13923-24049 draws its Input with `header: false`): the dialog's
+            title already names what is being typed, so the unit word under
+            it only repeated it. It is the MFG / MFG part # rule applied to
+            the amount kinds. A RANGE still labels both ends, because "From"
+            and "To" say which is which — the node keeps `header: true` on
+            those two. */}
+        <Input label={within ? "From" : undefined}>
           <TextField
             value={from}
             onChange={(e) => setFrom(moneyDigits(e.target.value))}
             keyboard="numeric"
-            prefix="$"
+            prefix={amountPrefix(def)}
+            suffix={def.kind === "percent" ? "%" : undefined}
             aria-label={within ? `${def.label} from` : def.label}
           />
         </Input>
@@ -1371,7 +1521,8 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
               value={to}
               onChange={(e) => setTo(moneyDigits(e.target.value))}
               keyboard="numeric"
-              prefix="$"
+              prefix={amountPrefix(def)}
+              suffix={def.kind === "percent" ? "%" : undefined}
               aria-label={`${def.label} to`}
             />
           </Input>
@@ -1409,39 +1560,64 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
 // Everything is a DRAFT until Apply — the condition chips included — the same
 // contract the other two dialogs have, so an unfinished edit never touches the
 // chip.
-interface AddressCustomProps {
+interface FreeformCustomProps {
   def: AnyFilterDef;
   value: FilterValue;
-  onApply: (address: AddressValue, negated: boolean) => void;
+  onApply: (freeform: FreeformValue, negated: boolean) => void;
   onClose: () => void;
   open: boolean;
   breakpoint: "desktop" | "mobile";
 }
 
-function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: AddressCustomProps) {
-  const [draft, setDraft] = useState<AddressValue>(() => value.address ?? emptyAddress());
+// The FREEFORM kind's dialog (section 14100-36446): titled with the filter's
+// own name, the contains / does-not-contain chips, then the DEF's OWN fields
+// (`freeformFields` — the kind does not define them; the generic node draws
+// one labelled input, the Address filters five). Consecutive `half` fields
+// share a desktop row (the Address State / Postal pair); mobile stacks all.
+function FreeformCustom({ def, value, onApply, onClose, open, breakpoint }: FreeformCustomProps) {
+  const fields = def.freeformFields ?? [];
+  const [draft, setDraft] = useState<FreeformValue>(() => value.freeform ?? emptyFreeform(def));
   // The condition is part of the draft too: re-opening the dialog seeds it from
   // the application ("contains" on a fresh one — `negated: false`), and only
   // Apply writes it back.
   const [negated, setNegated] = useState(value.negated);
 
-  const field = (key: keyof AddressValue) => {
-    const spec = ADDRESS_FIELDS.find((entry) => entry.key === key);
-    return (
-      <Input label={spec?.label} labelCondition="optional">
-        <TextField
-          value={draft[key]}
-          onChange={(e) => setDraft((current) => ({ ...current, [key]: e.target.value }))}
-        />
-      </Input>
-    );
-  };
+  // A field with no `label` renders with NO header — Input draws one only
+  // when it has something to put in it, so a one-field filter (MFG, MFG part
+  // #) is the bare TextField its node draws, and "(optional)" goes with the
+  // label rather than hanging on its own.
+  const field = (spec: FreeformField) => (
+    <Input key={spec.key} label={spec.label} labelCondition={spec.label == null ? undefined : "optional"}>
+      <TextField
+        aria-label={spec.label ?? def.label}
+        value={draft[spec.key] ?? ""}
+        onChange={(e) => setDraft((current) => ({ ...current, [spec.key]: e.target.value }))}
+      />
+    </Input>
+  );
 
-  // Apply stays disabled while every field is blank — an empty address would
-  // match every job, which is the same as no filter at all. INVENTED, flagged:
-  // the node draws no disabled state, but Duration's dialog already works this
-  // way and `upsertFilter` would drop the empty application anyway.
-  const ready = ADDRESS_FIELDS.some((entry) => draft[entry.key].trim() !== "");
+  // The fields in order, consecutive HALF pairs sharing a desktop row.
+  const rows: ReactNode[] = [];
+  for (let i = 0; i < fields.length; i += 1) {
+    const spec = fields[i]!;
+    const next = fields[i + 1];
+    if (breakpoint === "desktop" && spec.half === true && next?.half === true) {
+      rows.push(
+        <div key={spec.key} className={styles.freeformCustomRow}>
+          {field(spec)}
+          {field(next)}
+        </div>,
+      );
+      i += 1;
+    } else {
+      rows.push(field(spec));
+    }
+  }
+
+  // Apply stays disabled while every field is blank ("Stays 'disabled' until
+  // the Input is filled out" — the section's own Apply annotation): an empty
+  // value would match every row, which is the same as no filter at all.
+  const ready = fields.some((spec) => (draft[spec.key] ?? "").trim() !== "");
 
   return (
     <Dialog
@@ -1475,9 +1651,9 @@ function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: Addre
       }
     >
       {/* CONDITION — "contains" / "does not contain" as lg Chips in a 16px row
-          (node 14100-36449), the pair `conditionChoices` already defines for an
-          address. Picking one only marks it; Apply commits it. */}
-      <div className={styles.addressCustomCondition}>
+          (node 14100-36449), the pair `conditionChoices` already defines for a
+          freeform value. Picking one only marks it; Apply commits it. */}
+      <div className={styles.freeformCustomCondition}>
         <ChipGroup>
           {conditionChoices(value).map((choice) => (
             <Chip
@@ -1495,22 +1671,7 @@ function AddressCustom({ def, value, onApply, onClose, open, breakpoint }: Addre
       {/* FULL-BLEED — edge to edge, no side inset, like the date dialog's. */}
       <Divider contrast="medium" />
 
-      <div className={styles.addressCustomContent}>
-        {field("street")}
-        {field("suite")}
-        {field("city")}
-        {breakpoint === "desktop" ? (
-          <div className={styles.addressCustomRow}>
-            {field("state")}
-            {field("postalCode")}
-          </div>
-        ) : (
-          <>
-            {field("state")}
-            {field("postalCode")}
-          </>
-        )}
-      </div>
+      <div className={styles.freeformCustomContent}>{rows}</div>
     </Dialog>
   );
 }
@@ -1530,9 +1691,9 @@ interface CustomDialogProps {
 }
 
 export function CustomDialog({ def, instance, breakpoint, onApply, onClose }: CustomDialogProps) {
-  if (def.kind === "address") {
+  if (def.kind === "freeform") {
     return (
-      <AddressCustom
+      <FreeformCustom
         def={def}
         value={instance}
         breakpoint={breakpoint}
@@ -1541,7 +1702,7 @@ export function CustomDialog({ def, instance, breakpoint, onApply, onClose }: Cu
         // (14100-36446): its own chips edit the contains / does not contain
         // pair, so Apply writes `negated` back along with the fields. The
         // chip's condition segment still edits the same pair between visits.
-        onApply={(address, negated) => onApply({ ...instance, address, negated })}
+        onApply={(freeform, negated) => onApply({ ...instance, freeform, negated })}
         onClose={onClose}
       />
     );
@@ -1560,7 +1721,17 @@ export function CustomDialog({ def, instance, breakpoint, onApply, onClose }: Cu
       />
     );
   }
-  if (def.kind === "money") {
+  // MoneyCustom serves the COUNT and PERCENT kinds too — the same number
+  // dialog, with the "$" only where the kind is money (the Open jobs Custom
+  // nodes draw the bare field) and a "%" suffix only where it is percent (the
+  // Tax rate Custom nodes, 15368-50101).
+  //
+  // EVERY amount kind must be listed here: the fall-through below is the DATE
+  // dialog, so a kind that is missing opens a calendar under the filter's own
+  // title. That is exactly what `percent` did when it arrived (caught in the
+  // browser on 2026-09-16, not by the compiler — `def.kind` is a string
+  // union and nothing forces this branch to cover it).
+  if (def.kind === "money" || def.kind === "count" || def.kind === "percent" || def.kind === "discount") {
     return (
       <MoneyCustom
         def={def}

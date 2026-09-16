@@ -2,21 +2,21 @@ import { Fragment } from "react";
 
 import type { Meta, StoryObj } from "@storybook/react";
 
-import AvatarJobRequest from "./AvatarJobRequest";
-import { AvatarJobRequestStatus } from "./AvatarJobRequest.types";
+import AvatarRequest from "./AvatarRequest";
+import { AvatarRequestStatus } from "./AvatarRequest.types";
 import { AvatarSize } from "./Avatar.types";
 
 const SIZES: AvatarSize[] = ["xxs", "xs", "sm", "md", "lg", "xl"];
-const STATUSES: AvatarJobRequestStatus[] = ["none", "pending", "accepted", "finalized", "declined"];
+const STATUSES: AvatarRequestStatus[] = ["none", "pending", "accepted", "finalized", "declined"];
 
 /**
- * AvatarJobRequest — an Avatar template: object/icon avatar with the
- * `job-request` semantic icon, and a `status` shown as the corner icon addOn.
+ * AvatarRequest — an Avatar template: object/icon avatar with the
+ * `request` semantic icon, and a `status` shown as the corner icon addOn.
  * xxs supports `none` only (no addOns on xxs).
  */
-const meta: Meta<typeof AvatarJobRequest> = {
-  title: "Components/Avatar/AvatarJobRequest",
-  component: AvatarJobRequest,
+const meta: Meta<typeof AvatarRequest> = {
+  title: "Components/Avatar/AvatarRequest",
+  component: AvatarRequest,
   parameters: { layout: "centered" },
   args: { size: "md", status: "finalized" },
   argTypes: {
@@ -27,7 +27,7 @@ const meta: Meta<typeof AvatarJobRequest> = {
 
 export default meta;
 
-type Story = StoryObj<typeof AvatarJobRequest>;
+type Story = StoryObj<typeof AvatarRequest>;
 
 const labelStyle: React.CSSProperties = {
   font: "var(--font-caption-medium-500)",
@@ -62,7 +62,7 @@ export const Matrix: Story = {
             <div key={size}>
               {/* xxs supports none only. */}
               {size === "xxs" && status !== "none" ? null : (
-                <AvatarJobRequest size={size} status={status} />
+                <AvatarRequest size={size} status={status} />
               )}
             </div>
           ))}

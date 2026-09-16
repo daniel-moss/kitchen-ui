@@ -1,6 +1,6 @@
 import { createStatusBadge, StatusDef } from "./statusBadge";
 
-// Job Request status → scheme · icon · label. (See badge-job-request-status.md.)
+// Request status → scheme · icon · label.
 export const STATUS = {
   pending: { scheme: "violet", icon: "circle-dashed", label: "Pending" },
   accepted: { scheme: "orange", icon: "circle-check", label: "Accepted" },
@@ -8,7 +8,7 @@ export const STATUS = {
   declined: { scheme: "gray", icon: "circle-xmark", label: "Declined" },
 } satisfies Record<string, StatusDef>;
 
-export type BadgeJobRequestStatusStatus = keyof typeof STATUS;
+export type BadgeRequestStatusStatus = keyof typeof STATUS;
 
-const BadgeJobRequestStatus = createStatusBadge(STATUS);
-export default BadgeJobRequestStatus;
+const BadgeRequestStatus = createStatusBadge(STATUS);
+export default BadgeRequestStatus;

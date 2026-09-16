@@ -20,6 +20,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import Chip from "../../components/Chip/Chip";
+import EmptyState from "../../components/EmptyState/EmptyState";
 import switchStyles from "../../components/Toggle/ToggleSwitch.module.scss";
 import useMountTransition from "../../hooks/useMountTransition";
 
@@ -346,12 +347,20 @@ export default function ViewMenu({
     [sortableColumns, query],
   );
 
+  // The Column list's NO-SEARCH-MATCHES state (Figma 14767-81877 desktop /
+  // 14767-81874 mobile, 2026-09-14): the DS `EmptyState` in its caption-only
+  // form — one centred line, "No matches", body/400 compact in --text-subtle.
+  // No icon, no title, no action, which is what makes it different from
+  // SelectList's built-in no-results block. The 16px around it is the node's
+  // (`body` padding there, the EmptyState's own here — see `.sortNoMatches`).
+  const sortNoMatches = <EmptyState caption="No matches" className={styles.sortNoMatches} />;
+
   const sortSearch = (
     <SelectListHeader
       value={query}
       onChange={(e: ChangeEvent<HTMLInputElement>) => setQuery(e.target.value)}
       onClear={() => setQuery("")}
-      placeholder="Search by column name..."
+      placeholder="Column..."
     />
   );
 
@@ -455,7 +464,14 @@ export default function ViewMenu({
             }
           />
           {/* The list can not live inside the row — ListItem clips its content
-              (overflow: hidden). It floats in a body portal (FloatingList). */}
+              (overflow: hidden). It floats in a body portal (FloatingList).
+
+              NO WIDTH of its own (Daniel, 2026-09-14): "the 'Column' SelectList
+              within the 'View' menu should be a default DS SelectList
+              component. So, it only has max width. No min width." The DS card
+              hugs its rows up to its own 384 cap — the 208 floor belongs to the
+              Filters prototype, which adds it on top for its own lists, not to
+              the component. It was pinned at 240px until now. */}
           {!mobile && (
             <FloatingList open={sortListOpen} anchorRef={sortSectionRef}>
               <SelectList
@@ -465,7 +481,7 @@ export default function ViewMenu({
                 onClose={closeSortList}
                 header={sortSearch}
                 state={query !== "" && shownColumns.length === 0 ? "noResults" : "default"}
-                style={{ width: 240 }}
+                noResultsState={sortNoMatches}
               >
                 {sortItems}
               </SelectList>
@@ -646,6 +662,7 @@ export default function ViewMenu({
           onClose={closeSortList}
           header={sortSearch}
           state={query !== "" && shownColumns.length === 0 ? "noResults" : "default"}
+          noResultsState={sortNoMatches}
         >
           {sortItems}
         </SelectList>

@@ -1,5 +1,13 @@
 import { BadgeJobStatusStatus, STATUS } from "../../components/Badge/BadgeJobStatus";
-import { JOB_LABELS, JOB_SOURCES, JOBS as DB_JOBS, LOCATIONS as DB_LOCATIONS, JobLabel, JobSource } from "../../data/db";
+import {
+  JOB_LABELS,
+  JOB_SOURCES,
+  JOBS as DB_JOBS,
+  LOCATIONS as DB_LOCATIONS,
+  JobLabel,
+  JobSource,
+  subStatusOf,
+} from "../../data/db";
 import { users } from "../../data/users";
 
 import { CLIENTS, LOCATIONS, SERVICES } from "./listData";
@@ -57,6 +65,16 @@ export interface Job {
    */
   serviceName: string;
   status: BadgeJobStatusStatus;
+  /**
+   * The SUB-STATUS's name, when the job has one — "Waiting for parts". Only a
+   * paused or on-hold job can, and it is what the badge and the Status filter
+   * print INSTEAD of the generic status label (Daniel, 2026-09-14; production's
+   * `getJobStatusOrSubStatusLabel` and the Figma Status section's annotation,
+   * "Sub-statuses — If exist, they are shown instead of the generic status").
+   * The colour and the icon stay the status's.
+   */
+  subStatusId: string | null;
+  subStatusName: string | null;
   labelIds: string[];
   type: JobType;
   priority: PriorityLevel | null;
@@ -91,6 +109,8 @@ export const JOBS: Job[] = DB_JOBS.map(
     serviceId: job.serviceId,
     serviceName: job.serviceName,
     status: job.status,
+    subStatusId: job.subStatusId ?? null,
+    subStatusName: subStatusOf(job)?.name ?? null,
     labelIds: job.labelIds,
     type: job.type,
     priority: job.priority ?? null,

@@ -38,9 +38,13 @@
 }
 
 // Small dot slot (currentColor = the label color). Used by status templates.
+// Figma draws it as the `circle-small` glyph at size 10: a 5px circle in a
+// 7px-wide box — the 1px side margins reproduce that box, so the label lands
+// where the node puts it (2026-09-16 update).
 .dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
+  margin: 0 1px;
   border-radius: var(--border-radius-full);
   background: currentColor;
   flex: none;

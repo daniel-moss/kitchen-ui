@@ -21,6 +21,23 @@ export interface ListItemTextLeftProps {
   /** A non-string caption is rendered as-is — the caller owns truncation
    *  (e.g. its own TruncatingText with `children` + `tooltipText`). */
   caption?: ReactNode;
+  /**
+   * What the caption line shows when there is NO value for it — "No Location
+   * name", "No Manufacturer", "No End date".
+   *
+   * The row's standard empty behaviour, from the ListItem Template copy doc
+   * (Figma 27171-15212): "The placeholder is shown if the value is missing.
+   * The placeholder inherits the `--text-placeholder` token." The copy is
+   * always "No " + the field as it is named.
+   *
+   * Shown INSTEAD of `caption` whenever `caption` is null or undefined, so the
+   * caller passes the value it has and this in case it has none; with neither,
+   * the caption line renders nothing. Needs a caption variant, like `caption`
+   * itself — a `title` row has no second line to put it on. The same prop
+   * `SelectListItem` carries (2026-09-12); this is its ListItem half
+   * (2026-09-14).
+   */
+  captionPlaceholder?: ReactNode;
   /** Title truncation rule. Default 1. */
   titleLines?: ListItemTextLines;
   /** Caption truncation rule. Default 1. */

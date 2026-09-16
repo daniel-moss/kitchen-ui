@@ -71,6 +71,15 @@ caption color (`captionClassName`). Caption and the slot are top-aligned.
 
 <Canvas of={ListItemStories.CaptionSlot} />
 
+#### Placeholder
+
+The placeholder is shown if the caption value is missing. It inherits the
+`--text-placeholder` token, and the copy is "No " + the field as it is named —
+"No Location name", "No End date". A row with neither a caption nor a
+placeholder shows no caption line
+
+<Canvas of={ListItemStories.CaptionPlaceholder} />
+
 #### Truncation / wrapping
 
 By default the text truncates if it does not fit one line.

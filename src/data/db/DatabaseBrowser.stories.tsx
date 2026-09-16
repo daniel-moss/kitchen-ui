@@ -5,29 +5,60 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { users } from "../users";
 import { joinWithSeparator } from "../../utils/textSeparator";
 import {
+  BILL_LABELS,
+  BILLS,
   BRANCHES,
   CLIENT_CONTACTS,
+  CLIENT_LABELS,
   CLIENTS,
+  TAX_RATES,
   COMPANY,
+  CREDIT_NOTE_LABELS,
+  CREDIT_NOTES,
   EQUIPMENT,
   ESTIMATE_LABELS,
   ESTIMATES,
+  INVOICE_LABELS,
   INVOICES,
   JOB_FORMS,
   JOB_LABELS,
+  JOB_SERIES,
+  JOB_SUB_STATUSES,
   JOB_SOURCES,
   JOBS,
+  LABOR_ITEMS,
+  LABOR_LABELS,
+  LABOR_SUBTYPES,
+  PRODUCT_ITEMS,
+  PRODUCT_LABELS,
+  PRODUCT_SUBTYPES,
+  OTHER_ITEMS,
+  OTHER_LABELS,
+  OTHER_SUBTYPES,
+  DISCOUNT_ITEMS,
+  DISCOUNT_LABELS,
+  DISCOUNT_SUBTYPES,
+  TAX_RATE_ITEMS,
+  TAX_RATE_LABELS,
   LOCATION_CONTACTS,
   LOCATIONS,
+  PO_LABELS,
+  PURCHASE_ORDERS,
   SERVICES,
+  VENDORS,
   WARRANTIES,
+  billsOf,
   clientContactsOf,
+  creditNotesOf,
   equipmentOf,
   estimatesOf,
   invoicesOf,
+  jobSeriesOf,
   jobsOf,
   locationContactsOf,
   locationsOf,
+  purchaseOrdersOf,
+  shippingOf,
   warrantiesOf,
 } from "./index";
 import { ContactRecord, Job, Location } from "./types";
@@ -114,6 +145,7 @@ function LocationBlock({ location }: { location: Location }) {
   const contacts = locationContactsOf(location.id);
   const equipment = equipmentOf(location.id);
   const jobs = jobsOf(location.id);
+  const series = jobSeriesOf(location.id);
   const estimates = estimatesOf(location.id);
   const invoices = invoicesOf(location.id);
   const address = addressOf(location);
@@ -203,14 +235,33 @@ function LocationBlock({ location }: { location: Location }) {
         <>
           <p className={styles.blockLabel}>Invoices</p>
           <Table
-            head={["ID", "Status", "Total", "Issued", "Terms", "Job"]}
+            head={["ID", "Service", "Status", "Total", "Issued", "Due", "Job"]}
             rows={invoices.map((invoice) => [
               invoice.id,
+              invoice.serviceName,
               invoice.status,
               money(invoice.total),
               invoice.issuedAt,
-              invoice.netDays == null ? "Due on receipt" : `Net ${invoice.netDays}`,
+              invoice.dueAt,
               orDash(invoice.jobId),
+            ])}
+          />
+        </>
+      )}
+
+      {series.length > 0 && (
+        <>
+          <p className={styles.blockLabel}>Job series</p>
+          <Table
+            head={["ID", "Service", "Type", "Frequency", "Start", "End", "Open jobs"]}
+            rows={series.map((row) => [
+              row.id,
+              row.serviceName,
+              row.type,
+              row.recurrenceFrequency,
+              row.recurrenceStart,
+              orDash(row.recurrenceEnd),
+              row.openJobsCount,
             ])}
           />
         </>
@@ -228,11 +279,35 @@ function DatabasePage() {
     { name: "Equipment", rows: EQUIPMENT },
     { name: "Warranties", rows: WARRANTIES },
     { name: "Jobs", rows: JOBS },
+    { name: "Job series", rows: JOB_SERIES },
     { name: "Estimates", rows: ESTIMATES },
     { name: "Invoices", rows: INVOICES },
+    { name: "Credit notes", rows: CREDIT_NOTES },
+    { name: "Vendors", rows: VENDORS },
+    { name: "Purchase orders", rows: PURCHASE_ORDERS },
+    { name: "Bills", rows: BILLS },
     { name: "Services", rows: SERVICES },
+    { name: "Labor items", rows: LABOR_ITEMS },
+    { name: "Labor subtypes", rows: LABOR_SUBTYPES },
+    { name: "Labor labels", rows: LABOR_LABELS },
+    { name: "Products", rows: PRODUCT_ITEMS },
+    { name: "Product subtypes", rows: PRODUCT_SUBTYPES },
+    { name: "Product labels", rows: PRODUCT_LABELS },
+    { name: "Other charges", rows: OTHER_ITEMS },
+    { name: "Other subtypes", rows: OTHER_SUBTYPES },
+    { name: "Other labels", rows: OTHER_LABELS },
+    { name: "Discounts", rows: DISCOUNT_ITEMS },
+    { name: "Discount subtypes", rows: DISCOUNT_SUBTYPES },
+    { name: "Discount labels", rows: DISCOUNT_LABELS },
+    { name: "Tax rate items", rows: TAX_RATE_ITEMS },
+    { name: "Tax rate labels", rows: TAX_RATE_LABELS },
     { name: "Job labels", rows: JOB_LABELS },
+    { name: "Job sub-statuses", rows: JOB_SUB_STATUSES },
     { name: "Estimate labels", rows: ESTIMATE_LABELS },
+    { name: "Invoice labels", rows: INVOICE_LABELS },
+    { name: "Credit note labels", rows: CREDIT_NOTE_LABELS },
+    { name: "PO labels", rows: PO_LABELS },
+    { name: "Bill labels", rows: BILL_LABELS },
     { name: "Job sources", rows: JOB_SOURCES },
     { name: "Branches", rows: BRANCHES },
     { name: "Job forms", rows: JOB_FORMS },
@@ -243,10 +318,12 @@ function DatabasePage() {
     <div className={styles.page}>
       <h1 className={styles.title}>Demo database</h1>
       <p className={styles.intro}>
-        One simulated service company shared by every prototype, shaped like the real app: clients own locations;
-        locations own equipment (with warranties), jobs, estimates and invoices; clients and locations each have their
-        own contacts, and a job can carry contacts of its own. This page renders directly from the data
-        (src/data/db), so it always shows exactly what exists. Techs are the shared users pool.
+        One simulated service company shared by every prototype, shaped like the real app: clients own locations and
+        credit notes; locations own equipment (with warranties), jobs, estimates and invoices; clients and locations
+        each have their own contacts, and a job can carry contacts of its own. Vendors are the supplier side — the
+        purchase orders the company sends them and the bills they send back (accounts payable) both hang off them,
+        outside the client hierarchy. This page renders
+        directly from the data (src/data/db), so it always shows exactly what exists. Techs are the shared users pool.
       </p>
 
       <h2 className={styles.sectionTitle}>Tables and properties</h2>
@@ -258,6 +335,189 @@ function DatabasePage() {
           <span key="props" className={styles.schemaProps}>{schemaOf(table.rows)}</span>,
         ])}
       />
+
+      <h2 className={styles.sectionTitle}>The pricebook (labor)</h2>
+      {/* The labor catalog — production PriceBookItem, type service. The 12
+          SERVICES rows are the same records seen from the job side (same
+          ids); the review rows are what the system mints from free-text line
+          items. Added 2026-09-16 for the Labor list. */}
+      <section className={styles.clientCard}>
+        <Table
+          head={["ID", "Name", "Phase", "Status", "Subtype", "Cost", "Rate", "Unit", "Est. duration", "Labels"]}
+          rows={LABOR_ITEMS.map((item) => [
+            item.id,
+            item.name,
+            item.isActive ? "active" : "inactive",
+            item.isActive ? item.status : "—",
+            orDash(LABOR_SUBTYPES.find((subtype) => subtype.id === item.subtypeId)?.name ?? null),
+            money(item.cost),
+            money(item.rate),
+            item.unitType === "hourly" ? "hourly" : "flat rate",
+            orDash(item.estDurationMinutes == null ? null : `${item.estDurationMinutes} min`),
+            orDash(
+              item.labelIds
+                .map((id) => LABOR_LABELS.find((label) => label.id === id)?.name)
+                .filter(Boolean)
+                .join(", ") || null,
+            ),
+          ])}
+        />
+      </section>
+
+      <h2 className={styles.sectionTitle}>The pricebook (products)</h2>
+      {/* The parts catalog — production PriceBookItem, the part type. Tracked
+          rows carry a stock status and levels; the review rows are what the
+          system mints from free-text line items and from parts typed onto a
+          purchase order (those arrive with a cost). Added 2026-09-16 for the
+          Products list. */}
+      <section className={styles.clientCard}>
+        <Table
+          head={["ID", "Name", "Phase", "Status", "Subtype", "Cost", "Price", "MFG", "MFG part #", "Inventory", "Stock", "Levels", "Labels"]}
+          rows={PRODUCT_ITEMS.map((item) => [
+            item.id,
+            item.name,
+            item.isActive ? "active" : "inactive",
+            item.isActive ? item.status : "—",
+            orDash(PRODUCT_SUBTYPES.find((subtype) => subtype.id === item.subtypeId)?.name ?? null),
+            money(item.cost),
+            money(item.price),
+            orDash(item.manufacturer === "" ? null : item.manufacturer),
+            orDash(item.partNumber === "" ? null : item.partNumber),
+            item.trackInventory ? "tracked" : "not tracked",
+            orDash(item.stock),
+            orDash(item.trackInventory ? `${item.quantity}/${item.quantityDesired}` : null),
+            orDash(
+              item.labelIds
+                .map((id) => PRODUCT_LABELS.find((label) => label.id === id)?.name)
+                .filter(Boolean)
+                .join(", ") || null,
+            ),
+          ])}
+        />
+      </section>
+
+      <h2 className={styles.sectionTitle}>The pricebook (other charges, discounts, tax rates)</h2>
+      {/* The remaining three pricebook types, added 2026-09-16 with their
+          lists. Other and Discounts are ONE production shape — a discount
+          simply carries no cost, is never taxable and holds a negative
+          price. A tax rate is the leanest of the five: no cost, no
+          taxability, no subtype, and its amount is a percent. */}
+      <section className={styles.clientCard}>
+        <h3 className={styles.clientName}>Other charges</h3>
+        <Table
+          head={["ID", "Name", "Phase", "Status", "Subtype", "Cost", "Price", "Taxable", "Labels"]}
+          rows={OTHER_ITEMS.map((item) => [
+            item.id,
+            item.name,
+            item.isActive ? "active" : "inactive",
+            item.isActive ? item.status : "—",
+            orDash(OTHER_SUBTYPES.find((subtype) => subtype.id === item.subtypeId)?.name ?? null),
+            money(item.cost),
+            money(item.price),
+            item.taxable ? "yes" : "no",
+            orDash(
+              item.labelIds
+                .map((id) => OTHER_LABELS.find((label) => label.id === id)?.name)
+                .filter(Boolean)
+                .join(", ") || null,
+            ),
+          ])}
+        />
+      </section>
+      <section className={styles.clientCard}>
+        <h3 className={styles.clientName}>Discounts</h3>
+        <Table
+          head={["ID", "Name", "Phase", "Status", "Subtype", "Price", "Labels"]}
+          rows={DISCOUNT_ITEMS.map((item) => [
+            item.id,
+            item.name,
+            item.isActive ? "active" : "inactive",
+            item.isActive ? item.status : "—",
+            orDash(DISCOUNT_SUBTYPES.find((subtype) => subtype.id === item.subtypeId)?.name ?? null),
+            money(item.price),
+            orDash(
+              item.labelIds
+                .map((id) => DISCOUNT_LABELS.find((label) => label.id === id)?.name)
+                .filter(Boolean)
+                .join(", ") || null,
+            ),
+          ])}
+        />
+      </section>
+      <section className={styles.clientCard}>
+        <h3 className={styles.clientName}>Tax rates</h3>
+        <Table
+          head={["ID", "Name", "Phase", "Status", "Rate", "Labels"]}
+          rows={TAX_RATE_ITEMS.map((item) => [
+            item.id,
+            item.name,
+            item.isActive ? "active" : "inactive",
+            item.isActive ? item.status : "—",
+            `${item.rate}%`,
+            orDash(
+              item.labelIds
+                .map((id) => TAX_RATE_LABELS.find((label) => label.id === id)?.name)
+                .filter(Boolean)
+                .join(", ") || null,
+            ),
+          ])}
+        />
+      </section>
+
+      <h2 className={styles.sectionTitle}>The vendor side (accounts payable)</h2>
+      {/* Bills hang off VENDORS — the suppliers billing the company — not off
+          the client hierarchy below. Added 2026-09-15 for the Bills list. */}
+      {VENDORS.map((vendor) => (
+        <section key={vendor.id} className={styles.clientCard}>
+          <h3 className={styles.clientName}>
+            <span className={vendor.isActive ? undefined : styles.inactive}>{vendor.name}</span>
+            {!vendor.isActive && <span className={styles.muted}>(deactivated)</span>}
+            <span className={styles.clientId}>{vendor.id}</span>
+          </h3>
+          {vendor.paymentTerms != null && (
+            <p className={styles.muted}>
+              Payment terms: {vendor.paymentTerms === 0 ? "Same Day" : `Net ${vendor.paymentTerms}`}
+            </p>
+          )}
+          {purchaseOrdersOf(vendor.id).length > 0 && (
+            <>
+              <p className={styles.blockLabel}>Purchase orders</p>
+              <Table
+                head={["ID", "Status", "Items", "Amount", "Shipping", "Issued", "Associated"]}
+                rows={purchaseOrdersOf(vendor.id).map((po) => [
+                  po.id,
+                  po.status,
+                  po.itemCount,
+                  money(po.amount),
+                  orDash(shippingOf(po)),
+                  po.issuedAt,
+                  orDash(
+                    [...po.associatedJobIds, ...po.associatedEstimateIds, ...po.associatedInvoiceIds].join(", ") ||
+                      null,
+                  ),
+                ])}
+              />
+            </>
+          )}
+          {billsOf(vendor.id).length > 0 && (
+            <>
+              <p className={styles.blockLabel}>Bills</p>
+              <Table
+                head={["ID", "Vendor invoice ID", "Status", "Total", "Received", "Issued", "Due"]}
+                rows={billsOf(vendor.id).map((bill) => [
+                  bill.id,
+                  bill.vendorInvoiceId,
+                  bill.status,
+                  money(bill.total),
+                  bill.receivedAt,
+                  bill.issuedAt,
+                  bill.dueAt,
+                ])}
+              />
+            </>
+          )}
+        </section>
+      ))}
 
       <h2 className={styles.sectionTitle}>The world, client by client</h2>
       {CLIENTS.map((client) => (
@@ -271,8 +531,14 @@ function DatabasePage() {
             {joinWithSeparator(
               client.clientType,
               client.industryType,
-              client.labels.length > 0 ? `Labels: ${client.labels.join(", ")}` : null,
+              client.labelIds.length > 0
+                ? `Labels: ${client.labelIds.map((id) => CLIENT_LABELS.find((label) => label.id === id)?.name ?? id).join(", ")}`
+                : null,
               client.creditLimit != null ? `Credit limit ${money(client.creditLimit)}` : null,
+              client.creditBalance > 0 ? `Credit balance ${money(client.creditBalance)}` : null,
+              client.defaultTaxRateId != null
+                ? `Tax: ${TAX_RATES.find((rate) => rate.id === client.defaultTaxRateId)?.name ?? client.defaultTaxRateId}`
+                : null,
             )}
           </p>
           {client.notes != null && <p className={styles.muted}>{client.notes}</p>}
@@ -281,6 +547,25 @@ function DatabasePage() {
             <>
               <p className={styles.blockLabel}>Client contacts</p>
               <Table head={["Name", "Position", "Details"]} rows={contactRows(clientContactsOf(client.id), client.primaryContactId)} />
+            </>
+          )}
+
+          {/* Credit notes hang off the CLIENT directly (production
+              `external_client`), not off a location — the one such table. */}
+          {creditNotesOf(client.id).length > 0 && (
+            <>
+              <p className={styles.blockLabel}>Credit notes</p>
+              <Table
+                head={["ID", "Invoice", "Status", "Type", "Total", "Issued"]}
+                rows={creditNotesOf(client.id).map((creditNote) => [
+                  creditNote.id,
+                  orDash(creditNote.invoiceId),
+                  creditNote.status,
+                  orDash(creditNote.type),
+                  money(creditNote.total),
+                  creditNote.issuedAt,
+                ])}
+              />
             </>
           )}
 

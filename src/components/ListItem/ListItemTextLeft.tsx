@@ -28,6 +28,7 @@ export default function ListItemTextLeft({
   variant = "title",
   title,
   caption,
+  captionPlaceholder,
   titleLines = 1,
   captionLines = 1,
   titleClassName,
@@ -36,7 +37,16 @@ export default function ListItemTextLeft({
   className,
 }: ListItemTextLeftProps) {
   const titleLine = line(title, titleLines, clsx(styles.title, titleClassName));
-  const caption_ = variant !== "title" && caption != null ? line(caption, captionLines, clsx(styles.caption, captionClassName)) : null;
+  // The caption, or — where the row has no value for it — its PLACEHOLDER, one
+  // token dimmer (the copy doc's standard empty behaviour, Figma 27171-15212).
+  // A row with neither renders no caption line at all, which is what every row
+  // did before this prop.
+  const captionValue = caption ?? captionPlaceholder;
+  const isPlaceholder = caption == null && captionPlaceholder != null;
+  const caption_ =
+    variant !== "title" && captionValue != null
+      ? line(captionValue, captionLines, clsx(styles.caption, isPlaceholder && styles.captionEmpty, captionClassName))
+      : null;
   // With a left slot the caption becomes a row: the glyph, 8px, then the text
   // (Figma 28927-35531). The text still owns the truncation.
   const captionLine =

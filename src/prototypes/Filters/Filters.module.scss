@@ -207,20 +207,20 @@
   }
 }
 
-// ---- the ADDRESS dialog ----------------------------------------------------
+// ---- the FREEFORM dialog ----------------------------------------------------
 // The documented section 14100-36446 (nodes 14100-36447 desktop /
 // 14100-36463 mobile): the condition chips in a 16px row of their own, a
 // full-bleed Divider (in the tsx), then the fields.
 
 // CONDITION — "contains" / "does not contain" as lg Chips (node 14100-36449).
-.addressCustomCondition {
+.freeformCustomCondition {
   padding: var(--size-4); // 16px
 }
 
 // The dialog's field body: 16px all round, 24px between the fields. Bigger
 // than the duration dialog's 16 because every field here carries a label
 // above it.
-.addressCustomContent {
+.freeformCustomContent {
   display: flex;
   flex-direction: column;
   gap: var(--size-6); // 24px
@@ -230,7 +230,7 @@
 // DESKTOP only — State / Province beside Postal code, 16px apart, each taking
 // half of the 608px card. The mobile node stacks them, so it renders them as two
 // ordinary rows and never uses this.
-.addressCustomRow {
+.freeformCustomRow {
   display: flex;
   gap: var(--size-4); // 16px
 
@@ -342,7 +342,13 @@
 // props for it, so the colour goes through the component's own
 // --divider-color. --gray-a4 is Divider's "medium" contrast (Daniel,
 // 2026-08-17); the DS default is "low" / --gray-a3.
+//
+// `margin-top: auto` pins the bar to the shell's bottom edge when the content
+// area hugs a short list (the Hidden Data Bar rule) and free space is left in
+// the column; with the area filling the height it resolves to 0.
 .bottomBar {
+  margin-top: auto;
+
   > :first-child {
     --divider-color: var(--gray-a4);
   }
@@ -449,13 +455,36 @@
   overflow: hidden;
 }
 
+// The Hidden Data Bar hugs the LIST (Daniel, 2026-09-16): with few rows it
+// sits directly below the last row; once the rows overflow, the content area
+// takes all the remaining height, the table scrolls inside it, and the bar
+// ends up at the screen bottom — visible while scrolling. So while the shell
+// HAS the bar, the content area hugs its content (basis auto) and shrinks
+// when the rows are taller than the space. Without the bar the default
+// `flex: 1 1 0` above stays: the table fills the area, and the empty states
+// (`.noResults`, height 100%) keep their vertical centring.
+.workArea:has(> .hiddenBar) > .mainArea,
+.mobile:has(> .hiddenBar) > .mainArea {
+  flex: 0 1 auto;
+}
+
+// With the content area's basis auto, an overflowing table makes the flex
+// LINE overflow, and every sibling with the default shrink would give up
+// height (the DS bars set no flex of their own). The content area must be the
+// only row that shrinks.
+.workArea > :not(.mainArea),
+.mobile > :not(.mainArea) {
+  flex-shrink: 0;
+}
+
 // ---- the Hidden Data Bar (the states boards 14178-47650 / 14178-47306) -----
 // The DS Divider (medium) over a 40px centered row; no fill of its own — the
 // node draws none, so the app background shows through. `flex: none` keeps
-// the row's height out of the shells' space-sharing (`.mainArea` gives the
-// height up). Each text + its button is a GROUP with a 4px gap; the combined
-// desktop state puts two groups 16px apart (node 14178-47701), which is the
-// row's gap — with one group it never shows.
+// the row's height out of the shells' space-sharing; the row sits wherever
+// the content area's edge is (see the hug rule above). Each text + its button
+// is a GROUP with a 4px gap; the combined desktop state puts two groups 16px
+// apart (node 14178-47701), which is the row's gap — with one group it never
+// shows.
 .hiddenBar {
   flex: none;
   width: 100%;
@@ -508,11 +537,11 @@
 // migrated 2026-09-08) — every local bar/chip style that lived here is gone
 // with the hand-built markup. See the notes in the tsx.
 
-// ---- "No matching options" -------------------------------------------------
+// ---- "No matches" ----------------------------------------------------------
 
-// NOTHING MATCHED THE SEARCH — plain TEXT, not the DS EmptyState (Daniel,
-// 2026-09-12: "I want to try an option without the EmptyState component. Just
-// simple text"). It is the same block on all four surfaces the nodes draw it
+// NOTHING MATCHED THE SEARCH — the DS `EmptyState`, caption only (Daniel,
+// 2026-09-14: "use this component for the Filters menu"; it was plain text for
+// two days before that). The same block on all four surfaces the nodes draw it
 // on: the Filters menu (14310-59924 desktop / 14310-59921 mobile) and a
 // multi-select filter's option list (14310-60254 / 14310-60389).
 //
@@ -520,27 +549,19 @@
 // ONE centred line — body/400 compact (14/20) in --text-subtle. No icon, no
 // title, no action.
 //
-// `height: 100%` is the MOBILE half of it, and it is what `EmptyState` used to
-// do here. Those drawers fill the screen (a sheet with a search always does)
-// and both mobile nodes centre the line in that tall empty body. A percentage
-// height only resolves while every box above it has one, so it has to be handed
-// down — see `.menuFillBody`. On the desktop card the body sizes to its
-// content, so the same rule computes to `auto` and the padding alone decides
-// the height. One rule, both nodes.
+// The MOBILE half is EmptyState's own `height: 100%`: those drawers fill the
+// screen (a sheet with a search always does) and both mobile nodes centre the
+// line in that tall empty body. A percentage height only resolves while every
+// box above it has one, so it still has to be handed down — see
+// `.menuFillBody`. On the desktop card the body sizes to its content, so the
+// same rule computes to `auto` and the padding alone decides the height.
 .noMatches {
-  // The padding has to sit INSIDE the 100%, or the block is 32px taller than
-  // the body it fills and the sheet grows a scrollbar (EmptyState does the
-  // same).
-  box-sizing: border-box;
-  display: flex;
-  height: 100%;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
+  // The ONLY override. EmptyState already brings the centring, the
+  // border-box 100% height that lets the line sit in the middle of the mobile
+  // sheet, and the caption's body/400 compact --text-subtle. Its own padding is
+  // 32px — right for the block state, where an icon and a title stand above the
+  // line; these four nodes put 16px around a single line.
   padding: var(--size-4); // 16px
-  color: var(--text-subtle);
-  text-align: center;
-  @include font("body-400-compact"); // Inter 14/20
 }
 
 // The two boxes between the mobile Filters sheet's body and that line: `Menu`

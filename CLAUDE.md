@@ -654,15 +654,22 @@ place:
   of the reference arrays must stay in step with `db.ts`).
 - The Filters pages' MASS tables live in `db.ts` as literals: 78 jobs (the
   64 former generator rows, dates shifted +18 days onto the new clock, plus
-  the ~14 curated Wildwood-world rows, hand-filled with the list fields) and
+  the ~14 curated Wildwood-world rows, hand-filled with the list fields),
   62 estimates (6 curated upgraded + 56 materialized; ids one contiguous
-  EST-22xx range). `Job` gained serviceId/serviceName-split, labelIds, type,
+  EST-22xx range) and 63 invoices (7 curated upgraded + 56 materialized,
+  2026-09-14). `Job` gained serviceId/serviceName-split, labelIds, type,
   sourceId/sourceRef, receivedAt, statusChangedAt, lastModifiedAt; `Estimate`
   gained the two-status model (state=`status` + isDraft/conversionPath),
   labelIds (its OWN `ESTIMATE_LABELS` table, production `EstimateLabel`),
   issuedAt (replaced `createdAt`), dueAt, downPayment, statusChangedAt,
-  lastModifiedAt, lastViewedAt. Lists show a row's own denormalized
-  `serviceName`; the Service filter matches `serviceId`.
+  lastModifiedAt, lastViewedAt. `Invoice` carries the badge-status model
+  from day one (`InvoiceStatus` = the six BadgeInvoiceStatus keys, OVERDUE
+  derived from `dueAt`), serviceId/serviceName, labelIds (own
+  `INVOICE_LABELS`), amountPaid, `dueAt` (REPLACED `netDays`),
+  statusChangedAt, lastModifiedAt, lastViewedAt; its mass keeps large unpaid
+  invoices off Wildwood so the credit-limit story stays Bayside's. Lists
+  show a row's own denormalized `serviceName`; the Service filter matches
+  `serviceId`.
 
 **Browse it, don't read the code:** Storybook → **Data → Database** — the
 page renders LIVE from the records (schema lists are the records' own keys),

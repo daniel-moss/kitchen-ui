@@ -9,9 +9,10 @@ const OTHER_YEAR = new Date(2027, 0, 1); // Friday, January 1, 2027
 
 /**
  * DateField — the date field: type a date in any format (Chrono parses it) or
- * pick one in the DatePicker. The display standardizes to "Monday, January 1"
- * (the year appears only when it is not the current year). Bare — label and
- * help text come from the Input wrapper.
+ * pick one in the DatePicker. The display standardizes to
+ * "Monday, January 1, 2026" — the year is ALWAYS shown (the old
+ * hide-the-current-year rule was removed; Daniel, 2026-09-07). Bare — label
+ * and help text come from the Input wrapper.
  */
 const meta: Meta<typeof DateField> = {
   title: "Components/Fields/DateField",

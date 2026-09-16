@@ -21,12 +21,10 @@ import {
   EstimateRow,
   clientOf,
   displayStatus,
-  formatCurrency,
-  isExpired,
   labelsOf,
   locationOf,
 } from "./estimatesData";
-import { formatDateTime, formatDay, locationAddress } from "./listData";
+import { formatCurrency, formatDateTime, formatDay, locationAddress } from "./listData";
 
 
 // The ESTIMATES list's TABLE — the Jobs table's twin over the estimates
@@ -141,11 +139,11 @@ const COLUMNS = {
   locationAddress: 288,
   labels: 240,
   total: 144,
-  issued: 144,
-  expires: 144,
+  issued: 192,
+  expires: 192,
   downPayment: 160,
-  statusChanged: 160,
-  lastModified: 144,
+  statusChanged: 192,
+  lastModified: 192,
   seen: 96,
 };
 
@@ -230,10 +228,13 @@ export const TABLE_COLUMNS: EstimateColumnDef[] = [
       </CellBody>
     ),
   },
-  // Total — currency, so `content="number"`: right-aligned with tabular
-  // numerals, the DS rule for currency columns.
+  // Total — currency, so `content="number"`: right-aligned cells with
+  // tabular numerals, and since 2026-09-14 the HEADER right-aligns too
+  // through the registry's `align` (Daniel: the money columns are
+  // right-aligned, header included — CellHeader defaults left, so the
+  // column says so). Matches the Invoices list's two money columns.
   {
-    key: "total", label: "Total", width: COLUMNS.total, dataType: "numerical", sortable: true,
+    key: "total", label: "Total", width: COLUMNS.total, dataType: "numerical", sortable: true, align: "right",
     cell: (est, pin) => (
       <CellBody width={COLUMNS.total} content="number" {...pin}>
         {formatCurrency(est.total)}
@@ -244,17 +245,24 @@ export const TABLE_COLUMNS: EstimateColumnDef[] = [
     key: "issued", label: "Issued", width: COLUMNS.issued, dataType: "timing", sortable: true,
     cell: (est, pin) => (
       <CellBody width={COLUMNS.issued} {...pin}>
-        {formatDay(est.issuedAt)}
+        {formatDateTime(est.issuedAt)}
       </CellBody>
     ),
   },
-  // Expires — production's date_due; a PAST due date reads as an error
-  // (production's is_expired flag colours the cell), whatever the state.
+  // Expires — production's date_due. The cell reads red through the DERIVED
+  // status only, the Invoices Due date rule (Daniel, 2026-09-14: "I don't
+  // think it makes sense to highlight Expires cells with the red color on
+  // closed estimates") — a closed estimate's lapsed date is not a problem.
+  // This DIVERGES from production ON PURPOSE: its is_expired flag is
+  // date-only and colours every state, closed included; that bluntness is
+  // what Daniel corrected. Known trade-off: a stale draft/unsent and an
+  // approved-but-unconverted estimate past its date lose their red too — the
+  // same rule leaves a stale Pending invoice's Due date plain.
   {
     key: "expires", label: "Expires", width: COLUMNS.expires, dataType: "timing", sortable: true,
     cell: (est, pin) => (
-      <CellBody width={COLUMNS.expires} colorScheme={isExpired(est) ? "error" : "default"} {...pin}>
-        {formatDay(est.dueAt)}
+      <CellBody width={COLUMNS.expires} colorScheme={displayStatus(est) === "expired" ? "error" : "default"} {...pin}>
+        {formatDateTime(est.dueAt)}
       </CellBody>
     ),
   },
@@ -286,7 +294,7 @@ export const TABLE_COLUMNS: EstimateColumnDef[] = [
     key: "statusChanged", label: "Status changed", width: COLUMNS.statusChanged, dataType: "timing", sortable: false,
     cell: (est, pin) => (
       <CellBody width={COLUMNS.statusChanged} {...pin}>
-        {formatDay(est.statusChangedAt)}
+        {formatDateTime(est.statusChangedAt)}
       </CellBody>
     ),
   },
@@ -294,7 +302,7 @@ export const TABLE_COLUMNS: EstimateColumnDef[] = [
     key: "lastModified", label: "Last modified", width: COLUMNS.lastModified, dataType: "timing", sortable: true,
     cell: (est, pin) => (
       <CellBody width={COLUMNS.lastModified} {...pin}>
-        {formatDay(est.lastModifiedAt)}
+        {formatDateTime(est.lastModifiedAt)}
       </CellBody>
     ),
   },

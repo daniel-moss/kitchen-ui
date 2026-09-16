@@ -174,6 +174,74 @@ export default function SelectList({
   const groupCount = Children.toArray(children).filter(isValidElement).length;
   const orderedChildren = multiSelect && groupCount === 1 ? reorderSelected(bodyChildren, pinned) : bodyChildren;
 
+  // ---- the card's width: the search must not change it --------------------
+  //
+  // The inline card hugs its content up to the 384 cap, so the width it opens
+  // on is the width that shows every option without truncation. A SEARCH only
+  // removes rows, so letting it re-hug would shrink the card under the cursor
+  // on every keystroke. It does not: the width measured with the FULL list is
+  // held for as long as something is typed (Daniel, 2026-09-14 — "the SelectList
+  // hugs the content but the search does not affect the width", and it belongs
+  // to the component, not to each consumer).
+  //
+  // It works for either owner of the search: the built-in `searchable` query,
+  // or the `value` a consumer's own SelectListHeader is showing — read off the
+  // element, which is why a custom header with no `value` (a chips-only one)
+  // simply never counts as searching.
+  const headerQuery = searchable
+    ? query
+    : isValidElement(header) && typeof (header.props as { value?: unknown }).value === "string"
+      ? (header.props as { value: string }).value
+      : "";
+  const searching = headerQuery.trim() !== "";
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [fullWidth, setFullWidth] = useState<number | null>(null);
+  // The ref MIRRORS the state so the effect below can compare without calling
+  // `setFullWidth` at all when nothing changed. The functional
+  // same-value form (`prev === width ? prev : width`) is NOT enough: this
+  // effect has no dependency array, so it runs on every commit, and a
+  // setState scheduled FROM a layout effect while the fiber still has pending
+  // work (the open transition's own updates) cannot take React's same-value
+  // bail-out — each call schedules a real nested update, and fifty of them is
+  // "Maximum update depth exceeded". That crashed every MOBILE list page's
+  // view selector (the one inline SelectList that stays mounted while `open`
+  // flips) the day this measuring arrived, 2026-09-14.
+  const fullWidthRef = useRef<number | null>(null);
+  const holdFullWidth = (width: number | null) => {
+    if (fullWidthRef.current === width) return;
+    fullWidthRef.current = width;
+    setFullWidth(width);
+  };
+  // Measured whenever nothing is typed — which covers the open, and covers a
+  // consumer swapping the card's contents while it stays mounted (the Filters
+  // menu moves from filter to filter that way). No width is applied then, so
+  // `offsetWidth` is always the content's own. `offsetWidth`, not
+  // `getBoundingClientRect()`: the card opens under a `scale(0.98)` transition
+  // and the rect would report the scaled width.
+  useLayoutEffect(() => {
+    if (!open) {
+      holdFullWidth(null);
+      return;
+    }
+    if (searching) return;
+    const el = cardRef.current;
+    if (el == null) return;
+    holdFullWidth(el.offsetWidth);
+  });
+  // A FLOOR, never a fixed width, and merged with any floor the consumer set
+  // (the Filters lists carry their own 208): filtering can only make the
+  // content narrower, so the floor is what it settles on — and a row that needs
+  // more can still have it, up to the card's own max-width.
+  const heldWidth = searching && fullWidth != null ? `${fullWidth}px` : null;
+  const consumerMinWidth = style?.minWidth;
+  const minWidth =
+    heldWidth == null
+      ? consumerMinWidth
+      : consumerMinWidth == null
+        ? heldWidth
+        : `max(${typeof consumerMinWidth === "number" ? `${consumerMinWidth}px` : consumerMinWidth}, ${heldWidth})`;
+  const cardStyle = minWidth === consumerMinWidth ? style : { ...style, minWidth };
+
   // A search header auto-focuses on open ONLY on devices with a real pointer
   // (`hover: hover` — the same signal as the DS-wide hover rule), so typing
   // filters right away on desktop. TOUCH devices never auto-focus (Daniel,
@@ -356,7 +424,12 @@ export default function SelectList({
     if (!mounted) return null;
     return (
       <SelectListContext.Provider value={context}>
-        <div className={clsx(styles.card, visible && styles.cardOpen, className)} style={style} onKeyDown={handleListKeyDown}>
+        <div
+          ref={cardRef}
+          className={clsx(styles.card, visible && styles.cardOpen, className)}
+          style={cardStyle}
+          onKeyDown={handleListKeyDown}
+        >
           {searchHeader != null && (
             <div ref={headerRef} className={styles.header}>
               {searchHeader}

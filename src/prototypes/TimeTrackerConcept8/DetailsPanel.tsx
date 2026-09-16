@@ -5,7 +5,7 @@ import AvatarClient from "../../components/Avatar/AvatarClient";
 import AvatarEstimate from "../../components/Avatar/AvatarEstimate";
 import AvatarInvoice from "../../components/Avatar/AvatarInvoice";
 import AvatarJob from "../../components/Avatar/AvatarJob";
-import AvatarJobSeries from "../../components/Avatar/AvatarJobSeries";
+import AvatarSeries from "../../components/Avatar/AvatarSeries";
 import AvatarLocation from "../../components/Avatar/AvatarLocation";
 import AvatarPO from "../../components/Avatar/AvatarPO";
 import AvatarUser from "../../components/Avatar/AvatarUser";

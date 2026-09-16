@@ -3,25 +3,22 @@ import { semanticIcons } from "../../styles/semanticIcons";
 
 import { AvatarDiscountProps, AvatarDiscountStatus } from "./AvatarDiscount.types";
 
-// Status → the icon addOn: glyph token, color, and rotation.
-// (See avatar-discount.md.)
-const STATUS: Record<
-  Exclude<AvatarDiscountStatus, "none">,
-  { icon: string; color: string; rotate: number }
-> = {
-  active: { icon: semanticIcons.active, color: "var(--jade-a9)", rotate: 90 },
-  review: { icon: semanticIcons.review, color: "var(--amber-a9)", rotate: 0 },
-  inactive: { icon: semanticIcons.inactive, color: "var(--gray-a9)", rotate: 0 },
+// Status → the statusDot color (Figma 2026-09-16: dots replaced the corner
+// status icons on every pricebook avatar).
+const DOT_COLOR: Record<Exclude<AvatarDiscountStatus, "none">, string> = {
+  active: "var(--jade-a9)",
+  review: "var(--amber-a9)",
+  inactive: "var(--gray-a9)",
 };
 
 // Avatar template for a Discount: an object/icon avatar with the `discount`
-// semantic icon, and a status expressed as the corner icon addOn.
+// semantic icon, and a status shown as a colored statusDot.
 export default function AvatarDiscount({
   size = "md",
   status = "none",
   className,
 }: AvatarDiscountProps) {
-  const s = status === "none" ? null : STATUS[status];
+  const dotColor = status === "none" ? undefined : DOT_COLOR[status];
 
   return (
     <Avatar
@@ -30,10 +27,8 @@ export default function AvatarDiscount({
       icon={semanticIcons.discount}
       size={size}
       className={className}
-      addOn={s ? "icon" : "none"}
-      addOnIcon={s?.icon}
-      addOnIconColor={s?.color}
-      addOnIconRotate={s?.rotate}
+      addOn={dotColor ? "statusDot" : "none"}
+      statusDotColor={dotColor}
     />
   );
 }

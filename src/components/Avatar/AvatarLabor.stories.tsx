@@ -11,7 +11,7 @@ const STATUSES: AvatarLaborStatus[] = ["none", "active", "review", "inactive"];
 
 /**
  * AvatarLabor — an Avatar template: object/icon avatar with the `labor` semantic
- * icon, and a `status` shown as the corner icon addOn. xxs supports `none` only.
+ * icon, and a `status` shown as the corner statusDot. xxs supports `none` only.
  */
 const meta: Meta<typeof AvatarLabor> = {
   title: "Components/Avatar/AvatarLabor",

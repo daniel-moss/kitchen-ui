@@ -22,6 +22,17 @@ export interface StatusBadgeProps<S extends string> {
   size?: StatusBadgeSize;
   /** The status. Defaults to the first one. */
   status?: S;
+  /**
+   * A MORE SPECIFIC name for this status, printed instead of the status's own
+   * label. The colour, the icon and the meaning stay the status's.
+   *
+   * It exists for SUB-STATUSES: a job on hold "for parts" is still on hold, and
+   * production prints the sub-status name wherever there is one
+   * (`getJobStatusOrSubStatusLabel`: "return job.substatus_label ? … :
+   * job.status_label"). Pass nothing and the badge reads the status's label,
+   * which is what every other object does.
+   */
+  label?: string;
 }
 
 // Build a status-badge component from a status → { scheme, icon/dot, label } map.
@@ -30,7 +41,7 @@ export function createStatusBadge<M extends Record<string, StatusDef>>(statuses:
   type S = Extract<keyof M, string>;
   const keys = Object.keys(statuses) as S[];
 
-  return function StatusBadge({ size = "md", status = keys[0] }: StatusBadgeProps<S>) {
+  return function StatusBadge({ size = "md", status = keys[0], label }: StatusBadgeProps<S>) {
     const s = statuses[status];
     return (
       <BadgeColor
@@ -41,7 +52,7 @@ export function createStatusBadge<M extends Record<string, StatusDef>>(statuses:
         leftIconRotate={s.rotate}
         leftDot={s.dot}
       >
-        {s.label}
+        {label ?? s.label}
       </BadgeColor>
     );
   };

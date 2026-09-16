@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import BadgeJobSeriesStatus, { STATUS } from "./BadgeJobSeriesStatus";
+import BadgeSeriesStatus, { STATUS } from "./BadgeSeriesStatus";
 import { StatusMatrix } from "./statusBadge";
 
-const meta: Meta<typeof BadgeJobSeriesStatus> = {
-  title: "Components/Badge/BadgeJobSeriesStatus",
-  component: BadgeJobSeriesStatus,
+const meta: Meta<typeof BadgeSeriesStatus> = {
+  title: "Components/Badge/BadgeSeriesStatus",
+  component: BadgeSeriesStatus,
   parameters: { layout: "centered" },
   args: { size: "md" },
   argTypes: {
@@ -16,11 +16,11 @@ const meta: Meta<typeof BadgeJobSeriesStatus> = {
 
 export default meta;
 
-type Story = StoryObj<typeof BadgeJobSeriesStatus>;
+type Story = StoryObj<typeof BadgeSeriesStatus>;
 
 export const Playground: Story = {};
 
 export const Matrix: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <StatusMatrix Component={BadgeJobSeriesStatus} statuses={STATUS} />,
+  render: () => <StatusMatrix Component={BadgeSeriesStatus} statuses={STATUS} />,
 };

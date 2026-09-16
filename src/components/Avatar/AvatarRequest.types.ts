@@ -1,11 +1,11 @@
 import { AvatarSize } from "./Avatar.types";
 
-export type AvatarJobRequestStatus = "none" | "pending" | "accepted" | "finalized" | "declined";
+export type AvatarRequestStatus = "none" | "pending" | "accepted" | "finalized" | "declined";
 
-export interface AvatarJobRequestProps {
+export interface AvatarRequestProps {
   /** Avatar size (xxs–xl). Default "md". */
   size?: AvatarSize;
   /** Status → the corner icon addOn. "none" shows no addOn. Default "none". */
-  status?: AvatarJobRequestStatus;
+  status?: AvatarRequestStatus;
   className?: string;
 }

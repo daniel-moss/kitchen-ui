@@ -1,5 +1,6 @@
 import { Fragment, ReactNode, memo } from "react";
 
+import { CellAlign } from "../../components/Table/CellBody/CellBody.types";
 import { CellHeader } from "../../components/Table/CellHeader/CellHeader";
 import { CellDataType, CellSortOrder } from "../../components/Table/CellHeader/CellHeader.types";
 import { Table } from "../../components/Table/Table/Table";
@@ -41,6 +42,13 @@ export interface TableColumnDef<TRow> {
   /** The sort-icon pair — the header's, and (mapped) the menu's. */
   dataType: CellDataType;
   sortable: boolean;
+  /**
+   * The HEADER's alignment — CellHeader defaults left and must match the
+   * column's cells (its own doc rule), so a right-aligned column sets this.
+   * The money columns do (Daniel, 2026-09-14): the cells right-align through
+   * `content="number"`, and the header follows through here.
+   */
+  align?: CellAlign;
   /** The body cell. `pin` freezes a pinned column's cells (see CellPinProps). */
   cell: (row: TRow, pin: CellPinProps) => ReactNode;
 }
@@ -176,6 +184,7 @@ function ListTableInner<TRow>({
               label={def.label}
               width={def.width}
               dataType={def.dataType}
+              align={def.align}
               {...pinProps(def.key)}
               {...(def.sortable ? sortable(def.key) : {})}
             />

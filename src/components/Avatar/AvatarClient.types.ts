@@ -17,7 +17,7 @@ export interface AvatarClientProps {
   type?: AvatarClientType;
   /** Icon or image. `generic` is always icon. Default "icon". */
   content?: AvatarClientContent;
-  /** Status → corner icon addOn (business/individual only). Default "none". */
+  /** Status → the corner statusDot (business/individual only). Default "none". */
   status?: AvatarClientStatus;
   /** Image URL (content "image"). Defaults to the object placeholder. */
   imageSrc?: string;

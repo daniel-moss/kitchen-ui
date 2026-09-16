@@ -59,14 +59,17 @@ const COLUMNS = {
   // one assignee showed a bare counter. 112 leaves 80px = three slots, i.e. two
   // faces plus the counter.
   techs: 112,
-  received: 144,
+  received: 192,
   client: 224,
   locationName: 288,
   locationAddress: 288,
   scheduledFor: 224,
-  duration: 112,
-  statusChanged: 160,
-  lastModified: 144,
+  // 144 since the column became "Est. duration" (2026-09-14). At the old 112 the
+  // HEADER clipped — the sort affordance leaves 58px for the label and the words
+  // need 77 — while the cells ("1h 30m") never came close. Measured, not guessed.
+  duration: 144,
+  statusChanged: 192,
+  lastModified: 192,
 };
 
 // Priority 1–4 → icon + label, read off Figma node 8147-25260 in the "Table
@@ -226,7 +229,11 @@ export const TABLE_COLUMNS: JobColumnDef[] = [
     key: "status", label: "Status", width: COLUMNS.status, dataType: "other", sortable: true,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.status} content="badge" {...pin}>
-        <BadgeJobStatus status={job.status} />
+        {/* The SUB-STATUS's name where there is one — "Waiting for parts"
+            instead of "On hold" (Daniel, 2026-09-14). The badge keeps the
+            status's colour and icon: a job on hold for parts is still on hold.
+            Production does exactly this (`getJobStatusOrSubStatusLabel`). */}
+        <BadgeJobStatus status={job.status} label={job.subStatusName ?? undefined} />
       </CellBody>
     ),
   },
@@ -286,10 +293,13 @@ export const TABLE_COLUMNS: JobColumnDef[] = [
     ),
   },
   {
-    key: "received", label: "Date received", width: COLUMNS.received, dataType: "timing", sortable: true,
+    // "Received" since 2026-09-14 (was "Date received") — Daniel renamed the
+    // filter and the column together, the Est. duration precedent: the two
+    // say one word.
+    key: "received", label: "Received", width: COLUMNS.received, dataType: "timing", sortable: true,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.received} {...pin}>
-        {formatDay(job.receivedAt)}
+        {formatDateTime(job.receivedAt)}
       </CellBody>
     ),
   },
@@ -334,7 +344,7 @@ export const TABLE_COLUMNS: JobColumnDef[] = [
     ),
   },
   {
-    key: "duration", label: "Duration", width: COLUMNS.duration, dataType: "numerical", sortable: true,
+    key: "duration", label: "Est. duration", width: COLUMNS.duration, dataType: "numerical", sortable: true,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.duration} {...pin}>
         {formatDuration(job.durationMinutes)}
@@ -345,7 +355,7 @@ export const TABLE_COLUMNS: JobColumnDef[] = [
     key: "statusChanged", label: "Status changed", width: COLUMNS.statusChanged, dataType: "timing", sortable: false,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.statusChanged} {...pin}>
-        {formatDay(job.statusChangedAt)}
+        {formatDateTime(job.statusChangedAt)}
       </CellBody>
     ),
   },
@@ -353,7 +363,7 @@ export const TABLE_COLUMNS: JobColumnDef[] = [
     key: "lastModified", label: "Last modified", width: COLUMNS.lastModified, dataType: "timing", sortable: true,
     cell: (job, pin) => (
       <CellBody width={COLUMNS.lastModified} {...pin}>
-        {formatDay(job.lastModifiedAt)}
+        {formatDateTime(job.lastModifiedAt)}
       </CellBody>
     ),
   },

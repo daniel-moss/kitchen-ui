@@ -28,6 +28,14 @@
   @include font("caption-medium-400"); // Inter Regular 13/20
 }
 
+// The caption's PLACEHOLDER, shown when the row has no value for it (see
+// `captionPlaceholder`). Same line, one token dimmer: the copy doc's rule is
+// "The placeholder inherits the --text-placeholder token" (Figma 27171-15212).
+// Written after `.caption` so it wins without !important.
+.captionEmpty {
+  color: var(--text-placeholder);
+}
+
 // The caption's optional LEFT SLOT — an Icon for now (Figma 28927-35531). The
 // slot box is one caption line tall, so the glyph is top-aligned with the
 // caption's first line however many lines the caption wraps to. The text keeps

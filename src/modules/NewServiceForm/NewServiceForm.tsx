@@ -22,14 +22,17 @@ import styles from "./NewServiceForm.module.scss";
 // The "New service" form (Figma 17205-69539) — a reusable module, like
 // NewLocationForm / NewEquipmentForm (Daniel, 2026-09-08). Name and Default
 // priority are required (a service cannot be created without a priority);
-// Default duration is optional — the shared hr/min widget with the
-// quick-pick chips (label "Default duration" per Figma 17205-69539,
-// 2026-09-08; it pairs with "Default priority" above).
+// Default est. duration is optional — the shared hr/min widget with the
+// quick-pick chips (the label was "Default duration" until 2026-09-14, when
+// the Est. duration rename reached the forms; it pairs with "Default
+// priority" above).
 
+// The hints NAME the field they pre-fill, in quotes — the node's copy since
+// 2026-09-14 (it used to say "the priority" / "the duration" in plain words).
 const PRIORITY_HINT =
-  "When this service is selected, the priority is filled in with this value. It can still be changed.";
+  'When this service is selected, the "Priority" field is filled in with this value. It can still be changed.';
 const DURATION_HINT =
-  "When this service is selected, the duration is filled in with this value. It can still be changed.";
+  'When this service is selected, the "Est. duration" field is filled in with this value. It can still be changed.';
 
 export default function NewServiceForm({ open, onClose, onCreated, breakpoint = "auto" }: NewServiceFormProps) {
   const isDesktop = useIsDesktop(breakpoint);
@@ -116,7 +119,7 @@ export default function NewServiceForm({ open, onClose, onCreated, breakpoint = 
             onClick={(event: MouseEvent<HTMLDivElement>) => priorityPop.toggle(event.currentTarget)}
           />
         </Input>
-        <Input label="Default duration" labelCondition="optional" labelHintContent={DURATION_HINT}>
+        <Input label="Default est. duration" labelCondition="optional" labelHintContent={DURATION_HINT}>
           <DurationField value={duration} onChange={setDuration} mobile={!isDesktop} />
         </Input>
       </div>

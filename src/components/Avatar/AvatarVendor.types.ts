@@ -7,7 +7,7 @@ export interface AvatarVendorProps {
   size?: AvatarSize;
   /** Icon or image. Default "icon". */
   content?: "icon" | "image";
-  /** Status → the corner icon addOn. "none" shows no addOn. Default "none". */
+  /** Status → the corner statusDot. "none" shows no addOn. Default "none". */
   status?: AvatarVendorStatus;
   /** Image URL (content "image"). Defaults to the object placeholder. */
   imageSrc?: string;

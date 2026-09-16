@@ -4,7 +4,7 @@ import Avatar from "../../components/Avatar/Avatar";
 import AvatarClient from "../../components/Avatar/AvatarClient";
 import AvatarInvoice from "../../components/Avatar/AvatarInvoice";
 import AvatarJob from "../../components/Avatar/AvatarJob";
-import AvatarJobSeries from "../../components/Avatar/AvatarJobSeries";
+import AvatarSeries from "../../components/Avatar/AvatarSeries";
 import AvatarLocation from "../../components/Avatar/AvatarLocation";
 import AvatarPO from "../../components/Avatar/AvatarPO";
 import AvatarUser from "../../components/Avatar/AvatarUser";
@@ -766,7 +766,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               value={scheduledForLabel(scheduling)}
               valueColor={pastDue ? "var(--text-error)" : undefined}
             />
-            <ValueDisplay label="Duration" value={durationLabel(scheduling.hours, scheduling.minutes)} />
+            <ValueDisplay label="Est. duration" value={durationLabel(scheduling.hours, scheduling.minutes)} />
           </ValueDisplayGroup>
         }
       />

@@ -14,6 +14,7 @@ import InputHelpText from "../../../components/InputHelpText/InputHelpText";
 import ListItem from "../../../components/ListItem/ListItem";
 import ListItemSlotIcon from "../../../components/ListItem/ListItemSlotIcon";
 import MenuItem from "../../../components/Menu/MenuItem";
+import { semanticIcons } from "../../../styles/semanticIcons";
 import RadioGroup from "../../../components/Radio/RadioGroup";
 import RadioItem from "../../../components/Radio/RadioItem";
 import SelectListFooter from "../../../components/SelectList/SelectListFooter";
@@ -236,7 +237,7 @@ export default function BillingIntentionModule({
         noResultsCaption="Try a different search or add a new client"
         state={candidates.length === 0 ? "empty" : "default"}
         emptyState={{
-          icon: "building-user",
+          icon: semanticIcons.clientGeneric,
           title: "No clients here yet",
           caption: "Add a client to see it here",
           actionLabel: "Add client",

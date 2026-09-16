@@ -75,14 +75,19 @@
 .item.disabled {
   @include row-disabled;
 }
-// readOnly (Figma `state=readOnly`, multi-select only — nodes 29462-25287 /
-// 25291 for the default variant, 29462-25342 / 25345 for the object one). The
-// ROW is NOT dimmed: its label, caption, avatar and tag keep their normal
-// colours, so the user can still read what is ticked. Only the checkbox drops
-// to 30% (CheckboxBox's own `dimmed`), and the row answers to nothing — the
+// readOnly (Figma `state=readOnly`, single + multi select since 2026-09-16 —
+// Daniel added the single variants for the locked filter chips' read-only
+// lists). The ROW is NOT dimmed: its label, caption, avatar and tag keep
+// their normal colours, so the user can still read what is picked. Only the
+// SELECTION CONTROL drops to 30% — the multi row's checkbox (CheckboxBox's
+// own `dimmed`) and the single row's check-circle alike (the node dims the
+// check's Icon instance to 0.3). Either way the row answers to nothing — the
 // three state rules above exclude it, and the component attaches no handlers.
 .item.readOnly {
   cursor: not-allowed;
+}
+.item.readOnly .check {
+  opacity: 0.3;
 }
 
 // ---- parts ----

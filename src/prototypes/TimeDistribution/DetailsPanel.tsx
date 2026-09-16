@@ -5,7 +5,7 @@ import AvatarClient from "../../components/Avatar/AvatarClient";
 import AvatarEstimate from "../../components/Avatar/AvatarEstimate";
 import AvatarInvoice from "../../components/Avatar/AvatarInvoice";
 import AvatarJob from "../../components/Avatar/AvatarJob";
-import AvatarJobSeries from "../../components/Avatar/AvatarJobSeries";
+import AvatarSeries from "../../components/Avatar/AvatarSeries";
 import AvatarLocation from "../../components/Avatar/AvatarLocation";
 import AvatarPO from "../../components/Avatar/AvatarPO";
 import AvatarUser from "../../components/Avatar/AvatarUser";
@@ -214,7 +214,7 @@ const EmptyContactRow = ({ label, onAdd, locked = false }: { label: string; onAd
 // ---- Related ----------------------------------------------------------------
 
 const RELATED: { caption: string; title: string; avatar: React.ReactNode }[] = [
-  { caption: "Belongs to", title: "JS-10001", avatar: <AvatarJobSeries size="xl" status="open" /> },
+  { caption: "Belongs to", title: "JS-10001", avatar: <AvatarSeries size="xl" status="open" /> },
   { caption: "Created from", title: "EST-10001", avatar: <AvatarEstimate size="xl" status="jobbed" /> },
   { caption: "Converted into", title: "INV-10001", avatar: <AvatarInvoice size="xl" status="outstanding" /> },
   { caption: "Connected to", title: "PO-10001", avatar: <AvatarPO size="xl" status="sent" /> },

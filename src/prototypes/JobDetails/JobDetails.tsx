@@ -477,7 +477,9 @@ const createMenu = (
       subMenu={
         <MenuItemGroup>
           <MenuItem label="Job" slotLeft={slot(semanticIcons.job)} />
-          <MenuItem label="Job series" slotLeft={slot(semanticIcons.jobSeries)} />
+          {/* "Series", not "Job series" (Daniel, 2026-09-14) — the sub-menu's
+              title already says "Create job". */}
+          <MenuItem label="Series" slotLeft={slot(semanticIcons.series)} />
         </MenuItemGroup>
       }
       subMenuTitle="Create job"
@@ -496,7 +498,7 @@ const createMenu = (
     <MenuItem label="Purchase order" slotLeft={slot(semanticIcons.purchaseOrder)} />
     <MenuItem label="Bill" slotLeft={slot(semanticIcons.bill)} />
     <MenuItem label="Vendor" slotLeft={slot(semanticIcons.vendor)} />
-    <MenuItem label="Client" slotLeft={slot(semanticIcons.client)} />
+    <MenuItem label="Client" slotLeft={slot(semanticIcons.clientGeneric)} />
     <MenuItem
       label="Pricebook item"
       slotLeft={slot(semanticIcons.pricebook)}
@@ -533,7 +535,7 @@ const navContent = (
     <SidebarNavItem icon={semanticIcons.purchaseOrder}>Purchase orders</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.bill}>Bills</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
-    <SidebarNavItem icon={semanticIcons.client}>Clients</SidebarNavItem>
+    <SidebarNavItem icon={semanticIcons.clientGeneric}>Clients</SidebarNavItem>
     <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
       <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
       <SidebarNavItem type="stackItem">Products</SidebarNavItem>
@@ -1646,7 +1648,9 @@ function useJobShell(isDesktop: boolean) {
   //   slot cleared          → "unscheduled the job ~~<old slot>~~"   calendar-xmark
   //   slot set or moved     → "(re)scheduled the job for <slot> for <duration>"
   //                                                                  calendar-check
-  //   duration alone        → "updated Duration: ~~old~~ → new"      hourglass
+  //   duration alone        → "updated Est. duration: ~~old~~ → new" hourglass
+  //                           ("Duration" until 2026-09-14 — the node's copy
+  //                           follows the field rename)
   const logScheduling = (was: Scheduling, next: Scheduling) => {
     const slot = (s: Scheduling) => (s.date != null ? `${longSlotLabel(s)}` : "");
     const dur = (s: Scheduling) => durationLabel(s.hours, s.minutes);
@@ -1675,7 +1679,7 @@ function useJobShell(isDesktop: boolean) {
     if (durationChanged) {
       pushEvent({
         kind: "scheduling",
-        jobStatus: { icon: "hourglass", color: "", text: " updated ", label: "Duration", strikeValue: dur(was), value: dur(next) },
+        jobStatus: { icon: "hourglass", color: "", text: " updated ", label: "Est. duration", strikeValue: dur(was), value: dur(next) },
       });
     }
   };

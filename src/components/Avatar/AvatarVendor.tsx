@@ -4,17 +4,16 @@ import { objectPlaceholder } from "../../data/users";
 
 import { AvatarVendorProps, AvatarVendorStatus } from "./AvatarVendor.types";
 
-// Status → the icon addOn: glyph token, color, and rotation.
-const STATUS: Record<
-  Exclude<AvatarVendorStatus, "none">,
-  { icon: string; color: string; rotate: number }
-> = {
-  active: { icon: semanticIcons.active, color: "var(--jade-a9)", rotate: 90 },
-  inactive: { icon: semanticIcons.inactive, color: "var(--gray-a9)", rotate: 0 },
+// Status → the statusDot color (Figma 2026-09-16: dots replaced the corner
+// status icons).
+const DOT_COLOR: Record<Exclude<AvatarVendorStatus, "none">, string> = {
+  active: "var(--jade-a9)",
+  inactive: "var(--gray-a9)",
 };
 
 // Avatar template for a Vendor: an object avatar with the `vendor` semantic icon
-// (or an image), and a status expressed as the corner icon addOn.
+// (or an image — Figma calls it the `logo` variant), and a status shown as a
+// colored statusDot.
 export default function AvatarVendor({
   size = "md",
   content = "icon",
@@ -22,7 +21,7 @@ export default function AvatarVendor({
   imageSrc,
   className,
 }: AvatarVendorProps) {
-  const s = status === "none" ? null : STATUS[status];
+  const dotColor = status === "none" ? undefined : DOT_COLOR[status];
 
   return (
     <Avatar
@@ -32,10 +31,8 @@ export default function AvatarVendor({
       imageSrc={content === "image" ? (imageSrc ?? objectPlaceholder) : undefined}
       size={size}
       className={className}
-      addOn={s ? "icon" : "none"}
-      addOnIcon={s?.icon}
-      addOnIconColor={s?.color}
-      addOnIconRotate={s?.rotate}
+      addOn={dotColor ? "statusDot" : "none"}
+      statusDotColor={dotColor}
     />
   );
 }

@@ -3,8 +3,20 @@ import { useState } from "react";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 
 import { Page, Sidebar } from "./appShell";
+import BillsPage from "./BillsPage";
+import ClientsPage from "./ClientsPage";
+import CreditNotesPage from "./CreditNotesPage";
+import DiscountsPage from "./DiscountsPage";
 import EstimatesPage from "./EstimatesPage";
+import InvoicesPage from "./InvoicesPage";
 import JobsPage from "./JobsPage";
+import LaborPage from "./LaborPage";
+import OtherPage from "./OtherPage";
+import POsPage from "./POsPage";
+import ProductsPage from "./ProductsPage";
+import SeriesPage from "./SeriesPage";
+import TaxRatesPage from "./TaxRatesPage";
+import VendorsPage from "./VendorsPage";
 
 import styles from "./Filters.module.scss";
 
@@ -43,6 +55,30 @@ const FiltersPrototype = ({ breakpoint = "auto", initialPage = "jobs" }: Filters
   const workArea =
     page === "estimates" ? (
       <EstimatesPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "invoices" ? (
+      <InvoicesPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "creditNotes" ? (
+      <CreditNotesPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "pos" ? (
+      <POsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "bills" ? (
+      <BillsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "vendors" ? (
+      <VendorsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "clients" ? (
+      <ClientsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "labor" ? (
+      <LaborPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "products" ? (
+      <ProductsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "other" ? (
+      <OtherPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "discounts" ? (
+      <DiscountsPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "taxRates" ? (
+      <TaxRatesPage breakpoint={breakpoint} onNavigate={setPage} />
+    ) : page === "series" ? (
+      <SeriesPage breakpoint={breakpoint} onNavigate={setPage} />
     ) : (
       <JobsPage breakpoint={breakpoint} onNavigate={setPage} />
     );

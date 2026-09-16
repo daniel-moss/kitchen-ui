@@ -11,7 +11,7 @@ const STATUSES: AvatarVendorStatus[] = ["none", "active", "inactive"];
 
 /**
  * AvatarVendor — an Avatar template: object avatar with the `vendor` semantic
- * icon (or an image), and a `status` shown as the corner icon addOn. xxs
+ * icon (or an image), and a `status` shown as the corner statusDot. xxs
  * supports `none` only.
  */
 const meta: Meta<typeof AvatarVendor> = {

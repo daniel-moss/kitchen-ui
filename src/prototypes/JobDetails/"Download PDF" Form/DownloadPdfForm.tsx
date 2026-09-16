@@ -37,8 +37,8 @@ const OBJECTS: { key: ObjectKey; label: string }[] = [
 
 /** The PDF versions every object has. */
 const VERSIONS: { key: VersionKey; label: string; icon: string; caption: string }[] = [
-  { key: "private", label: "Private", icon: semanticIcons.filePrivate, caption: "Includes all the data" },
-  { key: "public", label: "Public", icon: semanticIcons.filePublic, caption: "Does not include sensitive information" },
+  { key: "private", label: "Private", icon: semanticIcons.private, caption: "Includes all the data" },
+  { key: "public", label: "Public", icon: semanticIcons.public, caption: "Does not include sensitive information" },
 ];
 
 /**

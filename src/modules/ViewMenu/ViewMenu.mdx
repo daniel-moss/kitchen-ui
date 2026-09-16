@@ -19,6 +19,13 @@ and owns the trigger button, the card's position, and the outside-click close.
 The stories here show the clean menu alone; the Filters prototype shows the
 real consumer wiring, with every setting kept per view.
 
+**Sort by** opens the Column list — a plain
+<a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">SelectList</a>
+with a search. It carries no width of its own: it hugs its columns up to the
+component's 384 maximum, and typing in the search never changes that width.
+When nothing matches, the list shows one centred line, "No matches" — the
+`EmptyState` in its caption-only form, not the built-in no-results block
+
 ## Mobile
 
 On mobile the menu is a drawer. There is no pinning; the sort column opens a

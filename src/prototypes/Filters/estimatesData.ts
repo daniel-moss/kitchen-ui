@@ -60,13 +60,8 @@ export function displayStatus(est: EstimateRow): BadgeEstimateStatusStatus {
 /** The status's own label, straight from BadgeEstimateStatus — never a second copy. */
 export const estimateStatusLabel = (status: BadgeEstimateStatusStatus) => STATUS[status].label;
 
-/**
- * "$1,250.00" — US currency with cents, like production's Total column
- * (NumericalDataCell type="currency").
- */
-export function formatCurrency(dollars: number): string {
-  return dollars.toLocaleString("en-US", { style: "currency", currency: "USD" });
-}
+// (`formatCurrency` moved to listData.ts on 2026-09-14, when the Invoices
+// list arrived — two lists print money now, so the formatter is shared.)
 
 /**
  * The Down payment cell — icon, copy and colour scheme, read off the node

@@ -2,21 +2,21 @@ import { Fragment } from "react";
 
 import type { Meta, StoryObj } from "@storybook/react";
 
-import AvatarJobSeries from "./AvatarJobSeries";
-import { AvatarJobSeriesStatus } from "./AvatarJobSeries.types";
+import AvatarSeries from "./AvatarSeries";
+import { AvatarSeriesStatus } from "./AvatarSeries.types";
 import { AvatarSize } from "./Avatar.types";
 
 const SIZES: AvatarSize[] = ["xxs", "xs", "sm", "md", "lg", "xl"];
-const STATUSES: AvatarJobSeriesStatus[] = ["none", "open", "closed"];
+const STATUSES: AvatarSeriesStatus[] = ["none", "open", "closed"];
 
 /**
- * AvatarJobSeries — an Avatar template: object/icon avatar with the `job-series`
+ * AvatarSeries — an Avatar template: object/icon avatar with the `series`
  * semantic icon, and a `status` shown as a colored statusDot. xxs supports
  * `none` only.
  */
-const meta: Meta<typeof AvatarJobSeries> = {
-  title: "Components/Avatar/AvatarJobSeries",
-  component: AvatarJobSeries,
+const meta: Meta<typeof AvatarSeries> = {
+  title: "Components/Avatar/AvatarSeries",
+  component: AvatarSeries,
   parameters: { layout: "centered" },
   args: { size: "md", status: "open" },
   argTypes: {
@@ -27,7 +27,7 @@ const meta: Meta<typeof AvatarJobSeries> = {
 
 export default meta;
 
-type Story = StoryObj<typeof AvatarJobSeries>;
+type Story = StoryObj<typeof AvatarSeries>;
 
 const labelStyle: React.CSSProperties = {
   font: "var(--font-caption-medium-500)",
@@ -61,7 +61,7 @@ export const Matrix: Story = {
           {SIZES.map((size) => (
             <div key={size}>
               {size === "xxs" && status !== "none" ? null : (
-                <AvatarJobSeries size={size} status={status} />
+                <AvatarSeries size={size} status={status} />
               )}
             </div>
           ))}

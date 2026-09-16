@@ -544,8 +544,9 @@ const DesktopShell = ({
           <NoObjectsExist noun={ESTIMATE_NOUN} />
         )}
       </div>
-      {/* AFTER the scroll container, so it stays put at the bottom while the
-          table scrolls — the shared bar's placement rule. Estimates GAINED it
+      {/* AFTER the scroll container — the shared bar placement: below the
+          last row while the list is short, at the screen bottom once it
+          scrolls (the hug rule in Filters.module.scss). Estimates GAINED it
           in the 2026-09-11 re-organisation; the page had none before. Only
           while the table SHOWS rows: empty, No Objects Match carries the count
           instead. */}

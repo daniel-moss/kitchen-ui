@@ -4,18 +4,17 @@ import { objectPlaceholder } from "../../data/users";
 
 import { AvatarProductProps, AvatarProductStatus } from "./AvatarProduct.types";
 
-// Status → the icon addOn: glyph token, color, and rotation.
-const STATUS: Record<
-  Exclude<AvatarProductStatus, "none">,
-  { icon: string; color: string; rotate: number }
-> = {
-  active: { icon: semanticIcons.active, color: "var(--jade-a9)", rotate: 90 },
-  inactive: { icon: semanticIcons.inactive, color: "var(--gray-a9)", rotate: 0 },
-  review: { icon: semanticIcons.review, color: "var(--amber-a9)", rotate: 0 },
+// Status → the statusDot color (Figma 2026-09-16: dots replaced the corner
+// status icons on every pricebook avatar).
+const DOT_COLOR: Record<Exclude<AvatarProductStatus, "none">, string> = {
+  active: "var(--jade-a9)",
+  review: "var(--amber-a9)",
+  inactive: "var(--gray-a9)",
 };
 
 // Avatar template for a Product: an object avatar with the `product` semantic
-// icon (or an image), and a status expressed as the corner icon addOn.
+// icon (or an image — Figma calls it the `preview` variant), and a status
+// shown as a colored statusDot.
 export default function AvatarProduct({
   size = "md",
   content = "icon",
@@ -23,7 +22,7 @@ export default function AvatarProduct({
   imageSrc,
   className,
 }: AvatarProductProps) {
-  const s = status === "none" ? null : STATUS[status];
+  const dotColor = status === "none" ? undefined : DOT_COLOR[status];
 
   return (
     <Avatar
@@ -33,10 +32,8 @@ export default function AvatarProduct({
       imageSrc={content === "image" ? (imageSrc ?? objectPlaceholder) : undefined}
       size={size}
       className={className}
-      addOn={s ? "icon" : "none"}
-      addOnIcon={s?.icon}
-      addOnIconColor={s?.color}
-      addOnIconRotate={s?.rotate}
+      addOn={dotColor ? "statusDot" : "none"}
+      statusDotColor={dotColor}
     />
   );
 }

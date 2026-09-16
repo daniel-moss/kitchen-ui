@@ -2,6 +2,9 @@
 /* String variables holding icon names: change the name in one place, updates everywhere.
    Consume via the .icon ::before pattern (see assets/icons.css):
      <i class="icon icon--14" style="--glyph: var(--bill)"></i>
+   Source: the Figma Design System "Icons" variable collection (updated 2026-09-16 —
+   grouped into objects/views/priority/progress, status icons deleted (statuses are
+   dots now), bare `client` deleted, job-request/job-series renamed request/series).
    NOTE: values marked [custom pack] exist only in the kit custom font — use with `icon--custom`. */
 
 :root {
@@ -15,36 +18,37 @@
   --what-is-new: "bullhorn";
   --request-feature: "circle-info";
   --log-out: "arrow-right-from-bracket";
-  --home: "house";
+  --delete: "trash-can";
 
   /* files */
-  --file-private: "lock";
-  --file-public: "globe";
+  --private: "lock";
+  --public: "globe";
 
-  /* statuses */
-  --active: "circle-minus";
-  --review: "clock";
-  --inactive: "ban";
-
-  /* entities */
+  /* objects */
+  --home: "house";
   --estimate: "clock";
-  --job-request: "wrench-simple";
+  --request: "wrench-simple";
   --job: "wrench-simple";
-  --job-series: "layer-group";
+  --job-new: "sparkle";
+  --job-recall: "clock-rotate-left";
+  --series: "layer-group";
   --invoice: "circle-dollar";
   --credit-note: "circle-dollar";
-  --purchase-order: "basket-shopping";
+  --purchase-order: "shopping-basket";
   --bill: "file-invoice-dollar";
   --vendor: "store";
-  --client: "building-user";
+  /* each client type has its own icon since 2026-09-16 */
+  --client-generic: "buildings";
   --client-business: "building";
-  --client-individual: "user";
+  --client-individual: "building-user";
+  --client-industry: "industry";
+  --credit-limit: "gauge-high";
   --pricebook: "tag";
   --labor: "tag";
   --product: "box-taped";
   --other: "tag";
   --discount: "tag";
-  --tax-rate: "tag";
+  --tax-rate: "percent";
   --equipment: "cube";
   --location: "location-dot";
   --user: "user";
@@ -60,6 +64,8 @@
 
   /* priority */
   --priority-none: "solid-priority-none"; /* [custom pack] */
+  --priority-low: "duotone-solid-priority-low"; /* [custom pack] */
+  --priority-medium: "duotone-solid-priority-medium"; /* [custom pack] */
   --priority-high: "solid-priority-high"; /* [custom pack] */
   --priority-urgent: "fire";
 

@@ -18,7 +18,7 @@ import styles from "./ScheduleDetailsModule.module.scss";
 // Schedule step — the "Details" module (Figma 17241-67769): Schedule now /
 // later radios ("now" selected by default; "later" = the job stays
 // Unscheduled and the fields below disappear), the "Date & time" InputGroup
-// (DateField + the time SelectField), and the required Duration (the shared
+// (DateField + the time SelectField), and the required Est. duration (the shared
 // hr/min + chips widget). The duration INHERITS the picked service's default
 // (Figma 17241-70803, "Inherited From The Service"): NewJobForm pre-fills it
 // on the service pick, the help text says so while `durationInherited`, and
@@ -82,10 +82,14 @@ export default function ScheduleDetailsModule({ value, onChange, showErrors, mob
               </InputGroup>
             </Input>
 
+            {/* "Est. duration" since 2026-09-14 (Figma 17241-70803 — the
+                rename that started on the Filters list's column and filter).
+                The required error reads "Provide Est. duration" through the
+                label, the node's own copy. */}
             <Input
-              label="Duration"
+              label="Est. duration"
               helpText={
-                value.durationInherited ? "Pre-filled based on the service default duration" : undefined
+                value.durationInherited ? "Pre-filled based on the service default est. duration" : undefined
               }
             >
               <DurationField

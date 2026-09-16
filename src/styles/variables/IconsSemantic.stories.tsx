@@ -35,22 +35,26 @@ const GROUPS: { group: string; tokens: string[] }[] = [
     group: "Navigation & app chrome",
     tokens: [
       "menu", "dropdown", "context-menu", "contact-support", "settings",
-      "help-center", "what-is-new", "request-feature", "log-out", "home",
+      "help-center", "what-is-new", "request-feature", "log-out", "delete",
     ],
   },
-  { group: "Files", tokens: ["file-private", "file-public"] },
-  { group: "Statuses", tokens: ["active", "review", "inactive"] },
+  { group: "Files", tokens: ["private", "public"] },
   {
-    group: "Entities",
+    group: "Objects",
     tokens: [
-      "estimate", "job-request", "job", "job-series", "invoice", "credit-note",
-      "purchase-order", "bill", "vendor", "client", "client-business",
-      "client-individual", "pricebook", "labor", "product", "other", "discount",
-      "tax-rate", "equipment", "location", "user", "reports", "warranty", "visit", "label",
+      "home", "estimate", "request", "job", "job-new", "job-recall", "series",
+      "invoice", "credit-note", "purchase-order", "bill", "vendor",
+      "client-generic", "client-business", "client-individual",
+      "client-industry", "credit-limit", "pricebook", "labor", "product",
+      "other", "discount", "tax-rate", "equipment", "location", "user",
+      "reports", "warranty", "visit", "label",
     ],
   },
   { group: "Views", tokens: ["table-view", "cards-view", "timeline-view"] },
-  { group: "Priority", tokens: ["priority-none", "priority-high", "priority-urgent"] },
+  {
+    group: "Priority",
+    tokens: ["priority-none", "priority-low", "priority-medium", "priority-high", "priority-urgent"],
+  },
   { group: "Progress", tokens: ["progress-0", "progress-25", "progress-50", "progress-75"] },
 ];
 

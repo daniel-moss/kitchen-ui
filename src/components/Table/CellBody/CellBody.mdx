@@ -105,9 +105,10 @@ size is unchangeable, but the slot supports any avatar.
 
 <Canvas of={CellBodyStories.TextSlotLeft} />
 
-Supports several color schemes. **The icon inherits the color on all variants
-except the `default`** — a default cell's slot often holds something with a
-colour of its own, so the cell leaves it alone.
+Supports several color schemes. **The icon inherits the color unless it's
+different from the default one** — every scheme paints the left slot, so an icon
+that was given no color of its own takes the scheme's, and one that carries its
+own (a priority glyph, a status icon) keeps it.
 
 <Canvas of={CellBodyStories.ColorSchemes} />
 

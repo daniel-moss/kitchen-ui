@@ -11,7 +11,7 @@ const STATUSES: AvatarOtherStatus[] = ["none", "active", "review", "inactive"];
 
 /**
  * AvatarOther — an Avatar template: object/icon avatar with the `other` semantic
- * icon, and a `status` shown as the corner icon addOn. xxs supports `none` only.
+ * icon, and a `status` shown as the corner statusDot. xxs supports `none` only.
  */
 const meta: Meta<typeof AvatarOther> = {
   title: "Components/Avatar/AvatarOther",
