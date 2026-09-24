@@ -3,7 +3,7 @@ import ActivityLogItem from "../../../../components/ActivityLog/ActivityLogItem"
 import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
 import ItemGroup from "../../../../components/ItemGroup/ItemGroup";
 import ListItem from "../../../../components/ListItem/ListItem";
-import ListItemTextRight from "../../../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../../../components/ItemText/ItemText/ItemTextBlock";
 
 import { formatSpan, periodSec, stretchLabel } from "../lifecycleData";
 import { LifecycleConceptProps, SectionTitle, StatusAvatar, StatusGlyph, TopData } from "../shared";
@@ -45,7 +45,7 @@ export default function Concept4({
                   variant="title"
                   title={row.label}
                   avatar={<StatusAvatar row={row} />}
-                  slotRight={<ListItemTextRight title={formatSpan(row.totalSec)} />}
+                  slotRight={<ItemTextBlock align="right" title={formatSpan(row.totalSec)} />}
                 >
                   <div className={styles.subLogs}>
                     <ActivityLog>

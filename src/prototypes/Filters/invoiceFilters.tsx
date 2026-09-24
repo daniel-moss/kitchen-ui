@@ -5,12 +5,12 @@ import { INVOICE_LABELS } from "../../data/db";
 import { FilterDef } from "./filterDefs";
 import { moneyFilter } from "./filterKinds";
 import {
-  addressTemplate,
   clientTemplate,
   dueDateTemplate,
   issuedTemplate,
   labelsTemplate,
   lastModifiedTemplate,
+  locationAddressTemplate,
   locationTemplate,
   seenTemplate,
   serviceTemplate,
@@ -144,14 +144,13 @@ function amountDueFilter(): FilterDef<InvoiceRow> {
  * phase's three. Everything else is the same object on both.
  *
  * The menu lists them alphabetically, the order its own node draws
- * (14320:66224): Address, Amount due, Client, Due date, Issued, Labels, Last
- * modified, Location, Seen, Service, Status, Status changed, Total.
+ * (14320:66224): Amount due, Client, Due date, Issued, Labels, Last modified,
+ * Location, Location address, Seen, Service, Status, Status changed, Total.
+ * The node still draws "Address" as its FIRST row — Daniel renamed the filter
+ * "Location address" on 2026-09-16, which moves it after Location; FLAGGED so
+ * the node can follow.
  */
 const buildInvoiceFilters = (phase: InvoicesPhase): FilterDef<InvoiceRow>[] => [
-  // Every filled field has to match the invoice's LOCATION — the same
-  // question the other lists ask, pointed at the invoice's location.
-  addressTemplate(locationOf),
-
   amountDueFilter(),
 
   // An invoice has no client of its own: it belongs to a location, and the
@@ -168,6 +167,12 @@ const buildInvoiceFilters = (phase: InvoicesPhase): FilterDef<InvoiceRow>[] => [
 
   lastModifiedTemplate((inv) => inv.lastModifiedAt),
   locationTemplate((inv) => inv.locationId),
+
+  // Location address — every filled field has to match the invoice's LOCATION,
+  // the same question the other lists ask. It follows Location in the alphabet
+  // since the 2026-09-16 rename (it was "Address", the first row).
+  locationAddressTemplate(locationOf),
+
   seenTemplate((inv) => inv.lastViewedAt ?? null),
   serviceTemplate((inv) => inv.serviceId ?? null),
   statusFilter(phase),

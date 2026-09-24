@@ -3,36 +3,46 @@ import { createPortal } from "react-dom";
 
 import clsx from "clsx";
 
-import useIsDesktop from "../../hooks/useIsDesktop";
 import { Divider } from "../Divider/Divider";
 import HoverHint from "../Hint/HoverHint";
 import { Icon } from "../Icon/Icon";
 import HoverTooltip from "../Tooltip/HoverTooltip";
 import Tooltip from "../Tooltip/Tooltip";
 
-import { FilterChipBreakpointContext } from "./FilterChipBreakpointContext";
+import { FilterChipOrientationContext } from "./FilterChipOrientationContext";
 import styles from "./FilterChip.module.scss";
 import { FilterChipBoxProps, FilterChipProps, FilterChipRemoveProps } from "./FilterChip.types";
 
-// FilterChip — one applied filter as a 'property – condition – value'
-// expression plus a "remove" box, the boxes separated by vertical Dividers
-// (medium contrast). Interactivity is per box: a box with a click handler is
-// a <button> (usually opening a SelectList / Dialog — the CONSUMER's wiring),
-// a box without one is a plain <div>. The "property" box is always
-// non-interactive, and in a LOCKED chip (`isLocked`) the "condition" box is
-// non-interactive too (the doc's rule, 2026-08-28) — `onConditionClick` is
-// ignored there. See Figma: component 29552-11955, parts 29544-9456,
-// documentation 29552-12681.
+// FilterChip — one applied filter as a 'name – operator – value' expression
+// plus a "remove" box, the boxes separated by vertical Dividers (high
+// contrast, inset 8px top and bottom). Interactivity is per box: a box with a
+// click handler is a <button> (usually opening a SelectList / Dialog — the
+// CONSUMER's wiring), a box without one is a plain <div>. The "name" box is
+// always non-interactive, and in a LOCKED chip (`isLocked`) the "operator" box
+// is non-interactive too — `onOperatorClick` is ignored there.
+//
+// See Figma: component 29552-11955, parts 29544-9456, documentation
+// 29552-12681. Rebuilt 2026-09-17: the chip is a `--gray-a2` body in a 1px
+// `--gray-a6` inner ring (no card, no shadow), every interactive box carries
+// the chevron, and the two boxes at the chip's right end take its radius. The
+// boxes were renamed with the Figma component — "property" → "name",
+// "condition" → "operator".
+//
+// 2026-09-18: the chip has ONE size — 36px boxes with 12px side paddings, a
+// 36px "remove" box — and no `breakpoint`. What used to be the mobile
+// presentation is now the enclosing FilterChipGroup's `orientation`: in a
+// VERTICAL group the chip fills the row, the "value" box takes the slack and
+// no box has a max width.
 
-// One content box. Text truncates with an ellipsis (desktop caps each box at
-// 240px; the mobile "value" box fills and truncates) — when it actually
-// truncates, hovering THE BOX shows a tooltip with the full value. Same
-// mechanics as TruncatingText (measure on enter, cursor-following X, body
-// portal), but the hover area is the whole box, not just the text span.
+// One content box. Text truncates with an ellipsis (a horizontal group caps
+// each box at 240px; in a vertical group the "value" box fills and truncates)
+// — when it actually truncates, hovering THE BOX shows a tooltip with the full
+// value. Same mechanics as TruncatingText (measure on enter, cursor-following
+// X, body portal), but the hover area is the whole box, not just the text span.
 // Hover is the only trigger, and only on devices that have one — on touch a
 // tap would otherwise pin the tooltip open (and also click the box).
 export function FilterChipBox({
-  breakpoint = "desktop",
+  orientation = "horizontal",
   slotLeft,
   onClick,
   disabled = false,
@@ -63,7 +73,7 @@ export function FilterChipBox({
 
   const cls = clsx(
     styles.box,
-    breakpoint === "mobile" && styles.boxMobile,
+    orientation === "vertical" && styles.boxVertical,
     fill && styles.fill,
     warning && styles.warning,
     onClick != null && styles.clickable,
@@ -76,6 +86,16 @@ export function FilterChipBox({
       <span ref={textRef} className={styles.copy}>
         {children}
       </span>
+      {/* The chevron marks a box that opens a list, so it belongs to
+          `isClickable` and nothing else decides it (the Figma part draws it
+          inside `#️⃣ isClickable`). `flex: none` keeps it out of the ellipsis:
+          the text shrinks, the glyph never does — so a truncated value still
+          shows what it can do. */}
+      {onClick != null && (
+        <span className={styles.chevron}>
+          <Icon icon="angle-down" pack="solid" size={10} />
+        </span>
+      )}
       {tip != null &&
         createPortal(
           <span className={styles.tooltipOverlay} style={{ left: tip.x, top: tip.y }}>
@@ -103,13 +123,7 @@ export function FilterChipBox({
 // The "remove" box: a fixed-width button with the xmark. Hovering it shows a
 // "Remove" tooltip (hover is the only trigger, so touch devices simply don't
 // get it; a disabled button fires no mouse events, so no tooltip either).
-export function FilterChipRemove({
-  breakpoint = "desktop",
-  onClick,
-  disabled = false,
-  className,
-  style,
-}: FilterChipRemoveProps) {
+export function FilterChipRemove({ onClick, disabled = false, className, style }: FilterChipRemoveProps) {
   const ref = useRef<HTMLButtonElement>(null);
 
   return (
@@ -117,25 +131,25 @@ export function FilterChipRemove({
       <button
         ref={ref}
         type="button"
-        className={clsx(styles.remove, breakpoint === "mobile" && styles.removeMobile, className)}
+        className={clsx(styles.remove, className)}
         style={style}
         onClick={onClick}
         disabled={disabled}
         aria-label="Remove"
       >
-        <Icon icon="xmark" size={14} />
+        <Icon icon="xmark" size={12} />
       </button>
     </HoverTooltip>
   );
 }
 
 export default function FilterChip({
-  property,
+  name,
   slotLeft,
-  condition,
-  onConditionClick,
-  conditionDisabled = false,
-  conditionPressed = false,
+  operator,
+  onOperatorClick,
+  operatorDisabled = false,
+  operatorPressed = false,
   value,
   valueSlotLeft,
   onValueClick,
@@ -145,66 +159,82 @@ export default function FilterChip({
   onRemove,
   removeDisabled = false,
   isWarning = false,
-  propertyHint,
-  propertyHintWidth = 384,
-  breakpoint,
+  nameHint,
+  nameHintWidth = 384,
+  nameHintBreakpoint = "auto",
+  orientation,
   className,
 }: FilterChipProps) {
-  // An enclosing FilterChipGroup hands its resolved breakpoint down through
-  // context; the chip's own prop wins when set.
-  const groupBreakpoint = useContext(FilterChipBreakpointContext);
-  const isDesktop = useIsDesktop(breakpoint ?? groupBreakpoint ?? "auto");
-  const bp = isDesktop ? "desktop" : "mobile";
+  // An enclosing FilterChipGroup publishes its orientation through context;
+  // the chip's own prop wins when set, and a chip outside a group is
+  // horizontal.
+  const groupOrientation = useContext(FilterChipOrientationContext);
+  const dir = orientation ?? groupOrientation ?? "horizontal";
+  const isVertical = dir === "vertical";
 
-  const propertyBox = (
+  // Every divider in the chip is the same: high contrast, inset 8px from the
+  // top and bottom so the line stops short of the chip's ring instead of
+  // meeting it in a T-junction.
+  const divider = <Divider orientation="vertical" contrast="high" padding="var(--size-2) 0" />;
+
+  const nameBox = (
     <FilterChipBox
-      breakpoint={bp}
-      // A warning chip draws the `warning` icon in the property slot ITSELF —
-      // the Figma master's isWarning behavior (Daniel, 2026-09-10: the
-      // master-level prop "helps to set a specific icon for the 'property'
-      // box") — so the consumer's slotLeft is set aside while it warns.
-      slotLeft={isWarning ? <Icon icon="warning" size={14} /> : slotLeft}
+      orientation={dir}
+      // A warning chip draws the SOLID `warning` icon in the name slot ITSELF
+      // — the Figma master's isWarning behavior — so the consumer's slotLeft
+      // is set aside while it warns.
+      slotLeft={isWarning ? <Icon icon="warning" pack="solid" size={14} /> : slotLeft}
       warning={isWarning}
     >
-      {property}
+      {name}
     </FilterChipBox>
   );
 
   return (
-    <div className={clsx(styles.chip, !isDesktop && styles.chipMobile, className)}>
-      {/* The conflict hint hangs off the "property" box — hover shows the
-          bubble below it, a tap (mobile) opens the same content as a drawer
-          (the design's annotation, section 14101-46526). The bubble width is
-          the design's 384 "Max Width" pin. */}
-      {propertyHint != null ? (
-        <HoverHint position="bottom" align="center" width={propertyHintWidth} content={propertyHint} breakpoint={bp}>
-          {propertyBox}
+    <div
+      className={clsx(styles.chip, isVertical && styles.chipVertical, isWarning && styles.chipWarning, className)}
+    >
+      {/* The conflict hint hangs off the "name" box — hover shows the bubble
+          below it, a tap (mobile) opens the same content as a drawer. The
+          bubble width defaults to the conflict design's 384 "Max Width" pin.
+          The Hint follows the VIEWPORT, not the group's orientation:
+          hover-or-tap is a pointer question. `nameHintBreakpoint` forces it
+          for Storybook and tests. */}
+      {nameHint != null ? (
+        <HoverHint
+          position="bottom"
+          align="center"
+          width={nameHintWidth}
+          content={nameHint}
+          breakpoint={nameHintBreakpoint}
+        >
+          {nameBox}
         </HoverHint>
       ) : (
-        propertyBox
+        nameBox
       )}
-      <Divider orientation="vertical" contrast="medium" />
-      {/* A chip whose filter has no condition renders without the box — the
-          Figma `condition=false` variant (2026-09-09). No condition text = no
-          box and no second divider. */}
-      {condition != null && (
+      {divider}
+      {/* A chip whose filter has no operator renders without the box — the
+          Figma `operator=false` variant. No operator text = no box and no
+          second divider. */}
+      {operator != null && (
         <>
           <FilterChipBox
-            breakpoint={bp}
-            onClick={isLocked ? undefined : onConditionClick}
-            disabled={conditionDisabled}
-            isPressed={!isLocked && conditionPressed}
+            orientation={dir}
+            onClick={isLocked ? undefined : onOperatorClick}
+            disabled={operatorDisabled}
+            isPressed={!isLocked && operatorPressed}
             warning={isWarning}
           >
-            {condition}
+            {operator}
           </FilterChipBox>
-          <Divider orientation="vertical" contrast="medium" />
+          {divider}
         </>
       )}
       <FilterChipBox
-        breakpoint={bp}
+        orientation={dir}
         slotLeft={valueSlotLeft}
-        fill={!isDesktop}
+        fill={isVertical}
         onClick={onValueClick}
         disabled={valueDisabled}
         isPressed={valuePressed}
@@ -214,8 +244,8 @@ export default function FilterChip({
       </FilterChipBox>
       {!isLocked && (
         <>
-          <Divider orientation="vertical" contrast="medium" />
-          <FilterChipRemove breakpoint={bp} onClick={onRemove} disabled={removeDisabled} />
+          {divider}
+          <FilterChipRemove onClick={onRemove} disabled={removeDisabled} />
         </>
       )}
     </div>

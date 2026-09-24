@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 import Chip from "./Chip";
-import type { ChipSize } from "./Chip.types";
+import type { ChipOrientation, ChipSize } from "./Chip.types";
 import { Icon } from "../Icon/Icon";
 import AvatarUser from "../Avatar/AvatarUser";
 import { docsFrame, noop } from "../../stories/helpers";
@@ -13,6 +13,7 @@ type ChipState = "default" | "focused" | "hovered" | "pressed" | "disabled";
 type StoryArgs = {
   text: string;
   size: ChipSize;
+  orientation: ChipOrientation;
   isSelected: boolean;
   isValid: boolean;
   slotLeft: Slot;
@@ -82,11 +83,28 @@ const centeredRow: React.CSSProperties = {
   flexWrap: "wrap",
 };
 
-const Ladder = ({ isSelected, isValid = true, withDisabled = true }: { isSelected: boolean; isValid?: boolean; withDisabled?: boolean }) => (
+const Ladder = ({
+  isSelected,
+  isValid = true,
+  orientation = "horizontal",
+}: {
+  isSelected: boolean;
+  isValid?: boolean;
+  orientation?: ChipOrientation;
+}) => (
   <div style={centeredColumn}>
-    {STATES.filter((state) => withDisabled || state !== "disabled").map((state) => (
+    {STATES.map((state) => (
       <div key={state} className={PSEUDO[state]}>
-        <Chip size="md" isSelected={isSelected} isValid={isValid} isDisabled={state === "disabled"} onClick={noop}>
+        <Chip
+          size="md"
+          orientation={orientation}
+          // A vertical chip always carries a slot.
+          slotLeft={orientation === "vertical" ? diamond() : undefined}
+          isSelected={isSelected}
+          isValid={isValid}
+          isDisabled={state === "disabled"}
+          onClick={noop}
+        >
           {STATE_LABELS[state]}
         </Chip>
       </div>
@@ -115,19 +133,30 @@ export const Playground: Story = {
   // The synthetic playground args/argTypes live on THIS story (not the meta) so
   // the docs-page ArgTypes table stays pure docgen from Chip.types.ts.
   parameters: { layout: "centered" },
-  args: { text: "Chip", size: "md", isSelected: false, isValid: true, slotLeft: "none", isLoading: false, isDisabled: false },
+  args: {
+    text: "Chip",
+    size: "md",
+    orientation: "horizontal",
+    isSelected: false,
+    isValid: true,
+    slotLeft: "none",
+    isLoading: false,
+    isDisabled: false,
+  },
   argTypes: {
     text: { control: { type: "text" } },
     size: { options: SIZES, control: { type: "inline-radio" } },
+    orientation: { options: ["horizontal", "vertical"], control: { type: "inline-radio" } },
     isSelected: { control: { type: "boolean" } },
     isValid: { control: { type: "boolean" } },
     slotLeft: { options: ["none", "icon", "avatar"], control: { type: "inline-radio" } },
     isLoading: { control: { type: "boolean" } },
     isDisabled: { control: { type: "boolean" } },
   },
-  render: ({ text, size, isSelected, isValid, slotLeft, isLoading, isDisabled }) => (
+  render: ({ text, size, orientation, isSelected, isValid, slotLeft, isLoading, isDisabled }) => (
     <Chip
       size={size}
+      orientation={orientation}
       isSelected={isSelected}
       isValid={isValid}
       slotLeft={slotLeft === "none" ? undefined : SLOTS[slotLeft](size)}
@@ -160,6 +189,18 @@ export const Interactive: Story = {
   ),
 };
 
+/** The parts: an optional slot and a label, in a padded box with a border. */
+export const Anatomy: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <Chip size="md" slotLeft={diamond()} onClick={noop}>
+        Label
+      </Chip>
+    </div>
+  ),
+};
+
 /** Three sizes: sm (28px, caption 13/20), md (32px) and lg (36px, both body 14/20). */
 export const Sizes: Story = {
   parameters: { controls: { disable: true } },
@@ -173,6 +214,36 @@ export const Sizes: Story = {
       </Chip>
       <Chip size="lg" onClick={noop}>
         Large
+      </Chip>
+    </div>
+  ),
+};
+
+/** Horizontal (the default) next to vertical — the vertical chip hugs at 64px. */
+export const Orientation: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <Chip size="md" slotLeft={diamond()} onClick={noop}>
+        Horizontal
+      </Chip>
+      <Chip orientation="vertical" slotLeft={diamond()} onClick={noop}>
+        Vertical
+      </Chip>
+    </div>
+  ),
+};
+
+/** The 20×20 slot box keeps an icon chip and an avatar chip the same height. */
+export const VerticalSlots: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <Chip orientation="vertical" slotLeft={diamond()} onClick={noop}>
+        Icon
+      </Chip>
+      <Chip orientation="vertical" slotLeft={avatar("md")} onClick={noop}>
+        Avatar
       </Chip>
     </div>
   ),
@@ -206,6 +277,20 @@ export const SlotLeftAvatar: Story = {
   ),
 };
 
+/** Squeezed: the label truncates first, the slot never shrinks. */
+export const Truncation: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <div style={{ width: 160, display: "flex" }}>
+        <Chip size="md" slotLeft={avatar("md")} onClick={noop}>
+          A label too long for this chip
+        </Chip>
+      </div>
+    </div>
+  ),
+};
+
 /** A chip is selected or unselected; clicking / tapping switches between them. */
 export const SelectedUnselected: Story = {
   parameters: { controls: { disable: true } },
@@ -227,43 +312,28 @@ export const InactiveStates: Story = {
   render: () => <Ladder isSelected={false} />,
 };
 
+/** The same 5 states in the vertical layout. */
+export const VerticalStates: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <Ladder isSelected={false} orientation="vertical" />,
+};
+
 /** Selected across all 5 states. */
 export const SelectedStates: Story = {
   parameters: { controls: { disable: true } },
   render: () => <Ladder isSelected />,
 };
 
-/** Invalid, unselected — the error treatment across the interaction states. */
+/** Invalid, unselected — the error treatment across the 5 states, disabled included. */
 export const InvalidStates: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <Ladder isSelected={false} isValid={false} withDisabled={false} />,
+  render: () => <Ladder isSelected={false} isValid={false} />,
 };
 
 /** Invalid, selected — renders exactly like invalid unselected (error replaces selection). */
 export const InvalidSelectedStates: Story = {
   parameters: { controls: { disable: true } },
-  render: () => <Ladder isSelected isValid={false} withDisabled={false} />,
-};
-
-/** Disabled across the four value combinations — 30% opacity, scheme kept. */
-export const DisabledMatrix: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={centeredRow}>
-      <Chip size="md" isDisabled onClick={noop}>
-        Unselected
-      </Chip>
-      <Chip size="md" isSelected isDisabled onClick={noop}>
-        Selected
-      </Chip>
-      <Chip size="md" isValid={false} isDisabled onClick={noop}>
-        Invalid
-      </Chip>
-      <Chip size="md" isSelected isValid={false} isDisabled onClick={noop}>
-        Invalid selected
-      </Chip>
-    </div>
-  ),
+  render: () => <Ladder isSelected isValid={false} />,
 };
 
 /** sm loading — text only, with an icon, and with an avatar. */
@@ -282,4 +352,19 @@ export const LoadingMd: Story = {
 export const LoadingLg: Story = {
   parameters: { controls: { disable: true } },
   render: () => <LoadingRow size="lg" />,
+};
+
+/** Vertical loading — the circle in the slot box, the bar in place of the label. */
+export const LoadingVertical: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={centeredRow}>
+      <Chip orientation="vertical" slotLeft={diamond()} isLoading>
+        Chip
+      </Chip>
+      <Chip orientation="vertical" slotLeft={avatar("md")} isLoading>
+        Chip
+      </Chip>
+    </div>
+  ),
 };

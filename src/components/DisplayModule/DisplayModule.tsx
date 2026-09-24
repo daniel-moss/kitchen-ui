@@ -1,6 +1,7 @@
 import { isValidElement, KeyboardEvent, MouseEvent } from "react";
 import clsx from "clsx";
 
+import ItemTextBlock from "../ItemText/ItemText/ItemTextBlock";
 import useControllableState from "../../hooks/useControllableState";
 import { Icon } from "../Icon/Icon";
 import { Divider } from "../Divider/Divider";
@@ -53,18 +54,16 @@ export default function DisplayModule({
     <div className={styles.header}>
       {slotLeft != null && <div className={styles.slotLeft}>{slotLeft}</div>}
       <div className={styles.copy}>
-        <div className={styles.title}>
-          {/* A string title truncates with a full-text tooltip on hover (like
-              PopoverHeader); a node title falls back to a plain truncating span. */}
-          {typeof title === "string" ? (
-            <TruncatingText text={title} className={styles.titleText} />
-          ) : (
-            <span className={styles.titleText}>{title}</span>
-          )}
-          {titleSlotRight != null && <span className={styles.titleSlot}>{titleSlotRight}</span>}
-        </div>
-        {/* caption and the title badge are mutually exclusive; the badge wins. */}
-        {caption != null && titleSlotRight == null && <span className={styles.caption}>{caption}</span>}
+        {/* The copy is ItemText — the title truncates with a full-text hover
+            tooltip, and caption and the title badge stay mutually exclusive
+            (the badge wins). */}
+        <ItemTextBlock
+          variant={caption != null && titleSlotRight == null ? "titleCaption" : "title"}
+          title={title}
+          titleSlotRight={titleSlotRight}
+          caption={caption != null && titleSlotRight == null ? caption : undefined}
+          captionLines="wrap"
+        />
       </div>
       {slotRight != null && (
         <div className={styles.slotRight} onClick={(e: MouseEvent) => e.stopPropagation()}>

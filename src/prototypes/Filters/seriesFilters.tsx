@@ -1,9 +1,9 @@
 import { DateWindowPreset, FilterDef } from "./filterDefs";
 import { FUTURE_WINDOWS, countFilter, dateFilter } from "./filterKinds";
 import {
-  addressTemplate,
   clientTemplate,
   createdAtTemplate,
+  locationAddressTemplate,
   locationTemplate,
   serviceTemplate,
 } from "./filterTemplates";
@@ -11,8 +11,11 @@ import { SERIES_TYPES, SeriesRow, clientOf, locationOf } from "./seriesData";
 
 // The SERIES list's filter registry — one entry per row of its Filters menu
 // (node 14759-74313 on Daniel's Series page 14759-72314, read 2026-09-14),
-// in the menu's alphabetical order: Address, Client, Created at, Location,
-// Open jobs, Recurrence, Series end, Series start, Service, Type.
+// in the menu's alphabetical order: Client, Created at, Location, Location
+// address, Open jobs, Recurrence, Series end, Series start, Service, Type.
+// (The node still draws "Address" first — Daniel renamed that filter
+// "Location address" on 2026-09-16, which moves it after Location; FLAGGED so
+// the node can follow.)
 //
 // ALL TEN are built since later the same date — RECURRENCE arrived last
 // (Daniel first: "Not sure how to build it and how it's supposed to work";
@@ -24,8 +27,8 @@ import { SERIES_TYPES, SeriesRow, clientOf, locationOf } from "./seriesData";
 //   - TYPE (14759-74546), OPEN JOBS (14767-79379), RECURRENCE
 //     (14831-29459), SERIES START (14831-29788) and SERIES END
 //     (14831-30000) are object-specific and written out below;
-//   - Address, Client, Created at (new on the shared page, 14767-79168),
-//     Location and Service are shared TEMPLATES.
+//   - Client, Created at (new on the shared page, 14767-79168), Location,
+//     Location address and Service are shared TEMPLATES.
 //
 // PLACEHOLDER icons (`diamonds-4`) on Series start, Series end and Open jobs
 // — Daniel has not picked them ("you'll [use] a placeholder icon there"),
@@ -191,16 +194,18 @@ function typeFilter(): FilterDef<SeriesRow> {
  * status), and every other filter reads fields both phases have.
  */
 export const SERIES_FILTERS: FilterDef<SeriesRow>[] = [
-  // Every filled field has to match the series' LOCATION — the shared
-  // question, pointed at the series' location.
-  addressTemplate(locationOf),
-
   // A series has no client of its own: it belongs to a location, and the
   // location belongs to the client.
   clientTemplate((series) => clientOf(series).id),
 
   createdAtTemplate((series) => series.createdAt),
   locationTemplate((series) => series.locationId),
+
+  // Location address — every filled field has to match the series' LOCATION,
+  // the shared question. It follows Location in the alphabet since the
+  // 2026-09-16 rename (it was "Address", the first row).
+  locationAddressTemplate(locationOf),
+
   openJobsFilter(),
   recurrenceFilter(),
   seriesEndFilter(),

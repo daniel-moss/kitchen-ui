@@ -17,7 +17,7 @@ File `54dNq5bLwhXf3fXwts0Jvx` ("View — Next Update"). Three tiers:
 | page `14031-20299` **View ↳ Shared Behavior** | The Shell, Partially Hidden Objects, No Objects Match, Edge Cases (No Objects Exist, Failed To Load), Search | `viewStates.tsx` |
 | page `14199-65429` **Filters ↳ Shared Behavior** → `14199-63395` **The Shell** | the Filters menu, No Filters Found, Filters ON, Applied Filters | `filterUI.tsx` |
 | … → `14267-23297` **Filter Functionality** (the KINDS) | Multi-Select, Timeframe, **Freeform** (`14100-36446` — RENAMED from "Address" 2026-09-16: "used for any freeform filters: address, name, etc. It does not define what inputs and how many the filter uses" — the DEF declares the fields), Duration, Money | `filterKinds.tsx` |
-| … → `14267-23337` **Filter Template** (shared filters) | **Cost** (`15056-60848`), **Price** (`15339-3946`), **Pricebook Status** (`15307-68262`), **Subtype** (`15049-71446`) and **Taxability** (`15049-71299`) — the five PRICEBOOK templates, MOVED here by Daniel on 2026-09-16 from the Labor and Products canvases, which is where the code already had them. **Address** (`14947-21952` — its own section since 2026-09-16, built ON the Freeform kind), **Billing Address** (`14947-34564` — a TEMPLATE since 2026-09-16, the Vendors/Clients local copies consolidated), Client, **Created At** (`14767-79168`, new), **Due Date** (its section `14320-66655` sits on the Shared Behavior page), **Issued**, Labels, Last Modified, Location, **Received** (`13962-8766` — renamed from "Date received" and PROMOTED from the Jobs registry, 2026-09-14: "'Received' is a sharable filter"), **Payment Terms** (`14944-4762` — PROMOTED from the POs registry 2026-09-15, when the Vendors list became its second consumer), **Seen**, Service, Status Changed, **Total** | `filterTemplates.tsx` — every template is BUILT |
+| … → `14267-23337` **Filter Template** (shared filters) | **Cost** (`15056-60848`), **Price** (`15339-3946`), **Pricebook Status** (`15307-68262`), **Subtype** (`15049-71446`) and **Taxability** (`15049-71299`) — the five PRICEBOOK templates, MOVED here by Daniel on 2026-09-16 from the Labor and Products canvases, which is where the code already had them. **Location address** (`14947-21952` — its own section since 2026-09-16, built ON the Freeform kind; RENAMED from "Address" later the same day, which moved it after Location in every alphabetical menu — the nodes still draw it first), **Billing Address** (`14947-34564` — a TEMPLATE since 2026-09-16, the Vendors/Clients local copies consolidated), Client, **Created At** (`14767-79168`, new), **Due Date** (its section `14320-66655` sits on the Shared Behavior page), **Issued**, Labels, Last Modified, Location, **Received** (`13962-8766` — renamed from "Date received" and PROMOTED from the Jobs registry, 2026-09-14: "'Received' is a sharable filter"), **Payment Terms** (`14944-4762` — PROMOTED from the POs registry 2026-09-15, when the Vendors list became its second consumer), **Seen**, Service, Status Changed, **Total** | `filterTemplates.tsx` — every template is BUILT |
 | Jobs page `14267-33379` | Assignee, Duration, Priority, Scheduled For, Source, Status, Type (Received moved OUT to the templates 2026-09-14) | `jobsFilters.tsx` |
 | Estimates page `14268-43750` | **Status**, **Down Payment**, **Expires** | `estimateFilters.tsx` (Status 2026-09-11; Down Payment, Expires 2026-09-12) — every row of its menu node `14265-27090` is built |
 | Invoices page `14300-52150` | **Status** (`14320-63153`), **Amount Due** (`14787-82892`) | `invoiceFilters.tsx` (2026-09-14) — every row of its menu node `14320-66224` is built |
@@ -33,7 +33,8 @@ File `54dNq5bLwhXf3fXwts0Jvx` ("View — Next Update"). Three tiers:
 | "↳ Products" canvas `15058-61566` | **Inventory** (`15339-3869`, single-select Tracked · Not tracked), **Price** (`15339-3946`), **MFG** (`15339-34571`) + **MFG part #** (`15339-34948`) — both the FREEFORM kind with ONE unlabelled field — and **Stock** (`15348-38255`, multi-select over the four inventory levels led by the absence row). Cost / Status / Subtype / Taxability come from the templates (its menu rows link to the LABOR sections) | `productFilters.tsx` (2026-09-16) — every row of its menu node (`15058-61588`) is built; Status is ACTIVE-phase only |
 | Clients page `14947-35514` | **Available Invoice Credit** (`14970-61844`), **Bills To** (`14970-59620`), **Credit Limit** (`14970-58966`), **Default Estimate Expiration** (`14970-60678`), **Default Payment Terms** (`15047-67829` — the CLIENTS-OWN split of the shared template: "No default" for "No terms"), **Default Tax Rate** (`14970-60917`), **Industry** (`14970-46445`), **Locations** (`14970-59990`), **Outstanding Balance** (`14970-61205`), **Type** (`14970-46189`); Billing Address links the shared `14947-34564` | `clientFilters.tsx` (2026-09-16) — every row of its menu node is built; ONE registry, both phases |
 
-Read off the nodes on 2026-09-11, after Daniel moved **Address** onto the
+Read off the nodes on 2026-09-11, after Daniel moved **Location address** (then
+still "Address") onto the
 Filter Template page (it had been filed under Filter Functionality) and
 **Issued** and **Due Date** with it.
 
@@ -307,28 +308,111 @@ moving code.
   page switch on purpose, so neither page knows the other exists.
 
 **Widths** (see also the `hugging-cards-searchfield-bar-fix` memory)
-- **Never pin a card's width, and never measure content to size it.** Set a
-  `min-width` floor only and let `fit-content` + the component's `max-width`
-  hug. Pinning is what truncated labels.
-- `MIN_WIDTH` = `var(--size-52)` = **208px** — the documented floor for the
-  Filters menu card *and* every filter list. It is THIS PROTOTYPE's floor, added
-  on top of the component: the DS SelectList has no minimum of its own, only the
-  **384px** maximum (Daniel, 2026-09-14). One constant feeds both
-  (`filterUI.tsx`).
+- **Never pin a card's width, and never measure content to size it.** Let
+  `fit-content` plus the component's own min/max hug. Pinning is what truncated
+  labels.
+- **THE PROTOTYPE SETS NO WIDTH AT ALL** (Daniel, 2026-09-17 — the settled end
+  of a three-way comparison run on the Jobs list: 208 floor → no floor → 160
+  floor → none). The components own their widths, and that is now stated in the
+  DS:
+  - **`SelectList`: no minimum, maximum 384.** A list is as wide as its rows
+    and no wider. Every filter option / condition / value list is one.
+  - **`Menu`: minimum 160, maximum 384** (`--size-40` / `--size-96`,
+    Menu.module.scss). The Filters card is a Menu, so 160 is its floor and it
+    comes from the component.
+  - `MIN_WIDTH`, `LIST_STYLE`, `DS_MIN_WIDTH` and `FilterWidthFloorContext`
+    are all GONE from filterUI. Do not reintroduce a floor here; if a width
+    looks wrong, change the DS rule.
+  - **What moved on Jobs:** the menu card 208 → 191 ("Location address" is its
+    widest row); Received, Last modified, Priority and Status changed → 154,
+    Scheduled for → 156, Type → 127 (the narrowest — two rows, "Upfront" /
+    "Rolling"). The other nine lists were already wider than 208 and did not
+    move. Elsewhere: Estimates' Down payment → 169, Credit notes' Type → 153.
+    Nothing clipped.
+  - **FLAGGED:** the Figma nodes still pin "Min Width" 208 — the Shell's
+    "Filters" Menu / Desktop (14310-59652) and each list section. An older
+    copy of the menu, 14295-47676, pins the DS 160, which is what the build
+    does now.
+  - Side effect, sub-pixel: `placeSub` positions a sub-list by `offsetWidth`,
+    the fractional width rounded to the NEAREST integer, so the real gap is
+    4 ± half a pixel. Always was; what made it visible is the menu card
+    hugging to a fractional 191.42, which moved every row's left edge off the
+    whole pixel. The `placement` measure section accepts 4–5px now.
 - A card whose own search filters its rows must be **frozen at the width it
   hugged to when it opened**, or it resizes per keystroke. Since 2026-09-14 that
   is the **DS SelectList's own behaviour** (Daniel: "it should be a default
   component behavior") — the prototype's `useFrozenWidth` is gone, and the lists
-  pass nothing but the 208 floor. The component measures whenever its search is
+  pass nothing at all. The component measures whenever its search is
   EMPTY, which is also what re-measures it when the pointer moves to another
   filter: `FilterOptions` clears the query during that render, so the card that
   stays mounted still hugs the new list. The FILTERS MENU is a `Menu`, not a
-  SelectList, and still freezes its own width here.
+  SelectList, and still freezes its own width here — `frozenWidth` is the only
+  width this prototype writes.
 - Measure with `offsetWidth`, never `getBoundingClientRect()`: cards open under
   a `scale(0.98)` transition.
 - `.filtersSub` (the sub-list portal) needs `width: max-content`. A
   `position: fixed` box with only `left` set is bounded by the viewport, so the
   card's width depended on where it was placed → placement loop.
+
+**The FilterChip redesign shipped** (2026-09-17) — the DS component was
+rebuilt in Figma and the code follows it. There is no longer a second design
+and no `variant` prop: every list draws the one chip.
+- The chip is a `--gray-a2` body inside a 1px `--gray-a6` ring (an inset
+  box-shadow, so it adds no size) with no drop shadow; the dividers are HIGH
+  contrast and inset `--size-2` (8px) top and bottom.
+- Every interactive box carries a chevron — `angle-down`, solid, 10px,
+  `--gray-a9`, 6px after the text, stepping to `--gray-12` in the hovered,
+  pressed and focused states. It is not a prop: the box draws it whenever it
+  has a click handler, which is the Figma part's `isClickable`.
+- The box at the chip's right end takes the chip's 6px radius on its outer
+  corners, so a focus ring there follows the chip's shape instead of being
+  shaved by the clip.
+- THE BOXES WERE RENAMED with the Figma component: `property` → **`name`**,
+  `condition` → **`operator`** (and with them `onConditionClick` →
+  `onOperatorClick`, `conditionPressed` → `operatorPressed`, `propertyHint` →
+  `nameHint`). The filter DEFS still speak of conditions internally — that is
+  the filter's own vocabulary, not the chip's.
+
+**One chip size** (2026-09-18) — the Figma component dropped its breakpoint,
+so the chip is **36px with 12px side paddings everywhere** (desktop included;
+the old desktop chip was 32/10) and the code has no `breakpoint` on FilterChip
+at all.
+- What used to be the mobile presentation now belongs to **FilterChipGroup's
+  `orientation`**: `horizontal` (hug, boxes capped at 240px) / `vertical`
+  (the chip fills the row, the "value" box takes the slack, no cap). The group
+  publishes it through `FilterChipOrientationContext`; a chip outside a group
+  can set `orientation` itself — which is what the prototype's chips do
+  (`mobile ? "vertical" : "horizontal"` in `AppliedChip` / `LockedStatusChip`).
+- The group's "Add filter" IconButton went `md` → **`lg` (36px)**, and
+  TopBarFilter's "Clear all" / "Reset" Buttons `md` → **`lg`**; the bar's
+  vertical padding went 14 → **12px**, so the row is still 60px.
+- The warning Hint is the one thing that still follows the VIEWPORT (hover vs
+  tap): `nameHintBreakpoint` only exists so Storybook can force the drawer.
+- The mobile sheet's applied chips ARE the DS group now (`orientation
+  ="vertical"`): the 10px local column was a drift — the node always said 8px
+  — and `.appliedChips` keeps only the 4/16/16 inset. Neither chip wrapper
+  passes `orientation` any more; both inherit it from the group they stand in
+  (the bar's horizontal one, the sheet's vertical one).
+
+**Heights, and the bottom of the screen** (2026-09-17)
+- **Every anchored card slides UP when it would not fit.** `placeSub` (the
+  menu's hovered option lists) always did; `useAnchoredCard` (the Filters menu
+  itself, a chip's condition and value lists, both View menus) did NOT until
+  now — it set `top: trigger.bottom + 4` and nothing else, so on a short window
+  the card simply ran past the bottom. It now measures the card
+  (`offsetHeight`, re-run by a ResizeObserver once the portal exists) and
+  clamps `top` to `innerHeight - 8 - height`. Sliding, not flipping above the
+  trigger — the same correction `placeSub` makes, so every surface behaves one
+  way. On a tall window nothing moves.
+- **That clamp only works because the DS cards cap their height at the SCREEN**
+  (`min(1000px, calc(100dvh - var(--size-4)))` on Menu and SelectList `.card`,
+  added the same day). A card taller than the window cannot be placed at all:
+  sliding it up hits the top margin and the rest still hangs off the bottom.
+  Daniel found it on the **Location** list — 1000px tall in a 533px window,
+  475px of it off-screen; the Filters menu card itself was 169px off.
+- Verify with `node scripts/measure-filters.mjs` for the normal case, and by
+  opening the Jobs story in a SHORT window for this one — the measure script
+  runs at 1400×900, where nothing overflows.
 
 **Layout**
 - **The Hidden Data Bar hugs the list** (Daniel, 2026-09-16): below the LAST
@@ -604,8 +688,9 @@ Figma page for it yet — every value below is roopairs_api's own):
   GONE: the page carries the full filter stack (menu, chips bar, mobile
   drawer, locked Status chips, Hidden Data Bar, No Objects Match, the
   search-aware counts). THIRTEEN filters, the menu node's rows (14320-66224,
-  alphabetical): eleven shared TEMPLATES — Address, Client, Due date, Issued,
-  Labels, Last modified, Location, Seen, Service, Status changed, Total —
+  alphabetical): eleven shared TEMPLATES — Client, Due date, Issued,
+  Labels, Last modified, Location, Location address, Seen, Service,
+  Status changed, Total —
   plus the list's own **Status** and **Amount due** (`invoiceFilters.tsx`,
   which owns `InvoicesPhase` now).
   - **Status** (section 14320-63153): the estimates shape exactly — one
@@ -694,7 +779,7 @@ defaultTableViewConfig `credit_notes_table__*`):
     design wins, FLAGGED). Chips-only header, no search, no counts, no
     per-option icons. Icon `shapes` — Daniel's established Type icon, and
     what the node draws since his update.
-  - The templates that are NOT here — Address, Location, Service, Due date,
+  - The templates that are NOT here — Location address, Location, Service, Due date,
     Seen, Status changed, Amount due — have nothing to read: a credit note
     belongs to the CLIENT directly (no location, no service), has no due
     date, no Seen tracking in the list, and no Status changed column in
@@ -767,8 +852,8 @@ table from PRODUCTION (JobSeriesTableView + job_series_table__*):
 - **Sort** — production's TWO-key `recurrence_start,created_at` (asc open /
   desc closed): one sort column here, the created-at tie-break baked into
   `sortSeries`.
-- **Filters** — NINE of the menu node's ten rows (14759-74313): Address,
-  Client, Created at, Location and Service are templates; Series start,
+- **Filters** — NINE of the menu node's ten rows (14759-74313): Client,
+  Created at, Location, Location address and Service are templates; Series start,
   Series end (Timeframe shape — their doc links point at the shared
   section; own sections not drawn), Open jobs and Type (single-select
   Upfront / Rolling, `shapes`) are object-specific. PLACEHOLDER `diamonds-4`
@@ -1562,8 +1647,9 @@ filter type. I call it 'Freeform' now")** — the taxonomy change, mirrored:
   carries its own `read`, every filled field must substring-match (the
   standing 2026-08-24 / 2026-09-14 rules, unchanged); `AddressCustom`
   became the generic `FreeformCustom` (the scss classes renamed with it).
-- ON TOP of the kind, TWO template filters in filterTemplates: **Address**
-  (14947-21952; label "Address", the row's LOCATION) and **Billing
+- ON TOP of the kind, TWO template filters in filterTemplates: **Location
+  address** (14947-21952; the row's LOCATION — labelled "Address" until
+  later the same day, see the rename below) and **Billing
   address** (14947-34564; label "Billing address", the row's own
   `billing_*` parts) — the Vendors and Clients registries dropped their
   identical local copies for `billingAddressTemplate`. `AddressParts`, the
@@ -1573,6 +1659,23 @@ filter type. I call it 'Freeform' now")** — the taxonomy change, mirrored:
 - Behaviour is UNCHANGED end to end — the new `freeform` measure section
   proves it on the real dialog (fields render from the def, the half row,
   the Apply gate, the applied chip).
+
+**The "Location address" rename (2026-09-16, Daniel)** — two changes on top
+of the reorganisation above:
+
+- The **Address** filter is **"Location address"** now: the name says whose
+  address is matched, the way its twin "Billing address" always did.
+  `addressTemplate` is `locationAddressTemplate`; the `FilterId` stays
+  `"address"` (internal, and Billing address shares it — the two never sit in
+  one registry). Because every menu is ALPHABETICAL (node 13857-25352), the
+  rename MOVED it: it was the FIRST row of every menu and now follows
+  **Location**, in all four registries that carry it (Jobs, Estimates,
+  Invoices, Series). FLAGGED: the four menu NODES still draw "Address" first.
+- The **"(optional)" label condition is gone** from every freeform field —
+  Location address and Billing address were the only filters that had it
+  (the one-field defs draw no label at all). Every field of a freeform
+  filter is optional, so the word sat on all five at once and said nothing.
+  The measure section asserts its absence.
 
 ## 7. Open flags for Daniel
 
@@ -1831,33 +1934,38 @@ node scripts/measure-filters.mjs           # needs Storybook on :6006
 `measure-filters.mjs` checks the things that broke repeatedly. Expected, with
 the current data:
 
-- **freeform** (its own measure-filters section) — the Jobs Address dialog
-  renders the def's five fields ("(optional)" labels included), State /
-  Postal share the desktop half-row, Apply stays disabled until a field is
-  filled, and applying "City contains San Francisco" filters 72 → 66 with
-  the chip reading "Address · contains · San Francisco".
-- **Jobs list widths** — Address (dialog), Assignee 208, Client 209,
-  Est. duration 216, Labels 222, Last modified 208, Location 384,
-  Priority 208, Received 208 (the RENAMED "Date received"), Scheduled for
-  208, Service 291, Source 231, Status 256 (the sub-status rows — see the
-  Status bullet), Status changed 208, Type 208. **Nothing clipped.**
-  (Est. duration sits above the floor because its header chips — "at least"
-  / "at most" / "is" — are what it hugs to; the node draws 218.)
-- **Placement** — every sub-list exactly **4px** from its row, no overlap with
-  the menu, nothing offscreen.
+- **freeform** (its own measure-filters section) — the Jobs Location address
+  dialog renders the def's five fields with PLAIN labels (no "(optional)"
+  condition since 2026-09-16), State / Postal share the desktop half-row,
+  Apply stays disabled until a field is filled, and applying "City contains
+  San Francisco" filters 72 → 66 with the chip reading "Location address ·
+  contains · San Francisco".
+- **Jobs list widths** — NO floor anywhere since 2026-09-17 (see Widths
+  above); every list hugs its own rows. Assignee 208, Client 209,
+  Est. duration 216, Labels 222, Last modified 154, Location 384,
+  Location address (dialog), Priority 154, Received 154 (the RENAMED
+  "Date received"), Scheduled for
+  156, Service 291, Source 231, Status 256 (the sub-status rows — see the
+  Status bullet), Status changed 154, Type 127. **Nothing clipped.**
+  (Est. duration was above the retired floor already, because its header chips — "at
+  least" / "at most" / "is" — are what it hugs to; the node draws 218.)
+- **Placement** — every sub-list **4–5px** from its row, no overlap with
+  the menu, nothing offscreen. (4 exactly, ± the half-pixel `offsetWidth`
+  rounding — see Widths.)
 - **Stability** — each list holds its width while typing in its own search.
-- **Menu** — 208px, and it stays 208 while typing.
-- **Estimates** — the menu lists exactly Address, Client, Down payment, Expires,
-  Issued, Labels, Last modified, Location, Seen, Service, Status,
-  Status changed, Total.
+- **Menu** — 191px on Jobs: the card hugs its rows, above Menu's own 160
+  minimum (it was 208 on the retired floor), and holds that width while typing.
+- **Estimates** — the menu lists exactly Client, Down payment, Expires,
+  Issued, Labels, Last modified, Location, Location address, Seen, Service,
+  Status, Status changed, Total.
 - **Status** — its list is 256 wide and its rows are the SUB-STATUS names where
   a status has any: Draft · Unscheduled · Upcoming · Past due · Active ·
   Lunch break · Pulled to another call · Waiting for parts · Waiting for client
   approval · Waiting for a tech · Quote in progress · Completed.
 - **Invoices** (its own measure-filters section since the filters arrived) —
-  the menu lists exactly Address, Amount due, Client, Due date, Issued,
-  Labels, Last modified, Location, Seen, Service, Status, Status changed,
-  Total; Status offers the open four (Draft · Unsent · Outstanding ·
+  the menu lists exactly Amount due, Client, Due date, Issued,
+  Labels, Last modified, Location, Location address, Seen, Service, Status,
+  Status changed, Total; Status offers the open four (Draft · Unsent · Outstanding ·
   Overdue) and applies on the derived Overdue; Due date offers Overdue over
   the six future windows (no absence row; the Overdue WINDOW lists 10 where
   the status slice is 9 — the stale-pending nuance, see §6) and its preset
@@ -1928,8 +2036,8 @@ the current data:
   a locked chip); the View menu edits columns, sort and the Table/Cards
   switcher (Cards disabled).
 - **Series** (its own measure-filters section, `series`) — the menu lists
-  all ten: Address, Client, Created at, Location, Open jobs, Recurrence,
-  Series end, Series start, Service, Type; Open jobs offers None over the
+  all ten: Client, Created at, Location, Location address, Open jobs,
+  Recurrence, Series end, Series start, Service, Type; Open jobs offers None over the
   1 · 2 · 5 · 10 · 20 · 50 ladder and "Custom..." and applies (at least 5:
   18 → 2; None: 18 → 4, its chip without a condition box); Type offers
   Upfront · Rolling and applies (Upfront:

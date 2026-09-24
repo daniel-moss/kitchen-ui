@@ -9,16 +9,9 @@ import GroupLabel from "../GroupLabel/GroupLabel";
 import Avatar from "../Avatar/Avatar";
 import AvatarLocation from "../Avatar/AvatarLocation";
 import CardFile from "../Card/CardFile";
+import IconButton from "../IconButton/IconButton";
 import { FileType } from "../Card/CardFile.types";
 import { noop } from "../../stories/helpers";
-
-type StoryArgs = {
-  label: string;
-  divider: boolean;
-  separated: boolean;
-  truncateAfter: number;
-  accordion: boolean;
-};
 
 const frame: React.CSSProperties = { width: 440 };
 
@@ -47,41 +40,121 @@ const settingsItem = (key: number) => (
   />
 );
 
-const meta: Meta<StoryArgs> = {
+// `ItemGroupProps` is a UNION (the header, items and accordion axes exclude
+// each other), and react-docgen cannot read JSDoc off a union — it produced an
+// empty table. So the props table is declared here by hand; keep it in step
+// with the JSDoc in ItemGroup.types.ts.
+const slot = (summary: string, description: string) => ({
+  control: false as const,
+  description,
+  table: { type: { summary } },
+});
+const flag = (description: string, defaultValue?: string) => ({
+  control: false as const,
+  description,
+  table: { type: { summary: "boolean" }, ...(defaultValue ? { defaultValue: { summary: defaultValue } } : {}) },
+});
+
+const meta: Meta<ItemGroupProps> = {
   title: "Components/ItemGroup",
   component: ItemGroup,
   parameters: { layout: "centered" },
-  args: { label: "Label", divider: false, separated: false, truncateAfter: 0, accordion: false },
   argTypes: {
-    label: { type: "string", control: { type: "text" } },
-    divider: { name: "bottom divider", control: { type: "boolean" } },
-    separated: { control: { type: "boolean" } },
-    truncateAfter: { name: "truncateAfter (0 = off)", control: { type: "number", min: 0 } },
-    accordion: { control: { type: "boolean" } },
+    children: slot("ReactNode", "The items — `ListItem`s in list view, `Card`s in cards view. Each view has its own slot in Figma, so switching the view keeps both."),
+    view: {
+      options: ["list", "cards"],
+      control: { type: "inline-radio" },
+      description: "`list` stacks ListItems with no gap and 4px inset; `cards` wraps Cards at 12px gaps with 16px inset, each card flexing 106–184px.",
+      table: { type: { summary: '"list" | "cards"' }, defaultValue: { summary: '"list"' } },
+    },
+    cardCountBasis: {
+      control: { type: "number" },
+      description: "Cards view only: size the columns as if the group held this many cards. Set it to the largest count among sibling groups so several groups in one module share ONE card width.",
+      table: { type: { summary: "number" } },
+    },
+    label: slot("ReactNode", "A `GroupLabel` element shown as the header, with 12px margins. We label a group only when there is more than one — a single group carries no header."),
+    divider: flag("1px divider at the very bottom, inset `--size-4` (16px) on each side. Set it when another group renders below this one: the gap between groups is 0 and the divider does the separating.", "false"),
+    separated: flag("Puts a Divider between every two items — 4px above and below, 12px on the sides (Settings). List-only, and a separated group is never truncated.", "false"),
+    truncateAfter: {
+      control: { type: "number", min: 0 },
+      description: "Show only the first N items plus a full-width lg ghost Button naming how many are hidden. Two-way: once open the button becomes \"Show less\". Never on a separated group or an accordion.",
+      table: { type: { summary: "number" } },
+    },
+    onReorder: slot("(from: number, to: number) => void", "Enables drag-reorder. Called on drop with the old and new index — reorder your own array there; the group renders `children` as-is. List rows need `isDraggable`."),
+    isAccordion: flag("The GroupLabel header becomes a toggle that collapses the group. Needs `label`, and is never combined with truncation.", "false"),
+    open: flag("Controlled open state (`isAccordion`)."),
+    defaultOpen: flag("Uncontrolled initial open state (`isAccordion`).", "false"),
+    onOpenChange: slot("(open: boolean) => void", "Called with the new open state (`isAccordion`)."),
+    disabled: flag("Dims the header and stops it responding. Accordion only.", "false"),
+    className: slot("string", "Extra class on the group."),
   },
 };
 
 export default meta;
 
-type Story = StoryObj<StoryArgs>;
+type Story = StoryObj<ItemGroupProps>;
 
-/** Empty the label for the plain variant; separated groups can not truncate. */
+/** The group with a header. Switch the view and the items below. */
 export const Playground: Story = {
-  render: ({ label, divider, separated, truncateAfter, accordion }) => {
-    const groupLabel = label ? <GroupLabel label={label} /> : undefined;
-    const props = {
-      label: groupLabel,
-      divider: groupLabel ? divider : undefined,
-      separated,
-      truncateAfter: !separated && truncateAfter > 0 ? truncateAfter : undefined,
-      ...(groupLabel && accordion ? { accordion: true as const, defaultOpen: true } : {}),
-    } as ItemGroupProps;
-    return (
-      <div style={frame}>
-        <ItemGroup {...props}>{[0, 1, 2, 3].map(addressItem)}</ItemGroup>
-      </div>
-    );
-  },
+  render: (args: ItemGroupProps) => (
+    <div style={frame}>
+      <ItemGroup label={<GroupLabel label="Label" />} {...args}>
+        {[0, 1, 2, 3].map(addressItem)}
+      </ItemGroup>
+    </div>
+  ),
+};
+
+/** Every part at once — header, items, the reveal button, the bottom divider. */
+export const Anatomy: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={frame}>
+      <ItemGroup label={<GroupLabel label="Label" counter={5} />} truncateAfter={2} divider>
+        {[0, 1, 2, 3, 4].map(addressItem)}
+      </ItemGroup>
+    </div>
+  ),
+};
+
+/**
+ * The header is a GroupLabel — its label, counter, caption, left slot, action
+ * and states are set on it, not on the group.
+ */
+export const HeaderContent: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={frame}>
+      <ItemGroup
+        label={
+          <GroupLabel
+            label="Label"
+            counter={12}
+            caption="Caption"
+            slotLeft={<Avatar shape="square" content="icon" size="sm" />}
+            slotRight={<IconButton icon="ellipsis" variant="ghost" size="md" aria-label="More" onClick={noop} />}
+          />
+        }
+      >
+        {[0, 1].map(addressItem)}
+      </ItemGroup>
+    </div>
+  ),
+};
+
+/** Each view has its own slot, so switching the view keeps both sets of items. */
+export const ItemsViews: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-10)", width: 560 }}>
+      <ItemGroup label={<GroupLabel label="List" />}>{[0, 1].map(addressItem)}</ItemGroup>
+      <ItemGroup view="cards" label={<GroupLabel label="Cards" />}>
+        {FILES.slice(0, 3).map((f) => (
+          <CardFile key={f.name} name={f.name} fileType={f.fileType} onClick={noop} onMenuClick={noop} />
+        ))}
+      </ItemGroup>
+    </div>
+  ),
 };
 
 /** Default group — the only group on the list: no label, no dividers. */
@@ -116,8 +189,8 @@ export const WithHeader: Story = {
 
 /**
  * Truncation — only the first N items show, plus a "Show X more" button (10px
- * margins). Expanding is one-way: the button disappears and the group stays
- * expanded.
+ * margins). Expanding is two-way: the button becomes "Show less" and collapses
+ * the group back to the first N.
  */
 export const Truncation: Story = {
   parameters: { controls: { disable: true } },
@@ -136,10 +209,10 @@ export const Accordion: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={{ ...frame, display: "flex", flexDirection: "column", gap: "var(--size-6)" }}>
-      <ItemGroup label={<GroupLabel label="Label" />} accordion defaultOpen>
+      <ItemGroup label={<GroupLabel label="Label" />} isAccordion defaultOpen>
         {[0, 1].map(addressItem)}
       </ItemGroup>
-      <ItemGroup label={<GroupLabel label="Label" />} accordion>
+      <ItemGroup label={<GroupLabel label="Label" />} isAccordion>
         {[2, 3].map(addressItem)}
       </ItemGroup>
     </div>

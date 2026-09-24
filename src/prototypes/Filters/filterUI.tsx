@@ -1,5 +1,4 @@
 import {
-  CSSProperties,
   HTMLAttributes,
   ReactNode,
   useCallback,
@@ -30,6 +29,7 @@ import SelectListHeader from "../../components/SelectList/SelectListHeader";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import FilterChip from "../../components/TopBarFilter/FilterChip";
+import FilterChipGroup from "../../components/TopBarFilter/FilterChipGroup";
 import TopBarFilter from "../../components/TopBarFilter/TopBarFilter";
 import { noop } from "../../stories/helpers";
 
@@ -97,10 +97,11 @@ const SUB_MARGIN = 8;
 // it is given in a Menu CARD — a SelectList inside would be a card in a card.
 // So the row looks exactly like the node and the consumer opens the list.
 //
-// EXCEPT a dialog-only row (`isDialogOnly` — Address). It opens a modal, not a
-// list beside the row, so the chevron would promise a sub-menu that never comes
-// (Daniel, 2026-08-25). The updated menu node (14032-20321, 2026-09-03) now
-// draws Address without the chevron too, so the node and the build agree.
+// EXCEPT a dialog-only row (`isDialogOnly` — every FREEFORM filter: Location
+// address, Billing address, MFG). It opens a modal, not a list beside the row,
+// so the chevron would promise a sub-menu that never comes (Daniel,
+// 2026-08-25). The updated menu node (14032-20321, 2026-09-03) draws that row
+// without the chevron too, so the node and the build agree.
 //
 // The rows carry NO counter any more (Daniel, 2026-08-18). A filter can be
 // applied several times, so "how many options are ticked" has no single answer
@@ -207,22 +208,28 @@ const AppliedFilters = ({
 }: AppliedFiltersProps) => (
   <div>
     {sectionLabel("Applied filters")}
+    {/* The DS `FilterChipGroup` in its VERTICAL orientation (2026-09-18,
+        Daniel: "the gap should be 8px, not 10") — the component owns the
+        column and the 8px gap, and hands the orientation to the chips inside;
+        this wrapper only insets the stack. */}
     <div className={styles.appliedChips}>
-      {lockedStatuses.length > 0 && (
-        <LockedStatusChip mobile def={defs.find((def) => def.id === "status")!} statuses={lockedStatuses} />
-      )}
-      {activeFilters(defs, selection).map(({ def, instance }) => (
-        <AppliedChip
-          key={instance.key}
-          mobile
-          def={def}
-          instance={instance}
-          selection={selection}
-          onSelectionChange={onSelectionChange}
-          scheduleHorizon={scheduleHorizon}
-          onShowViewMenu={onShowViewMenu}
-        />
-      ))}
+      <FilterChipGroup orientation="vertical">
+        {lockedStatuses.length > 0 && (
+          <LockedStatusChip mobile def={defs.find((def) => def.id === "status")!} statuses={lockedStatuses} />
+        )}
+        {activeFilters(defs, selection).map(({ def, instance }) => (
+          <AppliedChip
+            key={instance.key}
+            mobile
+            def={def}
+            instance={instance}
+            selection={selection}
+            onSelectionChange={onSelectionChange}
+            scheduleHorizon={scheduleHorizon}
+            onShowViewMenu={onShowViewMenu}
+          />
+        ))}
+      </FilterChipGroup>
     </div>
     {/* Inset 16px each side (Daniel, 2026-08-19), the same as MenuItemGroup's
         own group divider — Divider's `padding` prop insets the line inside its
@@ -326,22 +333,27 @@ function useFilterSearch(open: boolean, defs: AnyFilterDef[], autoFocusSearch = 
 //
 // It is not measured any more (Daniel, 2026-09-11: the Labels list "should
 // follow the default component behavior. No overrides"). The DS SelectList
-// card already sizes itself — `width: fit-content` capped by its own
-// `max-width: 384px` — and the only thing a filter list adds is the 208px
-// floor its documented nodes pin. Everything else the old build computed
-// (canvas text measurement per option, the condition-chip row width, a
-// per-filter minimum) is gone with it.
+// card sizes itself — `width: fit-content` under its own `max-width: 384px` —
+// and since 2026-09-17 that is ALL of it: this prototype sets no width of its
+// own anywhere. Everything the old build computed (canvas text measurement per
+// option, the condition-chip row width, a per-filter minimum) is gone, and so
+// is the 208px floor that replaced it.
 //
-// This lands on the nodes exactly, because the component's own hugging is what
-// the nodes draw: Labels empty is 223 (13999-17141) and 384 once a second
-// label brings the four conditions and the chips wrap (14101-42750); Location
-// is 384 (14101-44923); the short lists sit on the 208 floor.
-// 208px — the floor EVERY surface in this menu sits on: the Filters card
-// itself (node 14310-59652) and each of its lists, whose nodes all carry the
-// same "Min Width" pin. One constant, so they cannot drift apart.
-const MIN_WIDTH = "var(--size-52)"; // 208px
-
-const LIST_STYLE: CSSProperties = { minWidth: MIN_WIDTH };
+// THE RULE, decided on the three-way comparison Daniel ran on the Jobs list
+// (208 floor → no floor → 160 floor → none): the components own their widths.
+//   - SelectList: NO minimum, maximum 384. A list hugs its rows, however short.
+//   - Menu:       minimum 160, maximum 384. The Filters card is a Menu, so 160
+//                 is its floor and it comes from the component.
+//
+// This lands on the nodes for everything but the shortest lists, because the
+// component's own hugging is what the nodes draw: Labels empty is 223
+// (13999-17141) and 384 once a second label brings the four conditions and the
+// chips wrap (14101-42750); Location is 384 (14101-44923).
+//
+// FLAGGED for Daniel: the documented nodes still pin "Min Width" 208 — the
+// Shell's "Filters" Menu / Desktop (14310-59652) and each list section. The
+// build no longer does. The lists that were sitting on that pin now open at
+// 127–160 (Type is the narrowest).
 
 /**
  * The two AMOUNT kinds: a duration in minutes and money in dollars. They share
@@ -378,7 +390,8 @@ const isSingleSelect = (def: AnyFilterDef) => isSingleValue(def) || def.singleSe
 
 /**
  * Does this filter have NO option list at all, so that everything about it is
- * edited in a dialog? Only Address (Figma section 13988-53503). Its row in the
+ * edited in a dialog? The FREEFORM kind, and only it (Figma section
+ * 14100-36446) — Location address, Billing address, MFG. Its row in the
  * Filters menu opens the dialog on CLICK instead of hovering a list open, and
  * its chip's value segment does the same.
  */
@@ -660,8 +673,8 @@ interface FilterOptionsProps {
   /**
    * Passed to the DS SelectList. The menu's HOVER-opened sub-lists turn it
    * off: a hover-close must not pull focus back into the menu's search — the
-   * field's icon visibly re-lit every time the pointer reached the Address
-   * row (Daniel, 2026-09-04).
+   * field's icon visibly re-lit every time the pointer reached the Location
+   * address row (Daniel, 2026-09-04).
    */
   restoreFocus?: boolean;
 }
@@ -787,11 +800,10 @@ function FilterOptions({
       // above) and SelectList's built-in `searchable`, which decides the state
       // for itself on a chip-opened list.
       noResultsState={noMatches}
-      // Nothing but the 208 FLOOR. Above it the card hugs its rows, and holding
-      // that width while the search narrows them is the DS SelectList's own
-      // behaviour now (Daniel, 2026-09-14) — this prototype used to do it here.
-      // A drawer has no width of its own.
-      style={variant === "inline" ? LIST_STYLE : undefined}
+      // NO width of any kind. The card hugs its rows under the DS 384 maximum,
+      // and holding that width while the search narrows them is the DS
+      // SelectList's own behaviour (Daniel, 2026-09-14) — this prototype used
+      // to do both here.
     >
       {list.items}
     </SelectList>
@@ -1263,31 +1275,30 @@ export function FiltersMenuCard({ card, defs, selection, onSelectionChange }: Fi
     <>
       {createPortal(
         <div ref={cardRef} className={styles.filtersMenu} style={pos}>
-          {/* 208px FLOOR (Daniel, 2026-09-11), the same one every filter list
-              sits on. It is the card's own documented minimum: the Shell
-              section's "Filters" Menu / Desktop (node 14310-59652) carries a
-              "Min Width" pin of 208 over the DS maximum of 384, and is drawn at
-              exactly 208. (An older copy of the menu, 14295-47676, still pins
-              the DS default of 160 — superseded.)
+          {/* NO width floor here since 2026-09-17 — the card is a `Menu`, so
+              its 160 minimum and its 384 maximum are the COMPONENT's
+              (Menu.module.scss), and between them it hugs its rows. The
+              prototype's own 208 pin is gone. FLAGGED: the Shell section's
+              "Filters" Menu / Desktop (node 14310-59652) still carries a "Min
+              Width" pin of 208; an older copy of the menu, 14295-47676, pins
+              the DS 160, which is what the build now does.
 
-              Above the floor the card hugs its rows. It stopped needing a
-              hand-picked width on 2026-09-11, when the real cause of its
-              old 222px (250 on Daniel's machine) was fixed in the DS: the
-              header's search `<input>` was contributing its default intrinsic
-              width to the fit-content card. See `.bar .input` in SearchField.
+              It stopped needing a hand-picked width on 2026-09-11, when the
+              real cause of its old 222px (250 on Daniel's machine) was fixed
+              in the DS: the header's search `<input>` was contributing its
+              default intrinsic width to the fit-content card. See `.bar
+              .input` in SearchField.
 
-              `frozenWidth` is the width it hugged to when it OPENED — that is
-              what keeps the card still while the search filters the rows (see
-              above). The two are combined rather than swapped, so whichever is
-              larger wins and the floor can never be undercut. */}
+              The one width still set here is `frozenWidth` — what the card
+              hugged to when it OPENED, held as a min-width so the search
+              cannot shrink it under the cursor (see above). Menu's own 160
+              still applies underneath it. */}
           <Menu
             open={open}
             onClose={() => setOpen(false)}
             header={filters.header}
             breakpoint="desktop"
-            style={{
-              minWidth: frozenWidth != null ? `max(${MIN_WIDTH}, ${frozenWidth}px)` : MIN_WIDTH,
-            }}
+            style={frozenWidth != null ? { minWidth: `${frozenWidth}px` } : undefined}
           >
             {filters.rows.length > 0 ? filterRows(filters.rows, rowHandlers) : noMatches}
           </Menu>
@@ -1484,8 +1495,9 @@ function lockedStatusList(def: AnyFilterDef, statuses: string[]) {
 // opens it too, as the old local chip did); only a CUSTOM, Dialog-edited
 // value would render a plain box, and a locked Status value never is one.
 //
-// `mobile` is the Filters sheet's presentation (2026-09-09): the chip fills
-// the row like the user chips there, and the multi-value read-only list
+// `mobile` is the Filters sheet's presentation (2026-09-09): the chip takes
+// the DS `vertical` orientation — it fills the row like the user chips there
+// — and the multi-value read-only list
 // arrives as a DRAWER — a card anchored inside a drawer would clip. FLAGGED:
 // the mobile sheet's node predates the locked chip, so this state is not
 // drawn; built to the desktop chip's rules.
@@ -1506,10 +1518,9 @@ const LockedStatusChip = ({
     <>
       <FilterChip
         isLocked
-        breakpoint={mobile ? "mobile" : "desktop"}
         slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
-        property={def.label}
-        condition={statuses.length > 1 ? "is any of" : "is"}
+        name={def.label}
+        operator={statuses.length > 1 ? "is any of" : "is"}
         value={shown.label}
         valueSlotLeft={shown.slotLeft}
         onValueClick={(e) => {
@@ -1532,7 +1543,6 @@ const LockedStatusChip = ({
                 open={valueCard.open}
                 onClose={() => valueCard.setOpen(false)}
                 multiSelect
-                style={LIST_STYLE}
               >
                 {list.items}
               </SelectList>
@@ -1551,7 +1561,7 @@ const LockedStatusChip = ({
 // box — is entirely the component's; this wrapper owns WHAT the boxes open:
 // the condition/value lists, the mobile drawers, and the Custom dialog. The
 // cards anchor to the box buttons via the click event (the DS chip owns the
-// elements), and `conditionPressed` / `valuePressed` hold a box's fill while
+// elements), and `operatorPressed` / `valuePressed` hold a box's fill while
 // its list is on screen.
 // ---- the schedule-horizon conflict ------------------------------------------
 
@@ -1593,9 +1603,9 @@ interface AppliedChipProps {
   onShowViewMenu?: () => void;
   /**
    * The chip inside the mobile Filters sheet (Figma node 13932-9592) — the DS
-   * chip's `mobile` presentation: 36px boxes, 12px paddings, fills the row,
-   * the value box takes the slack and truncates. Its condition and value open
-   * DRAWERS instead of cards anchored to the chip.
+   * chip in the `vertical` orientation: it fills the row, the value box takes
+   * the slack and truncates, and no box has a max width. Its condition and
+   * value open DRAWERS instead of cards anchored to the chip.
    */
   mobile?: boolean;
 }
@@ -1648,7 +1658,7 @@ const AppliedChip = ({
   const fixedCondition = conditionChoices(instance).length < 2;
   // A WINDOW preset ("Next 3 days") is a complete answer with NO condition —
   // the chip renders WITHOUT the condition box entirely (the FilterChip
-  // `condition=false` variant; the Scheduled for section's chip example,
+  // `operator=false` variant; the Scheduled for section's chip example,
   // 14101-46531). A CUSTOM value on the same filter keeps its dialog
   // condition ("after · Jan 1"). A COMPLETE amount preset — Open jobs'
   // "None" (2026-09-14) — follows the same rule: "Open jobs · None".
@@ -1677,20 +1687,19 @@ const AppliedChip = ({
           Custom dialog straight away (node 13914-15128) — the list would only
           offer presets, which is not what that chip holds. */}
       <FilterChip
-        breakpoint={mobile ? "mobile" : "desktop"}
-        // Conflicted, the CHIP swaps the property icon to `warning` itself
-        // (the master's isWarning behavior since 2026-09-10) — the def icon
-        // is simply what it shows the rest of the time.
+        // Conflicted, the CHIP swaps the name icon to the solid `warning` one
+        // itself (the master's isWarning behavior) — the def icon is simply
+        // what it shows the rest of the time.
         slotLeft={<Icon icon={def.icon} pack={def.pack} rotate={def.rotate} size={14} container="square" />}
         isWarning={conflict}
-        propertyHint={
+        nameHint={
           conflict && scheduleHorizon != null && onShowViewMenu != null
             ? conflictHint(scheduleHorizon, onShowViewMenu)
             : undefined
         }
-        property={def.label}
-        condition={noCondition ? undefined : conditionLabel(instance)}
-        onConditionClick={
+        name={def.label}
+        operator={noCondition ? undefined : conditionLabel(instance)}
+        onOperatorClick={
           noCondition || fixedCondition
             ? undefined
             : (e) => {
@@ -1698,7 +1707,7 @@ const AppliedChip = ({
                 conditionCard.setOpen(!conditionCard.open);
               }
         }
-        conditionPressed={conditionCard.open}
+        operatorPressed={conditionCard.open}
         value={shown.label}
         valueSlotLeft={shown.slotLeft}
         onValueClick={(e) => {
@@ -1727,8 +1736,7 @@ const AppliedChip = ({
                   variant="inline"
                   open={conditionCard.open}
                   onClose={() => conditionCard.setOpen(false)}
-                  style={LIST_STYLE}
-                >
+                  >
                   {condition.items}
                 </SelectList>
               </div>,
@@ -1789,7 +1797,6 @@ const AppliedChip = ({
               }
               state={list.isEmpty ? "noResults" : "default"}
               noResultsState={noMatches}
-              style={LIST_STYLE}
             >
               {list.items}
             </SelectList>

@@ -1,13 +1,19 @@
 @use "../../styles/mixins/font" as *;
 
-// FilterChip — one applied filter as "property | condition | value | ×" boxes
-// separated by vertical Dividers inside a white rounded chip. Per Figma
-// (component 29552-11955, parts 29544-9456): the chip is
-// `--surface-level-third` (the chip container itself is NON-interactive —
-// only the inner boxes are; Daniel moved it off `--surface-interactive-default`
-// on 2026-09-08 with the alpha-token rework) with the xs/down shadow and a 6px
-// radius; the boxes are transparent and the chip's overflow clip rounds their
-// corners.
+// FilterChip — one applied filter as "name | operator | value | ×" boxes
+// separated by vertical Dividers. Per Figma (component 29552-11955, parts
+// 29544-9456, rebuilt 2026-09-17): the chip is a `--gray-a2` body inside a 1px
+// `--gray-a6` ring — no card surface, no shadow — with a 6px radius; the boxes
+// are transparent and the chip's overflow clip rounds their corners.
+//
+// ONE size since 2026-09-18 (the Figma component dropped its breakpoint):
+// 36px boxes with 12px side paddings everywhere. Only the LAYOUT differs, and
+// it comes from the FilterChipGroup's `orientation` — see `.chipVertical`.
+//
+// The ring is an inset box-shadow, not a border: the chip hugs its content, so
+// there is no declared width for `border-box` to subtract a border from and a
+// real border would grow the chip (the Kitchen UI border pattern).
+//
 // The chip height is EXPLICIT (like the Figma node) — the Divider's
 // `height: 100%` needs a definite parent height; without it the dividers
 // collapse to nothing in auto-sized layout contexts.
@@ -16,31 +22,56 @@
   display: inline-flex;
   align-items: stretch;
   overflow: hidden;
-  height: var(--size-8); // 32px
+  height: var(--size-9); // 36px
 
   border-radius: var(--border-radius-1_5); // 6px
-  background: var(--surface-level-third);
-  box-shadow: var(--box-shadow-xs-down);
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-a6);
 }
 
-// Mobile: the chip fills the container width.
-.chipMobile {
+// In a VERTICAL group the chip fills the row instead of hugging its content
+// (the "value" box takes the slack — see `.fill`).
+.chipVertical {
   display: flex;
   width: 100%;
-  height: var(--size-9); // 36px
 }
 
-// ---- content box ("property" / "condition" / "value") ----
+// The CONFLICT treatment is a whole-chip change, not only the text: the body
+// becomes `--amber-a2` and the ring `--amber-a11` (the Figma warning variants
+// bind exactly those two). Everything inside keeps its colours — the dividers,
+// the chevrons and the "remove" glyph stay grey, and the interaction fills are
+// the same greys as on a neutral chip. Declared after `.chip` so it overrides
+// that block's surface at the same specificity.
+.chipWarning {
+  background: var(--amber-a2);
+  box-shadow: inset 0 0 0 1px var(--amber-a11);
+}
+
+// The box at the chip's RIGHT END takes the chip's radius on its outer corners
+// — the "remove" box, or the "value" box in a locked chip. The clip alone
+// rounds a fill, but it would shave the square corners off a focus ring; with
+// the radius here the ring follows the chip's shape (Figma: the `position`
+// axis on the `#️⃣ isClickable` part, and the `#️⃣ Remove` part's own corners).
+// The left end needs none: the "name" box is never interactive, so it has
+// neither a fill nor a ring of its own.
+.chip > *:last-child {
+  border-top-right-radius: var(--border-radius-1_5);
+  border-bottom-right-radius: var(--border-radius-1_5);
+}
+
+// ---- content box ("name" / "operator" / "value") ----
+// No `gap`: the two optional pieces sit at different distances from the text —
+// the slot 8px before it, the chevron 6px after it (Figma: `#️⃣ Content`'s gap
+// 8, `#️⃣ isClickable`'s gap 6).
 .box {
   box-sizing: border-box;
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--size-2); // 8px, slot ↔ text
   margin: 0;
   border: none;
-  padding: 0 var(--size-2_5); // 10px
-  height: var(--size-8); // 32px
+  padding: 0 var(--size-3); // 12px
+  height: var(--size-9); // 36px
   max-width: 240px;
 
   background: none;
@@ -49,24 +80,30 @@
   @include font("body-400-compact");
 }
 
-.boxMobile {
-  padding: 0 var(--size-3); // 12px
-  height: var(--size-9); // 36px
+// A VERTICAL group has no max width at all (the doc's Interactivity rule) —
+// the chip is as wide as the row, so the boxes are bounded by the chip itself.
+.boxVertical {
   max-width: none;
 }
 
-// The mobile "value" box fills the remaining chip width.
+// In a vertical group the "value" box fills the remaining chip width — and so
+// does its LABEL inside it (the Figma node: the box's `#️⃣ Content` is set to
+// FILL), which pushes the chevron to the box's right edge instead of leaving
+// it against the text with empty space after it.
 .fill {
   flex: 1 1 0;
   min-width: 0;
+
+  .copy {
+    flex: 1 1 auto;
+  }
 }
 
-// The CONFLICT treatment (Figma section 14101-46526): the content boxes'
-// text — and with it a default-colored slot Icon — turns amber. Fills and
-// dividers stay; the "remove" box never takes this class. The label span
-// (`.copy`) pins its own `--text-strong`, so it needs its own override —
-// inheritance alone only reached the icons (the bug Daniel caught on the
-// doc page, 2026-09-10).
+// The CONFLICT treatment: the content boxes' text — and with it a
+// default-colored slot Icon — turns amber. Fills, dividers and the chevron
+// stay; the "remove" box never takes this class. The label span (`.copy`) pins
+// its own `--text-strong`, so it needs its own override — inheritance alone
+// only reached the icons.
 .warning {
   color: var(--text-warning);
 
@@ -76,27 +113,39 @@
 }
 
 // Interactive box (a <button>). Fills: hover/focus `--gray-a3`, press
-// `--gray-a4` (Daniel, 2026-09-08 — stepped up from the a2/a3 the Figma parts
-// node 29544-9456 draws; the node needs updating); focus = a 2px `--gray-12`
-// stroke over the hover fill, drawn as an inset box-shadow so it never adds
-// size (the Kitchen UI border pattern).
+// `--gray-a4`; focus = a 2px `--gray-12` stroke over the hover fill, drawn as
+// an inset box-shadow so it never adds size. The chevron steps to `--gray-12`
+// with the box — the Figma part recolours it in the hovered, pressed and
+// focused states (it keeps `--gray-a9` at rest and while disabled).
 .clickable {
   cursor: pointer;
 
   @media (hover: hover) {
     &:hover:not(:disabled) {
       background: var(--gray-a3);
+
+      .chevron {
+        color: var(--gray-12);
+      }
     }
   }
 
   &:active:not(:disabled) {
     background: var(--gray-a4);
+
+    .chevron {
+      color: var(--gray-12);
+    }
   }
 
   &:focus-visible:not(:disabled) {
     outline: none;
     background: var(--gray-a3);
     box-shadow: inset 0 0 0 2px var(--gray-12);
+
+    .chevron {
+      color: var(--gray-12);
+    }
   }
 
   &:disabled {
@@ -105,17 +154,40 @@
   }
 }
 
-// A box STAYS at the hover tint while the list it opened is on screen
-// (`isPressed`) — same fill as hover, so moving the pointer away changes
-// nothing; a real press (`:active`, higher specificity) still steps to a4.
-.pressed {
-  background: var(--gray-a3);
+// A box that opened a list wears the PRESSED state while the list is on screen
+// (`isPressed`) — the doc page's preview draws that box at `state=pressed`.
+// Declared after `.clickable` and at the same specificity as its hover and
+// focus rules, so hovering or focusing the open box does not step the fill
+// back down; the focus ring still lands, because that rule sets the shadow and
+// this one only the fill.
+.clickable.pressed:not(:disabled) {
+  background: var(--gray-a4);
+
+  .chevron {
+    color: var(--gray-12);
+  }
 }
 
+// The left slot, `--size-2` (8px) before the text.
 .slot {
   display: flex;
   flex: none;
   align-items: center;
+
+  margin-right: var(--size-2);
+}
+
+// The chevron: the mark that this box opens a list, `--size-1_5` (6px) after
+// the text. `flex: none` keeps it out of the ellipsis — the text shrinks, the
+// glyph never does, so even a truncated value still shows what it can do.
+.chevron {
+  display: flex;
+  flex: none;
+  align-items: center;
+
+  margin-left: var(--size-1_5);
+
+  color: var(--gray-a9);
 }
 
 // The box text: single line with an ellipsis. The truncation tooltip is the
@@ -149,7 +221,7 @@
 }
 
 // ---- "remove" box ----
-// Fixed width (32 desktop / 36 mobile), the xmark centered. The icon is
+// A fixed 36px square, the 12px xmark centered. The icon is
 // `--gray-a9` at rest and `--gray-12` on hover/press/focus (driven through
 // `color` — the Icon inherits it). Same fills and focus stroke as the boxes.
 .remove {
@@ -161,8 +233,8 @@
   margin: 0;
   border: none;
   padding: 0;
-  width: var(--size-8); // 32px
-  height: var(--size-8);
+  width: var(--size-9); // 36px
+  height: var(--size-9);
 
   background: none;
   color: var(--gray-a9);
@@ -191,9 +263,4 @@
     opacity: 0.3;
     cursor: not-allowed;
   }
-}
-
-.removeMobile {
-  width: var(--size-9); // 36px
-  height: var(--size-9);
 }

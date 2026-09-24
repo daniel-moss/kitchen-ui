@@ -10,7 +10,7 @@ import HintTrigger from "../../components/Hint/HintTrigger";
 import HoverHint from "../../components/Hint/HoverHint";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import ListItem from "../../components/ListItem/ListItem";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import ProgressBar from "../../components/Progress/ProgressBar";
 import Tooltip from "../../components/Tooltip/Tooltip";
 
@@ -227,7 +227,7 @@ function ChartModule({
             <ItemGroup>
               {entries.map((entry) => {
                 const value = (
-                  <ListItemTextRight
+                  <ItemTextBlock align="right"
                     variant="titleCaption"
                     title={formatDuration(entry.sec)}
                     caption={`${Math.round((entry.sec / total) * 100)}%`}

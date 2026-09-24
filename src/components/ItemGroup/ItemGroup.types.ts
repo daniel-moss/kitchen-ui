@@ -28,7 +28,8 @@ type ItemGroupItemsProps =
       separated?: false;
       /**
        * Show only the first N items plus a full-width "Show X more" button.
-       * Expanding is one-way — the group can not be collapsed back.
+       * Expanding is two-way: once open the button becomes "Show less" and
+       * collapses the group back to the first N.
        */
       truncateAfter?: number;
       /**
@@ -43,14 +44,21 @@ type ItemGroupItemsProps =
   | { separated: true; truncateAfter?: never; onReorder?: never };
 
 /**
- * Header. The bottom divider and the accordion exist only in the labeled
- * variant — with more than one group each group needs a label.
+ * Header. The accordion exists only in the labeled variant — it is the header
+ * that collapses the group, so there has to be one. The bottom divider does
+ * NOT need a label: stacked groups separate the same way whether or not they
+ * are labeled (Figma, 2026-09-23).
  */
 type ItemGroupHeaderProps =
   | {
       label?: undefined;
-      divider?: never;
-      accordion?: never;
+      /**
+       * 1px divider at the very bottom of the group, inset 16px on each side.
+       * Set it when another group renders below this one — the gap between
+       * groups is 0, the divider does the separation.
+       */
+      divider?: boolean;
+      isAccordion?: never;
       open?: never;
       defaultOpen?: never;
       onOpenChange?: never;
@@ -65,7 +73,7 @@ type ItemGroupHeaderProps =
        * between groups is 0, the divider does the separation.
        */
       divider?: boolean;
-      accordion?: false;
+      isAccordion?: false;
       open?: never;
       defaultOpen?: never;
       onOpenChange?: never;
@@ -77,8 +85,13 @@ type ItemGroupHeaderProps =
       /**
        * The GroupLabel header becomes a toggle that expands / collapses the
        * items (the group injects the accordion props into the GroupLabel).
+       *
+       * An accordion is NEVER truncated — collapsing is what it does — so
+       * `truncateAfter` does not type-check alongside it (the doc, "Accordion";
+       * Figma has no accordion + truncated variant).
        */
-      accordion: true;
+      isAccordion: true;
+      truncateAfter?: never;
       /** Controlled open state. */
       open?: boolean;
       /** Uncontrolled initial state. Default false. */

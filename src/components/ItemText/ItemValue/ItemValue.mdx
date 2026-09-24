@@ -1,0 +1,121 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ItemValueStories from "./ItemValue.stories";
+import { FigmaLinks } from "../../../stories/FigmaLinks";
+
+<Meta of={ItemValueStories} />
+
+# ItemValue
+
+ItemValue is the current value of a row, changed in place. The row is the
+trigger — the value itself is not interactive. It is built from ItemTextLine,
+so its text follows the same styles and colors as the rest of a row's copy.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=30765-37486"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=30765-37765"
+/>
+
+<Canvas of={ItemValueStories.Anatomy} />
+
+```tsx
+<ListItem
+  title="Schedule horizon"
+  isClickable
+  onClick={openHorizonList}
+  slotRight={<ItemValue value="Next 7 days" />}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[When to use it](#when-to-use-it)<br />
+↳&nbsp;&nbsp;[Color](#color)<br />
+↳&nbsp;&nbsp;[Left slot](#left-slot)<br />
+↳&nbsp;&nbsp;[In a row](#in-a-row)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains the value text and a chevron, `--size-2` (8px) apart, with an optional
+slot before the text. The text is `bodyRegular` / `strong`; the chevron is
+`angles-up-down`, 14px, in `--text-placeholder`. ItemValue has no height of its
+own — the row sets that.
+
+<Canvas of={ItemValueStories.Anatomy} />
+
+ItemValue has no properties of its own. The value, its color and the left slot
+are set on the
+<a href="/?path=/docs/components-itemtext-itemtext--docs" target="_top">ItemTextLine</a>
+inside it, so these props forward straight through.
+
+## When to use it
+
+A row's value can be drawn two ways. Use **ItemValue** when the value is changed
+in this row — tapping the row opens a list in place. Use a **tag in the right
+text block** when the value is only read here, or changed on another screen.
+
+| | the value is | chevron |
+| --- | --- | --- |
+| `ItemValue` | changed **in place** | `angles-up-down` |
+| tag, right text block | read here, changed elsewhere | none — the row's own `angle-right` |
+
+The chevron is the visible signal: `angles-up-down` means a list opens here,
+`angle-right` means you go somewhere else. **A row never carries both.**
+
+## Color
+
+The value's color comes from the ItemTextLine inside it — `strong` by default,
+`placeholder` for a value that is not set.
+
+<Canvas of={ItemValueStories.Color} />
+
+The chevron is always `--text-placeholder`. It does not follow the value's
+color, because it is the affordance rather than the value.
+
+## Left slot
+
+Supports an optional slot before the text. It takes an Avatar or an Icon, with
+the same defaults as any ItemTextLine slot.
+
+<Canvas of={ItemValueStories.LeftSlot} />
+
+Unlike the chevron and an Avatar, this **icon does follow** the value's color,
+because it sits inside the line.
+
+<Canvas of={ItemValueStories.LeftSlotIconColor} />
+
+## In a row
+
+ItemValue sits in one of the row's right slots, **not** in the right text block.
+That is what lets a control sit before it — like the sort-order button in the
+View menu. It also keeps values aligned on the same right edge across rows,
+whether or not a row has a button.
+
+<Canvas of={ItemValueStories.InARow} />
+
+The value keeps its width and never truncates. When space runs out the row's
+title truncates instead — the same priority the right text block has.
+
+<Canvas of={ItemValueStories.TitleTruncatesFirst} />
+
+The value is not interactive. The whole row is the trigger, and it takes the
+pressed state while the list is open. If a design needs the value itself to be
+clickable, the row must not be, and a
+<a href="/?path=/docs/components-fields-selectfield--docs" target="_top">SelectField</a>
+with `fitContent` is the component for that.
+
+## Usage
+
+ItemValue is not used on its own — it goes in a
+<a href="/?path=/docs/components-listitem--docs" target="_top">ListItem</a>
+right slot.
+
+| Where | Which rows |
+| --- | --- |
+| View menu | Sort by, Schedule horizon |
+| Settings | rows whose value opens a list in place |
+
+## Props
+
+<ArgTypes of={ItemValueStories} />

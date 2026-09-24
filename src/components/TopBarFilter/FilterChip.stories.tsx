@@ -16,22 +16,24 @@ const meta: Meta<typeof FilterChip> = {
   // fullscreen — the stories' own frame provides the (only) padding.
   parameters: { layout: "fullscreen" },
   args: {
-    property: "Property",
-    condition: "condition",
+    name: "Name",
+    operator: "operator",
     value: "Value",
     isLocked: false,
-    conditionDisabled: false,
+    operatorDisabled: false,
     valueDisabled: false,
     removeDisabled: false,
-    breakpoint: "auto",
+    orientation: "horizontal",
   },
   argTypes: {
     slotLeft: { control: false },
-    onConditionClick: { control: false },
+    onOperatorClick: { control: false },
     onValueClick: { control: false },
     onRemove: { control: false },
     className: { control: false },
-    breakpoint: { options: ["auto", "desktop", "mobile"], control: { type: "inline-radio" } },
+    // Normally the enclosing FilterChipGroup sets this; the control is here so
+    // the Playground can show the vertical chip on its own.
+    orientation: { options: ["horizontal", "vertical"], control: { type: "inline-radio" } },
   },
 };
 export default meta;
@@ -60,7 +62,7 @@ const row = (gap: number): CSSProperties => ({
 export const Playground: Story = {
   render: (args) => (
     <div style={row(0)}>
-      <FilterChip {...args} slotLeft={diamond} onConditionClick={noop} onValueClick={noop} onRemove={noop} />
+      <FilterChip {...args} slotLeft={diamond} onOperatorClick={noop} onValueClick={noop} onRemove={noop} />
     </div>
   ),
 };
@@ -70,12 +72,11 @@ export const Hero: Story = {
   render: () => (
     <div style={row(0)}>
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
-        property="Property"
-        condition="condition"
+        name="Name"
+        operator="operator"
         value="Value"
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
@@ -83,48 +84,23 @@ export const Hero: Story = {
   ),
 };
 
-/** Anatomy — the desktop chip container: fixed height, hugs the content. */
-export const ChipContainerDesktop: Story = {
+/**
+ * Anatomy — the chip container: a fixed 36px height, hugging its content. In a
+ * VERTICAL FilterChipGroup the same chip fills the row instead (see
+ * `VerticalValueFill`).
+ */
+export const ChipContainer: Story = {
   render: () => (
     <div style={row(0)}>
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
-        property="Property"
-        condition="condition"
+        name="Name"
+        operator="operator"
         value="Value"
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
-    </div>
-  ),
-};
-
-/** Anatomy — the mobile chip container: fills the width, the "value" box fills. */
-export const ChipContainerMobile: Story = {
-  render: () => (
-    <div style={docsFrame}>
-      <FilterChip
-        breakpoint="mobile"
-        slotLeft={diamond}
-        property="Property"
-        condition="condition"
-        value="Value"
-        onConditionClick={noop}
-        onValueClick={noop}
-        onRemove={noop}
-      />
-    </div>
-  ),
-};
-
-/** Content box paddings: 10px sides / 32px high on desktop, 12px / 36px on mobile. */
-export const ContentBoxPaddings: Story = {
-  render: () => (
-    <div style={row(80)}>
-      <FilterChipBox breakpoint="desktop">Desktop</FilterChipBox>
-      <FilterChipBox breakpoint="mobile">Mobile</FilterChipBox>
     </div>
   ),
 };
@@ -148,40 +124,51 @@ export const ContentBoxSlot: Story = {
   ),
 };
 
-/** The "remove" box: 32px wide on desktop, 36px on mobile — the icon is identical. */
+/** The "remove" box: icon-only, a fixed 36px square. */
 export const RemoveBox: Story = {
   render: () => (
     <div style={{ ...row(80), alignItems: "center" }}>
       <FilterChipRemove onClick={noop} />
-      <FilterChipRemove breakpoint="mobile" onClick={noop} />
-    </div>
-  ),
-};
-
-/** The locked chip: no "remove" box (and no divider before it). */
-export const IsLocked: Story = {
-  render: () => (
-    <div style={col(0)}>
-      <FilterChip breakpoint="desktop" slotLeft={diamond} property="Property" condition="condition" value="Value" isLocked />
     </div>
   ),
 };
 
 /**
- * A locked chip ignores `onConditionClick` — the "condition" box stays
- * non-interactive (hover it: nothing happens).
+ * The locked chip: no "remove" box (and no divider before it). Its "value" box
+ * still opens the read-only list, so it stays clickable and keeps its chevron
+ * — and, being last, it takes the chip's radius on its right corners.
  */
-export const LockedCondition: Story = {
+export const IsLocked: Story = {
   render: () => (
     <div style={col(0)}>
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
-        property="Property"
-        condition="condition"
+        name="Name"
+        operator="operator"
         value="Value"
         isLocked
-        onConditionClick={noop}
+        onValueClick={noop}
+      />
+    </div>
+  ),
+};
+
+/**
+ * A locked chip ignores `onOperatorClick` — the "operator" box stays
+ * non-interactive, so it carries no chevron either (hover it: nothing
+ * happens).
+ */
+export const LockedOperator: Story = {
+  render: () => (
+    <div style={col(0)}>
+      <FilterChip
+        slotLeft={diamond}
+        name="Name"
+        operator="operator"
+        value="Value"
+        isLocked
+        onOperatorClick={noop}
+        onValueClick={noop}
       />
     </div>
   ),
@@ -192,12 +179,12 @@ export const LockedCondition: Story = {
  * `onValueClick`, the box is not clickable. (The rule was corrected
  * 2026-09-10: whether the box opens depends on WHERE the value comes from,
  * not on how many values it holds — the export name predates that and stays
- * for stable story links until the doc restructure.)
+ * for stable story links.)
  */
 export const LockedValueSingle: Story = {
   render: () => (
     <div style={col(0)}>
-      <FilterChip breakpoint="desktop" slotLeft={diamond} property="Property" condition="condition" value="Value" isLocked />
+      <FilterChip slotLeft={diamond} name="Name" operator="operator" value="Value" isLocked />
     </div>
   ),
 };
@@ -213,24 +200,21 @@ export const LockedValueSingle: Story = {
  * alignment).
  */
 export const LockedValueMultiple: Story = {
-  // The addon presses the one clickable box in the chip (the "value" box) —
-  // the read-only list rows take no states, so they are not affected.
-  parameters: { pseudo: { active: ['[class*="_clickable"]'] } },
   render: () => (
     <div style={{ ...col(0), alignItems: "center" }}>
       <div style={{ position: "relative" }}>
         <FilterChip
-          breakpoint="desktop"
           slotLeft={diamond}
-          property="Property"
-          condition="condition"
+          name="Name"
+          operator="operator"
           value="Option 1"
           isLocked
           onValueClick={noop}
+          valuePressed
         />
-        {/* Left-aligned with the "value" box: 75px is that box's width in
-            this example (10px padding + "Option 1" + 10px). */}
-        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: "calc(100% - 75px)" }}>
+        {/* Left-aligned with the "value" box: 89px is that box's width in
+            this example (10px padding + "Option 1" + 6px + the chevron + 10px). */}
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: "calc(100% - 89px)" }}>
           <SelectList variant="inline" breakpoint="desktop" open onClose={noop}>
             <SelectListItemGroup>
               <SelectListItem label="Option 1" multiSelect selected readOnly />
@@ -250,7 +234,10 @@ export const LockedValueMultiple: Story = {
   ),
 };
 
-/** A non-clickable box next to a clickable one — hover the clickable one. */
+/**
+ * A non-clickable box next to a clickable one — the chevron is the difference
+ * you can see without hovering.
+ */
 export const IsClickable: Story = {
   render: () => (
     <div style={row(80)}>
@@ -282,14 +269,15 @@ export const InteractionStates: Story = {
 };
 
 /**
- * A box that opened a list stays PRESSED while the list is on screen — in a
- * chip, hold `conditionPressed` / `valuePressed` to the list's open state.
+ * A box that opened a list holds the PRESSED state while the list is on
+ * screen — in a chip, hold `operatorPressed` / `valuePressed` to the list's
+ * open state.
  */
 export const PressedWhileOpen: Story = {
   render: () => (
     <div style={{ ...col(0), alignItems: "center" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-        <FilterChipBox onClick={noop} className={PSEUDO_SELF.press}>
+        <FilterChipBox onClick={noop} isPressed>
           Option 1
         </FilterChipBox>
         <SelectList variant="inline" breakpoint="desktop" open onClose={noop}>
@@ -306,7 +294,10 @@ export const PressedWhileOpen: Story = {
   ),
 };
 
-/** Live: the desktop box caps at 240px — hover the truncated text for the full value. */
+/**
+ * Live: in a horizontal group a box caps at 240px — hover the truncated text
+ * for the full value. The chevron never shrinks with it.
+ */
 export const MaxWidth: Story = {
   render: () => (
     <div style={row(0)}>
@@ -318,21 +309,22 @@ export const MaxWidth: Story = {
 };
 
 /**
- * Mobile: the "value" box label fills the width by default, and the text
- * truncates when it does not fit — the box here is 280px wide.
+ * In a vertical group the "value" box label fills the width by default, and
+ * the text truncates when it does not fit — the box here is 280px wide. There
+ * is no max width in that orientation.
  */
-export const MobileTruncation: Story = {
+export const VerticalValueFill: Story = {
   render: () => (
     <div style={row(0)}>
-      <FilterChipBox breakpoint="mobile" style={{ width: 280 }}>
+      <FilterChipBox orientation="vertical" fill style={{ width: 280 }}>
         Very long value which does not fit the box
       </FilterChipBox>
     </div>
   ),
 };
 
-/** The "property" box: usually an icon and text; always non-interactive. */
-export const PropertyBox: Story = {
+/** The "name" box: usually an icon and text; always non-interactive. */
+export const NameBox: Story = {
   render: () => (
     <div style={row(0)}>
       <FilterChipBox slotLeft={diamond}>Label</FilterChipBox>
@@ -340,19 +332,19 @@ export const PropertyBox: Story = {
   ),
 };
 
-/** The "condition" box pressed, its single-select condition list open. */
-export const ConditionBox: Story = {
+/** The "operator" box pressed, its single-select operator list open. */
+export const OperatorBox: Story = {
   render: () => (
     <div style={{ ...col(0), alignItems: "center" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 }}>
-        <FilterChipBox onClick={noop} className={PSEUDO_SELF.press}>
-          condition 1
+        <FilterChipBox onClick={noop} isPressed>
+          operator 1
         </FilterChipBox>
         <SelectList variant="inline" breakpoint="desktop" open onClose={noop}>
           <SelectListItemGroup>
-            <SelectListItem label="condition 1" selected />
-            <SelectListItem label="condition 2" />
-            <SelectListItem label="condition 3" />
+            <SelectListItem label="operator 1" selected />
+            <SelectListItem label="operator 2" />
+            <SelectListItem label="operator 3" />
           </SelectListItemGroup>
         </SelectList>
       </div>
@@ -364,7 +356,7 @@ export const ConditionBox: Story = {
 export const ValueBox: Story = {
   render: () => (
     <div style={row(0)}>
-      <FilterChipBox onClick={noop}>Label</FilterChipBox>
+      <FilterChipBox onClick={noop}>Value</FilterChipBox>
     </div>
   ),
 };
@@ -398,29 +390,28 @@ export const RemoveTooltip: Story = {
 const emptyHintSlot = <div style={{ height: 100 }} />;
 
 /**
- * The warning state: amber content boxes, the `warning` icon in the property
- * slot (the chip swaps it itself — `slotLeft` is set aside), a normal
- * "remove" box. Below: a condition-less warning chip.
+ * The warning state: an `--amber-a2` body in an `--amber-a11` ring, amber
+ * content boxes, the solid `warning` icon in the name slot (the chip swaps it
+ * itself — `slotLeft` is set aside), and a normal "remove" box. Below: an
+ * operator-less warning chip.
  */
 export const IsWarning: Story = {
   render: () => (
     <div style={col(80)}>
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
         isWarning
-        property="Property"
-        condition="condition"
+        name="Name"
+        operator="operator"
         value="Value"
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
         isWarning
-        property="Property"
+        name="Name"
         value="Value"
         onValueClick={noop}
         onRemove={noop}
@@ -438,24 +429,22 @@ export const WarningIconColors: Story = {
   render: () => (
     <div style={col(80)}>
       <FilterChip
-        breakpoint="desktop"
         isWarning
-        property="Type"
-        condition="is"
+        name="Type"
+        operator="is"
         value="New"
         valueSlotLeft={<Icon icon="sparkle" size={14} />}
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
       <FilterChip
-        breakpoint="desktop"
         isWarning
-        property="Status"
-        condition="is"
+        name="Status"
+        operator="is"
         value="Finalized"
         valueSlotLeft={<Icon icon="circle-check" pack="solid" size={14} style={{ color: "var(--text-success)" }} />}
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
@@ -464,24 +453,23 @@ export const WarningIconColors: Story = {
 };
 
 /**
- * Live — hover the "property" box: the warning chip explains itself with a
- * Hint anchored there (`propertyHint`; the bubble stays while the pointer
- * is inside it, so interactive content stays reachable). The doc shows the
- * default hint with an empty slot — the content is the consumer's.
+ * Live — hover the "name" box: the warning chip explains itself with a Hint
+ * anchored there (`nameHint`; the bubble stays while the pointer is inside it,
+ * so interactive content stays reachable). The doc shows the default hint with
+ * an empty slot — the content is the consumer's.
  */
 export const WarningHint: Story = {
   render: () => (
     <div style={{ ...col(0), alignItems: "center" }}>
       <FilterChip
-        breakpoint="desktop"
         slotLeft={diamond}
         isWarning
-        propertyHint={emptyHintSlot}
-        propertyHintWidth={276}
-        property="Property"
-        condition="condition"
+        nameHint={emptyHintSlot}
+        nameHintWidth={276}
+        name="Name"
+        operator="operator"
         value="Value"
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />
@@ -494,21 +482,23 @@ export const WarningHint: Story = {
 };
 
 /**
- * Live — the mobile presentation: tapping the "property" box opens the same
- * hint content as a drawer (click it here).
+ * Live — the mobile presentation: tapping the "name" box opens the same hint
+ * content as a drawer (click it here). The chip has no breakpoint of its own
+ * any more, so this story forces the HINT alone with `nameHintBreakpoint`; in
+ * the app the viewport decides.
  */
 export const WarningHintMobile: Story = {
   render: () => (
     <div style={docsFrame}>
       <FilterChip
-        breakpoint="mobile"
+        nameHintBreakpoint="mobile"
         slotLeft={diamond}
         isWarning
-        propertyHint={emptyHintSlot}
-        property="Property"
-        condition="condition"
+        nameHint={emptyHintSlot}
+        name="Name"
+        operator="operator"
         value="Value"
-        onConditionClick={noop}
+        onOperatorClick={noop}
         onValueClick={noop}
         onRemove={noop}
       />

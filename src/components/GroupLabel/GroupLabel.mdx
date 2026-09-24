@@ -1,0 +1,188 @@
+import { Canvas, Meta, ArgTypes } from "@storybook/blocks";
+
+import * as GroupLabelStories from "./GroupLabel.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
+
+<Meta of={GroupLabelStories} />
+
+# GroupLabel
+
+GroupLabel is the header of a group of items — the labeled bar above a list, a
+menu section or a log day. It holds the label, an optional icon or avatar before
+it, an optional counter and caption after it, and an optional action on the
+right. The header can be static, or an accordion that collapses the group below
+it.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25310-12980"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25982-71588"
+/>
+
+<Canvas of={GroupLabelStories.Overview} />
+
+```tsx
+<GroupLabel label="Locations" counter={8} slotRight={<IconButton … />} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Variants](#variants)<br />
+↳&nbsp;&nbsp;[Content](#content)<br />
+↳&nbsp;&nbsp;[Right slot](#right-slot)<br />
+↳&nbsp;&nbsp;[Accordion](#accordion)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains an optional caret, the content, and an optional action on the right.
+The content is the label with an optional slot before it and an optional counter
+and caption after it. Everything is vertically centered, and the header keeps to
+one line.
+
+<Canvas of={GroupLabelStories.Anatomy} />
+
+Radius is `--border-radius-1_5` (6px). Gaps are `--size-3` (12px) — the caret to
+the content in primary, and the content to the action in both variants. In
+secondary the caret sits inside the content, `--size-2` (8px) after the label.
+
+<Canvas of={GroupLabelStories.AnatomyGaps} />
+
+## Variants
+
+Two variants. **Primary** is a 40px bar filled `--gray-a2` with 12px side
+padding. **Secondary** is a 28px transparent row with 8px side padding.
+
+<Canvas of={GroupLabelStories.Variants} />
+
+Primary is the group header in a list —
+<a href="/?path=/docs/components-itemgroup--docs" target="_top">ItemGroup</a>,
+and the top-level groups in
+<a href="/?path=/docs/components-selectlist-selectlistitemgroup--docs" target="_top">SelectListItemGroup</a>.
+Secondary is a quieter section header — ActivityLog, MenuItemGroup, and nested
+groups in SelectListItemGroup.
+
+<Canvas of={GroupLabelStories.VariantsInUse} />
+
+Secondary carries the label alone. It has no slot, no counter and no caption —
+only the label, the caret and the action. TypeScript enforces this: those props
+do not type-check on a secondary header.
+
+<Canvas of={GroupLabelStories.SecondaryLabelOnly} />
+
+## Content
+
+The label is `caption-medium-500` (Inter Medium 13/20) — `--text-strong` in
+primary, `--text-subtle` in secondary. On its own it fills the header and
+truncates.
+
+<Canvas of={GroupLabelStories.ContentLabel} />
+
+Next to a counter or a caption the label hugs its text.
+
+<Canvas of={GroupLabelStories.ContentLabelHugs} />
+
+The label takes an optional slot before it, `--size-2` (8px) from the text. It
+takes an
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+at sm (24px) or an Icon — classic pack, regular style, 14px, square container.
+Primary only.
+
+<Canvas of={GroupLabelStories.ContentSlotLeft} />
+
+The counter sits after the label, separated by a bullet icon with `--size-2`
+(8px) on each side. It is subtle, and it takes an icon of its own on the left
+(`counterIcon`).
+
+<Canvas of={GroupLabelStories.ContentCounter} />
+
+The caption follows the same pattern — subtle, after the label and the counter,
+separated by its own bullet.
+
+<Canvas of={GroupLabelStories.ContentCaption} />
+
+Counter and caption can be shown at the same time.
+
+<Canvas of={GroupLabelStories.ContentCounterAndCaption} />
+
+## Right slot
+
+Takes an
+<a href="/?path=/story/components-iconbutton--playground" target="_top">IconButton</a>
+at the right end — md ghost (32px) in primary, xs muted (24px) in secondary. The
+right padding tightens from 12 to 4 in primary and from 8 to 2 in secondary, so
+the button's own padding keeps the icon on the same edge as the label.
+
+<Canvas of={GroupLabelStories.RightSlot} />
+
+The action is its own trigger. It does not toggle the accordion.
+
+<Canvas of={GroupLabelStories.RightSlotIsOwnTrigger} />
+
+## Accordion
+
+An accordion header (`isAccordion`) collapses and expands the group below it.
+The caret is `caret-right`, solid, `--gray-a9` — 14px in primary, 12px in
+secondary.
+
+<Canvas of={GroupLabelStories.AccordionCaret} />
+
+The caret sits before the label in primary and right after it in secondary.
+Opening rotates it 90° — the same glyph, not a second icon.
+
+<Canvas of={GroupLabelStories.AccordionOpen} />
+
+The header is the trigger. **GroupLabel does not collapse anything by itself** —
+the group container does. Drive it with `open` + `onOpenChange`, or leave it
+uncontrolled with `defaultOpen`.
+
+<Canvas of={GroupLabelStories.AccordionTrigger} />
+
+## States
+
+State applies to accordion headers only. A static header has one state. A
+loading header has no states.
+
+<Canvas of={GroupLabelStories.StatesStatic} />
+
+Hover fills `--gray-a3`, press `--gray-a4`, focus draws a ring, and `disabled`
+dims the header to 30%.
+
+`isAccordion = true, variant = primary`
+
+<Canvas of={GroupLabelStories.StatesPrimary} />
+
+`isAccordion = true, variant = secondary`
+
+<Canvas of={GroupLabelStories.StatesSecondary} />
+
+Hover, press and focus also strengthen the caret color (`--gray-a9` →
+`--gray-12`). The label keeps its own color throughout. The states are the same
+when the header is open.
+
+## Loading
+
+A loading header (`isLoading`) shows a single 96px bar in place of the label.
+The caret, the counter, the caption and the action are all hidden, and the
+header is not interactive while loading.
+
+<Canvas of={GroupLabelStories.Loading} />
+
+The header keeps its own shape — primary keeps its filled bar, secondary stays
+transparent — so only the label is replaced.
+
+## Usage
+
+GroupLabel is not used on its own — it is the header inside a group component.
+
+| Component | Where |
+| --- | --- |
+| ItemGroup | list and card groups |
+| SelectListItemGroup | grouped options in a select list |
+| MenuItemGroup | menu sections |
+| ActivityLog | day and event sections — secondary |
+
+## Props
+
+<ArgTypes of={GroupLabelStories} />

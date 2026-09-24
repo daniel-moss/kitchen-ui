@@ -1,7 +1,7 @@
 import DisplayModule from "../../../../components/DisplayModule/DisplayModule";
 import ItemGroup from "../../../../components/ItemGroup/ItemGroup";
 import ListItem from "../../../../components/ListItem/ListItem";
-import ListItemTextRight from "../../../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../../../components/ItemText/ItemText/ItemTextBlock";
 
 import { formatSpan, momentLabel, periodSec, stretchLabel, toEvents } from "../lifecycleData";
 import { LifecycleConceptProps, SectionTitle, StatusAvatar, TopData } from "../shared";
@@ -50,7 +50,7 @@ export default function Concept5({
                   caption={event.terminal ? momentLabel(event.period.start) : stretchLabel(event.period)}
                   avatar={<StatusAvatar row={event} />}
                   slotRight={
-                    event.terminal ? undefined : <ListItemTextRight title={formatSpan(periodSec(event.period))} />
+                    event.terminal ? undefined : <ItemTextBlock align="right" title={formatSpan(periodSec(event.period))} />
                   }
                 />
               ))}

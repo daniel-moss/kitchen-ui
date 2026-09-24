@@ -436,10 +436,10 @@ const SessionRow = ({
 
 // A tech's timesheet group: header (avatar + name + total + add), then either
 // the rows (log / session) or the "No time logged" empty state.
-const TechGroup = ({ user, total, rows, divider, canAdd, onAdd, accordion = true }: { user: User; total: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: () => void; accordion?: boolean }) => {
-  // accordion / defaultOpen are a `true`-literal variant in ItemGroup — a
+const TechGroup = ({ user, total, rows, divider, canAdd, onAdd, isAccordion = true }: { user: User; total: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: () => void; isAccordion?: boolean }) => {
+  // isAccordion / defaultOpen are a `true`-literal variant in ItemGroup — a
   // static group simply omits them.
-  const groupProps = accordion ? ({ accordion: true, defaultOpen: true } as const) : ({ accordion: false } as const);
+  const groupProps = isAccordion ? ({ isAccordion: true, defaultOpen: true } as const) : ({ isAccordion: false } as const);
   return (
   <ItemGroup
     {...groupProps}
@@ -474,7 +474,7 @@ export function SessionGroup({
   mobile,
   canAdd,
   editable = true,
-  accordion = true,
+  isAccordion = true,
   onStop,
   onEdit,
   onDelete,
@@ -487,7 +487,7 @@ export function SessionGroup({
   /** Shows each row's edit/delete menu — only the viewer can edit their own time. */
   editable?: boolean;
   /** Collapsible header (Timesheet). Set false for a static group (Complete dialog). */
-  accordion?: boolean;
+  isAccordion?: boolean;
   onStop: () => void;
   onEdit: (session: Session) => void;
   onDelete: (session: Session) => void;
@@ -497,7 +497,7 @@ export function SessionGroup({
   const rows = sessions.map((s) => (
     <SessionRow key={s.id} session={s} mobile={mobile} editable={editable} onStop={onStop} onEdit={() => onEdit(s)} onDelete={() => onDelete(s)} />
   ));
-  return <TechGroup user={user} total={formatHrMin(totalSec)} rows={rows} divider={false} canAdd={canAdd} onAdd={onAdd} accordion={accordion} />;
+  return <TechGroup user={user} total={formatHrMin(totalSec)} rows={rows} divider={false} canAdd={canAdd} onAdd={onAdd} isAccordion={isAccordion} />;
 }
 
 // A proportional segmented bar: top labels, the colored bar, then the values.

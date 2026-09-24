@@ -445,12 +445,13 @@ export const isDateRange = (date: DateValue) => date.compare === "within";
 export interface FreeformField {
   key: string;
   /**
-   * The Input's label — the node's copy; a labelled field is always
-   * "(optional)". UNSET draws the field with NO header at all, which is what
-   * a ONE-field freeform filter does: the dialog's title already names what
-   * is being typed, so a label under it would only repeat it (the Products
-   * list's MFG and MFG part # dialogs, 15339-34587 / 15339-34950, both draw
-   * their Input with `header: false`).
+   * The Input's label — the node's copy, with NO label condition on it (the
+   * "(optional)" came off on 2026-09-16: every field of a freeform filter is
+   * optional, so it said nothing). UNSET draws the field with NO header at
+   * all, which is what a ONE-field freeform filter does: the dialog's title
+   * already names what is being typed, so a label under it would only repeat
+   * it (the Products list's MFG and MFG part # dialogs, 15339-34587 /
+   * 15339-34950, both draw their Input with `header: false`).
    */
   label?: string;
   /** Shares a desktop row with the NEXT half field (Address: State + Postal). */
@@ -460,8 +461,8 @@ export interface FreeformField {
 /**
  * A freeform filter's value — what was typed into each of the def's fields,
  * keyed by `FreeformField.key`. Plain strings, never null: a blank field is
- * simply not part of the question, which is why every label carries
- * "(optional)".
+ * simply not part of the question — every field is optional, which is exactly
+ * why no label says so.
  *
  * This kind has NO option list at all. There is nothing to choose from — the
  * values are free text — so the user types, and the row in the Filters menu

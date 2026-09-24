@@ -7,81 +7,119 @@ import { FigmaLinks } from "../../stories/FigmaLinks";
 
 # ChipGroup
 
-We use **ChipGroup** to hold a row of
+ChipGroup holds a row of
 <a href="/?path=/docs/components-chip-chip--docs" target="_top">Chips</a>.
-It places the chips, lets them wrap, and owns the group's validation state.
+It places them, lets them wrap, and owns the group's validation — the chips
+themselves only know whether they are selected. It has no background, no border
+and no padding of its own.
 
-<FigmaLinks component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=29520-32450" />
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=29520-32450"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=31303-28379"
+/>
 
 <Canvas of={ChipGroupStories.Hero} />
 
 ```tsx
-<ChipGroup>
-  <Chip isSelected={selected === "a"} onClick={() => setSelected("a")}>
+<ChipGroup selectionMode="single">
+  <Chip isSelected={value === "a"} onClick={() => setValue("a")}>
     Chip
   </Chip>
-  <Chip isSelected={selected === "b"} onClick={() => setSelected("b")}>
+  <Chip isSelected={value === "b"} onClick={() => setValue("b")}>
     Chip
   </Chip>
 </ChipGroup>
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[Wrapping](#wrapping)<br />
+↳&nbsp;&nbsp;[Full width](#full-width)<br />
+↳&nbsp;&nbsp;[Selection](#selection)<br />
+↳&nbsp;&nbsp;[Validation](#validation)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-The group is one row of Chips with `--size-2` (8px) between them. It has no
-background, no border and no padding of its own — it takes the width of its
-container.
+A row of Chips, and below it the error message when the group is invalid. The
+group takes the width of its container.
 
-<Canvas of={ChipGroupStories.Sizes} />
+A group holds one kind of chip. Keep one size and one orientation inside a
+group.
 
-Chips of any size can go in a group. Keep **one size inside one group**.
+<Canvas of={ChipGroupStories.OneKindOfChip} />
 
-## Behavior
+## Wrapping
 
-### Wrapping
-
-When the row runs out of width, the chips wrap onto the next line. The gap is
-the same on both axes — `--size-2` (8px) between chips and between lines.
+When the row runs out of width the chips wrap onto the next line. The gap is
+`--size-2` (8px) between chips and between lines.
 
 <Canvas of={ChipGroupStories.Wrapping} />
 
-### Full width
+## Full width
 
-`isFullWidth` flips the group to the stretch mode (like TabGroup's): one
-non-wrapping row where the chips stop hugging and share the full width
-equally, with the labels centered. Used for the weekday "Repeat on" row in
-forms.
+`isFullWidth` flips the group to the stretch mode. The chips stop hugging their
+labels and share the row equally, each label centered, and the row no longer
+wraps.
+
+`isFullWidth = false`
+
+<Canvas of={ChipGroupStories.FullWidthOff} />
+
+`isFullWidth = true`
 
 <Canvas of={ChipGroupStories.FullWidth} />
 
-### Selection
+This is the mode for a switcher: a small, fixed set of options that should read
+as one control.
 
-**The group does not manage selection by itself.** Each Chip keeps its own
-`isSelected` prop, so the consumer decides how many chips can be selected at
-once.
+## Selection
 
-Single-select — keep one value:
+The group places the chips. It does not track which one is on — each chip
+carries its own `isSelected` and the consumer decides what happens on a click.
+
+That makes two patterns. **Pick one:** clicking a chip selects it and clears
+the others, and one chip is always selected. **Pick many:** each chip toggles
+on its own, and none, some or all can be selected at once.
+
+`selectionMode` says which one this group is, so the chips announce themselves
+correctly. **"multiple"** (the default) makes each chip a toggle button with
+`aria-pressed`, and Tab stops on every one of them. **"single"** makes the row
+a radio group: each chip is `role="radio"` with `aria-checked`, Tab stops on
+the row once — at the selected chip, or the first one when none is selected —
+and the arrow keys move between chips, clicking as they go so the selection
+follows the focus.
 
 <Canvas of={ChipGroupStories.SingleSelect} />
 
-Multi-select — keep a list of values:
-
 <Canvas of={ChipGroupStories.MultiSelect} />
 
-### Validation
+## Validation
 
-`isValid={false}` turns every chip into its error look and shows the error
-message `--size-1_5` (6px) below the chips, like the other group fields
-(CheckboxGroup, RadioGroup). The message comes from `errorMessage`; inside an
-<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
-with a string label it defaults to "Choose [Label]". The label and the help
-text live on the Input wrapper — the group stays bare.
+`isValid={false}` turns every chip in the group into its error look and shows
+the message `--size-1_5` (6px) below the row. One chip cannot be invalid on its
+own — the group is the unit that fails.
 
 <Canvas of={ChipGroupStories.Validation} />
+
+The message is an error
+<a href="/?path=/docs/components-inputhelptext--docs" target="_top">InputHelpText</a>.
+Inside an
+<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
+with a string label it defaults to "Choose [Label]". The label and the help
+text belong to the Input wrapper; the group itself stays bare.
+
+## Usage
+
+A ChipGroup sits inside the form, panel or menu that owns the choice.
+
+| Component | Where |
+| --- | --- |
+| Input | the wrapper that owns the label and the help text |
+| SelectListHeader | the chip row above the search |
+| "View" menu | view switcher, Timeline settings, Cards attributes |
+| Duration presets | new job and new service forms |
+| Filters | the timeframe and condition choices inside a filter's editor |
 
 ## Props
 

@@ -43,8 +43,8 @@ import { BillRow, displayStatus, vendorOf } from "./billsData";
 // 'Closed' phase lists"), so the one drawn menu and the two built ones
 // agree.
 //
-// The templates that are NOT here — Address, Client, Location, Service,
-// Seen, Amount due, Created at — have nothing to read: a bill belongs to a
+// The templates that are NOT here — Location address, Client, Location,
+// Service, Seen, Amount due, Created at — have nothing to read: a bill belongs to a
 // VENDOR (no client, location or service), cannot be sent so cannot be seen
 // (Daniel, 2026-09-15 — production's `last_viewed` is another production
 // gap), and has no partial payments, so its Total is the only amount.

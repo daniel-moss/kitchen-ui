@@ -3,7 +3,7 @@
 // Same surface chrome as the Menu card, but WITHOUT Menu's 160px floor: the
 // width hugs the content up to max 384 (Daniel, 2026-08-27 — the TopBarNav
 // sub-pages and TopBarView views lists hug their short labels); height caps
-// at 1000px and the body scrolls.
+// at 1000px or the screen, whichever is smaller, and the body scrolls.
 .card {
   box-sizing: border-box;
   display: flex;
@@ -12,7 +12,13 @@
 
   width: fit-content;
   max-width: var(--size-96); // 384px
-  max-height: 1000px;
+  // THE SCREEN IS PART OF THE CAP (2026-09-17) — the same fix Menu.module.scss
+  // carries, and the bug was found here: the Filters prototype's Location list
+  // came out 1000px tall in a 533px window and 475px of it hung off the bottom,
+  // because a card that does not fit cannot be placed anywhere. `dvh` so a
+  // mobile browser's collapsing toolbar is counted; `--size-4` is 16px: the 8px of
+  // clearance an anchored card leaves at each end.
+  max-height: min(1000px, calc(100dvh - var(--size-4)));
 
   background: var(--surface-level-third);
   border-radius: var(--border-radius-2_5); // 10px

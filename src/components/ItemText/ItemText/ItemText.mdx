@@ -1,0 +1,204 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as ItemTextStories from "./ItemText.stories";
+import { FigmaLinks } from "../../../stories/FigmaLinks";
+
+<Meta of={ItemTextStories} />
+
+# ItemText
+
+ItemText is the text region of a row — a left text block and an optional right
+one. It is shared: ListItem, SelectListItem, DisplayModule and MenuItem all
+build their copy from it, so the text styles, colors and slots are defined once.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=30723-29469"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=30750-35455"
+/>
+
+<Canvas of={ItemTextStories.Overview} />
+
+```tsx
+<ItemText
+  variant="titleCaption"
+  title={location.address}
+  caption={location.name}
+  right={<ItemTextBlock align="right" variant="tag" tag={location.distance} />}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Text blocks](#text-blocks)<br />
+↳&nbsp;&nbsp;[Text lines](#text-lines)<br />
+↳&nbsp;&nbsp;[Slots](#slots)<br />
+↳&nbsp;&nbsp;[Truncation and wrapping](#truncation-and-wrapping)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+Contains a left text block and an optional right one, `--size-4` (16px) apart
+and vertically centered. Each block holds one or two lines, and each line holds
+the text with an optional slot on each side. ItemText has no height of its own —
+the component that uses it sets the row height.
+
+<Canvas of={ItemTextStories.Anatomy} />
+
+Three components, one per level:
+
+- `ItemText` — the pair. Flattens the left block's props and takes the right
+  block in `right`.
+- `ItemTextBlock` — one column of lines, with a `variant` and an `align`.
+- `ItemTextLine` — one line: the text, its style and color, and the two slots.
+
+## Text blocks
+
+Supports four layouts — title, title + caption, caption + title, and tag.
+
+<Canvas of={ItemTextStories.BlockVariants} />
+
+The left block fills the width and truncates. The right block hugs its content
+and never truncates, so when space runs out the right text keeps its width and
+the left text truncates.
+
+<Canvas of={ItemTextStories.TextPriority} />
+
+Alignment follows the side. `ItemText` sets it — left blocks align left, right
+blocks align right — so `align` is only passed by hand on the block you put in
+`right`, or on a block used without `ItemText`.
+
+<Canvas of={ItemTextStories.Alignment} />
+
+## Text lines
+
+Every line uses one of three text styles: `bodyMedium`
+(`--font-body-500-compact`, Inter Medium 14/20), `bodyRegular`
+(`--font-body-400-compact`, Inter Regular 14/20) and `caption`
+(`--font-caption-medium-400`, Inter Regular 13/20).
+
+<Canvas of={ItemTextStories.LineStyles} />
+
+Color is a separate property — `strong`, `subtle`, `placeholder`, `warning` and
+`error`. The block presets set both: title is `bodyMedium` / `strong`, caption is
+`caption` / `subtle`, tag is `bodyRegular` / `subtle`. Change the color on the
+line when the value needs it, for example an overdue date in `error` or a
+missing value in `placeholder`.
+
+<Canvas of={ItemTextStories.LineColors} />
+
+`ItemTextBlock` takes the overrides as `titleColor`, `captionColor` and
+`tagColor`. The matching `titleClassName` / `captionClassName` / `tagClassName`
+stay as an escape hatch for a color no token covers, such as a per-status tint.
+
+## Slots
+
+Each line supports an optional slot on each side, `--size-2` (8px) from the
+text. The slot box is `--size-5` (20px) tall and centered on the line.
+
+<Canvas of={ItemTextStories.SlotPositions} />
+
+The left slot takes an
+<a href="/?path=/story/components-icon--playground" target="_top">Icon</a> or an
+<a href="/?path=/docs/components-avatar-avatar--docs" target="_top">Avatar</a>.
+The icon's name, style, size and rotation are the caller's choice; the avatar is
+`xs` (any avatar type).
+
+<Canvas of={ItemTextStories.SlotLeftInstances} />
+
+The right slot takes an Avatar, a
+<a href="/?path=/docs/components-badge-badge--docs" target="_top">Badge</a>,
+a BadgeColor, a
+<a href="/?path=/story/components-counter--playground" target="_top">Counter</a>,
+a <a href="/?path=/docs/components-hint-hinttrigger--docs" target="_top">HintTrigger</a>
+or an Icon.
+
+<Canvas of={ItemTextStories.SlotRightInstances} />
+
+**The icon color follows the text.** The color token sits on the line, so the
+icon inherits it through `currentColor` — a line set to `warning` turns its icon
+amber with it. To give the icon a different color, set a color on the icon
+itself. Avatar, Badge, Counter and HintTrigger keep their own colors and do not
+follow the line.
+
+<Canvas of={ItemTextStories.IconColor} />
+
+A badge is only used on a title-only block. It is 28px tall, so on a two-line
+block it would push the block to 48px and ruin the alignment.
+
+<Canvas of={ItemTextStories.BadgeRule} />
+
+## Truncation and wrapping
+
+By default the text truncates after one line with an ellipsis. When a string
+line actually truncates, hovering it shows a
+<a href="/?path=/story/components-tooltip--playground" target="_top">Tooltip</a>
+with the full text.
+
+<Canvas of={ItemTextStories.Truncation} />
+
+To wrap, or to clamp at two or three lines, set `titleLines` / `captionLines` /
+`tagLines` to `"wrap"`, `2` or `3`. Truncation belongs to the screen, not to the
+component — if the design does not define it, the default is used.
+
+<Canvas of={ItemTextStories.Wrapping} />
+
+A line with a right slot hugs its text, so the slot sits next to the text
+instead of at the far edge, and the text still truncates when it runs out of
+room.
+
+<Canvas of={ItemTextStories.SlotHug} />
+
+**This is one place where the code does more than the Figma component.** CSS can
+hug and truncate at once (`flex: 0 1 auto`); Figma has no equivalent, so its
+`slotRight` variants hug without truncating. To draw a truncating line with a
+slot in Figma, set that label to fill.
+
+## Loading
+
+While the text loads, the line shows a bar instead. The bar is
+<a href="/?path=/story/components-skeletontypography--playground" target="_top">SkeletonTypography</a> —
+`bodyCompact` for bodyMedium and bodyRegular, `captionMD` for caption. All three
+sit on the same `--size-5` (20px) line box, so a loading line is exactly as tall
+as the line it replaces.
+
+<Canvas of={ItemTextStories.Loading} />
+
+Set `isLoading` on the block, not on the lines. The block owns which lines its
+variant renders, so a title-only block loads one bar and a title + caption block
+loads two — and a block can never end up half loaded.
+
+<Canvas of={ItemTextStories.LoadingPerVariant} />
+
+The bar fills the line, the same way the text does. In the right block there is
+nothing to fill — the block hugs its content, and a bar has no width of its own
+— so it falls back to a `--size-24` (96px) minimum.
+
+<Canvas of={ItemTextStories.LoadingRightBlock} />
+
+A loading line has no slots and no colour. The slots hold a badge, a counter or
+a hint trigger — all data, all unknown while loading. What *is* known is the
+object type, and that lives in the row's own left slot, not in the line.
+
+## Usage
+
+ItemText is not used on its own — it is the text region inside a row component:
+<a href="/?path=/docs/components-listitem--docs" target="_top">ListItem</a>,
+<a href="/?path=/docs/components-selectlist-selectlistitem--docs" target="_top">SelectListItem</a>,
+<a href="/?path=/docs/components-menu-menuitem--docs" target="_top">MenuItem</a>
+and
+<a href="/?path=/docs/components-displaymodule--docs" target="_top">DisplayModule</a>.
+
+| | uses |
+| --- | --- |
+| ListItem | left block + right block |
+| SelectListItem | left block + right block |
+| DisplayModule | left block only |
+| MenuItem | left block + right block, tag on the right |
+
+MenuItem and SelectListItem's default row use a regular-weight title. Set the
+title line's style to `bodyRegular` there.
+
+## Props
+
+<ArgTypes of={ItemTextStories} />

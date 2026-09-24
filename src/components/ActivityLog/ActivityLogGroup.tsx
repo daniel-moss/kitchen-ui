@@ -22,7 +22,7 @@ export default function ActivityLogGroup({
 
   return (
     <div className={clsx(styles.root, className)} {...rest}>
-      <GroupLabel variant="secondary" accordion label={label} open={isOpen} onOpenChange={setOpen} />
+      <GroupLabel variant="secondary" isAccordion label={label} open={isOpen} onOpenChange={setOpen} />
       <div className={clsx(styles.collapse, isOpen && styles.collapseOpen)}>
         <div className={styles.collapseInner}>
           <div className={styles.stack}>{children}</div>

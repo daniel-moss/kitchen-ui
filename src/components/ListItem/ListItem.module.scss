@@ -6,12 +6,31 @@
 .item {
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--size-3); // 12px — drag handle ↔ body
   width: 100%;
+  min-height: 60px; // no token — the --size scale jumps 56 → 64
   padding: var(--size-2_5) var(--size-3); // 10px 12px
   border-radius: var(--border-radius-1_5); // 6px
   overflow: hidden;
+}
+
+// Compact — 40px instead of 60. Only the vertical padding goes: the body is
+// still the 40px text block, so a 32px IconButton or a 22px Toggle keeps the
+// full height (the ViewMenu's column rows are the reason this size exists).
+// One line of text, no caption, no avatar — see the `size` prop.
+.compact {
+  min-height: var(--size-10); // 40px
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.compact.accordion {
+  padding: 0; // the accordion's padding lives on its header
+}
+.compact .accordionHeader {
+  min-height: var(--size-10); // 40px
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 // Body + bottom slot column.
@@ -87,6 +106,7 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   justify-content: center;
   height: var(--size-10); // 40px
   color: var(--gray-a8);
+  transition: color 120ms ease;
   cursor: grab;
   touch-action: none; // dragging the handle must not scroll the page
   -webkit-touch-callout: none; // no iOS long-press callout mid-drag
@@ -97,6 +117,21 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   content: "";
   position: absolute;
   inset: 0 calc(-1 * var(--size-3)); // +12px hit area left and right
+}
+
+// The grip brightens with the row (Figma: gray-a8 at rest → gray-12 on
+// hovered / pressed / focused). Same slot exclusions as the row fill, so
+// hovering a control inside a slot leaves the grip alone.
+@media (hover: hover) {
+.clickable:hover:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):hover)):not(:has(.slotBottom :is(#{$slot-interactive}):hover)) .handle {
+  color: var(--gray-12);
+}
+}
+.clickable:active:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) .handle {
+  color: var(--gray-12);
+}
+.clickable:focus-visible .handle {
+  color: var(--gray-12);
 }
 
 // Dragging — the row lifts into a card: third-level surface, 1px gray-12
@@ -124,6 +159,7 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   align-items: stretch;
   gap: 0;
   padding: 0;
+  min-height: 0; // the Header carries the row height (Figma: none on the root)
 }
 .accordionOpen {
   background: var(--gray-a2);
@@ -134,9 +170,10 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   box-sizing: border-box;
   touch-action: manipulation; // no iOS double-tap grouping (see .clickable)
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--size-3); // 12px — caret ↔ body
   width: 100%;
+  min-height: 60px; // as .item — no token at 60
   padding: var(--size-2_5) var(--size-3); // 10px 12px
   border-radius: var(--border-radius-1_5); // 6px
   cursor: pointer;
@@ -171,12 +208,29 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   justify-content: center;
   height: var(--size-10); // 40px
   width: var(--size-4); // 16px
-  color: var(--gray-12);
+  color: var(--gray-a9);
   transform: rotate(-90deg);
-  transition: transform 160ms ease;
+  transition:
+    transform 160ms ease,
+    color 120ms ease;
 }
 .caretOpen {
   transform: rotate(0deg);
+}
+
+// The caret follows the header, closed and open alike (Figma: gray-a9 at rest
+// → gray-12 on hovered / pressed / focused; disabled keeps gray-a9 and the
+// header's dim does the rest).
+@media (hover: hover) {
+.accordionHeader:hover:not(.disabled):not(:has(.slotStop :is(#{$slot-interactive}):hover)):not(:has(.slotBottom :is(#{$slot-interactive}):hover)) .caret {
+  color: var(--gray-12);
+}
+}
+.accordionHeader:active:not(.disabled):not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) .caret {
+  color: var(--gray-12);
+}
+.accordionHeader:focus-visible .caret {
+  color: var(--gray-12);
 }
 
 // Smooth collapse via grid-template-rows (shared mixin).
@@ -189,6 +243,9 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
 .collapseInner {
   @include collapse-inner;
 }
+// The body slot carries its own padding (Figma: 12px on every side, both
+// sizes), so the caller drops in bare content.
 .accordionBody {
   width: 100%;
+  padding: var(--size-3); // 12px
 }

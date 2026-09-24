@@ -1,6 +1,6 @@
 import { MouseEvent, ReactNode } from "react";
 
-import { FilterChipBreakpoint } from "./FilterChip.types";
+import { Breakpoint } from "../../hooks/useIsDesktop";
 
 export interface TopBarFilterProps {
   /**
@@ -35,6 +35,6 @@ export interface TopBarFilterProps {
    * (default) tracks the viewport; "desktop" / "mobile" force one
    * (Storybook, tests).
    */
-  breakpoint?: FilterChipBreakpoint;
+  breakpoint?: Breakpoint;
   className?: string;
 }

@@ -39,7 +39,7 @@ export default function Concept3({
               {breakdown.map((row, index) => (
                 <ItemGroup
                   key={row.key}
-                  accordion
+                  isAccordion
                   // The first group opens by default so the shape is visible;
                   // `defaultOpen` opens every one at once.
                   defaultOpen={defaultOpen || index === 1}

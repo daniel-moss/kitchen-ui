@@ -4,13 +4,14 @@ import clsx from "clsx";
 import useControllableState from "../../hooks/useControllableState";
 import { Icon } from "../Icon/Icon";
 import { IconProps } from "../Icon/Icon.types";
+import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
 
 import styles from "./GroupLabel.module.scss";
 import { GroupLabelProps } from "./GroupLabel.types";
 
 // GroupLabel — a group header row for lists (ItemGroup, SelectListItemGroup,
 // ActivityLogs, …). primary = 40px filled row with slotLeft / counter / caption;
-// secondary = 28px transparent row. `accordion` makes the row a toggle: primary
+// secondary = 28px transparent row. `isAccordion` makes the row a toggle: primary
 // gets a leading caret, secondary a caret right after the label. The row only
 // renders the header — collapsing the group content is the parent's job.
 // See Figma "GroupLabel".
@@ -22,11 +23,12 @@ export default function GroupLabel({
   counterIcon,
   caption,
   slotRight,
-  accordion = false,
+  isAccordion = false,
   open,
   defaultOpen = false,
   onOpenChange,
   disabled = false,
+  isLoading = false,
   className,
   ...rest
 }: GroupLabelProps) {
@@ -88,7 +90,7 @@ export default function GroupLabel({
   ) : (
     <div className={styles.content}>
       <span className={styles.label}>{label}</span>
-      {accordion && (
+      {isAccordion && (
         <span className={clsx(styles.caretSecondary, isOpen && styles.caretOpen)} aria-hidden="true">
           <Icon icon="caret-down" pack="solid" size={12} />
         </span>
@@ -96,26 +98,43 @@ export default function GroupLabel({
     </div>
   );
 
-  const interactive = accordion && !disabled;
+  // ---- loading — the label becomes a bar, everything else waits ----
+  // The caret, the counter, the caption, the left slot and the action are all
+  // hidden: they are controls or data, and neither exists yet. The header keeps
+  // its own shape, so only the label is replaced, and it stops responding — a
+  // header whose own label is unknown has nothing to collapse.
+  if (isLoading) {
+    return (
+      <div className={clsx(styles.root, isPrimary ? styles.primary : styles.secondary, styles.loading, className)} {...rest}>
+        <div className={styles.body}>
+          {/* A group label is short, so the bar is a fixed width rather than
+              filling the header — the same 96px ItemText falls back to. */}
+          <SkeletonTypography variant="captionMD" width="var(--size-24)" />
+        </div>
+      </div>
+    );
+  }
+
+  const interactive = isAccordion && !disabled;
 
   return (
     <div
       className={clsx(
         styles.root,
         isPrimary ? styles.primary : styles.secondary,
-        accordion && styles.accordion,
-        accordion && disabled && styles.disabled,
+        isAccordion && styles.accordion,
+        isAccordion && disabled && styles.disabled,
         className,
       )}
-      role={accordion ? "button" : undefined}
+      role={isAccordion ? "button" : undefined}
       tabIndex={interactive ? 0 : undefined}
-      aria-expanded={accordion ? isOpen : undefined}
-      aria-disabled={(accordion && disabled) || undefined}
+      aria-expanded={isAccordion ? isOpen : undefined}
+      aria-disabled={(isAccordion && disabled) || undefined}
       onClick={interactive ? toggle : undefined}
       onKeyDown={interactive ? onKeyDown : undefined}
       {...rest}
     >
-      {isPrimary && accordion && (
+      {isPrimary && isAccordion && (
         <span className={clsx(styles.caret, isOpen && styles.caretOpen)} aria-hidden="true">
           <Icon icon="caret-down" pack="solid" size={14} />
         </span>

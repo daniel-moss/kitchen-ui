@@ -7,9 +7,11 @@ import { FigmaLinks } from "../../stories/FigmaLinks";
 
 # Chip
 
-`Chip` is used as a compact, toggleable value — a filter condition, a picked
-label — that sits in a row with its siblings and answers one question: is this
-value in effect right now?
+Chip is a compact, toggleable value — a filter condition, a picked label, a
+duration preset. It holds a label and an optional icon or avatar before it, and
+it answers one question: is this value in effect right now? Chips live in a row
+inside <a href="/?path=/docs/components-chip-chipgroup--docs" target="_top">ChipGroup</a>,
+which owns the layout and the validation.
 
 <FigmaLinks
   component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=29520-29005"
@@ -25,105 +27,152 @@ value in effect right now?
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Interaction states](#interaction-states)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Selection — isSelected](#selection--isselected)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Validation — isValid](#validation--isvalid)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Disabled](#disabled)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Left slot](#left-slot)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Sizes](#sizes)<br />
+↳&nbsp;&nbsp;[Orientation](#orientation)<br />
+↳&nbsp;&nbsp;[Left slot](#left-slot)<br />
+↳&nbsp;&nbsp;[Selection](#selection)<br />
+↳&nbsp;&nbsp;[Validation](#validation)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-The chip is a padded container with corner radius that contains a label and an
-optional left slot. Three sizes: **sm** (`--size-7` (28px), `--size-2` (8px)
-padding), **md** (`--size-8` (32px), `--size-2_5` (10px) padding) and **lg**
-(`--size-9` (36px), `--size-3` (12px) padding). The label is body 14/20 in
-every size, and the corners are `--border-radius-1_5` (6px). `md` is the
-default — the most used chip.
+Contains an optional slot and a label in a padded box with
+`--border-radius-1_5` (6px) corners. Everything is centered and the chip keeps
+to one line. The border is drawn as an inset `box-shadow`, so it never adds to
+the chip's size.
+
+<Canvas of={ChipStories.Anatomy} />
+
+## Sizes
+
+Three sizes: **sm** (`--size-7`, 28px), **md** (`--size-8`, 32px) and **lg**
+(`--size-9`, 36px). Each step up adds side padding — `--size-2` (8px),
+`--size-2_5` (10px), `--size-3` (12px) — and widens the gap after the slot from
+`--size-1_5` (6px) to `--size-2` (8px). sm carries a smaller label,
+`caption-medium-400` (13/20); md and lg share `body-400-compact` (14/20).
+
+md is the default — the most used chip.
 
 <Canvas of={ChipStories.Sizes} />
 
-The left slot — an
+## Orientation
+
+Two layouts.
+
+**horizontal** is the default. The slot and the label sit in one line and the
+chip keeps its fixed height.
+
+**vertical** stacks them: the slot on top, the label under it, both centered.
+It has one size, and instead of a fixed height it hugs its content — 64px, with
+`--size-3` (12px) above, `--size-2_5` (10px) at the sides, `--size-2` (8px)
+below and `--size-1` (4px) between slot and label. `size` no longer applies.
+
+<Canvas of={ChipStories.Orientation} />
+
+The slot sits in a fixed `--size-5` (20px) square box, so an icon chip and an
+avatar chip are exactly the same height.
+
+<Canvas of={ChipStories.VerticalSlots} />
+
+A vertical chip always carries a `slotLeft`. Without one it is only a taller
+horizontal chip, and the component says so in the console — `slotLeft` is a
+`ReactNode`, so the types cannot carry the rule.
+
+## Left slot
+
+Takes an
 <a href="/?path=/story/components-icon--default" target="_top">Icon</a>
-or an avatar. The gap after the slot is `--size-1_5` (6px) in sm and
-`--size-2` (8px) in md and lg.
+or an avatar before the label. The Icon is 14px in every chip size — classic
+pack, regular style — and all its parameters are the caller's.
 
 <Canvas of={ChipStories.SlotLeftIcon} />
 
-The avatar size is pinned by the chip size and is not choosable — **xxs
-(16px)** in sm, **xs (20px)** in md and lg.
+The avatar size is pinned to the chip size and is not choosable — **xxs**
+(16px) in sm, **xs** (20px) in md and lg.
 
 <Canvas of={ChipStories.SlotLeftAvatar} />
 
-## Behavior
+An icon with no color of its own follows the label through every state. An icon
+the caller colored keeps that color.
 
-### Interaction states
+The label gives way first when the chip is squeezed. The slot never shrinks.
 
-State never changes the chip's size — every treatment is a fill, border, or
-text change. Engaging the chip in any way (hover, press, focus, selection)
-lifts the label from `--text-subtle` to `--text-strong`. Unless the icon color
-was overridden, the icon follows the label.
+<Canvas of={ChipStories.Truncation} />
 
-Hover strengthens the border from `--gray-a7` to `--gray-a8`; press adds the
-`--gray-a3` fill. Focus adds the ring — the keyboard's signal: a 2px
-`--gray-12` stroke with a 2px gap to the chip.
+In the vertical layout the slot sits on top instead.
 
-<Canvas of={ChipStories.InactiveStates} />
+## Selection
 
-### Selection — isSelected
+`isSelected` marks the value that is in effect. The border turns `--gray-12`,
+and the label and the icon hold `--text-strong` in every state.
 
-A selected chip is the currently applied option. Its border turns `--gray-12`
-and holds it through hover and press. `isSelected` also sets `aria-pressed`,
-so pass it (true/false) on chips that work as toggles.
+It also sets the chip's state for assistive technology: `aria-pressed` on its
+own, or `aria-checked` inside a ChipGroup with `selectionMode="single"`.
 
 <Canvas of={ChipStories.SelectedUnselected} />
 
+A selected chip does not react to hover. Press is the one state that moves its
+fill.
+
 <Canvas of={ChipStories.SelectedStates} />
 
-### Validation — isValid
+## Validation
 
-The error treatment replaces the selection emphasis — an invalid chip renders
-the same whether or not it is selected. Error persists through hover, press and
-focus — the user reaches for an invalid chip precisely to fix it.
-
-The look: `--tomato-a2` fill, a 2px `--tomato-9` border and an `--text-error`
-label. Unless the icon color was overridden, the icon follows the label. Hover
-and focus step the fill to `--tomato-a3`, press to `--tomato-a4`; the focus
-ring turns `--tomato-9`.
+`isValid={false}` is the error look: a `--tomato-a2` fill, a 2px `--tomato-9`
+border and a `--text-error` label. Hover and focus step the fill to
+`--tomato-a3`, press to `--tomato-a4`. The border and the text never change.
 
 <Canvas of={ChipStories.InvalidStates} />
 
-Selected — identical to unselected:
+A disabled invalid chip keeps the error scheme while dimmed, so a locked form
+does not hide that an error is still in it.
+
+The error replaces the selection emphasis. An invalid chip renders the same
+whether or not it is selected.
 
 <Canvas of={ChipStories.InvalidSelectedStates} />
 
-### Disabled
+ChipGroup owns the validation. An invalid group pushes the error look onto
+every chip in it and shows the message below the row.
 
-A disabled chip dims to 30% opacity as a whole and stops responding. It keeps
-its own scheme while dimmed — a disabled invalid chip stays visibly tomato, so
-a locked form (saving, or a section switched off) does not hide that an error
-is still in it. The error becomes actionable again the moment the chip
-re-enables.
+## States
 
-<Canvas of={ChipStories.DisabledMatrix} />
+Engaging the chip in any way — hover, press, focus, selection — lifts the label
+from `--text-subtle` to `--text-strong`. Unless it was colored, the icon
+follows.
 
-### Left slot
+Hover strengthens the border from `--gray-a7` to `--gray-a8`. Press adds the
+`--gray-a3` fill. Disabled dims the whole chip to 30% and it stops responding.
 
-The slot takes an icon or an object avatar; its size is the chip's decision,
-never the consumer's — 16px content inside sm, 20px inside md and lg. A chip
-with a slot truncates its label first; the slot never shrinks. Icon: size 14,
-and all parameters are editable — an icon with no color of its own follows the
-label color through every state; an icon the caller colored keeps that color.
+`orientation = horizontal`
 
-### Loading
+<Canvas of={ChipStories.InactiveStates} />
 
-`isLoading` swaps the label for a skeleton bar and the left slot (if one is
-set) for a `--gray-a3` circle — 14px for an icon, and the avatar's own size
-(16px in sm, 20px in md and lg) for an avatar. The chip keeps the unselected
-look (an invalid chip's error treatment is suppressed until the value lands),
-is not interactive, and shows the busy cursor.
+`orientation = vertical`
+
+<Canvas of={ChipStories.VerticalStates} />
+
+Focus draws the ring: a 2px `--gray-12` stroke at the chip's bounds, a 2px
+transparent gap, then the chip's own fill and border with their corners
+tightened to `--border-radius-0_5` (2px). Nothing changes size and nothing
+inside moves, so a focused chip stays in line with its neighbours. On an
+invalid chip the ring is `--tomato-9`. It is drawn with inset shadows rather
+than an offset outline, so a scrolling menu cannot clip it.
+
+State never changes the chip's size.
+
+## Loading
+
+`isLoading` swaps the label for a bar and the left slot (if one is set) for a
+`--gray-a3` circle. The chip is not interactive and shows the busy cursor.
+
+The bar is a `SkeletonTypography` matching the label it replaces — 40px wide in
+a horizontal chip, filling a vertical one. The circle matches what the slot
+holds: 14px for an icon, and the avatar's own size (16px in sm, 20px in md and
+lg) for an avatar.
 
 sm
 
@@ -136,6 +185,25 @@ md
 lg
 
 <Canvas of={ChipStories.LoadingLg} />
+
+Loading suppresses the error look — a tomato skeleton says nothing; the error
+returns when the value lands.
+
+A vertical chip loads the same way and keeps its height.
+
+<Canvas of={ChipStories.LoadingVertical} />
+
+## Usage
+
+Chip is laid out by ChipGroup — it is not placed on its own.
+
+| Component | Where |
+| --- | --- |
+| ChipGroup | the row — spacing, full-width mode, validation |
+| SelectListHeader | the chip row above the search in a list header |
+| "View" menu | view switcher, Timeline settings, Cards attributes |
+| Duration presets | new job and new service forms |
+| Filters | the timeframe and condition choices inside a filter's editor |
 
 ## Props
 

@@ -5,21 +5,23 @@ import clsx from "clsx";
 import IconButton from "../../components/IconButton/IconButton";
 import Popover from "../../components/Popover/Popover";
 import DrawerHeader from "../../components/Popover/DrawerHeader";
-import TabGroup from "../../components/Tabs/TabGroup";
-import TabItem from "../../components/Tabs/TabItem";
 import { Divider } from "../../components/Divider/Divider";
 import Hint from "../../components/Hint/Hint";
 import HoverHint from "../../components/Hint/HoverHint";
+import { Icon } from "../../components/Icon/Icon";
+import type { IconPack } from "../../components/Icon/Icon.types";
 import Label from "../../components/Label/Label";
 import ListItem from "../../components/ListItem/ListItem";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
-import SelectField from "../../components/Fields/SelectField/SelectField";
+import GroupLabel from "../../components/GroupLabel/GroupLabel";
+import ItemValue from "../../components/ItemText/ItemValue/ItemValue";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListHeader from "../../components/SelectList/SelectListHeader";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import Chip from "../../components/Chip/Chip";
+import ChipGroup from "../../components/Chip/ChipGroup";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import switchStyles from "../../components/Toggle/ToggleSwitch.module.scss";
 import useMountTransition from "../../hooks/useMountTransition";
@@ -44,6 +46,38 @@ import styles from "./ViewMenu.module.scss";
 // outside-click close — and that closer must treat the [data-floating-list]
 // body portals as inside the menu.
 
+// The view switcher's chips. Chip leaves its slot icon entirely to the caller,
+// so the resting / selected pair lives here: Table and Cards keep one glyph and
+// step from the regular to the solid pack, while Timeline is a kit CUSTOM glyph
+// whose two styles are separate names. Read off Figma 14215-55178 / 14205-72167
+// / 14215-55121.
+const VIEW_CHIPS: {
+  key: ViewMenuView;
+  label: string;
+  rest: { icon: string; pack: IconPack };
+  selected: { icon: string; pack: IconPack };
+}[] = [
+  { key: "table", label: "Table", rest: { icon: "table", pack: "regular" }, selected: { icon: "table", pack: "solid" } },
+  {
+    key: "cards",
+    label: "Cards",
+    rest: { icon: "grid-2", pack: "regular" },
+    selected: { icon: "grid-2", pack: "solid" },
+  },
+  {
+    key: "timeline",
+    label: "Timeline",
+    rest: { icon: "regular-timeline-view", pack: "custom" },
+    selected: { icon: "solid-timeline-view", pack: "custom" },
+  },
+];
+
+// The Timeline "Orientation" chips follow the same regular → solid rule.
+const ORIENTATION_CHIPS: { key: "horizontal" | "vertical"; label: string; icon: string }[] = [
+  { key: "horizontal", label: "Horizontal", icon: "objects-align-left" },
+  { key: "vertical", label: "Vertical", icon: "objects-align-top" },
+];
+
 const PIN_LIMIT = 3;
 const HINT_TEXT = {
   pinLimit: "Only 3 columns can be pinned at a time. Please unpin one before pinning another.",
@@ -52,17 +86,6 @@ const HINT_TEXT = {
 
 type HintKind = keyof typeof HINT_TEXT;
 type HintState = { kind: HintKind; x: number; y: number } | null;
-
-// The "Unpinned" divider — a module-local assembly of two DS Dividers
-// (dashed, high contrast) with the word between, separating pinned from
-// unpinned columns.
-const UnpinnedDivider = () => (
-  <div className={styles.unpinnedDivider} aria-hidden="true">
-    <Divider dashed contrast="high" className={styles.unpinnedLine} />
-    <span className={styles.unpinnedText}>Unpinned</span>
-    <Divider dashed contrast="high" className={styles.unpinnedLine} />
-  </div>
-);
 
 // Desktop dropdown lists float in a document.body portal. Anchored inside the
 // popover card they extend the card body's scrollable area — a scrollbar
@@ -106,6 +129,39 @@ const FloatingList = ({
   );
 };
 
+// A settings row — "Schedule horizon" and "Sort by". The whole row is the
+// trigger and the value is an ItemValue in the right slot (with its own
+// `angles-up-down` chevron); ListItem stops slot clicks reaching the row, so
+// the sort-order IconButton beside the value keeps its own click.
+const SettingRow = ({
+  title,
+  value,
+  isOpen,
+  onClick,
+  before,
+}: {
+  title: string;
+  value: string;
+  isOpen: boolean;
+  onClick: () => void;
+  before?: ReactNode;
+}) => (
+  <ListItem
+    size="compact"
+    isClickable
+    variant="title"
+    title={title}
+    aria-expanded={isOpen}
+    onClick={onClick}
+    slotRight={
+      <>
+        {before}
+        <ItemValue value={value} />
+      </>
+    }
+  />
+);
+
 // One column row. This wrapper exists for the hint anchor / hover handlers —
 // and it must FORWARD isDragging/disabled, because ItemGroup injects them
 // into its direct child to draw the lifted drag copy and the hidden original.
@@ -141,6 +197,7 @@ const ColumnRow = ({
 }: ColumnRowProps) => (
   <div ref={rowRef} onMouseEnter={onHoverStart} onMouseLeave={onHoverEnd} onClick={onTap}>
     <ListItem
+      size="compact"
       isDraggable
       isDragging={isDragging}
       disabled={disabled}
@@ -151,7 +208,6 @@ const ColumnRow = ({
       toggleDisabled={toggleDisabled}
       variant="title"
       title={label}
-      className={styles.columnRow}
       slotRight={pinSlot}
     />
   </div>
@@ -399,165 +455,176 @@ export default function ViewMenu({
     </SelectListItemGroup>
   );
 
+  // ---- the Columns section ----
+  // Desktop with something pinned: two labelled groups — "Pinned" (thumbtack)
+  // above "Not pinned" (thumbtack-slash), the first carrying the divider
+  // between them. With nothing pinned: ONE group headed plainly "Columns",
+  // no icon. Mobile always shows that plain "Columns" header, because a phone
+  // cannot pin — but it still renders the two regions as SEPARATE groups
+  // (the second headerless, so the two read as one list), because a drag must
+  // stay inside its own region: a phone can never change the desktop's pinned
+  // set.
+  const reorderPinned = reorder(pinned, (next) => onColumnsStateChange({ ...columnsState, pinned: next }));
+  const reorderUnpinned = reorder(unpinned, (next) => onColumnsStateChange({ ...columnsState, unpinned: next }));
+  const columnsHeader = <GroupLabel label="Columns" />;
+
+  const columnsSection = mobile ? (
+    pinned.length > 0 ? (
+      <>
+        <ItemGroup label={columnsHeader} onReorder={reorderPinned}>
+          {pinned.map(columnRow)}
+        </ItemGroup>
+        <ItemGroup onReorder={reorderUnpinned}>{unpinned.map(columnRow)}</ItemGroup>
+      </>
+    ) : (
+      <ItemGroup label={columnsHeader} onReorder={reorderUnpinned}>
+        {unpinned.map(columnRow)}
+      </ItemGroup>
+    )
+  ) : pinned.length > 0 ? (
+    <>
+      <ItemGroup
+        divider
+        label={<GroupLabel label="Pinned" slotLeft={<Icon icon="thumbtack" pack="regular" size={14} />} />}
+        onReorder={reorderPinned}
+      >
+        {pinned.map(columnRow)}
+      </ItemGroup>
+      <ItemGroup
+        label={<GroupLabel label="Not pinned" slotLeft={<Icon icon="thumbtack-slash" pack="regular" size={14} />} />}
+        onReorder={reorderUnpinned}
+      >
+        {unpinned.map(columnRow)}
+      </ItemGroup>
+    </>
+  ) : (
+    <ItemGroup label={columnsHeader} onReorder={reorderUnpinned}>
+      {unpinned.map(columnRow)}
+    </ItemGroup>
+  );
+
   // ---- the menu body (shared desktop / mobile) ----
   const body = (
     <div ref={bodyRef} className={styles.body}>
       <div className={styles.switcher}>
-        <TabGroup
-          variant="contained"
-          size="lg"
-          orientation="vertical"
-          isFullWidth
-          value={view}
-          onChange={(next) => onViewChange(next as ViewMenuView)}
-        >
-          <TabItem value="table" icon="table" disabled={disabledViews?.includes("table")}>
-            Table
-          </TabItem>
-          <TabItem value="cards" icon="grid-2" disabled={disabledViews?.includes("cards")}>
-            Cards
-          </TabItem>
-          {/* Timeline is JOBS ONLY — the tab exists only when the consumer
-              passes `timeline`. */}
-          {timeline != null && (
-            <TabItem
-              value="timeline"
-              icon="regular-timeline-view"
-              selectedIcon="solid-timeline-view"
-              iconPack="custom"
-              disabled={disabledViews?.includes("timeline")}
-            >
-              Timeline
-            </TabItem>
-          )}
-        </TabGroup>
+        {/* Pick-one: `selectionMode="single"` gives the row radio semantics and
+            the arrow keys. The icon is the CONSUMER's — Chip does not swap
+            packs — so the switch to solid on selection happens here. */}
+        <ChipGroup isFullWidth selectionMode="single">
+          {VIEW_CHIPS.filter((v) => v.key !== "timeline" || timeline != null).map((v) => {
+            const art = view === v.key ? v.selected : v.rest;
+            return (
+              <Chip
+                key={v.key}
+                orientation="vertical"
+                slotLeft={<Icon icon={art.icon} pack={art.pack} size={14} />}
+                isSelected={view === v.key}
+                isDisabled={disabledViews?.includes(v.key)}
+                onClick={() => onViewChange(v.key)}
+              >
+                {v.label}
+              </Chip>
+            );
+          })}
+        </ChipGroup>
       </div>
       <Divider contrast="medium" />
+      {/* Schedule horizon FIRST, Sort by second — the design's order — in ONE
+          ItemGroup whose own bottom divider separates it from what follows.
+          Schedule horizon is JOBS ONLY, so its row exists only when the
+          consumer passes `scheduled`. Each row anchors its own floating list,
+          hence the ref wrappers. */}
       {view !== "timeline" && (
-        <div ref={sortSectionRef} className={styles.sortSection}>
-          <ListItem
-            variant="title"
-            title="Sort by"
-            className={styles.sortRow}
-            slotRight={
-              <>
+        <ItemGroup divider>
+          {scheduled != null && (
+            <div ref={scheduledSectionRef}>
+              <SettingRow
+                title="Schedule horizon"
+                value={scheduledLabel}
+                isOpen={scheduledOpen}
+                onClick={() => {
+                  setSortListOpen(false);
+                  setScheduledOpen((o) => !o);
+                }}
+              />
+            </div>
+          )}
+          <div ref={sortSectionRef}>
+            <SettingRow
+              title="Sort by"
+              value={columnByKey(sort.key).label}
+              isOpen={sortListOpen}
+              onClick={() => {
+                setScheduledOpen(false);
+                setSortListOpen((o) => !o);
+              }}
+              before={
                 <HoverTooltip text={sortMeta.label}>
                   <IconButton
                     icon={sortMeta.icon}
                     variant="ghost"
-                    size="lg"
+                    size="md"
                     aria-label={sortMeta.label}
                     noDebounce
                     onClick={() => onSortChange({ ...sort, ascending: !sort.ascending })}
                   />
                 </HoverTooltip>
-                <SelectField
-                  fitContent
-                  value={columnByKey(sort.key).label}
-                  open={sortListOpen}
-                  onClick={() => {
-                    setScheduledOpen(false);
-                    setSortListOpen((o) => !o);
-                  }}
-                />
-              </>
-            }
-          />
-          {/* The list can not live inside the row — ListItem clips its content
-              (overflow: hidden). It floats in a body portal (FloatingList).
+              }
+            />
+          </div>
+        </ItemGroup>
+      )}
+      {/* A list can not live inside its row — ListItem clips its content
+          (overflow: hidden). Both float in a body portal (FloatingList).
 
-              NO WIDTH of its own (Daniel, 2026-09-14): "the 'Column' SelectList
-              within the 'View' menu should be a default DS SelectList
-              component. So, it only has max width. No min width." The DS card
-              hugs its rows up to its own 384 cap — the 208 floor belongs to the
-              Filters prototype, which adds it on top for its own lists, not to
-              the component. It was pinned at 240px until now. */}
-          {!mobile && (
-            <FloatingList open={sortListOpen} anchorRef={sortSectionRef}>
+          NO WIDTH of its own (Daniel, 2026-09-14): "the 'Column' SelectList
+          within the 'View' menu should be a default DS SelectList
+          component. So, it only has max width. No min width." The DS card
+          hugs its rows up to its own 384 cap — the 208 floor belongs to the
+          Filters prototype, which adds it on top for its own lists, not to
+          the component. */}
+      {view !== "timeline" && !mobile && (
+        <>
+          <FloatingList open={sortListOpen} anchorRef={sortSectionRef}>
+            <SelectList
+              variant="inline"
+              breakpoint="desktop"
+              open={sortListOpen}
+              onClose={closeSortList}
+              header={sortSearch}
+              state={query !== "" && shownColumns.length === 0 ? "noResults" : "default"}
+              noResultsState={sortNoMatches}
+            >
+              {sortItems}
+            </SelectList>
+          </FloatingList>
+          {scheduled != null && (
+            <FloatingList open={scheduledOpen} anchorRef={scheduledSectionRef}>
               <SelectList
                 variant="inline"
                 breakpoint="desktop"
-                open={sortListOpen}
-                onClose={closeSortList}
-                header={sortSearch}
-                state={query !== "" && shownColumns.length === 0 ? "noResults" : "default"}
-                noResultsState={sortNoMatches}
+                open={scheduledOpen}
+                onClose={() => setScheduledOpen(false)}
+                style={{ width: 151 }}
               >
-                {sortItems}
+                {scheduledItems}
               </SelectList>
             </FloatingList>
           )}
-        </div>
-      )}
-      {view !== "timeline" && <Divider contrast="medium" />}
-      {/* Schedule horizon is JOBS ONLY — the row exists only when the
-          consumer passes `scheduled`. */}
-      {view !== "timeline" && scheduled != null && (
-        <>
-          <div ref={scheduledSectionRef} className={styles.sortSection}>
-            <ListItem
-              variant="title"
-              title="Schedule horizon"
-              className={styles.sortRow}
-              slotRight={
-                <SelectField
-                  fitContent
-                  value={scheduledLabel}
-                  open={scheduledOpen}
-                  onClick={() => {
-                    setSortListOpen(false);
-                    setScheduledOpen((o) => !o);
-                  }}
-                />
-              }
-            />
-            {!mobile && (
-              <FloatingList open={scheduledOpen} anchorRef={scheduledSectionRef}>
-                <SelectList
-                  variant="inline"
-                  breakpoint="desktop"
-                  open={scheduledOpen}
-                  onClose={() => setScheduledOpen(false)}
-                  style={{ width: 151 }}
-                >
-                  {scheduledItems}
-                </SelectList>
-              </FloatingList>
-            )}
-          </div>
-          <Divider contrast="medium" />
         </>
       )}
       {view === "table" ? (
-        <div className={styles.columnsSection}>
-          <div className={styles.columnsTitle}>
-            <Label as="span">Columns</Label>
-          </div>
-          {pinned.length > 0 && (
-            <ItemGroup onReorder={reorder(pinned, (next) => onColumnsStateChange({ ...columnsState, pinned: next }))}>
-              {pinned.map(columnRow)}
-            </ItemGroup>
-          )}
-          {/* Mobile has no pin functionality (the rows already hide the pin
-              button), so it gets no "Unpinned" divider either (Daniel,
-              2026-09-10). The two regions render as one continuous list —
-              drags still stay within their region, so a phone can never
-              change the desktop's pinned set. */}
-          {pinned.length > 0 && !mobile && <UnpinnedDivider />}
-          <ItemGroup onReorder={reorder(unpinned, (next) => onColumnsStateChange({ ...columnsState, unpinned: next }))}>
-            {unpinned.map(columnRow)}
-          </ItemGroup>
-        </div>
+        columnsSection
       ) : view === "cards" ? (
         <div className={styles.attrsSection}>
           <div className={styles.attrsTitle}>
             <Label as="span">Attributes</Label>
           </div>
-          <div className={styles.attrChips}>
+          <ChipGroup>
             {attributes.map((a) => (
               <Chip
                 key={a.key}
-                size="md"
+                size="lg"
                 isSelected={activeAttributes.includes(a.key)}
                 onClick={() =>
                   onActiveAttributesChange(
@@ -570,53 +637,58 @@ export default function ViewMenu({
                 {a.label}
               </Chip>
             ))}
-          </div>
+          </ChipGroup>
         </div>
       ) : timeline != null ? (
         <>
           <div className={styles.timelineSettings}>
             <div className={styles.settingBlock}>
-              <span className={styles.settingTitle}>Orientation</span>
-              <TabGroup
-                variant="contained"
-                size="lg"
-                orientation="vertical"
-                isFullWidth
-                value={timeline.value.orientation}
-                onChange={(next) =>
-                  timeline.onChange({ ...timeline.value, orientation: next as "horizontal" | "vertical" })
-                }
-              >
-                <TabItem value="horizontal" icon="objects-align-left">
-                  Horizontal
-                </TabItem>
-                <TabItem value="vertical" icon="objects-align-top">
-                  Vertical
-                </TabItem>
-              </TabGroup>
+              <Label as="span">Orientation</Label>
+              {/* Vertical chips — the icon is a picture of the layout, and it
+                  goes solid on the selected one (the same rule as the view
+                  switcher). */}
+              <ChipGroup isFullWidth selectionMode="single">
+                {ORIENTATION_CHIPS.map((o) => (
+                  <Chip
+                    key={o.key}
+                    orientation="vertical"
+                    slotLeft={
+                      <Icon
+                        icon={o.icon}
+                        pack={timeline.value.orientation === o.key ? "solid" : "regular"}
+                        size={14}
+                      />
+                    }
+                    isSelected={timeline.value.orientation === o.key}
+                    onClick={() => timeline.onChange({ ...timeline.value, orientation: o.key })}
+                  >
+                    {o.label}
+                  </Chip>
+                ))}
+              </ChipGroup>
             </div>
             <div className={styles.settingBlock}>
-              <span className={styles.settingTitle}>Time frame</span>
-              <TabGroup
-                variant="contained"
-                size="lg"
-                isFullWidth
-                value={timeline.value.timeFrame}
-                onChange={(next) => timeline.onChange({ ...timeline.value, timeFrame: next })}
-              >
+              <Label as="span">Time frame</Label>
+              <ChipGroup isFullWidth selectionMode="single">
                 {TIME_FRAMES.map((f) => (
-                  <TabItem key={f.key} value={f.key}>
+                  <Chip
+                    key={f.key}
+                    size="lg"
+                    isSelected={timeline.value.timeFrame === f.key}
+                    onClick={() => timeline.onChange({ ...timeline.value, timeFrame: f.key })}
+                  >
                     {f.label}
-                  </TabItem>
+                  </Chip>
                 ))}
-              </TabGroup>
+              </ChipGroup>
             </div>
           </div>
           <Divider contrast="medium" />
-          <div className={styles.timelineToggles}>
+          <ItemGroup>
             {TIMELINE_TOGGLES.map((o) => (
               <ListItem
                 key={o.key}
+                size="compact"
                 isClickable
                 toggle
                 checked={timeline.value.flags[o.key] ?? true}
@@ -625,10 +697,9 @@ export default function ViewMenu({
                 }
                 variant="title"
                 title={o.label}
-                className={styles.sortRow}
               />
             ))}
-          </div>
+          </ItemGroup>
         </>
       ) : null}
       {!mobile && hint != null && renderHintBubble(hint)}

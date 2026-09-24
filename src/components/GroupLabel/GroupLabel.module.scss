@@ -22,6 +22,12 @@
   padding-left: var(--size-2); // 8px
 }
 
+// Loading — the header keeps its shape and shows one bar. Not interactive, so
+// the pointer says "working" rather than offering a click.
+.loading {
+  cursor: progress;
+}
+
 // ---- body: content + right slot ----
 .body {
   flex: 1 1 0;
@@ -55,6 +61,7 @@
   flex: none;
   display: flex;
   align-items: center;
+  color: var(--text-strong); // the doc's slot Icon — regular, 14px, strong
 }
 .label {
   flex: 0 1 auto;
@@ -125,9 +132,11 @@
   justify-content: center;
   width: var(--size-4); // 16px
   height: var(--size-4);
-  color: var(--gray-12);
+  color: var(--gray-a9);
   transform: rotate(-90deg);
-  transition: transform 160ms ease;
+  transition:
+    transform 160ms ease,
+    color 120ms ease;
 }
 .caretSecondary {
   flex: none;
@@ -136,7 +145,7 @@
   justify-content: center;
   width: var(--size-3_5); // 14px
   height: var(--size-3_5);
-  color: var(--gray-a11);
+  color: var(--gray-a9);
   transform: rotate(-90deg);
   transition:
     transform 160ms ease,
@@ -175,24 +184,19 @@
   background: var(--gray-a3);
 }
 
-// Secondary copy strengthens (subtle → strong) while the row is interacted.
+// Hover, press and focus strengthen the CARET only (gray-a9 → gray-12). The
+// label keeps its own color in every state — strong in primary, subtle in
+// secondary (the doc, "States").
 @media (hover: hover) {
-.secondary.accordion:hover:not(:has(.slotRight:hover)) .label {
-  color: var(--text-strong);
-}
-}
-.secondary.accordion:active:not(:has(.slotRight:active)) .label,
-.secondary.accordion:focus-visible .label {
-  color: var(--text-strong);
-}
-
-@media (hover: hover) {
-.secondary.accordion:hover:not(:has(.slotRight:hover)) .caretSecondary {
+.accordion:hover:not(:has(.slotRight:hover)) .caret,
+.accordion:hover:not(:has(.slotRight:hover)) .caretSecondary {
   color: var(--gray-12);
 }
 }
-.secondary.accordion:active:not(:has(.slotRight:active)) .caretSecondary,
-.secondary.accordion:focus-visible .caretSecondary {
+.accordion:active:not(:has(.slotRight:active)) .caret,
+.accordion:active:not(:has(.slotRight:active)) .caretSecondary,
+.accordion:focus-visible .caret,
+.accordion:focus-visible .caretSecondary {
   color: var(--gray-12);
 }
 

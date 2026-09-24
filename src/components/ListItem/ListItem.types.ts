@@ -3,8 +3,32 @@ import { MouseEvent, ReactNode } from "react";
 import { ListItemBodyProps } from "./ListItemBody.types";
 
 interface ListItemBaseProps extends ListItemBodyProps {
+  /**
+   * Row height. `default` (60px) is 10px padding over a 40px body. `compact`
+   * (40px) drops the vertical padding, so a 32px IconButton or a 22px Toggle
+   * still fits the full height — the ViewMenu's column rows.
+   *
+   * Compact is for ONE line of text: do not give it a caption, and do not put
+   * an avatar in the left slot. Both fill the row and leave nothing to breathe.
+   * Default "default".
+   */
+  size?: "default" | "compact";
   /** Dimmed, non-interactive. For the interactive variants. */
   disabled?: boolean;
+  /**
+   * Loading: the text lines become bars and the row hides everything that is
+   * not content — the grip, the accordion caret, the right slot and the bottom
+   * slot — and stops responding. Those are controls, and while loading there is
+   * no order to drag a row into and nothing to expand behind it.
+   *
+   * It combines with every other prop on purpose: a list renders the same row
+   * and drives this from its query, so `isClickable` + `isLoading` is the
+   * normal call. The AVATAR is left exactly as passed — when the screen knows
+   * the object type it should pass that object's generic avatar (a client icon
+   * for a clients list); `<Avatar isLoading />` is only for a list whose type
+   * is unknown. Default false.
+   */
+  isLoading?: boolean;
 }
 
 /**

@@ -1,0 +1,69 @@
+@use "../../../styles/mixins/font" as *;
+
+// One line: [slot] 8px [text] 8px [slot]. The color token lives here, so the
+// slots' icons inherit it through `currentColor` — that is the whole icon-color
+// rule, no per-icon wiring.
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — slot ↔ text
+  width: 100%;
+  min-width: 0;
+}
+
+// The slot box: one text line tall, content centered. A taller instance (a
+// 28px Badge) grows the line, which is why a badge is title-only.
+.slot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--size-5); // 20px — the line height
+}
+
+// The text hugs its content and shrinks before it truncates, so a right slot
+// sits next to the text and not at the row's far edge. (Figma cannot express
+// `flex: 0 1 auto`, so its slotRight variants hug WITHOUT truncating — the
+// component's own doc page records the difference.) TruncatingText's wrapper
+// already carries the same rule, so only the free-text span needs it.
+.freeText {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+// The loading bar. It has no intrinsic width, so in a RIGHT block — which hugs
+// its content — it would collapse to nothing; the minimum keeps it readable
+// there. In a left block the line fills, so the minimum never binds. (Figma
+// carries the same rule as a `minWidth` on the line's loading variants.)
+.skeleton {
+  min-width: var(--size-24); // 96px
+}
+
+// ---- text styles ----
+.bodyMedium {
+  @include font("body-500-compact"); // Inter Medium 14/20
+}
+.bodyRegular {
+  @include font("body-400-compact"); // Inter Regular 14/20
+}
+.caption {
+  @include font("caption-medium-400"); // Inter Regular 13/20
+}
+
+// ---- colors ----
+// On the LINE, not on the text: the icons ride along.
+.strong {
+  color: var(--text-strong);
+}
+.subtle {
+  color: var(--text-subtle);
+}
+.placeholder {
+  color: var(--text-placeholder);
+}
+.warning {
+  color: var(--text-warning);
+}
+.error {
+  color: var(--text-error);
+}

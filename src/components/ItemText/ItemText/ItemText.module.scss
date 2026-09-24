@@ -1,0 +1,21 @@
+// [left block] 16px [right block], vertically centered — so a one-line tag
+// sits level with the middle of a two-line left block, and stays near the top
+// of a taller one because the right block keeps its own height.
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px — left ↔ right
+  width: 100%;
+  min-width: 0;
+}
+
+// The left block takes the remaining width and truncates first.
+.left {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// The right block hugs its content — it takes priority over the left text.
+.right {
+  flex: none;
+}

@@ -354,3 +354,32 @@
   margin-left: 50% !important;
   transform: translateX(-50%);
 }
+
+/* ---- Markdown tables in the docs prose -------------------------------------
+   These are the tables written in an .mdx page (the ItemValue-vs-tag rule, a
+   component's "who uses it" / usage list). The PROPS table is a different
+   thing — `.docblock-argstable`, built by <ArgTypes> — so it is excluded here
+   and keeps Storybook's own styling.
+
+   They need remark-gfm to parse at all; see .storybook/main.js. */
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) {
+  /* A prose table belongs to the text column, so it spans it like a preview
+     does rather than hugging its widest cell. */
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* A header cell is centered by default in HTML, which leaves it out of line
+   with the column it labels. Every prose table here reads as a list, so the
+   headers align left with their body cells. */
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) th {
+  text-align: left;
+}
+
+/* Storybook zebra-stripes every second row with its own theme color, which is
+   a blue-tinted white — it reads as a highlighted row against the DS surfaces
+   and implies a meaning the row does not have. The header rule and the row
+   borders already separate the rows. */
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) tr:nth-of-type(2n) {
+  background: transparent;
+}

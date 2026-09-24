@@ -8,10 +8,10 @@ import { semanticIcons } from "../../styles/semanticIcons";
 import { DateWindowPreset, FilterDef, optionCounts } from "./filterDefs";
 import { dateFilter, durationFilter, forwardWindows } from "./filterKinds";
 import {
-  addressTemplate,
   clientTemplate,
   labelsTemplate,
   lastModifiedTemplate,
+  locationAddressTemplate,
   locationTemplate,
   receivedTemplate,
   serviceTemplate,
@@ -44,8 +44,10 @@ import styles from "./Filters.module.scss";
 //     count the jobs behind each option. One function, so a count can never
 //     disagree with what applying the filter actually does.
 //
-// EVERY filter is designed and DOCUMENTED (2026-09-03): Address (14100-36446),
-// Assignee (13902-21570), Client (13934-13189), Date received (13903-25906),
+// EVERY filter is designed and DOCUMENTED (2026-09-03): Location address
+// (14947-21952, on the Freeform kind 14100-36446 — "Address" until
+// 2026-09-16), Assignee (13902-21570), Client (13934-13189), Date received
+// (13903-25906),
 // Duration (13874-10420), Labels (13999-17090), Last modified (14100-40610),
 // Location (14101-44921), Priority (13874-9043), Scheduled for (14101-46526),
 // Service (14101-46745), Source (14101-47385), Status (14101-47648), Status
@@ -129,7 +131,7 @@ export const lockedStatusOptionIds = (statuses: readonly string[]): string[] =>
  *
  * A window is a COMPLETE answer, so a value holding one has NO condition:
  * the list draws no condition chips (no header at all) and the chip renders
- * without its condition box (the FilterChip `condition=false` variant).
+ * without its condition box (the FilterChip `operator=false` variant).
  * The Custom dialog is unchanged — a custom value keeps the dialog's own
  * conditions ("after · Jan 1", the section's second chip example).
  */
@@ -165,8 +167,6 @@ const durationValues = durationFilter<Job>((job) => job.durationMinutes);
  */
 function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
   const defs: FilterDef<Job>[] = [
-    // Address — shared (see filterTemplates).
-    addressTemplate(locationOf),
     {
       // Assignee — the first filter Daniel designed in full (Figma section
       // 13902-21570). Three things set it apart from the rest:
@@ -263,6 +263,10 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
     lastModifiedTemplate((job) => job.lastModifiedAt),
     // Location — shared (see filterTemplates).
     locationTemplate((job) => job.locationId),
+    // Location address — shared (see filterTemplates). It follows Location in
+    // the alphabetical menu since the 2026-09-16 rename (it was "Address", the
+    // first row).
+    locationAddressTemplate(locationOf),
     {
       // Priority — the FIRST designed filter, DOCUMENTED on 2026-09-03 (section
       // 13874-9043, a Multi-Select Filter — pattern documentation 14038-14033).

@@ -10,9 +10,9 @@ import FilterChipGroup from "./FilterChipGroup";
 import styles from "./TopBarFilter.module.scss";
 import { TopBarFilterProps } from "./TopBarFilter.types";
 
-// TopBarFilter — the bar that holds the applied filters: a FilterChipGroup
-// filling the width plus an optional right slot ("Clear all" or "Reset" — a
-// ghost/md Button), with a Divider under the bar. It exists ONLY on desktop
+// TopBarFilter — the bar that holds the applied filters: a horizontal
+// FilterChipGroup filling the width plus an optional right slot ("Clear all"
+// or "Reset" — a ghost/lg Button), with a Divider under. It exists ONLY on desktop
 // (on mobile it renders nothing — the SidebarNav breakpoint-exclusivity rule)
 // and only while there are applied filters (no chips → nothing). Which right
 // slot to show — "Clear all" on standard views, "Reset" on views with
@@ -37,7 +37,7 @@ export default function TopBarFilter({
     <div className={clsx(styles.bar, className)}>
       <div className={styles.content}>
         <FilterChipGroup
-          breakpoint="desktop"
+          orientation="horizontal"
           addMenu={addMenu}
           onAddClick={onAddClick}
           addPressed={addPressed}
@@ -46,14 +46,14 @@ export default function TopBarFilter({
           {children}
         </FilterChipGroup>
         {onClearAll != null && (
-          <Button variant="ghost" size="md" className={styles.slotRight} onClick={onClearAll}>
+          <Button variant="ghost" size="lg" className={styles.slotRight} onClick={onClearAll}>
             Clear all
           </Button>
         )}
         {/* Plain text since 2026-09-09 — Daniel removed the icon from the
             doc's Reset button (node 29562-15978). */}
         {onClearAll == null && onReset != null && (
-          <Button variant="ghost" size="md" className={styles.slotRight} onClick={onReset}>
+          <Button variant="ghost" size="lg" className={styles.slotRight} onClick={onReset}>
             Reset
           </Button>
         )}

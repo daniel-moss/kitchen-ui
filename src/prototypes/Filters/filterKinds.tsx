@@ -69,7 +69,7 @@ import styles from "./Filters.module.scss";
 // FILTER FUNCTIONALITY — the KINDS. Daniel's Figma node 14267-23297 ("Filter
 // Functionality", inside the "Filters ↳ Shared Behavior" page 14199-65429)
 // lists what a filter can BE, as behaviour rather than as a named filter:
-// Multi-Select, Timeframe, Duration, Address and Money.
+// Multi-Select, Timeframe, Duration, Freeform and Money.
 //
 // A KIND is not a filter. "Duration" is a kind here AND the Jobs filter over
 // there (jobsFilters.tsx); "Last modified" and "Status changed" are two shared
@@ -1532,9 +1532,9 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
   );
 }
 
-// ---- the Address dialog ----------------------------------------------------
+// ---- the Freeform dialog ----------------------------------------------------
 
-// The ADDRESS filter's whole interface — the documented section 14100-36446
+// The FREEFORM filter's whole interface — the documented section 14100-36446
 // (nodes 14100-36447 desktop / 14100-36463 mobile, 2026-09-03; it replaced
 // 13988-53606 / 13988-53696). Unlike every other filter this one never opens a
 // list — there is nothing to list — so the row in the Filters menu opens this
@@ -1547,11 +1547,13 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
 //     condition segment offers, from the same `conditionChoices` source — so
 //     the dialog and the chip cannot drift apart.
 //   a `Divider`, FULL-BLEED — edge to edge, like the date dialog's.
-//   the FIVE `Input`s at 24px apart inside 16px padding, each labelled
-//     "(optional)" because any one of them on its own is a real question. The
-//     only difference between the breakpoints is the last row: DESKTOP puts
-//     State / Province and Postal code side by side (280px each inside the
-//     608px card), MOBILE stacks all five.
+//   the DEF's `Input`s at 24px apart inside 16px padding — five for the two
+//     address filters, one for MFG — each with a PLAIN label: the "(optional)"
+//     condition was dropped on 2026-09-16 (Daniel), because every field of a
+//     freeform filter is optional and the word was on all of them at once. The
+//     only difference between the breakpoints is the address filters' last
+//     row: DESKTOP puts State / Province and Postal code side by side (280px
+//     each inside the 608px card), MOBILE stacks all five.
 //
 // The footer is a plain Cancel / Apply pair — not the value-preview footer the
 // date and duration dialogs use, because the value is already legible in the
@@ -1582,12 +1584,16 @@ function FreeformCustom({ def, value, onApply, onClose, open, breakpoint }: Free
   // Apply writes it back.
   const [negated, setNegated] = useState(value.negated);
 
-  // A field with no `label` renders with NO header — Input draws one only
-  // when it has something to put in it, so a one-field filter (MFG, MFG part
-  // #) is the bare TextField its node draws, and "(optional)" goes with the
-  // label rather than hanging on its own.
+  // A field with no `label` renders with NO header — Input draws one only when
+  // it has something to put in it, so a one-field filter (MFG, MFG part #) is
+  // the bare TextField its node draws.
+  //
+  // NO label condition on any of them (Daniel, 2026-09-16 — the "(optional)"
+  // is gone from Location address and Billing address): in a freeform filter
+  // every field is optional, so the word sat on all five at once and carried
+  // no information.
   const field = (spec: FreeformField) => (
-    <Input key={spec.key} label={spec.label} labelCondition={spec.label == null ? undefined : "optional"}>
+    <Input key={spec.key} label={spec.label}>
       <TextField
         aria-label={spec.label ?? def.label}
         value={draft[spec.key] ?? ""}

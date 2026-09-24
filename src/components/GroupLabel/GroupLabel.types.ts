@@ -10,14 +10,23 @@ interface GroupLabelBaseProps extends HTMLAttributes<HTMLDivElement> {
   slotRight?: ReactNode;
 
   /** Accordion: the row becomes a toggle with a caret + interaction states. */
-  accordion?: boolean;
-  /** Controlled open state (accordion). */
+  isAccordion?: boolean;
+  /** Controlled open state (isAccordion). */
   open?: boolean;
-  /** Uncontrolled initial open state (accordion). Default false. */
+  /** Uncontrolled initial open state (isAccordion). Default false. */
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   /** Accordion only — dimmed, non-interactive. */
   disabled?: boolean;
+
+  /**
+   * Loading: the label becomes a single 96px bar and everything else is
+   * hidden — the caret, the counter, the caption, the left slot and the
+   * action. Those are controls or data, and neither exists yet. The header
+   * keeps its own shape (primary its filled bar, secondary transparent) and
+   * stops being interactive. Default false.
+   */
+  isLoading?: boolean;
 
   className?: string;
 }

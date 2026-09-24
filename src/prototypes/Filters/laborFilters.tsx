@@ -35,7 +35,7 @@ import { PricebookPhase } from "./pricebookList";
 // STATUS is ACTIVE-phase only (the menu row's own annotation: "Only shown on
 // the 'Active' phase views") — an inactive item has no status to filter, the
 // Bills Status-changed arrangement. The templates that are NOT here —
-// Client, Location, Service, Address, the date trio, Seen, Total — have
+// Client, Location, Location address, Service, the date trio, Seen, Total — have
 // nothing to read: a pricebook item belongs to nothing, has no lifecycle
 // dates beyond Last modified, and its two amounts have their own names.
 

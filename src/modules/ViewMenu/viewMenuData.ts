@@ -11,25 +11,29 @@ interface SortMeta {
 }
 
 /**
- * Alphabetical / Numerical / Time / Other — ascending and descending. From the
- * Figma annotations on the "Sort Order Button" board.
+ * Alphabetical / Numerical / Time / Other — ascending and descending. Read off
+ * the "Sort Order Button" board (Figma 14205-72007).
+ *
+ * Every icon is an `arrow-down-*`: the arrow always points down and it is the
+ * letters / numbers that reverse (2026-09-24 — descending used to be
+ * `arrow-up-*`).
  */
 export const SORT_META: Record<ViewMenuColumnType, { asc: SortMeta; desc: SortMeta }> = {
   text: {
     asc: { icon: "arrow-down-a-z", label: "A to Z" },
-    desc: { icon: "arrow-up-z-a", label: "Z to A" },
+    desc: { icon: "arrow-down-z-a", label: "Z to A" },
   },
   number: {
     asc: { icon: "arrow-down-1-9", label: "1 to 9" },
-    desc: { icon: "arrow-up-9-1", label: "9 to 1" },
+    desc: { icon: "arrow-down-9-1", label: "9 to 1" },
   },
   date: {
     asc: { icon: "arrow-down-short-wide", label: "Least recent" },
-    desc: { icon: "arrow-up-wide-short", label: "Most recent" },
+    desc: { icon: "arrow-down-wide-short", label: "Most recent" },
   },
   generic: {
     asc: { icon: "arrow-down-short-wide", label: "Ascending" },
-    desc: { icon: "arrow-up-wide-short", label: "Descending" },
+    desc: { icon: "arrow-down-wide-short", label: "Descending" },
   },
 };
 

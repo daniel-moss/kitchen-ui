@@ -105,7 +105,7 @@ export default function TimesheetForm({
         days.map((day, i) => (
           <ItemGroup
             key={day.label}
-            accordion={false}
+            isAccordion={false}
             divider={i < days.length - 1}
             label={
               <GroupLabel

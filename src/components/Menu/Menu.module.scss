@@ -1,6 +1,7 @@
 // Menu — the desktop card surface. (Mobile uses the Popover drawer.)
 // Width adapts to the content: the widest MenuItem defines the menu width,
-// within min 160 / max 384. Height caps at 1000px; the body scrolls beyond.
+// within min 160 / max 384. Height caps at 1000px OR the screen, whichever is
+// smaller; the body scrolls beyond.
 .card {
   box-sizing: border-box;
   display: flex;
@@ -10,7 +11,15 @@
   width: fit-content;
   min-width: var(--size-40); // 160px
   max-width: var(--size-96); // 384px
-  max-height: 1000px;
+  // THE SCREEN IS PART OF THE CAP (2026-09-17). A bare 1000px let a long menu
+  // grow taller than a short window, and a card that does not fit cannot be
+  // placed: the consumer's anchoring code can only push it up until its top
+  // hits the top margin, after which the rest hangs off the bottom, unreachable
+  // (found on the Filters prototype's Location list — 1000px tall in a 533px
+  // window, 475px of it off-screen). `dvh` so a mobile browser's collapsing
+  // toolbar is counted; `--size-4` is 16px — the 8px of clearance an anchored
+  // card leaves at each end.
+  max-height: min(1000px, calc(100dvh - var(--size-4)));
 
   background: var(--surface-level-third);
   border-radius: var(--border-radius-2_5); // 10px

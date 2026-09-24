@@ -54,7 +54,7 @@ import {
 // — Daniel: "Per-status columns are 'Status changed' data. All those columns
 // should be replaced with the 'Status changed' column and filter."
 //
-// The templates that are NOT here — Address, Client, Location, Service, Due
+// The templates that are NOT here — Location address, Client, Location, Service, Due
 // date, Received, Created at, Total, Amount due — have nothing to read: a PO
 // belongs to a VENDOR (no client, location or service), has no due date and
 // no received date (receiving is the Delivered → Stocked pair), and its one

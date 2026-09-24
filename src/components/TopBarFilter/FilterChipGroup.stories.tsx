@@ -18,14 +18,14 @@ const meta: Meta<typeof FilterChipGroup> = {
   // fullscreen — the stories' own frame provides the (only) padding.
   parameters: { layout: "fullscreen" },
   args: {
-    breakpoint: "auto",
+    orientation: "horizontal",
   },
   argTypes: {
     children: { control: false },
     addMenu: { control: false },
     onAddClick: { control: false },
     className: { control: false },
-    breakpoint: { options: ["auto", "desktop", "mobile"], control: { type: "inline-radio" } },
+    orientation: { options: ["horizontal", "vertical"], control: { type: "inline-radio" } },
   },
 };
 export default meta;
@@ -34,15 +34,15 @@ type Story = StoryObj<typeof FilterChipGroup>;
 
 const diamond = <Icon icon="diamonds-4" size={14} />;
 
-// The default chip from the Figma examples: icon slot + Property/condition/Value.
+// The default chip from the Figma examples: icon slot + Name/operator/Value.
 const defaultChip = (key: number) => (
   <FilterChip
     key={key}
     slotLeft={diamond}
-    property="Property"
-    condition="condition"
+    name="Name"
+    operator="operator"
     value="Value"
-    onConditionClick={noop}
+    onOperatorClick={noop}
     onValueClick={noop}
     onRemove={noop}
   />
@@ -52,10 +52,10 @@ const defaultChip = (key: number) => (
 const compactChip = (key: number) => (
   <FilterChip
     key={key}
-    property="Filter"
-    condition="is"
+    name="Filter"
+    operator="is"
     value="Value"
-    onConditionClick={noop}
+    onOperatorClick={noop}
     onValueClick={noop}
     onRemove={noop}
   />
@@ -83,20 +83,23 @@ export const Playground: Story = {
 export const Hero: Story = {
   render: () => (
     <div style={docsFrame}>
-      <FilterChipGroup breakpoint="desktop" addMenu={addMenu}>
+      <FilterChipGroup orientation="horizontal" addMenu={addMenu}>
         {defaultChip(1)}
       </FilterChipGroup>
     </div>
   ),
 };
 
-/** Desktop: a wrapping row of chips, the "Add filter" button after them. */
-export const AnatomyDesktop: Story = {
+/**
+ * Horizontal: fills the width, a wrapping row of chips, the "Add filter"
+ * button after them.
+ */
+export const AnatomyHorizontal: Story = {
   render: () => (
     <div style={docsFrame}>
       {/* 440px matches the Figma preview width, so the four chips wrap the same way. */}
       <div style={{ maxWidth: 440 }}>
-        <FilterChipGroup breakpoint="desktop" addMenu={addMenu}>
+        <FilterChipGroup orientation="horizontal" addMenu={addMenu}>
           {compactChip(1)}
           {compactChip(2)}
           {compactChip(3)}
@@ -107,11 +110,14 @@ export const AnatomyDesktop: Story = {
   ),
 };
 
-/** Mobile: a column of full-width chips, no "Add filter" button. */
-export const AnatomyMobile: Story = {
+/**
+ * Vertical: fills the width, a column of full-width chips — the "value" box
+ * takes the slack in each one — and no "Add filter" button.
+ */
+export const AnatomyVertical: Story = {
   render: () => (
     <div style={docsFrame}>
-      <FilterChipGroup breakpoint="mobile">
+      <FilterChipGroup orientation="vertical">
         {defaultChip(1)}
         {defaultChip(2)}
         {defaultChip(3)}
@@ -126,7 +132,7 @@ export const AddFilterTooltip: Story = {
   render: () => (
     <div style={{ ...docsFrame, display: "flex", justifyContent: "center" }}>
       <HoverTooltip text="Add filter">
-        <IconButton variant="ghost" size="md" icon="plus" aria-label="Add filter" onClick={noop} />
+        <IconButton variant="ghost" size="lg" icon="plus" aria-label="Add filter" onClick={noop} />
       </HoverTooltip>
     </div>
   ),
@@ -141,7 +147,7 @@ function AddFilterMenuDemo() {
       <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4, minHeight: 130 }}>
         <IconButton
           variant="ghost"
-          size="md"
+          size="lg"
           icon="plus"
           aria-label="Add filter"
           isPressed={open}

@@ -35,12 +35,14 @@ import {
 // rows is a change to this file and shows up on every list that uses it,
 // which is what the Figma node says.
 //
-// ADDRESS is one of them. The build put it here first — it is shared by both
-// lists exactly like the rest — while Figma still filed it under Filter
+// LOCATION ADDRESS is one of them. The build put it here first — it is shared
+// by both lists exactly like the rest — while Figma still filed it under Filter
 // FUNCTIONALITY (the KIND). Daniel MOVED it on 2026-09-11, and the node was
 // re-read to confirm: 14267-23337 now lists Address, Client, Due Date,
 // Issued, Labels, Last Modified, Location, Seen, Service and Status Changed.
-// The taxonomy and the build agree again.
+// The taxonomy and the build agree again. (The filter was RENAMED "Location
+// address" on 2026-09-16 — see `locationAddressTemplate` for what the rename
+// moved.)
 //
 // ISSUED, TOTAL and SEEN joined this module on 2026-09-12 — all three sit on
 // the shared page (14297-48697, 14297-48909 and 14267-13151), even though only
@@ -642,7 +644,7 @@ export function statusChangedTemplate<TRow>(read: (row: TRow) => string | null):
   };
 }
 
-// ---- Address + Billing address (the two FREEFORM filters) -------------------
+// ---- Location address + Billing address (the two FREEFORM filters) ----------
 
 /**
  * The five matchable parts of ANY address — a location's, or a vendor's /
@@ -662,9 +664,13 @@ export interface AddressParts {
 
 /**
  * The address filters' five fields, in the dialog's order — the labels are
- * the nodes' copy (Address 14947-21952 / Billing address 14947-34564 draw
- * the same five). State / Province and Postal code share a desktop row
+ * the nodes' copy (Location address 14947-21952 / Billing address 14947-34564
+ * draw the same five). State / Province and Postal code share a desktop row
  * (`half`); mobile stacks all five.
+ *
+ * None of the five carries the "(optional)" label condition any more (Daniel,
+ * 2026-09-16): every field of an address filter is optional by nature, so the
+ * word was on all five at once and said nothing.
  */
 const addressFields = <TRow,>(read: (row: TRow) => AddressParts): FreeformFieldDef<TRow>[] => [
   { key: "street", label: "Street address", read: (row) => read(row).street },
@@ -706,23 +712,28 @@ const addressFreeform = <TRow,>(read: (row: TRow) => AddressParts) => ({
 });
 
 /**
- * Address — the eighth designed filter (its own section 14947-21952 since
- * the 2026-09-16 reorganisation — a FILTER built on the Freeform kind,
- * 14100-36446), and the FIRST row of every menu: the rows are alphabetical
- * and this one sorts to the top (node 13857-25352). Each field is matched
- * against the matching field of the row's LOCATION.
+ * Location address — the eighth designed filter (its own section 14947-21952
+ * since the 2026-09-16 reorganisation — a FILTER built on the Freeform kind,
+ * 14100-36446). Each field is matched against the matching field of the row's
+ * LOCATION.
+ *
+ * RENAMED from "Address" on 2026-09-16 (Daniel): the name now says WHOSE
+ * address is being matched, the way its twin "Billing address" always did.
+ * The rename MOVED it in every menu — the rows are alphabetical (node
+ * 13857-25352), so it stopped being the first row and now follows "Location",
+ * which is the filter it reads through.
  */
-export function addressTemplate<TRow>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow> {
+export function locationAddressTemplate<TRow>(locationOfRow: (row: TRow) => LocationRecord): FilterDef<TRow> {
   return {
     id: "address",
-    label: "Address",
+    label: "Location address",
     ...addressFreeform(locationOfRow),
   };
 }
 
 /**
- * Billing address — the Address filter's twin over a row's OWN `billing_*`
- * fields (its section 14947-34564, also built on the Freeform kind; a
+ * Billing address — the Location address filter's twin over a row's OWN
+ * `billing_*` fields (its section 14947-34564, also built on the Freeform kind; a
  * shared TEMPLATE since the 2026-09-16 reorganisation — the Vendors and
  * Clients lists carried identical local copies before). The reader hands in
  * the row's billing parts; this list-side shape has no location anywhere.

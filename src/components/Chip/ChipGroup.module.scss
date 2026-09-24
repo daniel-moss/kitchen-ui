@@ -10,10 +10,14 @@
 }
 
 // The row of Chips: it wraps, and the gap is the same on both axes.
+// `align-items: stretch` keeps every chip in a line the same height. It does
+// nothing to horizontal chips (their height is fixed) but it matters for
+// VERTICAL ones, which hug their content: without it a chip whose label sits
+// on one line would be shorter than its neighbours.
 .chips {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   align-content: center;
   gap: var(--size-2); // 8px, both axes
 }

@@ -36,12 +36,13 @@ export const MenuContext = createContext<MenuContextValue | null>(null);
 // shared withGroupDividers helper (src/utils/groupDividers).
 
 // Menu — a floating action menu built on Popover, holding MenuItemGroups.
-// Desktop = an adaptive card (width fits the content, min 160 / max 384, max
-// height 1000) shown 4px from its trigger; a MenuItem with `subMenu` opens a
-// nested card on hover, 4px beside the item. Mobile = the Popover drawer; a
-// sub-menu replaces the drawer content, with a back button and the trigger's
-// label as the title. `header` adds a MenuHeader (search bar) above the items
-// on both presentations — Figma's Menu `header=true`. See Figma "Menu".
+// Desktop = an adaptive card (width fits the content, min 160 / max 384; height
+// capped at 1000px or the screen, whichever is smaller) shown 4px from its
+// trigger; a MenuItem with `subMenu` opens a nested card on hover, 4px beside
+// the item. Mobile = the Popover drawer; a sub-menu replaces the drawer
+// content, with a back button and the trigger's label as the title. `header`
+// adds a MenuHeader (search bar) above the items on both presentations —
+// Figma's Menu `header=true`. See Figma "Menu".
 export default function Menu({
   children,
   open = true,

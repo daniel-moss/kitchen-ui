@@ -31,16 +31,16 @@ type Story = StoryObj<typeof TopBarFilter>;
 
 const diamond = <Icon icon="diamonds-4" size={14} />;
 
-// The default chip from the Figma examples: icon slot + Property/condition/Value.
+// The default chip from the Figma examples: icon slot + Name/operator/Value.
 const defaultChip = (key: number, isLocked = false) => (
   <FilterChip
     key={key}
     slotLeft={diamond}
-    property="Property"
-    condition="condition"
+    name="Name"
+    operator="operator"
     value="Value"
     isLocked={isLocked}
-    onConditionClick={isLocked ? undefined : noop}
+    onOperatorClick={isLocked ? undefined : noop}
     onValueClick={noop}
     onRemove={isLocked ? undefined : noop}
   />
@@ -51,10 +51,10 @@ const defaultChip = (key: number, isLocked = false) => (
 const compactChip = (key: number) => (
   <FilterChip
     key={key}
-    property="Filter"
-    condition="is"
+    name="Filter"
+    operator="is"
     value="Value"
-    onConditionClick={noop}
+    onOperatorClick={noop}
     onValueClick={noop}
     onRemove={noop}
   />

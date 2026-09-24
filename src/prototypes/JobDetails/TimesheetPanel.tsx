@@ -637,7 +637,7 @@ export const SessionRow = ({
 const TechGroup = ({ user, total, rows, divider, canAdd, onAdd }: { user: User; total?: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: () => void }) => {
   return (
   <ItemGroup
-    accordion={false}
+    isAccordion={false}
     divider={divider}
     label={
       <GroupLabel

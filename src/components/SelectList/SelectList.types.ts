@@ -129,12 +129,21 @@ interface SelectListBaseProps {
  *
  * WIDTH (inline): the card hugs its content up to 384px and has NO minimum of
  * its own — so it opens at the width that shows every option without
- * truncation. A SEARCH never changes that width (Daniel, 2026-09-14): the
- * measurement taken with the full list is held as a floor for as long as
- * something is typed, so filtering rows out cannot make the card shrink under
- * the cursor. It works for the built-in `searchable` and for a consumer's own
- * SelectListHeader alike, and it combines with a floor the consumer sets in
- * `style.minWidth` (the Filters lists set 208) rather than replacing it.
+ * truncation, however short that is. This is the deliberate difference from
+ * `Menu`, which floors at 160 (Daniel, 2026-09-17, after comparing the two on
+ * the Filters prototype: a list should be as wide as its rows and no wider).
+ * A SEARCH never changes that width (Daniel, 2026-09-14): the measurement
+ * taken with the full list is held as a floor for as long as something is
+ * typed, so filtering rows out cannot make the card shrink under the cursor.
+ * It works for the built-in `searchable` and for a consumer's own
+ * SelectListHeader alike, and it combines with a floor a consumer sets in
+ * `style.minWidth` rather than replacing it.
+ *
+ * HEIGHT (inline): capped at 1000px OR the screen, whichever is smaller, and
+ * the body scrolls past it. The screen is part of the cap because a card
+ * taller than the window cannot be placed anywhere — whatever anchors it can
+ * only push it up until it hits the top margin, and the rest hangs off the
+ * bottom out of reach.
  */
 export type SelectListProps =
   | (SelectListBaseProps & { variant?: "inline"; title?: string })

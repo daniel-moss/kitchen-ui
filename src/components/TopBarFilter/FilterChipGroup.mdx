@@ -27,38 +27,40 @@ components
     </MenuItemGroup>
   }
 >
-  <FilterChip property="Property" condition="is" value="Value" … />
+  <FilterChip name="Name" operator="is" value="Value" … />
 </FilterChipGroup>
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Desktop](#desktop)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Mobile](#mobile)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Horizontal](#horizontal)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Vertical](#vertical)<br />
 ↳&nbsp;&nbsp;[Behavior](#behavior)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Add filter" button](#add-filter-button)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-Supports 2 variants: mobile and desktop
+Supports 2 orientations: horizontal and vertical. Both fill the width, and the
+one in use is handed to the chips inside — `orientation`.
 
-### Desktop
+### Horizontal
 
 Fills the width. The chips are laid out horizontally from left to right. If
 the chips do not fit the width, they wrap. The gap between the chips is
 `--size-2` (8px) — in a row and between the wrapped rows. Chips are followed
 by the "Add filter"
 <a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
-— `ghost`, `md` (32px), with a 14px `plus` icon.
+— `ghost`, `lg` (36px), with a 14px `plus` icon.
 
-<Canvas of={FilterChipGroupStories.AnatomyDesktop} />
+<Canvas of={FilterChipGroupStories.AnatomyHorizontal} />
 
-### Mobile
+### Vertical
 
 Fills the width. The chips are laid out vertically from top to bottom,
-`--size-2` (8px) apart. There is no "Add filter" button on mobile.
+`--size-2` (8px) apart, each one filling the width — the "value" box takes the
+slack. There is no "Add filter" button in this orientation.
 
-<Canvas of={FilterChipGroupStories.AnatomyMobile} />
+<Canvas of={FilterChipGroupStories.AnatomyVertical} />
 
 ## Behavior
 

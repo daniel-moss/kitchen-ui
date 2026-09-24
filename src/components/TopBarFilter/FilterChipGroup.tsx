@@ -3,33 +3,33 @@ import { createPortal } from "react-dom";
 
 import clsx from "clsx";
 
-import useIsDesktop from "../../hooks/useIsDesktop";
 import IconButton from "../IconButton/IconButton";
 import Menu from "../Menu/Menu";
 import HoverTooltip from "../Tooltip/HoverTooltip";
 
-import { FilterChipBreakpointContext } from "./FilterChipBreakpointContext";
+import { FilterChipOrientationContext } from "./FilterChipOrientationContext";
 import styles from "./FilterChipGroup.module.scss";
 import { FilterChipGroupProps } from "./FilterChipGroup.types";
 
-// FilterChipGroup — the container for the applied FilterChips. Desktop: a
-// wrapping row with the "Add filter" IconButton (ghost/md, plus) after the
+// FilterChipGroup — the container for the applied FilterChips. Horizontal: a
+// wrapping row with the "Add filter" IconButton (ghost/lg, plus) after the
 // chips; hovering the button shows an "Add filter" tooltip, clicking it opens
 // the `addMenu` Menu 4px below (body-portaled with a measured fixed position,
 // like SidebarNav's Create menu, so no overflow ancestor can clip it) and the
-// button stays pressed while the Menu is open. Mobile: a column of full-width
-// chips, no button. With no chips the group renders nothing. The resolved
-// breakpoint flows to the chips inside via FilterChipBreakpointContext.
-// See Figma: component 29561-14722, documentation 29561-14971.
+// button stays pressed while the Menu is open. Vertical: a column of
+// full-width chips, no button. With no chips the group renders nothing. The
+// orientation flows to the chips inside via FilterChipOrientationContext.
+// See Figma: component 29561-14722, documentation 29561-14971. The
+// `orientation` property replaced the old `breakpoint` on 2026-09-18.
 export default function FilterChipGroup({
   children,
   addMenu,
   onAddClick,
   addPressed = false,
-  breakpoint = "auto",
+  orientation = "horizontal",
   className,
 }: FilterChipGroupProps) {
-  const isDesktop = useIsDesktop(breakpoint);
+  const isHorizontal = orientation === "horizontal";
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLSpanElement>(null);
   const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
@@ -69,15 +69,15 @@ export default function FilterChipGroup({
   if (Children.toArray(children).length === 0) return null;
 
   return (
-    <FilterChipBreakpointContext.Provider value={isDesktop ? "desktop" : "mobile"}>
-      <div className={clsx(styles.group, !isDesktop && styles.groupMobile, className)}>
+    <FilterChipOrientationContext.Provider value={orientation}>
+      <div className={clsx(styles.group, !isHorizontal && styles.groupVertical, className)}>
         {children}
-        {isDesktop && (
+        {isHorizontal && (
           <span ref={wrapRef} className={styles.addWrap}>
             <HoverTooltip text="Add filter">
               <IconButton
                 variant="ghost"
-                size="md"
+                size="lg"
                 icon="plus"
                 aria-label="Add filter"
                 isPressed={addMenu != null ? open : addPressed}
@@ -101,6 +101,6 @@ export default function FilterChipGroup({
           </span>
         )}
       </div>
-    </FilterChipBreakpointContext.Provider>
+    </FilterChipOrientationContext.Provider>
   );
 }

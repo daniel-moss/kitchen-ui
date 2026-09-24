@@ -4,12 +4,15 @@ import type { Meta, StoryObj } from "@storybook/react";
 import Chip from "./Chip";
 import ChipGroup from "./ChipGroup";
 import type { ChipSize } from "./Chip.types";
+import type { ChipSelectionMode } from "./ChipSelectionModeContext";
+import { Icon } from "../Icon/Icon";
 import { docsFrame, noop } from "../../stories/helpers";
 
 type StoryArgs = {
   count: number;
   size: ChipSize;
   width: number;
+  selectionMode: ChipSelectionMode;
 };
 
 /**
@@ -47,15 +50,16 @@ const CUISINES = [
 /** Chips in a wrapping row — resize the width to see them reflow. */
 export const Playground: Story = {
   parameters: { layout: "centered" },
-  args: { count: 6, size: "md", width: 320 },
+  args: { count: 6, size: "md", width: 320, selectionMode: "multiple" },
   argTypes: {
     count: { control: { type: "range", min: 1, max: 10, step: 1 } },
     size: { options: ["sm", "md", "lg"], control: { type: "inline-radio" } },
     width: { control: { type: "range", min: 160, max: 640, step: 8 } },
+    selectionMode: { options: ["multiple", "single"], control: { type: "inline-radio" } },
   },
-  render: ({ count, size, width }) => (
+  render: ({ count, size, width, selectionMode }) => (
     <div style={{ width }}>
-      <ChipGroup>
+      <ChipGroup selectionMode={selectionMode}>
         {CUISINES.slice(0, count).map((label) => (
           <Chip key={label} size={size} onClick={noop}>
             {label}
@@ -98,41 +102,49 @@ export const Wrapping: Story = {
   ),
 };
 
-// Full width — the weekday row from the "Repeat on" input: the chips share
-// the row equally and the consumer keeps the picked days (no selection by
-// default, per the design).
-const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+// The two full-width boards use the SAME chips, so the only difference the
+// reader sees is the sizing.
+const TIME_FRAMES = ["Day", "3 days", "Week", "Month"];
 
-const FullWidthDemo = () => {
-  const [selected, setSelected] = useState<string[]>([]);
-  const toggle = (label: string) =>
-    setSelected((prev) => (prev.includes(label) ? prev.filter((v) => v !== label) : [...prev, label]));
-  return (
-    <ChipGroup isFullWidth>
-      {WEEKDAYS.map((label) => (
-        <Chip key={label} size="lg" isSelected={selected.includes(label)} onClick={() => toggle(label)}>
-          {label}
-        </Chip>
-      ))}
-    </ChipGroup>
-  );
-};
-
-/** isFullWidth — one non-wrapping row, the chips share the width equally. */
-export const FullWidth: Story = {
+/** isFullWidth = false — the chips hug their labels and the row wraps. */
+export const FullWidthOff: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={docsFrame}>
-      <FullWidthDemo />
+      <ChipGroup>
+        {TIME_FRAMES.map((label) => (
+          <Chip key={label} size="lg" onClick={noop}>
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
     </div>
   ),
 };
 
-// Single-select — the consumer keeps ONE selected key.
+/** isFullWidth = true — one non-wrapping row, the chips share the width equally. */
+export const FullWidth: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <ChipGroup isFullWidth>
+        {TIME_FRAMES.map((label) => (
+          <Chip key={label} size="lg" onClick={noop}>
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
+    </div>
+  ),
+};
+
+// Pick one — selectionMode="single": the chips announce themselves as a radio
+// group, Tab reaches the row once and the arrows move between them. The
+// consumer still keeps the value.
 const SingleSelectDemo = () => {
-  const [selected, setSelected] = useState<string | null>("Sushi");
+  const [selected, setSelected] = useState<string>("Sushi");
   return (
-    <ChipGroup>
+    <ChipGroup selectionMode="single">
       {CUISINES.slice(0, 5).map((label) => (
         <Chip key={label} isSelected={selected === label} onClick={() => setSelected(label)}>
           {label}
@@ -142,7 +154,7 @@ const SingleSelectDemo = () => {
   );
 };
 
-/** Live — single-select: the consumer keeps one selected value. */
+/** Live — pick one: `selectionMode="single"`, one chip always selected. Try the arrow keys. */
 export const SingleSelect: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
@@ -194,20 +206,25 @@ export const Validation: Story = {
   ),
 };
 
-/** Any Chip size works — keep one size inside a group. */
-export const Sizes: Story = {
+/** A group holds one kind of chip — one size and one orientation. */
+export const OneKindOfChip: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
-    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-4)" }}>
-      {(["sm", "md", "lg"] as ChipSize[]).map((size) => (
-        <ChipGroup key={size}>
-          {CUISINES.slice(0, 4).map((label) => (
-            <Chip key={label} size={size} onClick={noop}>
-              {label}
-            </Chip>
-          ))}
-        </ChipGroup>
-      ))}
+    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-8)" }}>
+      <ChipGroup>
+        {CUISINES.slice(0, 3).map((label) => (
+          <Chip key={label} onClick={noop}>
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
+      <ChipGroup>
+        {CUISINES.slice(0, 3).map((label) => (
+          <Chip key={label} orientation="vertical" slotLeft={<Icon icon="diamonds-4" size={14} />} onClick={noop}>
+            {label}
+          </Chip>
+        ))}
+      </ChipGroup>
     </div>
   ),
 };

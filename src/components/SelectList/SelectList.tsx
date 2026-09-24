@@ -99,12 +99,13 @@ export const SelectListContext = createContext<SelectListContextValue | null>(nu
 
 // SelectList — the select menu container holding SelectListItemGroups, with an
 // optional pinned SelectListHeader (search) and SelectListFooter. Variants:
-// inline = a floating card (under a SelectField); dialog = built on Dialog
-// (560px card, title + close, max height 1000); drawer = the mobile bottom
-// sheet. On mobile, inline and dialog fall back to the drawer. Group dividers
-// are managed automatically (every group but the last). Single-select closes
-// on selection; arrow keys walk the options; empty / noResults states swap the
-// body for an EmptyState. See Figma "SelectList".
+// inline = a floating card (under a SelectField) that hugs its content — no
+// minimum width, max 384, height capped at 1000px or the screen, whichever is
+// smaller; dialog = built on Dialog (560px card, title + close); drawer = the
+// mobile bottom sheet. On mobile, inline and dialog fall back to the drawer.
+// Group dividers are managed automatically (every group but the last).
+// Single-select closes on selection; arrow keys walk the options; empty /
+// noResults states swap the body for an EmptyState. See Figma "SelectList".
 export default function SelectList({
   variant = "inline",
   children,

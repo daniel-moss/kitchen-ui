@@ -160,20 +160,34 @@ Roughly, as of this handoff:
 - **Buttons/links:** `Button` (solid/subtle/ghost/danger; sm/md/lg; `isFullWidth`;
   debounced onClick), `IconButton` (variants incl. `muted`; sizes xxxs–lg),
   `LinkButton` (polymorphic `<a>`/`<button>`, `--text-*` schemes, +8px hit area),
-  `Chip` (REBUILT to Figma 29520-29010, 2026-09-05: sm 28 / md 32 / lg 36,
-  default md, label body 14 in ALL sizes — the sm caption font is gone;
+  `Chip` (REBUILT to Figma 29520-29010, 2026-09-05; `orientation` added
+  2026-09-24: sm 28 / md 32 / lg 36, default md, label **caption 13/20 in sm**
+  and body 14/20 in md·lg (the sm caption came BACK on 2026-09-24 — it had
+  been body 14 everywhere);
   `isSelected` look (RENAMED from `active` 2026-09-06, matching the Figma
-  axis + the DS selection vocabulary) + aria-pressed; `isValid=false` error
+  axis + the DS selection vocabulary) + aria-pressed — or aria-checked inside
+  a single-select ChipGroup; `isValid=false` error
   treatment —
   tomato-a2 fill / 2px tomato-9 border / --text-error, REPLACES the active
   emphasis, persists through hover/press/focus, disabled keeps it dimmed at
   30%, loading suppresses it; slotLeft = Icon 14 or avatar xxs/16 in sm,
   xs/20 in md·lg, gap 6/8; label truncates before the slot; loading skeleton;
-  focus = OFFSET ring, 2px --gray-12 (tomato-9 when invalid) with a 2px
-  visible gap via outline (the node's -4px ring bounds MINUS its inside
-  stroke — the stroke-overlay gotcha) — the old inset Button-style ring is
-  gone. `Chip.mdx` mirrors the
-  Figma doc page section-for-section).
+  `orientation="vertical"` = slot on TOP in a fixed 20px box (so icon and
+  avatar chips are the same height), one size, hugging at 64px, padding
+  12/10/8 and gap 4 — it overrides `size`, and it always needs a slotLeft
+  (runtime warning, like ListItem's);
+  focus = the INSET ring (2026-09-24, replacing the offset outline): 2px
+  --gray-12 (tomato-9 when invalid) AT the bounds, a 2px transparent gap,
+  then the fill+border redrawn on a ::before with --border-radius-0_5
+  corners, via the `row-focus-ring-inset` mixin — nothing changes size and a
+  scrolling menu cannot clip it. `Chip.mdx` mirrors the
+  Figma doc page section-for-section.
+  `ChipGroup` gained `selectionMode` (2026-09-24, behaviour only — no Figma
+  variant): "multiple" (default) = toggle buttons; "single" = role=radiogroup
+  with role=radio chips, ONE tab stop (roving tabIndex) and arrow keys that
+  move focus AND click, so selection follows focus. The mode reaches the
+  chips through `ChipSelectionModeContext` because `aria-pressed` is not a
+  Chip prop the group could clone away.)
 - **Avatars/Badges:** `Avatar/` (Avatar + every `Avatar<Type>` + AvatarGroup —
   stack rows: truncated names get full-name tooltips, the "+N" overflow line
   gets an avatar-stack tooltip of the hidden users; Badge/LinkButton labels
@@ -484,6 +498,20 @@ is why raw `.tsx` uploads there did nothing).
   guards for `wait` ms. Trailing debounce delayed every click by 250ms.
 - **Tooltips never clip:** render in a `document.body` portal (see `TruncatingText`,
   `HoverTooltip`) — any `overflow`/scroll ancestor would otherwise cut them off.
+- **A floating card's height is capped by the SCREEN, not only by a number**
+  (2026-09-17): `Menu` and `SelectList` both cap at
+  `min(1000px, calc(100dvh - var(--size-4)))`. A card taller than the window
+  cannot be placed anywhere — whatever anchors it can only push it up until it
+  hits the top margin, and the rest hangs off the bottom out of reach (found
+  on the Filters prototype: a 1000px Location list in a 533px window, 475px of
+  it off-screen). The anchoring code is the other half of the rule: it must
+  slide a card up so its bottom clears the screen — see `useAnchoredCard` and
+  `placeSub` in `src/prototypes/Filters/`.
+- **Card WIDTHS are the components', not the consumer's** (Daniel, 2026-09-17,
+  after a three-way comparison on the Filters prototype): `Menu` min 160 /
+  max 384; `SelectList` NO minimum / max 384 — a list is as wide as its rows
+  and no wider. Do not add a min-width override in a prototype; if a width
+  looks wrong, it is the component's rule that needs changing.
 - **Every `<input>` opts OUT of autofill / password managers** (Daniel hit a
   native password popup on a "Received by" picker, 2026-08-03): `autoComplete="off"`
   + `data-1p-ignore` + `data-lpignore` + `data-form-type="other"`, listed BEFORE
@@ -587,6 +615,15 @@ that several flows share, built once from DS components (Daniel's one-source-
 of-truth rule, 2026-07-28) — forms (NewLocationForm, NewEquipmentForm,
 FormPreview) and now the **ViewMenu** (the table view controls, extracted from
 the ViewMenu prototype on 2026-09-03 so Filters and ViewMenu share one build).
+**ViewMenu was REBUILT to the "View — Next Update" Figma on 2026-09-24**: the
+switcher is a full-width ChipGroup of vertical Chips (`selectionMode="single"`);
+"Schedule horizon" and "Sort by" are compact ListItems with an `ItemValue` in
+the right slot, in that order, inside one ItemGroup; the columns are ItemGroups
+headed by GroupLabels — "Pinned" (thumbtack) + "Not pinned" (thumbtack-slash)
+on desktop, one plain "Columns" when nothing is pinned and on mobile; the
+attribute chips are `lg`; the sort-order icons are all `arrow-down-*`. The
+local TagRow experiment, the "Unpinned" divider and every compact-padding
+override are gone — the DS carries them now.
 One folder per module, same file conventions as components; stories under the
 **"Modules"** Storybook section. Rules:
 - The module owns everything that is the same everywhere: fields, validation,

@@ -35,7 +35,7 @@ import { PricebookPhase } from "./pricebookList";
 // STATUS is ACTIVE-phase only (the menu row's own annotation: "Only shown on
 // the 'Active' phase views") — an inactive product has no status to filter,
 // the Labor arrangement. The templates that are NOT here — Client, Location,
-// Service, Address, the date trio, Seen, Total — have nothing to read: a
+// Location address, Service, the date trio, Seen, Total — have nothing to read: a
 // pricebook item belongs to nothing and has no lifecycle dates beyond Last
 // modified.
 //

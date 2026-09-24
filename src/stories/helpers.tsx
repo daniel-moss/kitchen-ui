@@ -1,6 +1,6 @@
 import { CSSProperties, ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { ListItemTextLines } from "../components/ListItem/ListItemTextLeft.types";
+import { ListItemTextLines } from "../components/ListItem/ListItemContent.types";
 import { DrawerRootContext } from "../components/Popover/DrawerRootContext";
 
 // Shared Storybook helpers — import these instead of re-declaring them in

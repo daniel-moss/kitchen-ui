@@ -1,20 +1,39 @@
-// Content region — [avatar slot] + text, top-aligned.
+// Content region — [avatar slot] + the text row, vertically centered (Figma).
 .content {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   width: 100%;
   min-width: 0;
 }
 
-// The xl (36px) avatar: 2px vertical padding centers it against the 40px
-// text block; 12px gap to the text.
+// The xl (36px) avatar. The content row centers it against the text block, so
+// the slot only carries the 12px gap to the text.
 .slotLeft {
   flex: none;
   display: flex;
-  padding: var(--size-0_5) var(--size-3) var(--size-0_5) 0; // 2px / 12px right
+  padding-right: var(--size-3); // 12px — avatar → text
 }
 
-.text {
+// Left text (flex-1, truncates first) + optional right text, 16px apart.
+.textRow {
   flex: 1 1 0;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px — left ↔ right
+  width: 100%;
+}
+.left {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.right {
+  flex: none;
+}
+
+// A lone title keeps the two-line block height (20px line centered in 40px),
+// so a title-only row is still 60px with the row's 10px padding. ItemText has
+// no height of its own on purpose — the row component owns it.
+.singleLine {
+  min-height: var(--size-10); // 40px
 }

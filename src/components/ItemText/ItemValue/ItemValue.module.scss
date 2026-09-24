@@ -1,0 +1,16 @@
+// The value hugs its content and never truncates: when space runs out the
+// ROW's title truncates instead — the same priority the right text block has.
+// `width: auto` overrides ItemTextLine's full-width rule, and `nowrap` is
+// inherited by the text inside.
+.value {
+  width: auto;
+  white-space: nowrap;
+}
+
+// The chevron is the affordance, not the value, so it is always
+// `--text-placeholder` and never follows the value's color. An icon in a line
+// slot inherits the line's color through `currentColor`, which is exactly what
+// this overrides.
+.chevron {
+  color: var(--text-placeholder);
+}

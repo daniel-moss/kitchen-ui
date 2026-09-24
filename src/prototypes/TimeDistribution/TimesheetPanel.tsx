@@ -444,7 +444,7 @@ const SessionRow = ({
 const TechGroup = ({ user, total, rows, divider, canAdd, onAdd, accordion = true }: { user: User; total: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: () => void; accordion?: boolean }) => {
   // accordion / defaultOpen are a `true`-literal variant in ItemGroup — a
   // static group simply omits them.
-  const groupProps = accordion ? ({ accordion: true, defaultOpen: true } as const) : ({ accordion: false } as const);
+  const groupProps = accordion ? ({ isAccordion: true, defaultOpen: true } as const) : ({ isAccordion: false } as const);
   return (
   <ItemGroup
     {...groupProps}

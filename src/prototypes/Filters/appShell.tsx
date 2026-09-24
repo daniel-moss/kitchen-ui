@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import BottomBarNav from "../../components/BottomBarNav/BottomBarNav";
 import BottomBarNavItem from "../../components/BottomBarNav/BottomBarNavItem";
@@ -342,6 +342,10 @@ export const DIALOG_MARKER = "concept-filters-dialog";
 
 type CardAlign = "left" | "right";
 
+/** Clearance an anchored card keeps from the edge of the screen. Matches
+ *  `SUB_MARGIN` in filterUI, which places the menu's hovered option lists. */
+const CARD_MARGIN = 8;
+
 // One anchored body portal, shared by everything in this concept that opens next
 // to something: the Filters menu (from the view bar's button and from the filter
 // bar's plus), a chip's condition menu and value list, and both pages' View
@@ -357,19 +361,41 @@ export function useAnchoredCard(align: CardAlign = "left", ignoreSelector?: stri
   const cardRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | null>(null);
 
+  // The card opens 4px BELOW its trigger — unless it would then run off the
+  // bottom of the screen, in which case it slides up until its last row is
+  // `CARD_MARGIN` clear of it (2026-09-17). Sliding, not flipping above the
+  // trigger: it is the same correction `placeSub` makes for the Filters menu's
+  // hovered option lists, so every surface here behaves one way.
+  //
+  // This can only ever be enough because the DS cards cap their height at the
+  // SCREEN as well as at 1000px (Menu / SelectList `.card`). Without that cap a
+  // card taller than the window cannot be placed at all: sliding it up hits the
+  // top margin and the rest still hangs off the bottom.
+  const update = useCallback(() => {
+    const rect = anchorRef.current?.getBoundingClientRect();
+    if (rect == null) return;
+    // `offsetHeight`, not the rect: the card opens under a `scale(0.98)`
+    // transition, and the rect would report the scaled height. 0 on the first
+    // pass — the portal only renders once `pos` exists — and the ResizeObserver
+    // below re-runs this the moment the real card is measurable.
+    const height = cardRef.current?.offsetHeight ?? 0;
+    let top = rect.bottom + 4;
+    if (height > 0 && top + height > window.innerHeight - CARD_MARGIN) {
+      top = Math.max(CARD_MARGIN, window.innerHeight - CARD_MARGIN - height);
+    }
+    // Pinned by the RIGHT edge near the right of the screen, so the card grows
+    // leftwards and its own width never has to be measured.
+    const next =
+      align === "right" ? { right: window.innerWidth - rect.right, top } : { left: rect.left, top };
+    setPos((prev) =>
+      prev != null && prev.top === next.top && prev.left === next.left && prev.right === next.right
+        ? prev
+        : next,
+    );
+  }, [align]);
+
   useLayoutEffect(() => {
     if (!open) return undefined;
-    const update = () => {
-      const rect = anchorRef.current?.getBoundingClientRect();
-      if (rect == null) return;
-      // Pinned by the RIGHT edge near the right of the screen, so the card grows
-      // leftwards and its own width never has to be measured.
-      setPos(
-        align === "right"
-          ? { right: window.innerWidth - rect.right, top: rect.bottom + 4 }
-          : { left: rect.left, top: rect.bottom + 4 },
-      );
-    };
     update();
     window.addEventListener("scroll", update, true);
     window.addEventListener("resize", update);
@@ -377,7 +403,21 @@ export function useAnchoredCard(align: CardAlign = "left", ignoreSelector?: stri
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [open, align]);
+  }, [open, update]);
+
+  // Re-place once the card actually exists, and again whenever it resizes (a
+  // search filtering its rows changes its height). `hasPos` is in the deps
+  // because the portal — and so `cardRef.current` — appears only after the
+  // first `update` has set a position.
+  const hasPos = pos != null;
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+    const el = cardRef.current;
+    if (el == null) return undefined;
+    const ro = new ResizeObserver(() => update());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [open, hasPos, update]);
 
   // A click outside the trigger and the card closes it. `ignoreSelector` spares
   // a card's OWN satellite portals — the Filters menu's hovered option list is a

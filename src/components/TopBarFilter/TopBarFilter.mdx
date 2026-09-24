@@ -18,7 +18,7 @@ We use **TopBarFilter** to contain the applied filters on desktop
 
 ```tsx
 <TopBarFilter addMenu={filterMenu} onClearAll={clearAllFilters}>
-  <FilterChip property="Property" condition="is" value="Value" … />
+  <FilterChip name="Name" operator="is" value="Value" … />
 </TopBarFilter>
 ```
 
@@ -37,9 +37,9 @@ wrap, and the right slot stays vertically centered. Contains the
 component. The FilterChipGroup fills the width. The bar also contains the
 right slot — a
 <a href="/?path=/docs/components-button--docs" target="_top">Button</a>
-(`ghost`, `md`). The content paddings are `--size-4` (16px) on the sides and
-`--size-3_5` (14px) vertically; the gap between the FilterChipGroup and the
-right slot is `--size-4` (16px). A
+(`ghost`, `lg`). The content paddings are `--size-4` (16px) on the sides and
+`--size-3` (12px) vertically — a 60px row over the 36px content; the gap
+between the FilterChipGroup and the right slot is `--size-4` (16px). A
 <a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
 (horizontal, medium contrast) sits under the bar. The bar exists only on
 desktop — on mobile it renders nothing.

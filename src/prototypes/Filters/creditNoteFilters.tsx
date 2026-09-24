@@ -26,8 +26,9 @@ import { CREDIT_NOTE_TYPES, CreditNoteRow, clientOf } from "./creditNotesData";
 //
 // Compared to the sibling lists, the SHORT menu is the object's own shape: a
 // credit note has no location and no service (it belongs to the client
-// directly), no due date, and no Seen column — so Address, Location, Service,
-// Due date, Seen, Amount due and Status changed simply have nothing to read.
+// directly), no due date, and no Seen column — so Location address, Location,
+// Service, Due date, Seen, Amount due and Status changed simply have nothing
+// to read.
 
 // ---- Status (object-specific) ----------------------------------------------
 

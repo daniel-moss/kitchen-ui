@@ -118,10 +118,9 @@
 .menuSectionLabel {
   padding: var(--size-2) var(--size-2) 0; // 8px / 8px / 0
 }
+// The stack itself is the DS FilterChipGroup (`vertical`) since 2026-09-18 —
+// it owns the column and the `--size-2` (8px) gap. This box only insets it.
 .appliedChips {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-2_5); // 10px
   padding: var(--size-1) var(--size-4) var(--size-4); // 4px / 16px / 16px
 }
 

@@ -8,7 +8,7 @@ import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import IconButton from "../../components/IconButton/IconButton";
 import ListItem from "../../components/ListItem/ListItem";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import { noop } from "./shared";
 
 import styles from "./ChargesTab.module.scss";
@@ -120,7 +120,7 @@ function ChargesGroup({ group, isLast }: { group: ChargeGroup; isLast: boolean }
           }
         />
       }
-      accordion
+      isAccordion
       defaultOpen
       divider={!isLast}
       onReorder={draggable ? reorder : undefined}
@@ -132,7 +132,7 @@ function ChargesGroup({ group, isLast }: { group: ChargeGroup; isLast: boolean }
           caption: it.caption,
           captionLines: 1 as const,
           avatar: <Avatar shape="square" content="icon" icon={group.icon} size="xl" />,
-          right: <ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />,
+          right: <ItemTextBlock align="right" variant="titleCaption" title={it.total} caption={it.unit} />,
           slotRight: <IconButton icon="ellipsis" variant="ghost" size="md" aria-label="More actions" onClick={noop} />,
         };
         // Drag is on only for multi-item groups (a single row has nothing to reorder).

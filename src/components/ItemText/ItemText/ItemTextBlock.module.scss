@@ -1,0 +1,30 @@
+// One column of lines. It has no height of its own — the row component that
+// uses ItemText sets the row height (ListItem: 60px default / 40px compact).
+.block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+// The left block fills the width, so its text truncates first.
+.left {
+  align-items: flex-start;
+  width: 100%;
+}
+
+// The right block hugs its content and never truncates: when space runs out
+// the right text keeps its width and the LEFT block truncates.
+.right {
+  align-items: flex-end;
+  width: auto;
+  // The block hugs its widest line, so a shorter line needs its own alignment.
+  text-align: right;
+}
+
+// Passed onto each line of a right block (a different CSS module, so it has to
+// be a class the block hands over, not a descendant selector): the line is as
+// wide as the block, so its content has to pack to the right edge.
+.lineRight {
+  justify-content: flex-end;
+}

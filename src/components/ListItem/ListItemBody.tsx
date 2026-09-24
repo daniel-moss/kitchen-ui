@@ -10,10 +10,15 @@ import { ListItemBodyProps } from "./ListItemBody.types";
 // gap to the content). Top-aligned, so the slot stays on the first row when
 // the text wraps. See Figma "ListItem › Body".
 export default function ListItemBody({ slotRight, className, ...contentProps }: ListItemBodyProps) {
+  // The right slot holds data (a badge, a value, a progress ring) or a control
+  // — neither exists yet while the row loads, and a control that cannot answer
+  // is worse than the space it leaves. See the ListItem doc, "Loading".
+  const showSlotRight = slotRight != null && contentProps.isLoading !== true;
+
   return (
     <div className={clsx(styles.body, className)}>
       <ListItemContent {...contentProps} className={styles.content} />
-      {slotRight != null && <div className={styles.slotRight}>{slotRight}</div>}
+      {showSlotRight && <div className={styles.slotRight}>{slotRight}</div>}
     </div>
   );
 }

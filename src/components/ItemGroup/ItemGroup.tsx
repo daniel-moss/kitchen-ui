@@ -51,7 +51,7 @@ type DragState = {
 // ItemGroup — the container for a group of ListItems (`view="list"`, default) or
 // Cards (`view="cards"`, a wrap grid). Both views support an optional GroupLabel
 // header, a bottom divider that separates stacked groups, accordion collapse via
-// the header, truncation ("Show N more" — one-way), and drag-and-drop reorder
+// the header, truncation ("Show N more" / "Show less"), and drag-and-drop reorder
 // (`onReorder`). The list view also has a `separated` variant (dividers between
 // items). See Figma "ItemGroup".
 export default function ItemGroup({
@@ -63,7 +63,7 @@ export default function ItemGroup({
   separated = false,
   truncateAfter,
   onReorder,
-  accordion = false,
+  isAccordion = false,
   open,
   defaultOpen = false,
   onOpenChange,
@@ -350,15 +350,15 @@ export default function ItemGroup({
   const content = isCards
     ? renderCards()
     : isSeparated
-      ? items.flatMap((item, i) => (i === 0 ? [item] : [<Divider key={`divider-${i}`} padding="var(--size-1) 0" />, item]))
+      ? items.flatMap((item, i) => (i === 0 ? [item] : [<Divider key={`divider-${i}`} padding="var(--size-1) var(--size-3)" />, item]))
       : onReorder != null
         ? renderReorderRows()
         : shown;
 
   const header =
-    accordion && isValidElement(label)
+    isAccordion && isValidElement(label)
       ? cloneElement(label as ReactElement<Record<string, unknown>>, {
-          accordion: true,
+          isAccordion: true,
           open: isOpen,
           onOpenChange: setOpen,
           disabled,
@@ -409,16 +409,18 @@ export default function ItemGroup({
   return (
     <div ref={rootRef} role="group" className={clsx(styles.root, className)} {...rest}>
       {label != null && (
-        <div className={clsx(styles.header, accordion && !isOpen && styles.headerClosed)}>{header}</div>
+        <div className={clsx(styles.header, isAccordion && !isOpen && styles.headerClosed)}>{header}</div>
       )}
-      {accordion ? (
+      {isAccordion ? (
         <div className={clsx(styles.collapse, isOpen && styles.collapseOpen)}>
           <div className={styles.collapseInner}>{body}</div>
         </div>
       ) : (
         body
       )}
-      {divider && <Divider padding="0 var(--size-4)" />}
+      {/* Between two stacked groups the gap is 0, so this line carries the
+          whole separation — medium contrast, not the default low (Figma). */}
+      {divider && <Divider contrast="medium" padding="0 var(--size-4)" />}
       {/* The lifted copy = the dragged child cloned into its "dragging" look,
           rendered in a body portal (fixed position) so no overflow ancestor —
           e.g. a drawer's scrolling body — can clip it. List items take

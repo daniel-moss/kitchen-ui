@@ -1,6 +1,7 @@
 // FilterChipGroup — the container for FilterChips (Figma 29561-14722).
-// Desktop: a wrapping row, gap 8 on both axes, the "Add filter" IconButton
-// after the chips. Mobile: a column of full-width chips, no button.
+// Horizontal: a wrapping row, gap 8 on both axes, the "Add filter" IconButton
+// after the chips. Vertical: a column of full-width chips, no button. Both
+// fill the width.
 .group {
   display: flex;
   flex-wrap: wrap;
@@ -9,7 +10,7 @@
   width: 100%;
 }
 
-.groupMobile {
+.groupVertical {
   flex-direction: column;
   flex-wrap: nowrap;
   align-items: stretch;

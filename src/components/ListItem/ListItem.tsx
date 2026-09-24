@@ -81,7 +81,9 @@ export default function ListItem({
   defaultOpen = false,
   onOpenChange,
   children,
+  size = "default",
   disabled = false,
+  isLoading = false,
   className,
   ...bodyProps
 }: ListItemProps) {
@@ -170,8 +172,8 @@ export default function ListItem({
 
   const main = (
     <div className={styles.main}>
-      <ListItemBody {...bodyProps} slotRight={effectiveSlotRight} />
-      {slotBottom != null && (
+      <ListItemBody {...bodyProps} isLoading={isLoading} slotRight={effectiveSlotRight} />
+      {slotBottom != null && !isLoading && (
         <div className={styles.slotBottom} onClick={isClickable || isAccordion ? stopIfInteractive : undefined}>
           {slotBottom}
         </div>
@@ -179,10 +181,20 @@ export default function ListItem({
     </div>
   );
 
+  // ---- loading — content placeholders, nothing else ----
+  // The grip, the caret, the right slot and the bottom slot are all controls,
+  // and a control that cannot answer is worse than the space it leaves: there
+  // is no order to drag a row into yet, and nothing to expand behind it. That
+  // leaves the same row in every variant — only the height differs, which is
+  // why Figma carries just two loading variants. The row does not respond.
+  if (isLoading) {
+    return <div className={clsx(styles.item, size === "compact" && styles.compact, className)}>{main}</div>;
+  }
+
   // ---- accordion — collapsible header + body below a divider ----
   if (isAccordion) {
     return (
-      <div className={clsx(styles.item, styles.accordion, isOpen && styles.accordionOpen, className)}>
+      <div className={clsx(styles.item, size === "compact" && styles.compact, styles.accordion, isOpen && styles.accordionOpen, className)}>
         <div
           className={clsx(styles.accordionHeader, disabled && styles.disabled)}
           role="button"
@@ -213,6 +225,7 @@ export default function ListItem({
     <div
       className={clsx(
         styles.item,
+        size === "compact" && styles.compact,
         isClickable && styles.clickable,
         toggle && switchStyles.control, // row hover/press drive the switch visual
         isDragging && styles.dragging,
@@ -230,7 +243,7 @@ export default function ListItem({
     >
       {isDraggable && (
         <span className={styles.handle} data-listitem-handle="" aria-hidden="true">
-          <Icon icon={isDragging ? "arrows-up-down" : "grip-dots-vertical"} pack="regular" size={14} container="square" />
+          <Icon icon={isDragging ? "arrows-up-down" : "grip-dots-vertical"} pack={isDragging ? "regular" : "solid"} size={14} container="square" />
         </span>
       )}
       {main}

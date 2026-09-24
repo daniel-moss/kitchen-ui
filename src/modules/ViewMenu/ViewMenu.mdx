@@ -10,7 +10,20 @@ import * as ViewMenuStories from "./ViewMenu.stories";
 place (`src/modules/ViewMenu`): the Table / Cards switcher, **Sort by**, and
 the **Columns** section — visibility toggles, pinning with a limit of 3, and
 drag reorder within a group. This is the DEFAULT version, available for
-**every object type**:
+**every object type**.
+
+The switcher is a full-width
+<a href="/?path=/docs/components-chip-chipgroup--docs" target="_top">ChipGroup</a>
+of vertical
+<a href="/?path=/docs/components-chip-chip--docs" target="_top">Chips</a>
+in `selectionMode="single"`, so it behaves as a radio group. The settings
+rows and the column rows are compact
+<a href="/?path=/docs/components-listitem-listitem--docs" target="_top">ListItems</a>,
+and each column group is an
+<a href="/?path=/docs/components-itemgroup--docs" target="_top">ItemGroup</a>
+with a
+<a href="/?path=/docs/components-grouplabel--docs" target="_top">GroupLabel</a>
+header:
 
 <Canvas of={ViewMenuStories.Desktop} />
 
@@ -26,11 +39,25 @@ component's 384 maximum, and typing in the search never changes that width.
 When nothing matches, the list shows one centred line, "No matches" — the
 `EmptyState` in its caption-only form, not the built-in no-results block
 
+## Columns
+
+With something pinned the section is two groups: **Pinned** (a `thumbtack`
+before the label) above **Not pinned** (`thumbtack-slash`), a divider between
+them. With nothing pinned there is one group, headed plainly **Columns** with
+no icon.
+
+A row drags only inside its own group, so reordering can never pin or unpin a
+column — the pin button does that.
+
 ## Mobile
 
-On mobile the menu is a drawer. There is no pinning; the sort column opens a
-second drawer with a search, and the min-one-column warning arrives as a Hint
-drawer.
+On mobile the menu is a drawer. There is no pinning, so the columns always sit
+under the one plain **Columns** header; the sort column opens a second drawer
+with a search, and the min-one-column warning arrives as a Hint drawer.
+
+The pinned set still exists underneath — a phone just cannot change it — so
+the two regions stay separate groups behind that single header, and a drag
+still stays inside its own region.
 
 <Canvas of={ViewMenuStories.Mobile} />
 
@@ -50,6 +77,6 @@ schedule:
 
 ## Views a consumer has not built
 
-`disabledViews` draws a view's tab but makes it unclickable — for a consumer
+`disabledViews` draws a view's chip but makes it unclickable — for a consumer
 that has not designed that view yet, where switching would change nothing.
 The Filters prototype disables Cards and Timeline this way.

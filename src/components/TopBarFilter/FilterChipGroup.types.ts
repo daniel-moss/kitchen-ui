@@ -1,6 +1,6 @@
 import { MouseEvent, ReactNode } from "react";
 
-import { FilterChipBreakpoint } from "./FilterChip.types";
+import { FilterChipOrientation } from "./FilterChip.types";
 
 export interface FilterChipGroupProps {
   /**
@@ -12,7 +12,7 @@ export interface FilterChipGroupProps {
    * Content for the "Add filter" Menu — MenuItemGroup elements. Clicking the
    * "Add filter" IconButton opens the Menu 4px below it, left edges aligned,
    * and the button stays pressed while the Menu is open. The button itself is
-   * always there on desktop (and never on mobile).
+   * always there in a horizontal group (and never in a vertical one).
    */
   addMenu?: ReactNode;
   /**
@@ -28,12 +28,12 @@ export interface FilterChipGroupProps {
    */
   addPressed?: boolean;
   /**
-   * Presentation. Desktop: a wrapping row, chips `--size-2` (8px) apart on
-   * both axes, the "Add filter" IconButton after the chips. Mobile: a column
-   * of full-width chips, 8px apart, no button. The resolved value is handed
-   * to the chips inside through context, so they follow the group. Default
-   * "auto".
+   * How the chips are laid out. Both orientations fill the width.
+   * "horizontal" (default): a wrapping row, chips `--size-2` (8px) apart on
+   * both axes, the "Add filter" IconButton after the chips. "vertical": a
+   * column of full-width chips, 8px apart, no button. The value is handed to
+   * the chips inside through context, so they follow the group.
    */
-  breakpoint?: FilterChipBreakpoint;
+  orientation?: FilterChipOrientation;
   className?: string;
 }

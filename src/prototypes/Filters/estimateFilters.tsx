@@ -5,11 +5,11 @@ import { ESTIMATE_LABELS } from "../../data/db";
 import { FilterDef } from "./filterDefs";
 import { dateFilter, forwardWindows } from "./filterKinds";
 import {
-  addressTemplate,
   clientTemplate,
   issuedTemplate,
   labelsTemplate,
   lastModifiedTemplate,
+  locationAddressTemplate,
   locationTemplate,
   seenTemplate,
   serviceTemplate,
@@ -225,21 +225,19 @@ function expiresFilter(): FilterDef<EstimateRow> {
  * Everything else is the same object on both.
  *
  * The menu lists them alphabetically, the order its own node draws
- * (14265-27090): Address, Client, Down payment, Expires, Issued, Labels, Last
- * modified, Location, Service, Status, Status changed, Total — that node's
- * thirteen rows minus the one that is not built (Seen).
+ * (14265-27090): Client, Down payment, Expires, Issued, Labels, Last modified,
+ * Location, Location address, Seen, Service, Status, Status changed, Total.
+ * The node still draws "Address" as its FIRST row — Daniel renamed the filter
+ * "Location address" on 2026-09-16, which moves it after Location; FLAGGED so
+ * the node can follow.
  */
 const buildEstimateFilters = (phase: EstimatesPhase): FilterDef<EstimateRow>[] => [
-  // Every filled field has to match the estimate's LOCATION — the same question
-  // the jobs filter asks, pointed at the estimate's location.
-  addressTemplate(locationOf),
-
   // An estimate has no client of its own: it belongs to a location, and the
   // location belongs to the client (`clientOf` walks that link).
   clientTemplate((est) => clientOf(est).id),
 
-  // Third in the menu, where the node puts it (14265-27090): Address · Client ·
-  // Down payment · Expires · Issued · …
+  // Then the alphabet continues (14265-27090): Client · Down payment ·
+  // Expires · Issued · …
   downPaymentFilter(),
   expiresFilter(),
   issuedTemplate((est) => est.issuedAt),
@@ -251,6 +249,12 @@ const buildEstimateFilters = (phase: EstimatesPhase): FilterDef<EstimateRow>[] =
 
   lastModifiedTemplate((est) => est.lastModifiedAt),
   locationTemplate((est) => est.locationId),
+
+  // Location address — every filled field has to match the estimate's
+  // LOCATION, the same question the other lists ask. It follows Location in
+  // the alphabet since the 2026-09-16 rename (it was "Address", the first row).
+  locationAddressTemplate(locationOf),
+
   // An estimate that is not for a pricebook service (EST-2205's build-out
   // consultation) has no `serviceId`, so no service ever matches it — the
   // template's own null rule.

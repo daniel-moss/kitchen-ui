@@ -19,7 +19,7 @@ import LinkButton from "../../components/LinkButton/LinkButton";
 import ListItem from "../../components/ListItem/ListItem";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import MenuItem from "../../components/Menu/MenuItem";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import Prompt from "../../components/Prompt/Prompt";
@@ -212,7 +212,7 @@ function ChargeModule({ group }: { group: ChargeGroup }) {
                 caption: it.caption,
                 captionLines: 1 as const,
                 avatar: <Avatar shape="square" content="icon" icon={group.icon} size="xl" />,
-                right: <ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />,
+                right: <ItemTextBlock align="right" variant="titleCaption" title={it.total} caption={it.unit} />,
                 slotRight: <IconButton icon="ellipsis" variant="ghost" size="md" aria-label="More actions" onClick={noop} />,
                 isClickable: true as const,
                 onClick: noop,
@@ -243,7 +243,7 @@ const ChargeSummaryModule = ({ group }: { group: ChargeGroup }) => (
               caption={it.caption}
               captionLines={1}
               avatar={<Avatar shape="square" content="icon" icon={group.icon} size="xl" />}
-              right={<ListItemTextRight variant="titleCaption" title={it.total} caption={it.unit} />}
+              right={<ItemTextBlock align="right" variant="titleCaption" title={it.total} caption={it.unit} />}
               slotRight={<ListItemSlotIcon icon="angle-right" />}
               isClickable
               onClick={noop}

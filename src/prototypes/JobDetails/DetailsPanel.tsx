@@ -52,7 +52,7 @@ import JobPropertiesForm, { JobProperties, JobSource, MODULE_DATE, sourceAvatar,
 import { displayStatus, formatStatusTimestamp, JobState, STATUS_TS } from "./jobState";
 import SchedulingForm, { durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import AssigneesForm from "./AssigneesForm";
-import ListItemTextRight from "../../components/ListItem/ListItemTextRight";
+import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import { categoryIcon, formatHrMin } from "./TimesheetPanel";
 import StatusModule from "./StatusModule";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
@@ -827,8 +827,8 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                       // Caption over value (Figma 24522-64635): "Total tracked"
                       // then the running total — placeholder gray at zero.
                       right={
-                        <ListItemTextRight
-                          variant="titleCaptionReversed"
+                        <ItemTextBlock align="right"
+                          variant="captionTitle"
                           caption="Total tracked"
                           title={noneTracked ? "0 min" : trackedLabel}
                           className={noneTracked ? styles.zeroTracked : undefined}

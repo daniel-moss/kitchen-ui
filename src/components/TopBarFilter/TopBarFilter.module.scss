@@ -1,8 +1,10 @@
 // TopBarFilter — the desktop bar for the applied filters (Figma 29562-16614):
-// [FilterChipGroup — fills | right slot], 16px sides / 14px vertical padding,
+// [FilterChipGroup — fills | right slot], 16px sides / 12px vertical padding,
 // 16px gap, a horizontal Divider (medium) under the bar. The bar hugs its
 // content vertically — it grows when the chips wrap, and the right slot stays
-// vertically centered.
+// vertically centered. The row is 60px: 36px of content plus the 12px
+// paddings (2026-09-18 — with the 36px chip the padding went 14 → 12 and the
+// row height did not move).
 .bar {
   display: flex;
   flex-direction: column;
@@ -14,7 +16,7 @@
   display: flex;
   align-items: center;
   gap: var(--size-4); // 16px
-  padding: var(--size-3_5) var(--size-4); // 14px 16px
+  padding: var(--size-3) var(--size-4); // 12px 16px
   width: 100%;
 }
 

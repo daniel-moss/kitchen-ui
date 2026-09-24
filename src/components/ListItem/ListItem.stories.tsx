@@ -3,9 +3,12 @@ import type { Meta, StoryObj } from "@storybook/react";
 import ListItem from "./ListItem";
 import ListItemSlotIcon from "./ListItemSlotIcon";
 import ListItemSlotProgress from "./ListItemSlotProgress";
-import ListItemTextRight from "./ListItemTextRight";
+import ItemTextBlock from "../ItemText/ItemText/ItemTextBlock";
+import ItemValue from "../ItemText/ItemValue/ItemValue";
+import ValueDisplay from "../ValueDisplay/ValueDisplay";
+import ValueDisplayGroup from "../ValueDisplay/ValueDisplayGroup";
 import Avatar from "../Avatar/Avatar";
-import AvatarFile from "../Avatar/AvatarFile";
+import AvatarClient from "../Avatar/AvatarClient";
 import AvatarGroup from "../Avatar/AvatarGroup";
 import AvatarLabor from "../Avatar/AvatarLabor";
 import AvatarUser from "../Avatar/AvatarUser";
@@ -18,8 +21,6 @@ import IconButton from "../IconButton/IconButton";
 import TabGroup from "../Tabs/TabGroup";
 import TabItem from "../Tabs/TabItem";
 import { LINES, docsFrame, noop } from "../../stories/helpers";
-
-import styles from "./ListItem.stories.module.scss";
 
 // `ListItemProps` is a UNION (the variant axes exclude each other), and
 // react-docgen cannot read JSDoc off a union — it produced an empty table. So
@@ -43,7 +44,7 @@ const meta: Meta<typeof ListItem> = {
   // fullscreen — `docsFrame` provides the (only) padding; "padded" would stack
   // Storybook's own padding on top of it.
   parameters: { layout: "fullscreen" },
-  args: { variant: "titleCaption", title: "Title", caption: "Caption", titleLines: 1, captionLines: 1 },
+  args: { variant: "titleCaption", title: "Title", caption: "Caption", titleLines: 1, captionLines: 1, isClickable: true, onClick: noop },
   argTypes: {
     // ---- text ----
     variant: {
@@ -82,8 +83,8 @@ const meta: Meta<typeof ListItem> = {
     },
     titleClassName: slot("string", "Extra class for the title line (e.g. a status color)."),
     captionClassName: slot("string", "Extra class for the caption line (e.g. the warning / error color)."),
-    captionSlotLeft: slot("ReactNode", "Left slot on the CAPTION line — an `Icon` for now. Its size, weight and color are the caller's choice; the slot only places the glyph 8px before the caption, top-aligned with its first line."),
-    right: slot("ReactNode", "The right text block — a `ListItemTextRight`. Hugs its content and never truncates, so it takes priority over the left text."),
+    captionSlotLeft: slot("ReactNode", "Left slot on the CAPTION line — an `Icon` for now. Its size, weight and color are the caller's choice; the slot only places the glyph 8px before the caption, in a 20px box centered on the line."),
+    right: slot("ReactNode", "The right text block — an `ItemTextBlock` with `align=\"right\"`. Hugs its content and never truncates, so it takes priority over the left text."),
 
     // ---- slots ----
     avatar: slot("ReactNode", "Left slot — an Avatar (any type). The one strict parameter: the size must be xl (36px)."),
@@ -111,7 +112,18 @@ const meta: Meta<typeof ListItem> = {
     children: slot("ReactNode", "The collapsible body content, shown below a divider when open (`isAccordion`)."),
 
     // ---- shared ----
+    size: {
+      options: ["default", "compact"],
+      control: { type: "inline-radio" },
+      description:
+        "Row height. `default` (60px) is 10px padding over a 40px body; `compact` (40px) drops the vertical padding so a 32px IconButton or a 22px Toggle still fits. Compact is for ONE line — no caption, no avatar.",
+      table: { type: { summary: '"default" | "compact"' }, defaultValue: { summary: '"default"' } },
+    },
     disabled: flag("Dimmed and non-interactive. On an accordion it dims the header only, so an open body stays readable.", "false"),
+    isLoading: flag(
+      "The text lines become bars and the row hides its grip, caret, right slot and bottom slot, then stops responding. Combines with every other prop — a list renders the same row and drives this from its query. The avatar is left exactly as passed.",
+      "false",
+    ),
     className: slot("string", "Extra class on the row container."),
   },
 };
@@ -126,9 +138,9 @@ const objectAvatar = <Avatar shape="square" content="icon" size="xl" />;
 const laborAvatar = <AvatarLabor size="xl" />;
 const chevron = <ListItemSlotIcon icon="angle-right" />;
 
-// Every Figma Documentation preview stacks its rows 40px apart.
+// Every Figma Documentation preview stacks its rows 80px apart.
 const Stack = ({ children }: { children: React.ReactNode }) => (
-  <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-10)" }}>{children}</div>
+  <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>{children}</div>
 );
 
 const One = ({ children }: { children: React.ReactNode }) => <div style={docsFrame}>{children}</div>;
@@ -141,9 +153,7 @@ const BLENDER =
   "The commercial blender in the kitchen is malfunctioning. It makes a loud grinding noise and struggles to blend even soft ingredients.";
 
 const collapsibleBody = (
-  <div style={{ padding: "var(--size-3)", font: "var(--font-body-400-compact)", color: "var(--text-subtle)" }}>
-    Collapsible body content.
-  </div>
+  <div style={{ font: "var(--font-body-400-compact)", color: "var(--text-subtle)" }}>Collapsible body content.</div>
 );
 
 const noControls = { controls: { disable: true } };
@@ -155,20 +165,17 @@ const noControls = { controls: { disable: true } };
 type StateRow = { title: string; self?: string; wrap?: string; disabled?: boolean; dragging?: boolean };
 
 const CLICK_STATES: StateRow[] = [
-  { title: "Default" },
-  { title: "Focused", self: "pseudo-focus-visible" },
   { title: "Hovered", self: "pseudo-hover" },
   { title: "Pressed", self: "pseudo-active" },
-  { title: "Dragging", dragging: true },
+  { title: "Focused", self: "pseudo-focus-visible" },
   { title: "Disabled", disabled: true },
 ];
 
 const ACCORDION_STATES: StateRow[] = [
-  { title: "Default" },
-  { title: "Focused", wrap: "pseudo-focus-visible-all" },
   { title: "Hovered", wrap: "pseudo-hover-all" },
   { title: "Pressed", wrap: "pseudo-active-all" },
-  { title: "Disabled", disabled: true },
+  { title: "Focused", wrap: "pseudo-focus-visible-all" },
+  { title: "Disabled", wrap: "", disabled: true },
 ];
 
 // ---- playground ------------------------------------------------------------
@@ -197,7 +204,7 @@ export const Anatomy: Story = {
   parameters: noControls,
   render: () => (
     <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={chevron} />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} />
     </One>
   ),
 };
@@ -225,61 +232,10 @@ export const TextVariants: Story = {
   ),
 };
 
-export const CaptionSlot: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" />
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Caption"
-        captionSlotLeft={<Icon icon="diamonds-4" size={14} />}
-      />
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Custom caption color, icon color, size, style, container type and rotation"
-        captionLines={2}
-        captionClassName={styles.errorText}
-        captionSlotLeft={<Icon icon="house" pack="solid" size={10} container="square" rotate={180} className={styles.errorText} />}
-      />
-    </Stack>
-  ),
-};
 
-export const CaptionPlaceholder: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Fisherman's Wharf" caption="Pier 39 Kitchen" avatar={objectAvatar} />
-      <ListItem variant="titleCaption" title="Fisherman's Wharf" captionPlaceholder="No Location name" avatar={objectAvatar} />
-      <ListItem variant="titleCaption" title="Fisherman's Wharf" avatar={objectAvatar} />
-    </Stack>
-  ),
-};
 
-export const Truncation: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="title" title={LONG_TITLE} avatar={objectAvatar} />
-      <ListItem variant="titleCaption" title={LONG_TITLE} caption={LONG_CAPTION} avatar={objectAvatar} />
-      <ListItem variant="titleCaptionReversed" title={LONG_TITLE} caption={LONG_CAPTION} avatar={objectAvatar} />
-    </Stack>
-  ),
-};
 
 /** Live: hover a truncated line — the tooltip follows the cursor. */
-export const TruncationTooltip: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="title" title={LONG_TITLE} avatar={objectAvatar} />
-      <ListItem variant="titleCaption" title={LONG_TITLE} caption={LONG_CAPTION} avatar={objectAvatar} />
-    </Stack>
-  ),
-};
 
 export const MultiLine: Story = {
   parameters: noControls,
@@ -292,10 +248,9 @@ export const MultiLine: Story = {
         caption={BLENDER}
         captionLines={2}
         avatar={laborAvatar}
-        slotRight={chevron}
         isDraggable
       />
-      <ListItem variant="titleCaption" title="Labor name" titleLines="wrap" caption={BLENDER} captionLines={2} avatar={laborAvatar} slotRight={chevron} isAccordion>
+      <ListItem variant="titleCaption" title="Labor name" titleLines="wrap" caption={BLENDER} captionLines={2} avatar={laborAvatar} isAccordion>
         {collapsibleBody}
       </ListItem>
       <ListItem
@@ -305,8 +260,7 @@ export const MultiLine: Story = {
         caption={BLENDER}
         captionLines={2}
         avatar={laborAvatar}
-        right={<ListItemTextRight variant="titleCaption" title="$100.00" caption="Caption" />}
-        slotRight={chevron}
+        right={<ItemTextBlock align="right" variant="titleCaption" title="$100.00" caption="Caption" />}
         isAccordion
       >
         {collapsibleBody}
@@ -315,63 +269,18 @@ export const MultiLine: Story = {
   ),
 };
 
-export const RightText: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} right={<ListItemTextRight variant="title" title="Title" />} />
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Caption"
-        avatar={objectAvatar}
-        right={<ListItemTextRight variant="titleCaption" title="Title" caption="Caption" />}
-      />
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Caption"
-        avatar={objectAvatar}
-        right={<ListItemTextRight variant="titleCaptionReversed" title="Title" caption="Caption" />}
-      />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} right={<ListItemTextRight variant="tag" tag="Tag" />} />
-    </Stack>
-  ),
-};
 
-export const RightTextPriority: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem
-        variant="titleCaption"
-        title={LONG_TITLE}
-        caption={LONG_CAPTION}
-        avatar={objectAvatar}
-        right={<ListItemTextRight variant="title" title="Takes priority" />}
-      />
-      <ListItem
-        variant="titleCaption"
-        title={LONG_TITLE}
-        caption={LONG_CAPTION}
-        avatar={objectAvatar}
-        right={<ListItemTextRight variant="titleCaption" title="Takes priority" caption="Caption" />}
-      />
-      <ListItem
-        variant="titleCaption"
-        title={LONG_TITLE}
-        caption={LONG_CAPTION}
-        avatar={objectAvatar}
-        right={<ListItemTextRight variant="titleCaptionReversed" title="Takes priority" caption="Caption" />}
-      />
-      <ListItem variant="titleCaption" title={LONG_TITLE} caption={LONG_CAPTION} avatar={objectAvatar} right={<ListItemTextRight variant="tag" tag="Takes priority" />} />
-    </Stack>
-  ),
-};
 
 // ---- right elements --------------------------------------------------------
 
 const slotButton = (n: number) => <IconButton key={n} aria-label={`Action ${n}`} variant="ghost" size="md" onClick={noop} />;
+
+const slotTabGroup = (
+  <TabGroup variant="contained" size="lg" defaultValue="a">
+    <TabItem value="a">Tab</TabItem>
+    <TabItem value="b">Tab</TabItem>
+  </TabGroup>
+);
 
 export const RightSlots: Story = {
   parameters: noControls,
@@ -384,7 +293,77 @@ export const RightSlots: Story = {
   ),
 };
 
-export const SlotIcons: Story = {
+// Slot 1 sits at the row's edge; a second slot is inserted to its LEFT, so the
+// first element never moves.
+export const SlotOrder: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={slotButton(1)} />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={[1, 2].map(slotButton)} />
+    </Stack>
+  ),
+};
+
+// Every instance a slot accepts, in the order the Figma doc lists them.
+export const SlotInstances: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Avatar" caption="Caption" avatar={objectAvatar} slotRight={<AvatarUser size="lg" />} />
+      <ListItem
+        variant="titleCaption"
+        title="AvatarGroup"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={<AvatarGroup size="lg" items={[{ name: "Avery Diaz" }, { content: "letters", characters: "MK", name: "Mira Kean" }]} />}
+      />
+      <ListItem
+        variant="titleCaption"
+        title="Button"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={
+          <Button variant="subtle" size="lg" onClick={noop}>
+            Button
+          </Button>
+        }
+      />
+      <ListItem variant="titleCaption" title="IconButton" caption="Caption" avatar={objectAvatar} slotRight={slotButton(1)} />
+      <ListItem variant="titleCaption" title="Input — text" caption="Caption" avatar={objectAvatar} slotRight={<TextField defaultValue="Value" />} />
+      <ListItem
+        variant="titleCaption"
+        title="Input — date"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={<DateField defaultValue={new Date(2026, 8, 21)} />}
+      />
+      <ListItem variant="titleCaption" title="ItemValue" caption="Caption" avatar={objectAvatar} slotRight={<ItemValue value="Value" />} isClickable onClick={noop} />
+      <ListItem variant="titleCaption" title="Open chevron" caption="Caption" avatar={objectAvatar} slotRight={chevron} isClickable onClick={noop} />
+      <ListItem
+        variant="titleCaption"
+        title="Open in a new tab"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={<ListItemSlotIcon icon="arrow-up-right" />}
+        isClickable
+        onClick={noop}
+      />
+      <ListItem
+        variant="titleCaption"
+        title="ProgressRing"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={<ListItemSlotProgress value={50} ariaLabel="Upload progress" />}
+      />
+      <ListItem variant="titleCaption" title="TabGroup" caption="Caption" avatar={objectAvatar} slotRight={slotTabGroup} />
+      <ListItem variant="titleCaption" title="Toggle" caption="Caption" avatar={objectAvatar} isClickable toggle defaultChecked />
+    </Stack>
+  ),
+};
+
+// The row's own affordance: where it goes, and whether it leaves the page.
+export const SlotAffordance: Story = {
   parameters: noControls,
   render: () => (
     <Stack>
@@ -402,108 +381,41 @@ export const SlotIcons: Story = {
   ),
 };
 
-export const SlotButtons: Story = {
+// An editable value goes in the SLOT as an ItemValue; a read-only one is a tag
+// in the right text block.
+export const SlotItemValue: Story = {
   parameters: noControls,
   render: () => (
     <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={<IconButton aria-label="Edit" icon="pen" variant="ghost" size="md" onClick={noop} />} />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={<ItemValue value="Value" />} isClickable onClick={noop} />
       <ListItem
         variant="titleCaption"
         title="Title"
         caption="Caption"
         avatar={objectAvatar}
-        slotRight={
-          <Button variant="subtle" size="lg" onClick={noop}>
-            Button
-          </Button>
-        }
+        right={<ItemTextBlock align="right" variant="tag" tag="Value" />}
+        slotRight={chevron}
+        isClickable
+        onClick={noop}
       />
     </Stack>
   ),
 };
 
-export const SlotTabGroup: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Caption"
-        avatar={objectAvatar}
-        slotRight={
-          <TabGroup variant="contained" size="lg" defaultValue="a">
-            <TabItem value="a">Tab</TabItem>
-            <TabItem value="b">Tab</TabItem>
-          </TabGroup>
-        }
-      />
-    </One>
-  ),
-};
+
 
 // The input keeps a fixed width in the right slot — the row never stretches it
 // (240px, the width of the Figma slot instance).
 const fixedInput = (field: React.ReactNode) => <div style={{ width: 240 }}>{field}</div>;
 
-export const SlotInputs: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={fixedInput(<TextField defaultValue="Value" />)} />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={fixedInput(<SelectField value="Value" />)} />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={fixedInput(<DateField defaultValue={new Date(2026, 8, 21)} />)} />
-    </Stack>
-  ),
-};
 
 /** Live: click anywhere on a row — the whole row is the switch. */
-export const SlotToggle: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isClickable toggle />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isClickable toggle defaultChecked />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isClickable toggle defaultChecked slotRight={chevron} />
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isClickable toggle defaultChecked toggleDisabled />
-    </Stack>
-  ),
-};
 
-export const SlotAvatars: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={<AvatarUser size="lg" />} />
-      <ListItem
-        variant="titleCaption"
-        title="Title"
-        caption="Caption"
-        avatar={objectAvatar}
-        slotRight={<AvatarGroup size="lg" items={[{ name: "Avery Diaz" }, { content: "letters", characters: "MK", name: "Mira Kean" }]} />}
-      />
-    </Stack>
-  ),
-};
 
 /**
  * A progress ring in the right slot — the upload case from the design: the
  * file's avatar and size, with the ring showing how far the upload has gone.
  */
-export const SlotProgress: Story = {
-  parameters: noControls,
-  render: () => (
-    <Stack>
-      <ListItem
-        variant="title"
-        title="Image.jpeg"
-        avatar={<AvatarFile size="xl" type="image" />}
-        right={<ListItemTextRight variant="tag" tag="4 MB" />}
-        slotRight={<ListItemSlotProgress value={50} ariaLabel="Upload progress" />}
-      />
-    </Stack>
-  ),
-};
 
 // ---- bottom elements -------------------------------------------------------
 
@@ -520,83 +432,53 @@ const bottomTabGroup = (
   </TabGroup>
 );
 
-export const BottomSlot: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={bottomButton} />
-    </One>
-  ),
-};
 
-export const BottomButton: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={bottomButton} />
-    </One>
-  ),
-};
-
-export const BottomTabGroup: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={bottomTabGroup} />
-    </One>
-  ),
-};
-
-export const BottomInputs: Story = {
+export const BottomInstances: Story = {
   parameters: noControls,
   render: () => (
     <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={bottomButton} />
       <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={<TextField defaultValue="Value" />} />
       <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={<SelectField value="Value" />} />
       <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={<DateField defaultValue={new Date(2026, 8, 21)} />} />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" slotBottom={bottomTabGroup} />
     </Stack>
   ),
 };
 
+
+
 // ---- dragging --------------------------------------------------------------
 
-export const Draggable: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={chevron} isDraggable />
-    </One>
-  ),
-};
-
-export const DraggingState: Story = {
-  parameters: noControls,
-  render: () => (
-    <One>
-      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotRight={chevron} isDraggable isDragging />
-    </One>
-  ),
-};
-
-// ---- interactivity ---------------------------------------------------------
-
-export const InteractiveStates: Story = {
+export const DragStates: Story = {
   parameters: noControls,
   render: () => (
     <Stack>
-      {CLICK_STATES.map((s) => (
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isDraggable />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isDraggable isDragging />
+    </Stack>
+  ),
+};
+
+
+// ---- interactivity ---------------------------------------------------------
+
+// Board 1 — isClickable = true.
+export const ClickableStates: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      {CLICK_STATES.map((st) => (
         <ListItem
-          key={s.title}
-          className={s.self}
+          key={st.title}
+          className={st.self}
           variant="titleCaption"
-          title={s.title}
+          title={st.title}
           caption="Caption"
           avatar={objectAvatar}
           slotRight={chevron}
           isClickable
-          isDraggable
-          isDragging={s.dragging}
-          disabled={s.disabled}
+          disabled={st.disabled}
           onClick={noop}
         />
       ))}
@@ -604,7 +486,100 @@ export const InteractiveStates: Story = {
   ),
 };
 
+// Board 2 — isClickable = true, isDraggable = true. The grip is the only
+// difference: a draggable row still takes the same row states.
+export const ClickableDraggableStates: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      {CLICK_STATES.map((st) => (
+        <ListItem
+          key={st.title}
+          className={st.self}
+          variant="titleCaption"
+          title={st.title}
+          caption="Caption"
+          avatar={objectAvatar}
+          slotRight={chevron}
+          isClickable
+          isDraggable
+          disabled={st.disabled}
+          onClick={noop}
+        />
+      ))}
+    </Stack>
+  ),
+};
+
+// A static row has no states at all — nothing happens on hover or press.
+export const StaticNoStates: Story = {
+  parameters: noControls,
+  render: () => (
+    <One>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} />
+    </One>
+  ),
+};
+
+// Controls keep their own clicks: the right slot's IconButton and the bottom
+// slot's Button act on themselves, not on the row.
+export const SlotClicks: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem
+        variant="titleCaption"
+        title="Title"
+        caption="Caption"
+        avatar={objectAvatar}
+        slotRight={<IconButton icon="ellipsis" variant="ghost" size="lg" aria-label="More" onClick={noop} />}
+        isClickable
+        onClick={noop}
+      />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} slotBottom={bottomButton} />
+    </Stack>
+  ),
+};
+
 // ---- accordion -------------------------------------------------------------
+
+export const AccordionSizes: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isAccordion>
+        {collapsibleBody}
+      </ListItem>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isAccordion open>
+        {collapsibleBody}
+      </ListItem>
+      <ListItem variant="title" title="Title" size="compact" isAccordion>
+        {collapsibleBody}
+      </ListItem>
+      <ListItem variant="title" title="Title" size="compact" isAccordion open>
+        {collapsibleBody}
+      </ListItem>
+    </Stack>
+  ),
+};
+
+// The body is a free slot — any content, 12px padding, the row grows to fit.
+export const AccordionBody: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isAccordion open>
+        {collapsibleBody}
+      </ListItem>
+      <ListItem variant="title" title="Title" size="compact" isAccordion open>
+        <ValueDisplayGroup>
+          <ValueDisplay label="Model" value="CoolTech 5000" />
+          <ValueDisplay label="Serial number" value="CT5000-88213" />
+        </ValueDisplayGroup>
+      </ListItem>
+    </Stack>
+  ),
+};
 
 export const AccordionStates: Story = {
   parameters: noControls,
@@ -612,7 +587,7 @@ export const AccordionStates: Story = {
     <Stack>
       {ACCORDION_STATES.map((s) => (
         <div key={s.title} className={s.wrap}>
-          <ListItem variant="titleCaption" title={s.title} caption="Caption" avatar={objectAvatar} slotRight={chevron} isAccordion disabled={s.disabled}>
+          <ListItem variant="titleCaption" title={s.title} caption="Caption" avatar={objectAvatar} isAccordion disabled={s.disabled}>
             {collapsibleBody}
           </ListItem>
         </div>
@@ -627,11 +602,122 @@ export const AccordionOpenStates: Story = {
     <Stack>
       {ACCORDION_STATES.map((s) => (
         <div key={s.title} className={s.wrap}>
-          <ListItem variant="titleCaption" title={s.title} caption="Caption" avatar={objectAvatar} slotRight={chevron} isAccordion open disabled={s.disabled}>
+          <ListItem variant="titleCaption" title={s.title} caption="Caption" avatar={objectAvatar} isAccordion open disabled={s.disabled}>
             {collapsibleBody}
           </ListItem>
         </div>
       ))}
+    </Stack>
+  ),
+};
+
+// ---- Loading -----------------------------------------------------------------
+
+export const Loading: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={<Avatar shape="square" size="xl" isLoading />} isLoading />
+      <ListItem variant="title" title="Title" size="compact" isLoading />
+    </Stack>
+  ),
+};
+
+// The grip, the caret, the right slot and the bottom slot are all passed here
+// and none of them render: a loading row is the same row in every variant.
+export const LoadingHidesControls: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem
+        variant="titleCaption"
+        title="Draggable + clickable, with a right slot"
+        caption="Caption"
+        avatar={<Avatar shape="square" size="xl" isLoading />}
+        slotRight={chevron}
+        isClickable
+        onClick={noop}
+        isDraggable
+        isLoading
+      />
+    </Stack>
+  ),
+};
+
+// A list of one kind knows its object type before the data arrives, so the
+// avatar is real — only the text is unknown. See AvatarClient's doc page.
+export const LoadingKnownObjectType: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={<Avatar shape="square" size="xl" isLoading />} isLoading />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={<AvatarClient type="generic" size="xl" />} isLoading />
+    </Stack>
+  ),
+};
+
+// No avatar, and a right block — the loading row draws whatever layout the
+// loaded row will use.
+export const LoadingLayouts: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem
+        variant="titleCaption"
+        title="Title"
+        caption="Caption"
+        right={<ItemTextBlock align="right" variant="title" title="Value" />}
+        isLoading
+      />
+    </Stack>
+  ),
+};
+
+export const LoadingList: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      {[0, 1, 2, 3].map((i) => (
+        <ListItem key={i} variant="titleCaption" title="Title" caption="Caption" avatar={<AvatarClient type="generic" size="xl" />} isLoading />
+      ))}
+    </Stack>
+  ),
+};
+
+// ---- Size --------------------------------------------------------------------
+
+/** Default (60px) beside compact (40px) — the same row, minus the vertical padding. */
+export const Sizes: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Default" caption="Caption" avatar={objectAvatar} isDraggable />
+      <ListItem variant="title" title="Compact" size="compact" isDraggable />
+    </Stack>
+  ),
+};
+
+// Compact exists for rows whose right slot holds a control: at 40px with no
+// vertical padding, a 32px IconButton and a 22px Toggle both still fit.
+export const CompactControls: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="title" title="Sort by" size="compact" slotRight={<IconButton icon="arrow-down-short-wide" variant="ghost" size="md" aria-label="Sort order" />} />
+      <ListItem variant="title" title="Show archived" size="compact" isClickable toggle onClick={noop} />
+    </Stack>
+  ),
+};
+
+// Anatomy, second preview: the optional grip and caret, 12px from the body.
+export const AnatomyGripCaret: Story = {
+  parameters: noControls,
+  render: () => (
+    <Stack>
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isDraggable />
+      <ListItem variant="titleCaption" title="Title" caption="Caption" avatar={objectAvatar} isAccordion>
+        {collapsibleBody}
+      </ListItem>
     </Stack>
   ),
 };

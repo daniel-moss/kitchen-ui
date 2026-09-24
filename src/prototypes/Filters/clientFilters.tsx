@@ -1,6 +1,4 @@
 import AvatarClient from "../../components/Avatar/AvatarClient";
-import { Icon } from "../../components/Icon/Icon";
-import { IconPack } from "../../components/Icon/Icon.types";
 import { CLIENT_LABELS, IndustryType, TAX_RATES } from "../../data/db";
 import { semanticIcons } from "../../styles/semanticIcons";
 
@@ -38,7 +36,7 @@ import { formatPaymentTerms } from "./listData";
 //
 // The standing Figma split:
 //   - AVAILABLE INVOICE CREDIT (section 14970-61844), BILLING ADDRESS
-//     (the shared Address section 14947-34564), BILLS TO (14970-59620),
+//     (the shared Billing address section 14947-34564), BILLS TO (14970-59620),
 //     CREDIT LIMIT (14970-58966), DEFAULT ESTIMATE EXPIRATION (14970-60678),
 //     DEFAULT PAYMENT TERMS (15047-67829 — the CLIENTS-OWN section Daniel
 //     split off the shared Payment Terms template: the label says "Default",
@@ -54,7 +52,10 @@ import { formatPaymentTerms } from "./listData";
 // nothing to read: a client is the customer DIRECTORY, not a document. Its
 // outstanding balance is the derived aggregate in clientsData.
 
-const icon = (name: string, pack: IconPack = "regular") => <Icon icon={name} pack={pack} size={14} container="square" />;
+// (The local `icon()` row helper is gone with the Type filter's glyphs,
+// 2026-09-17 — no option on this list draws one any more. The `icon:` fields
+// below are FILTER icons, which the menu row and the chip's Property segment
+// draw; they are plain names, not elements.)
 
 // ---- Type (object-specific) --------------------------------------------------
 
@@ -63,11 +64,18 @@ const icon = (name: string, pack: IconPack = "regular") => <Icon icon={name} pac
  * two-value field; Figma section 14970-46189, annotated "Single-select. Only
  * one selected option at a time" — the Jobs Type arrangement). The chips-only
  * DS header ("is" / "is not", no search — two rows need none), and the rows
- * KEEP their icons: the node draws the CLIENT TYPE tokens' own glyphs —
- * `building` (--client-business) and `user` (--client-individual).
+ * are BARE: label only.
+ *
+ * The icons came OFF on 2026-09-17 (Daniel; the node was re-read to confirm —
+ * its SelectListItems draw nothing but the title, and the list hugs to 128).
+ * They had been the CLIENT TYPE tokens' own glyphs, `building`
+ * (--client-business) and `user` (--client-individual). The chip's VALUE
+ * segment loses the icon with them, because `valueDisplay` reads the picked
+ * option's `slotLeft` — which is what the section's FilterChip draws too.
  *
  * The menu icon is `shapes` — Daniel's established Type glyph (the Jobs and
- * Credit notes lists' rows wear it too).
+ * Credit notes lists' rows wear it too), and it stays: that one is the
+ * FILTER's icon, not an option's.
  */
 function typeFilter(): FilterDef<ClientRow> {
   return {
@@ -79,8 +87,8 @@ function typeFilter(): FilterDef<ClientRow> {
     dsHeader: true,
     singleSelect: true,
     options: [
-      { id: "business", label: "Business", slotLeft: icon(semanticIcons.clientBusiness) },
-      { id: "individual", label: "Individual", slotLeft: icon(semanticIcons.clientIndividual) },
+      { id: "business", label: "Business" },
+      { id: "individual", label: "Individual" },
     ],
     matches: (client, { ids }) => ids.includes(client.clientType === "Business" ? "business" : "individual"),
   };

@@ -34,35 +34,44 @@ const DISCOUNTS_STORY = "prototypes-filters--desktop-discounts";
 const TAX_RATES_STORY = "prototypes-filters--desktop-tax-rates";
 
 // Every filter row in the Jobs menu, with the width its list should open at.
-// Address opens a dialog instead of a list, so it has none.
+// Location address opens a dialog instead of a list, so it has none.
+//
+// NO FLOOR AT ALL since 2026-09-17, on this or any other page — the outcome of
+// Daniel's comparison (208 → none → 160 → none): the components own their
+// widths, and the DS SelectList has no minimum, only the 384 maximum. So every
+// width below is a list hugging its own rows. The six that used to sit on the
+// prototype's 208 floor are the six that moved; each carries its floored width
+// in a comment.
 const EXPECTED_WIDTHS = {
-  Address: null,
-  Assignee: 208,
+  Assignee: 208, // exactly 208 on its own — the avatars and names, not the floor
   // 276 since 2026-09-16 — the Clients-list build widened the CLIENTS table
   // ("Lighthouse Cannery Kitchen" is what the card hugs to now; it was 209
   // over the original eight names).
   Client: 276,
-  // "Received" since 2026-09-14 (was "Date received").
-  Received: 208,
+  // "Received" since 2026-09-14 (was "Date received"). 208 on the retired floor.
+  Received: 154,
   // 216 — its header chips ("at least" / "at most" / "is") are what the card
-  // hugs to, wider than the 208 floor. The Figma node draws 218.
+  // hugs to, wider than either floor. The Figma node draws 218.
   "Est. duration": 216,
   Labels: 222,
-  "Last modified": 208,
+  "Last modified": 154, // 208 on the retired floor
   Location: 384,
-  Priority: 208,
-  "Scheduled for": 208,
+  // "Address" until 2026-09-16 — the rename moved it after Location.
+  "Location address": null,
+  Priority: 154, // 208 on the retired floor
+  "Scheduled for": 156, // 208 on the retired floor
   Service: 291,
   Source: 231,
   // 256 since the Status rows became the SUB-STATUS names where they exist
   // (2026-09-14) — "Waiting for client approval" is what the card hugs to.
   Status: 256,
-  "Status changed": 208,
-  Type: 208,
+  "Status changed": 154, // 208 on the retired floor
+  // 127 — the narrowest list in the menu: two rows, "Upfront" / "Rolling".
+  // A SelectList has no minimum, so this is what it hugs to.
+  Type: 127,
 };
 
 const ESTIMATE_FILTERS = [
-  "Address",
   "Client",
   "Down payment",
   "Expires",
@@ -70,6 +79,7 @@ const ESTIMATE_FILTERS = [
   "Labels",
   "Last modified",
   "Location",
+  "Location address",
   "Seen",
   "Service",
   "Status",
@@ -79,7 +89,6 @@ const ESTIMATE_FILTERS = [
 
 // The Invoices menu's thirteen rows — node 14320:66224, alphabetical.
 const INVOICE_FILTERS = [
-  "Address",
   "Amount due",
   "Client",
   "Due date",
@@ -87,6 +96,7 @@ const INVOICE_FILTERS = [
   "Labels",
   "Last modified",
   "Location",
+  "Location address",
   "Seen",
   "Service",
   "Status",
@@ -140,10 +150,10 @@ const PO_FILTERS_MENU = [
 // The Series menu's ten rows — node 14759-74313, alphabetical. Recurrence
 // joined on 2026-09-14, when Daniel drew its section (14831-29459).
 const SERIES_FILTERS = [
-  "Address",
   "Client",
   "Created at",
   "Location",
+  "Location address",
   "Open jobs",
   "Recurrence",
   "Series end",
@@ -167,7 +177,11 @@ const VENDOR_FILTERS_MENU = [
   "Payment terms",
 ];
 
-const MENU_WIDTH = 208; // the documented floor — node 14310-59652
+// The Filters MENU card. A `Menu`, so its 160 minimum and 384 maximum are the
+// COMPONENT's; between them it hugs its rows, and 191 is what the Jobs menu's
+// widest row ("Location address") comes to. The prototype's own 208 floor was
+// retired on 2026-09-17 — the Figma nodes still pin it (14310-59652).
+const JOBS_MENU_WIDTH = 191;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -355,8 +369,17 @@ if (run("placement")) {
     const list = JSON.parse(listRaw);
     const row = JSON.parse(rowRaw);
     // the list opens to the LEFT of the row here (the menu sits at the screen edge)
+    //
+    // 4 or 5: `placeSub` positions the card by `offsetWidth`, the fractional
+    // width rounded to the NEAREST integer, so the real gap is 4 ± up to
+    // half a pixel (Est. duration is 215.70 wide and placed as 216, so it
+    // sits at 4.30; Labels is 222.23 placed as 222, so it sits at 3.77).
+    // Rounding both rects then reports 4 or 5. It has always been this way —
+    // what made it visible is the Jobs menu card hugging to a fractional
+    // 191.42 since the floor changed (2026-09-16), which moved every row's
+    // left edge off the whole pixel. Sub-pixel, invisible on screen.
     const gap = row.left - list.right;
-    report(gap === 4 && !list.offscreen, `${name} gap ${gap}px`, list.offscreen ? "OFFSCREEN" : "");
+    report(gap >= 4 && gap <= 5 && !list.offscreen, `${name} gap ${gap}px`, list.offscreen ? "OFFSCREEN" : "");
   }
 }
 
@@ -387,9 +410,9 @@ if (run("stability")) {
   }
 }
 
-// ---- menu: the documented 208 floor, held while typing ---------------------
+// ---- menu: the card hugs its rows, and holds that width while typing -------
 if (run("menu")) {
-  console.log("\nmenu — 208px floor, steady while typing");
+  console.log("\nmenu — hugs its rows, steady while typing");
   await load(JOBS_STORY);
   await openMenu();
   const menuWidth = () =>
@@ -398,7 +421,11 @@ if (run("menu")) {
       return card == null ? null : Math.round(card.getBoundingClientRect().width);
     })()`);
   const opened = await menuWidth();
-  report(opened === MENU_WIDTH, `opens at ${opened}px`, opened === MENU_WIDTH ? "" : `expected ${MENU_WIDTH}`);
+  report(
+    opened === JOBS_MENU_WIDTH,
+    `opens at ${opened}px`,
+    opened === JOBS_MENU_WIDTH ? "" : `expected ${JOBS_MENU_WIDTH}`,
+  );
   const seen = [opened];
   for (const q of ["t", "ty", "typ", "type"]) {
     await typeInto(`document.querySelector('[class*="filtersMenu"] input')`, q);
@@ -453,7 +480,9 @@ if (run("estimates")) {
     "Down payment rows",
     JSON.stringify(dpRows),
   );
-  report(dpList.width === MENU_WIDTH, "Down payment list width", `${dpList.width}px`);
+  // 169 — what its four rows hug to. It sat on the retired 208 floor before
+  // 2026-09-17.
+  report(dpList.width === 169, "Down payment list width", `${dpList.width}px`);
   await js(`(() => {
     const rows = [...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')];
     const row = rows.find(r => r.textContent.trim() === "Partially paid");
@@ -669,7 +698,7 @@ if (run("creditnotes")) {
 
   // Type — the list's second own filter (node 14759-71943), CLOSED phase
   // only since 2026-09-14: the three production types in the design's
-  // casing, bare multi-select rows at the 208 floor.
+  // casing, bare multi-select rows hugging their own width.
   await load(CREDIT_NOTES_STORY);
   await js(`[...document.querySelectorAll('[class*="topBar"] [role="tab"]')].find(t => t.textContent.trim() === "Closed")?.click()`);
   await sleep(700);
@@ -692,7 +721,9 @@ if (run("creditnotes")) {
     JSON.stringify(typeRows),
   );
   const tpList = JSON.parse(await subList());
-  report(tpList.width === MENU_WIDTH, "Type list width", `${tpList.width}px`);
+  // 153 — what its three rows hug to. It sat on the retired 208 floor before
+  // 2026-09-17.
+  report(tpList.width === 153, "Type list width", `${tpList.width}px`);
   await clickSubRow("Pre-payment");
   const tpAfter = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   report(tpAfter > 0 && tpAfter < tpBefore, "Type = Pre-payment (closed)", `${tpBefore} → ${tpAfter} rows`);
@@ -1325,11 +1356,32 @@ if (run("clients")) {
     JSON.stringify(rows),
   );
 
-  // Type — single-select Business / Individual (the Jobs Type arrangement).
+  // Type — single-select Business / Individual (the Jobs Type arrangement),
+  // and BARE rows since 2026-09-17: Daniel took the client-type glyphs off the
+  // options, so neither row has a left slot (and the chip's value loses it too,
+  // since `valueDisplay` reads the picked option's `slotLeft`).
   await hoverRow("Type");
+  const tyIcons = await js(
+    `JSON.stringify([...document.querySelectorAll('[class*="filtersSub"] [class*="item"]')]
+        .filter(el => /_item_/.test(el.className))
+        .map(r => r.querySelectorAll('[class*="slotLeft"]').length))`,
+  );
+  report(
+    JSON.stringify(JSON.parse(tyIcons)) === JSON.stringify([0, 0]),
+    "Type — neither row draws an icon",
+    tyIcons,
+  );
   await clickSubRow("Individual");
   const tyAfter = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   report(tyAfter === 2, "Type is Individual (Ferry + Marisol)", `11 → ${tyAfter} rows`);
+  // and the chip it leaves carries no glyph in its value box either
+  const tyChip = await js(
+    `(() => {
+      const box = [...document.querySelectorAll('[class*="_box_"]')].find(b => /Individual/.test(b.textContent));
+      return box == null ? null : box.querySelectorAll('[class*="g-"], [class*="icon"]').length;
+    })()`,
+  );
+  report(tyChip === 0, "Type chip — the value box has no glyph", `${tyChip} glyph(s)`);
 
   // Industry — multi-select over the FIXED enum, "No industry" leading (the
   // field is optional in production).
@@ -2142,20 +2194,21 @@ if (run("amount")) {
 }
 
 
-// ---- freeform: the Address dialog (the FREEFORM kind), its fields and chip ---
+// ---- freeform: the Location address dialog, its fields and chip -------------
 // The 2026-09-16 reorganisation: "Address" the KIND became "Freeform" (its
-// fields now come from the def), and Address / Billing address are filters
-// built on it. This section fills the Jobs Address dialog and checks the
-// five def-declared fields render, Apply gates and applies, and the chip
-// words the value the address way.
+// fields now come from the def), and Location address / Billing address are
+// filters built on it. This section fills the Jobs Location address dialog and
+// checks the five def-declared fields render with NO "(optional)" condition
+// (dropped 2026-09-16), Apply gates and applies, and the chip words the value
+// the address way.
 if (run("freeform")) {
-  console.log("\nfreeform — the Address dialog, its fields and the chip");
+  console.log("\nfreeform — the Location address dialog, its fields and the chip");
   await load(JOBS_STORY);
   const before = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   await openMenu();
-  // CLICK the Address row — a freeform filter's menu row opens the dialog
-  // itself (no sub-list).
-  await js(`[...document.querySelectorAll('[class*="filtersMenu"] [role="menuitem"], [class*="filtersCard"] [role="menuitem"], [role="menuitem"]')].find(r => r.textContent.trim() === "Address")?.click()`);
+  // CLICK the Location address row — a freeform filter's menu row opens the
+  // dialog itself (no sub-list).
+  await js(`[...document.querySelectorAll('[class*="filtersMenu"] [role="menuitem"], [class*="filtersCard"] [role="menuitem"], [role="menuitem"]')].find(r => r.textContent.trim() === "Location address")?.click()`);
   await sleep(700);
   const fieldCount = await js(`document.querySelectorAll('[class*="freeformCustomContent"] input').length`);
   const bodyText = await js(`JSON.stringify(document.querySelector('[class*="freeformCustomContent"]')?.innerText ?? "")`);
@@ -2165,6 +2218,7 @@ if (run("freeform")) {
     "the dialog renders the def's five fields",
     `${fieldCount} inputs, ${bodyText}`,
   );
+  report(!bodyText.includes("optional"), "no label carries the (optional) condition", bodyText);
   const paired = await js(`document.querySelectorAll('[class*="freeformCustomRow"] input').length`);
   report(paired === 2, "State / Postal share a desktop row", `${paired} inputs in the half row`);
   const disabledBefore = await js(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === "Apply")?.disabled ?? null`);
@@ -2176,7 +2230,7 @@ if (run("freeform")) {
   const after = await js(`document.querySelectorAll('[role="row"]').length - 1`);
   const chip = await js(`[...document.querySelectorAll('[class*="_box_"]')].map(b => b.textContent.trim()).join("|")`);
   report(
-    after > 0 && after < before && /Address/.test(chip) && /contains/.test(chip) && /San Francisco/.test(chip),
+    after > 0 && after < before && /Location address/.test(chip) && /contains/.test(chip) && /San Francisco/.test(chip),
     "applies and the chip words the address",
     `${before} → ${after} rows, chip ${JSON.stringify(chip)}`,
   );

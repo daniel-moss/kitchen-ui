@@ -84,7 +84,7 @@ export default function CompleteJobForm({
           sessions={sessions}
           mobile={mobile}
           canAdd
-          accordion={false}
+          isAccordion={false}
           onStop={onStopSession}
           onEdit={onEditSession}
           onDelete={onDeleteSession}

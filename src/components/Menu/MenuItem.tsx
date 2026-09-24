@@ -6,6 +6,8 @@ import useMountTransition from "../../hooks/useMountTransition";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import useControllableState from "../../hooks/useControllableState";
 import { Icon } from "../Icon/Icon";
+import ItemText from "../ItemText/ItemText/ItemText";
+import ItemTextBlock from "../ItemText/ItemText/ItemTextBlock";
 import ToggleSwitch from "../Toggle/ToggleSwitch";
 import switchStyles from "../Toggle/ToggleSwitch.module.scss";
 import { MenuContext } from "./Menu";
@@ -232,13 +234,17 @@ export default function MenuItem({
             : slotLeft}
         </span>
       )}
-      <div className={styles.content}>
-        <div className={styles.titleRow}>
-          <span className={styles.title}>{label}</span>
-          {tag != null && <span className={styles.tag}>{tag}</span>}
-        </div>
-        {caption != null && <span className={styles.caption}>{caption}</span>}
-      </div>
+      <ItemText
+        className={styles.content}
+        variant={caption != null ? "titleCaption" : "title"}
+        title={label}
+        titleStyle="bodyRegular"
+        titleColor={danger ? "error" : "strong"}
+        caption={caption}
+        captionLines="wrap"
+        captionColor={danger ? "error" : "subtle"}
+        right={tag != null ? <ItemTextBlock align="right" variant="tag" tag={tag} tagColor={danger ? "error" : "subtle"} /> : undefined}
+      />
       {toggle ? (
         <span className={styles.slotRight}>
           <ToggleSwitch checked={isChecked} />

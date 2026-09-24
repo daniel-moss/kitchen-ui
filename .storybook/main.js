@@ -1,3 +1,5 @@
+import remarkGfm from 'remark-gfm';
+
 // SHARE=1 builds a "share-only" Storybook that contains ONLY the prototypes —
 // no component library, no docs, no other stories. Use it for links given to
 // colleagues/customers (`npm run build-storybook:share`). ALL prototypes are
@@ -18,7 +20,20 @@ const config = {
   stories: shareOnly
     ? shareFolders.map((folder) => `../src/prototypes/${folder}/**/*.stories.@(ts|tsx)`)
     : ['../src/**/*.mdx', '../src/**/*.stories.@(ts|tsx)'],
-  addons: ['@storybook/addon-essentials', 'storybook-addon-pseudo-states'],
+  addons: [
+    '@storybook/addon-essentials',
+    // addon-docs is listed explicitly ONLY to pass it options: MDX has no table
+    // support on its own and remark-gfm adds it, and the docs pages use tables
+    // wherever the Figma doc does (ItemValue's ItemValue-vs-tag rule, ItemText's
+    // "who uses it"). Options given to addon-essentials under `docs` do NOT
+    // reach here — essentials reads that key only as an on/off flag. It detects
+    // this entry and skips composing its own copy, so docs is not loaded twice.
+    {
+      name: '@storybook/addon-docs',
+      options: { mdxPluginOptions: { mdxCompileOptions: { remarkPlugins: [remarkGfm] } } },
+    },
+    'storybook-addon-pseudo-states',
+  ],
   // Serve public/ so avatar images resolve at /avatars/… in dev and static builds.
   staticDirs: ['../public'],
   framework: {
