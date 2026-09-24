@@ -82,10 +82,11 @@
   padding: 0 var(--size-4) var(--size-4); // 16px sides + bottom
 }
 
-// 8px under the Label here, against 4px in the Timeline blocks — that is what
-// the two nodes measure (Figma 14205-72179 vs 15612-52798). Flagged to Daniel.
+// 4px under the Label, the same as the Timeline blocks. The Attributes node
+// measures 8px (Figma 14205-72179), but Daniel settled it at 4 on 2026-09-24
+// so every Label ↔ ChipGroup pair in the menu is spaced alike.
 .attrsTitle {
-  padding: var(--size-4) 0 var(--size-2); // 16px above, 8px below
+  padding: var(--size-4) 0 var(--size-1); // 16px above, 4px below
 }
 
 // ---- Timeline tab (jobs only) ----
