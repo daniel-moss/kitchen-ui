@@ -92,13 +92,14 @@
 // 401px. Something must give, and this makes it the longest box rather than
 // the value.
 //
-// The 33% is OF THE CHIP, which also holds the 1px dividers and the 36px
-// remove box — so it is a few pixels more generous than a third of the three
-// boxes themselves. That is why "about": pinning it exactly would need a
-// wrapper element around the three, and the wrapper would break both the
-// dividers' `height: 100%` and the last-child radius rule below.
+// The share is an EQUAL one and it is measured against what the content boxes
+// actually have: the chip minus the 1px dividers and the 36px remove box. On a
+// 343px chip that is (343 − 36 − 3) / 3 = 101.33px each. FilterChip computes it
+// — only the chip knows whether it drew a remove box and an operator — and
+// hands it down as `--fc-box-max`; the 33% here is the fallback for a box
+// rendered outside a chip (the doc page's own previews do that).
 .boxVertical {
-  max-width: 33%;
+  max-width: var(--fc-box-max, 33%);
 }
 
 // The value box is the one that fills, so it is exempt from the share — it

@@ -1,4 +1,4 @@
-import { MouseEvent as ReactMouseEvent, useContext, useRef, useState } from "react";
+import { CSSProperties, MouseEvent as ReactMouseEvent, useContext, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import clsx from "clsx";
@@ -177,6 +177,24 @@ export default function FilterChip({
   // meeting it in a T-junction.
   const divider = <Divider orientation="vertical" contrast="high" padding="var(--size-2) 0" />;
 
+  // In a VERTICAL group the "name" and "operator" boxes may take at most an
+  // EQUAL SHARE of the width the content boxes have between them — the chip
+  // minus the 1px dividers and the 36px remove box (Daniel, 2026-09-25: on a
+  // 343px chip that is (343 − 36 − 3) / 3 = 101.33px each). The value box is
+  // exempt; it fills whatever the other two leave.
+  //
+  // The share has to be computed HERE because only the chip knows which parts
+  // it drew: a locked chip has no remove box and one divider fewer, and a
+  // filter with no operator has one box and one divider fewer again. CSS
+  // cannot see that, so the chip hands the answer down as a custom property.
+  const boxCount = operator != null ? 3 : 2;
+  const dividerCount = 1 + (operator != null ? 1 : 0) + (isLocked ? 0 : 1);
+  const chipStyle = isVertical
+    ? ({
+        "--fc-box-max": `calc((100% - ${dividerCount}px${isLocked ? "" : " - var(--size-9)"}) / ${boxCount})`,
+      } as CSSProperties)
+    : undefined;
+
   const nameBox = (
     <FilterChipBox
       orientation={dir}
@@ -193,6 +211,7 @@ export default function FilterChip({
   return (
     <div
       className={clsx(styles.chip, isVertical && styles.chipVertical, isWarning && styles.chipWarning, className)}
+      style={chipStyle}
     >
       {/* The conflict hint hangs off the "name" box — hover shows the bubble
           below it, a tap (mobile) opens the same content as a drawer. The

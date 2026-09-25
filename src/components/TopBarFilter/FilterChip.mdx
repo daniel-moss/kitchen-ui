@@ -136,11 +136,18 @@ glyph stays. (The example below is live — hover the box.)
 <Canvas of={FilterChipStories.MaxWidth} />
 
 In a vertical group the 240px cap means nothing — the chip is as wide as the
-row — so the boxes are bounded by a **share** of it instead. The "name" and
-"operator" boxes hug their text but neither may take more than about a third of
-the chip, and the "value" box fills whatever they leave. So the value can never
-be squeezed away: when a filter's name and operator are both long, it is the
-longer of those two that truncates, not the value the reader is looking for.
+row — so the boxes are bounded by an **equal share** of it instead. The "name"
+and "operator" boxes hug their text but neither may take more than its share,
+and the "value" box is exempt: it fills whatever the other two leave. So the
+value can never be squeezed away — when a filter's name and operator are both
+long, it is the longer of those two that truncates, not the value the reader is
+looking for.
+
+The share is measured against the width the content boxes actually have, which
+is the chip minus the 1px dividers and the 36px remove box. On a 343px chip
+that is (343 − 36 − 3) ÷ 3 = **101.33px** each. The chip computes it, because
+only the chip knows which parts it drew: a locked chip has no remove box, and a
+filter with no operator has one box fewer to divide between.
 
 <Canvas of={FilterChipStories.VerticalValueFill} />
 
