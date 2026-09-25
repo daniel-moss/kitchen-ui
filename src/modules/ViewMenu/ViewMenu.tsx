@@ -528,7 +528,7 @@ export default function ViewMenu({
           })}
         </ChipGroup>
       </div>
-      <Divider contrast="medium" />
+      <Divider contrast="medium" padding="0 var(--size-4)" />
       {/* Schedule horizon FIRST, Sort by second — the design's order — in ONE
           ItemGroup whose own bottom divider separates it from what follows.
           Schedule horizon is JOBS ONLY, so its row exists only when the
@@ -683,7 +683,7 @@ export default function ViewMenu({
               </ChipGroup>
             </div>
           </div>
-          <Divider contrast="medium" />
+          <Divider contrast="medium" padding="0 var(--size-4)" />
           <ItemGroup>
             {TIMELINE_TOGGLES.map((o) => (
               <ListItem
