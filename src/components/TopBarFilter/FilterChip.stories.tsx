@@ -309,21 +309,6 @@ export const MaxWidth: Story = {
 };
 
 /**
- * In a vertical group the "value" box label fills the width by default, and
- * the text truncates when it does not fit — the box here is 280px wide. There
- * is no fixed max width in that orientation; the cap is a share (below).
- */
-export const VerticalValueFill: Story = {
-  render: () => (
-    <div style={row(0)}>
-      <FilterChipBox orientation="vertical" fill style={{ width: 280 }}>
-        Very long value which does not fit the box
-      </FilterChipBox>
-    </div>
-  ),
-};
-
-/**
  * The share, at the width it was designed against: a 343px chip — a 375px
  * phone inside a drawer with 16px padding on each side. "Labels" hugs at 92px,
  * under its 101.33px share; "do not include any of" hits the share and
