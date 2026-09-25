@@ -534,9 +534,11 @@ at all.
   bills' three dates, the POs' Issued and Est. arrival) keep `formatDay`.
   Every date+time column is **192** wide — 176 clipped the longest string
   ("Aug 23, 2026, 11:30 AM" needs 157px + the cell's 32) — where date-only
-  columns stay 144. The chip's single-day copy still draws "Aug 5" with no
-  year (`formatChipDate`) — that is node 13914-15296's own design, not the
-  removed rule; FLAGGED in filterDefs if it should follow.
+  columns stay 144. The rule reaches the CHIP too (Daniel, 2026-09-25): a
+  single custom day used to draw "Aug 5" with no year, which was a bug — both
+  FilterChip boards in Figma 14073-22059 spell it out ("Jan 1, 2027" alone,
+  "Jan 1, 2027 — Feb 22, 2027" as a range). `formatChipDate` is gone and
+  `formatValueEnd` now formats a single day and a range end identically.
 - **Down payment reads the estimate's STATUS, not just its own value**
   (node 14330-66931, re-read 2026-09-12 — `downPaymentCell` in
   `estimatesData.ts`). Six cells, not four: "Not paid" and "Partially paid" are

@@ -981,15 +981,14 @@ export const datePreset = (id: string | null) => (id == null ? undefined : PRESE
 export const isoOf = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 /**
- * "Jan 1" — the chip's copy for a custom date (Figma node 13914-15296). No year:
- * the node has none, and the chip is already tight. FLAGGED.
- */
-export const formatChipDate = (iso: string) =>
-  new Date(`${iso}T12:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-/**
- * "Jan 1, 2027" — the Custom dialog's footer, which shows the picked date next
- * to Apply (Figma node 13962-8889). WITH the year, unlike the chip: the footer
- * has the room and the calendar above it can be years away from today.
+ * "Jan 1, 2027" — a picked DAY, wherever one is shown: the Custom dialog's
+ * footer next to Apply (Figma node 13962-8889) AND the chip (the
+ * "FilterChip / No Range" and "FilterChip / Range" boards in Figma 14073-22059
+ * both draw the year).
+ *
+ * The year ALWAYS shows. A filter date is often years back, and a bare
+ * "Jan 1" leaves the reader guessing which year — the chip used to drop it,
+ * which was the bug Daniel caught on 2026-09-25.
  */
 export const formatFooterDate = (date: Date) =>
   date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -1017,16 +1016,17 @@ export const formatMonthValue = (iso: string) => {
 };
 
 /**
- * One end of a date value, in the copy its timeframe calls for. A DAY inside a
- * RANGE spells the year out — "Aug 5, 2026 — Aug 20, 2026" (Daniel,
- * 2026-08-23), because a bare "Aug 5 — Aug 20" leaves the reader guessing which
- * year the two ends are in. A single day stays short ("Aug 5"), as its node
- * draws it (13914-15296). FLAGGED: the two now differ.
+ * One end of a date value, in the copy its timeframe calls for. A DAY always
+ * spells the year out — "Aug 5, 2026" alone and "Aug 5, 2026 — Aug 20, 2026"
+ * as a range — because a filter date is often years back and a bare "Aug 5"
+ * leaves the reader guessing. Single and range are the SAME format now
+ * (Daniel, 2026-09-25; both FilterChip boards in Figma 14073-22059 draw the
+ * year): the single day used to drop it, which was the bug.
  */
 export const formatValueEnd = (date: DateValue, iso: string) => {
   if (date.timeframe === "year") return iso.slice(0, 4);
   if (date.timeframe === "month") return formatMonthValue(iso);
-  return isDateRange(date) ? formatFooterDate(new Date(`${iso}T12:00:00`)) : formatChipDate(iso);
+  return formatFooterDate(new Date(`${iso}T12:00:00`));
 };
 
 // ---- applying and counting -------------------------------------------------
