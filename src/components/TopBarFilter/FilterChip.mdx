@@ -135,27 +135,36 @@ glyph stays. (The example below is live — hover the box.)
 
 <Canvas of={FilterChipStories.MaxWidth} />
 
-In a vertical group the 240px cap means nothing — the chip is as wide as the
-row — so the boxes are bounded by an **equal share** of it instead. The "name"
-and "operator" boxes hug their text but neither may take more than its share,
-and the "value" box is exempt: it fills whatever the other two leave. So the
-value can never be squeezed away — when a filter's name and operator are both
-long, it is the longer of those two that truncates, not the value the reader is
-looking for.
-
-The share is measured against the width the content boxes actually have, which
-is the chip minus the 1px dividers and the 36px remove box. On a 343px chip
-that is (343 − 36 − 3) ÷ 3 = **101.33px** each. The chip computes it, because
-only the chip knows which parts it drew: a locked chip has no remove box, and a
-filter with no operator has one box fewer to divide between.
+In a vertical group the boxes are bounded by an **equal share** instead of a
+fixed max width. The "name" and "operator" boxes hug their text, but neither
+may take more than its share of the space the content boxes have between them —
+the chip without its dividers and its "remove" box. The "value" box is exempt:
+it fills whatever the other two leave, so it can never be squeezed away. When a
+filter's name and operator are both long, it is the longer of those two that
+truncates.
 
 <Canvas of={FilterChipStories.VerticalValueFill} />
 
-The share matters most on a phone. There, the four boxes' frames alone — the
-padding, the name's icon, the two chevrons and the × — come to 172px of a 343px
-chip, leaving 171px for all three texts. A filter like "Labels · do not include
-any of · 3 labels" needs 401px, so something has to give; the share decides that
-it is the operator.
+The share is the chip minus the 1px dividers and the `--size-9` (36px) remove
+box, divided by the content boxes. On a 343px chip that is
+(343 − 36 − 3) ÷ 3 = **101.33px** each.
+
+`FilterChip` computes it and passes it down as a CSS variable, because only the
+chip knows which parts it drew: a locked chip has no remove box and one divider
+fewer, and a filter with no operator has one box and one divider fewer again.
+
+<Canvas of={FilterChipStories.VerticalBoxShare} />
+
+The name box pays the most, because its padding and icon cost 48px before a
+single letter — at a 101.33px share it has 53px of text left, so filter names
+longer than about "Scheduled for" truncate on a phone. That is accepted: the
+value is what the reader is checking, and the name is still the shortest thing
+on the row.
+
+**A note if you are comparing with Figma:** the component there cannot express
+this. A min or max width has to be an absolute number in Figma, not a share, so
+its boxes hug without a cap and the doc page's preview of this state is
+detached and set by hand. The rule lives here and in the code.
 
 #### "Name" box
 

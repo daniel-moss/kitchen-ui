@@ -311,7 +311,7 @@ export const MaxWidth: Story = {
 /**
  * In a vertical group the "value" box label fills the width by default, and
  * the text truncates when it does not fit — the box here is 280px wide. There
- * is no max width in that orientation.
+ * is no fixed max width in that orientation; the cap is a share (below).
  */
 export const VerticalValueFill: Story = {
   render: () => (
@@ -319,6 +319,32 @@ export const VerticalValueFill: Story = {
       <FilterChipBox orientation="vertical" fill style={{ width: 280 }}>
         Very long value which does not fit the box
       </FilterChipBox>
+    </div>
+  ),
+};
+
+/**
+ * The share, at the width it was designed against: a 343px chip — a 375px
+ * phone inside a drawer with 16px padding on each side. "Labels" hugs at 92px,
+ * under its 101.33px share; "do not include any of" hits the share and
+ * truncates; "3 labels" fills the 111px they leave. The value is the widest of
+ * the three, which is the whole point — it can never be squeezed away.
+ */
+export const VerticalBoxShare: Story = {
+  render: () => (
+    <div style={row(0)}>
+      <div style={{ width: 343 }}>
+        <FilterChip
+          orientation="vertical"
+          slotLeft={diamond}
+          name="Labels"
+          operator="do not include any of"
+          value="3 labels"
+          onOperatorClick={noop}
+          onValueClick={noop}
+          onRemove={noop}
+        />
+      </div>
     </div>
   ),
 };
