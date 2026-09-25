@@ -90,9 +90,21 @@ type HintState = { kind: HintKind; x: number; y: number } | null;
 // Desktop dropdown lists float in a document.body portal. Anchored inside the
 // popover card they extend the card body's scrollable area — a scrollbar
 // appears while the list is open and the whole menu visibly narrows — and the
-// card's overflow: hidden would clip them. Position: fixed below the anchor
-// section, right-aligned 16px in from its right edge, re-measured on
-// scroll/resize while open. Kept mounted so the exit plays.
+// card's overflow: hidden would clip them.
+//
+// THE TRIGGER IS THE WHOLE ROW (Daniel, 2026-09-25), not the ItemValue inside
+// it: the anchor is the ListItem's own box, so the list sits `GAP` below the
+// ROW's bottom with their RIGHT EDGES flush — which is what the nodes draw
+// (Figma 14215-55217 and 14205-71987 both put the list 4px under a 40px row,
+// right edges aligned). Re-measured on scroll/resize while open, and kept
+// mounted so the exit plays.
+//
+// If the list would not fit below, it flips ABOVE the row by the same gap.
+// Flipping left/right is not implemented — the list is right-aligned inside a
+// 360px card, so it is the vertical edge that runs out first.
+const GAP = 4;
+const SCREEN_MARGIN = 8;
+
 const FloatingList = ({
   open,
   anchorRef,
@@ -103,13 +115,24 @@ const FloatingList = ({
   children: ReactNode;
 }) => {
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     if (!open) return undefined;
     const update = () => {
       const rect = anchorRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setPos({ top: rect.bottom - 8, right: window.innerWidth - rect.right + 16 });
+      if (rect == null) return;
+      const height = listRef.current?.offsetHeight ?? 0;
+      const below = rect.bottom + GAP;
+      // Flip above only when there is genuinely no room below AND the room
+      // above is better — otherwise a tall list would jump to a worse spot.
+      const roomBelow = window.innerHeight - below - SCREEN_MARGIN;
+      const roomAbove = rect.top - GAP - SCREEN_MARGIN;
+      const flip = height > 0 && height > roomBelow && roomAbove > roomBelow;
+      setPos({
+        top: flip ? Math.max(SCREEN_MARGIN, rect.top - GAP - height) : below,
+        right: window.innerWidth - rect.right,
+      });
     };
     update();
     window.addEventListener("scroll", update, true);
@@ -118,11 +141,13 @@ const FloatingList = ({
       window.removeEventListener("scroll", update, true);
       window.removeEventListener("resize", update);
     };
-  }, [open, anchorRef]);
+    // `children` is in the deps so the flip re-measures when the list's own
+    // height changes — a search that filters the options down, for instance.
+  }, [open, anchorRef, children]);
 
   if (!pos) return null; // nothing to place until the first open
   return createPortal(
-    <div data-floating-list className={styles.floatingList} style={{ top: pos.top, right: pos.right }}>
+    <div ref={listRef} data-floating-list className={styles.floatingList} style={{ top: pos.top, right: pos.right }}>
       {children}
     </div>,
     document.body,

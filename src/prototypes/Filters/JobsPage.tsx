@@ -554,7 +554,9 @@ const defaultViewSettings = (): ViewSettings => ({
     hidden: [],
   },
   activeAttributes: ["status", "client", "scheduledFor"],
-  scheduledKey: "all",
+  // "Next 2 weeks", not "All dates" (Daniel, 2026-09-25) — a jobs list opens on
+  // the near schedule rather than every job that was ever scheduled.
+  scheduledKey: "2w",
   timeline: defaultTimelineState(),
 });
 
