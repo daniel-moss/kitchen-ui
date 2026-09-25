@@ -1006,9 +1006,12 @@ export const formatLongDate = (date: Date) =>
   date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 /**
- * "May 2027" — a MONTH value in the chip. NO comma (Daniel, 2026-09-03, and
- * node 14098-35853 draws "Jan 2027 — Aug 2027") — the old node's "May, 2027"
- * was the slip the earlier flag suspected.
+ * "May 2027" — a MONTH value in the chip, with NO comma.
+ *
+ * THE RULE (Daniel, 2026-09-25): the comma appears only when a date carries
+ * all THREE parts — day, month and year. So "Jan 1, 2027" takes one, while
+ * "Jan 2027" and a bare "2027" do not. (An older node drew "May, 2027"; that
+ * was the slip, and the Figma board now reads "Jan 2027" too.)
  */
 export const formatMonthValue = (iso: string) => {
   const date = new Date(`${iso}T12:00:00`);
