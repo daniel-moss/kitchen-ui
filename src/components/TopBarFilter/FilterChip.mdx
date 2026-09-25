@@ -135,10 +135,20 @@ glyph stays. (The example below is live — hover the box.)
 
 <Canvas of={FilterChipStories.MaxWidth} />
 
-In a vertical group the "value" box label fills the width by default; the text
-truncates if it does not fit. There is no max width in that orientation.
+In a vertical group the 240px cap means nothing — the chip is as wide as the
+row — so the boxes are bounded by a **share** of it instead. The "name" and
+"operator" boxes hug their text but neither may take more than about a third of
+the chip, and the "value" box fills whatever they leave. So the value can never
+be squeezed away: when a filter's name and operator are both long, it is the
+longer of those two that truncates, not the value the reader is looking for.
 
 <Canvas of={FilterChipStories.VerticalValueFill} />
+
+The share matters most on a phone. There, the four boxes' frames alone — the
+padding, the name's icon, the two chevrons and the × — come to 172px of a 343px
+chip, leaving 171px for all three texts. A filter like "Labels · do not include
+any of · 3 labels" needs 401px, so something has to give; the share decides that
+it is the operator.
 
 #### "Name" box
 

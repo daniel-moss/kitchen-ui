@@ -80,9 +80,31 @@
   @include font("body-400-compact");
 }
 
-// A VERTICAL group has no max width at all (the doc's Interactivity rule) —
-// the chip is as wide as the row, so the boxes are bounded by the chip itself.
+// A VERTICAL group drops the 240px cap — the chip is as wide as the row, so a
+// fixed pixel cap means nothing here. The boxes are bounded by a SHARE of the
+// chip instead (Daniel, 2026-09-25): "name" and "operator" still hug their
+// text, but neither may take more than about a third, so the "value" box —
+// which fills whatever is left — can never be squeezed away.
+//
+// It has to be a share, not a floor on the value: on a 375px phone the four
+// boxes' frames alone (padding, icon, chevrons, the ×) come to 172px of the
+// 343px chip, so "Labels" + "do not include any of" + a counted value needs
+// 401px. Something must give, and this makes it the longest box rather than
+// the value.
+//
+// The 33% is OF THE CHIP, which also holds the 1px dividers and the 36px
+// remove box — so it is a few pixels more generous than a third of the three
+// boxes themselves. That is why "about": pinning it exactly would need a
+// wrapper element around the three, and the wrapper would break both the
+// dividers' `height: 100%` and the last-child radius rule below.
 .boxVertical {
+  max-width: 33%;
+}
+
+// The value box is the one that fills, so it is exempt from the share — it
+// takes everything the other two leave (see `.fill`). Declared after
+// `.boxVertical` so it wins at equal specificity.
+.boxVertical.fill {
   max-width: none;
 }
 
