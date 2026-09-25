@@ -634,7 +634,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 variant="object"
                 avatar={<AvatarLocation size="xl" />}
                 label={l.address}
-                caption={l.name}
+                caption={l.name || <span className={styles.placeholderText}>No Location name</span>}
                 searchText={`${l.address} ${l.name} ${l.client}`}
                 selected={l.id === location.id}
                 disabled={!g.active}

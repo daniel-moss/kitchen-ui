@@ -116,7 +116,7 @@ function ContactField({
           >
             <ListItem
               variant="titleCaption"
-              title={value.name ?? placeholder("No name")}
+              title={value.name ?? placeholder("No Name")}
               caption={contactCaption(value)}
               avatar={contactAvatar(value, "xl")}
               slotRight={
@@ -184,7 +184,7 @@ function ContactField({
               <SelectListItem
                 key={contact.id}
                 variant="object"
-                label={contact.name ?? placeholder("No name")}
+                label={contact.name ?? placeholder("No Name")}
                 caption={contactCaption(contact)}
                 avatar={contactAvatar(contact, "xl")}
                 searchText={[contact.name, contact.phone, contact.email].filter(Boolean).join(" ")}

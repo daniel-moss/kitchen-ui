@@ -1,0 +1,158 @@
+import { Meta, Canvas } from "@storybook/blocks";
+
+import * as TextSeparatorStories from "./TextSeparator.stories";
+import { FigmaLinks } from "../stories/FigmaLinks";
+
+<Meta of={TextSeparatorStories} />
+
+# Text separator
+
+The text separator joins two unrelated values that share one line. It comes from
+one constant — `TEXT_SEPARATOR` in `src/utils/textSeparator.ts` — so changing
+the separator product-wide is a one-line change in that file, and the character
+is never typed by hand.
+
+<FigmaLinks doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=31379-24831" />
+
+<Canvas of={TextSeparatorStories.Pairs} />
+
+```tsx
+import { TEXT_SEPARATOR, joinWithSeparator } from "../../utils/textSeparator";
+
+// Two values that are always there:
+caption={"Restaurant" + TEXT_SEPARATOR + "Casual dining"}
+
+// Values that may be missing — empty parts drop out, dot and all:
+caption={joinWithSeparator(client.type, client.industry)}
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[When to use it](#when-to-use-it)<br />
+↳&nbsp;&nbsp;[When not to use it](#when-not-to-use-it)<br />
+↳&nbsp;&nbsp;[Missing values](#missing-values)<br />
+↳&nbsp;&nbsp;[Wrapping](#wrapping)<br />
+↳&nbsp;&nbsp;[Why the middle dot](#why-the-middle-dot)
+
+## Anatomy
+
+The separator is the middle dot `·` (U+00B7) with two spaces on each side. The
+spaces are part of the separator — the dot never appears without them.
+
+It carries no style of its own. It is part of the string, so it takes the text
+style and color of the line it sits on.
+
+Three of the four spaces are no-break spaces, and the order matters. HTML
+collapses a run of ordinary spaces to one, so plain spaces would render
+single-spaced. A no-break space never collapses, so each side keeps its two.
+
+Only the last character is an ordinary space, which makes it the only place the
+line may break. The dot stays glued to the value before it, and a wrapped second
+line starts flush with the next value.
+
+<Canvas of={TextSeparatorStories.Anatomy} />
+
+| Position | Character |
+| --- | --- |
+| before the dot | no-break space (U+00A0), twice |
+| the dot | middle dot `·` (U+00B7) |
+| after the dot | no-break space (U+00A0), then an ordinary space |
+
+## When to use it
+
+Use it for two or three unrelated values on one line, where each value is
+complete on its own and the order carries no meaning:
+
+| Object | Line |
+| --- | --- |
+| Client | type `·` industry |
+| Contact | phone number `·` email address |
+| Equipment | name `·` manufacturer, and serial `·` model |
+| Location | name `·` address, where a location is shown on one line |
+
+<Canvas of={TextSeparatorStories.Pairs} />
+
+The values are peers. If one of them qualifies the other, they are not a pair
+and the separator is the wrong join.
+
+## When not to use it
+
+A date with its time is one value, not a pair. It joins with a comma —
+"Aug 12, 2026, 9:00 AM" — or with "at" where the date already carries commas —
+"Mon, Aug 12, 2026 at 9:00 AM". Never a symbol. In code that is the Filters
+prototype's `formatDateTime` and ActivityLog's `exactTimestamp`.
+
+<Canvas of={TextSeparatorStories.DateWithTime} />
+
+A file name and its extension join with a dot and no spaces.
+
+<Canvas of={TextSeparatorStories.FileName} />
+
+The parts of an address join with commas, with a space between state and postal
+code.
+
+<Canvas of={TextSeparatorStories.AddressParts} />
+
+A range is directional, so a start and an end take an arrow.
+
+<Canvas of={TextSeparatorStories.Range} />
+
+A caption that reads as a sentence needs no separator — its own words do the
+joining.
+
+<Canvas of={TextSeparatorStories.SentenceCaption} />
+
+**Incorrect usage.** Each of these splits one value into two:
+
+<Canvas of={TextSeparatorStories.IncorrectUsage} />
+
+## Missing values
+
+A value that is missing has two possible fates, and they are mutually
+exclusive.
+
+**Dropped** — the value leaves the line and takes its dot with it. There is
+never a dangling dot or a double separator. `joinWithSeparator` does this: it
+joins only the non-empty parts.
+
+**Placeholder** — the value keeps its slot and shows "No" plus the field name.
+The separator stays, because the slot is still filled.
+
+<Canvas of={TextSeparatorStories.MissingValues} />
+
+Which one applies is a property of the value, not of the separator — see
+<a href="/?path=/docs/content-object-data--docs" target="_top">Object data</a>
+for the rule per object. When only one half of a line is a placeholder, the
+color applies to that half alone. The value that is there keeps the line's own
+color, because one value being absent says nothing about the other.
+
+A string cannot carry two colors, so a line with a placeholder in it is built as
+a node rather than text — `joinValues` in `src/content/objectText.tsx` does that,
+and `joinWithSeparator` stays for the dropped case.
+
+## Wrapping
+
+The separator does not break. The dot stays attached to the value before it, so
+a caption that wraps to a second line always starts with a value.
+
+<Canvas of={TextSeparatorStories.Wrapping} />
+
+Most rows truncate on one line instead of wrapping, so this matters mainly in
+narrow layouts and in text blocks that allow two or three lines.
+
+## Why the middle dot
+
+Inter contains only a few dot characters — bullet, middle dot, small square,
+white bullet, black circle. Anything else, including the katakana middle dot and
+the bullet operator, falls back to a different font in every app, so Figma and
+the browser cannot match.
+
+The middle dot is small, which is exactly why it needs the two-space padding.
+The spacing, not the glyph, is what does the separating.
+
+In Figma, type it with ordinary spaces — Figma does not collapse them. Some
+older Figma nodes still draw the retired `・` or `•`; they are wrong wherever
+they appear.
+
+Production (`roopairs_api`) hardcodes its own separators, including `" • "` in
+`DateTimeCell`. Adopting this rule there means creating the same constant in the
+PWA; until then, a production screen and a Kitchen UI screen can disagree.

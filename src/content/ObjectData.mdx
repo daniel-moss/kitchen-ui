@@ -1,0 +1,183 @@
+import { Meta, Canvas } from "@storybook/blocks";
+
+import * as ObjectDataStories from "./ObjectData.stories";
+import { FigmaLinks } from "../stories/FigmaLinks";
+
+<Meta of={ObjectDataStories} />
+
+# Object data
+
+Every object in the product — a client, a contact, a piece of equipment, a file,
+an invoice — is shown as the same three things: an avatar, a title and a
+caption. This page says what each object puts in those lines, what happens when
+a value is missing, and which absences are serious enough to warn about. The
+rules live in `src/content/objectRows.tsx`, so a screen calls a formatter
+instead of re-deciding the copy.
+
+<FigmaLinks doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=27171-15212" />
+
+<Canvas of={ObjectDataStories.Anatomy} />
+
+```tsx
+import { clientRow } from "../../content/objectRows";
+
+const { title, caption, hasIssue } = clientRow(client);
+
+<ListItem
+  slotLeft={hasIssue ? <AvatarWarning size="xl" /> : <AvatarClient size="xl" />}
+  title={title}
+  caption={caption}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Placeholders](#placeholders)<br />
+↳&nbsp;&nbsp;[Issues](#issues)<br />
+↳&nbsp;&nbsp;[Client](#client)<br />
+↳&nbsp;&nbsp;[Contact](#contact)<br />
+↳&nbsp;&nbsp;[Equipment](#equipment)<br />
+↳&nbsp;&nbsp;[File](#file)<br />
+↳&nbsp;&nbsp;[Location](#location)<br />
+↳&nbsp;&nbsp;[Tax rate](#tax-rate)<br />
+↳&nbsp;&nbsp;[Warranty](#warranty)<br />
+↳&nbsp;&nbsp;[Workflow objects](#workflow-objects)
+
+## Anatomy
+
+An object row is the object's own avatar, a title and a caption, drawn with
+<a href="/?path=/docs/components-itemtext-itemtext--docs" target="_top">ItemText</a>.
+The title is what identifies the object; the caption is what you need to tell it
+apart from a similar one. A line that holds two values joins them with the
+<a href="/?path=/docs/content-text-separator--docs" target="_top">text separator</a>.
+
+## Placeholders
+
+A missing value does not disappear — it keeps its slot and shows **"No" plus the
+field name**, with the first letter capitalised: "No Industry", "No Phone
+number", "No Serial number". This is the same placeholder
+<a href="/?path=/docs/components-valuedisplay--docs" target="_top">ValueDisplay</a>
+already builds for an empty field, so a row and a field never disagree.
+
+**Only the missing half changes color.** A caption holds two values, and one of
+them being absent says nothing about the other — so the value that is there
+keeps the line's own color, and only the placeholder is `--text-placeholder`.
+
+<Canvas of={ObjectDataStories.PlaceholderColor} />
+
+A string cannot carry two colors, which is why the formatters return a node
+rather than text. `joinValues` in `src/content/objectText.tsx` does the work:
+
+```tsx
+joinValues([value(client.type, "type"), value(client.industry, "industry")])
+```
+
+Pass the text already formatted, so a prefixed value stays one expression:
+
+```tsx
+value(equipment.serial && `Serial: ${equipment.serial}`, "serial number")
+```
+
+That renders "Serial: 4182-KD" when the serial is there, and "No Serial number"
+when it is not.
+
+## Issues
+
+Some absences are not just gaps — they stop someone doing their job. When an
+object's issue rule fires, the row swaps its avatar for
+<a href="/?path=/docs/components-avatar-avatarwarning--docs" target="_top">AvatarWarning</a>.
+The text does not change: the placeholders already say what is missing.
+
+**There is no shared rule — each object decides for itself.** So the rule has to
+live with the copy rather than be re-derived per screen:
+
+| Object | An issue when |
+| --- | --- |
+| Client | never |
+| Contact | **both** phone and email are missing |
+| Equipment | **any one** of manufacturer, serial or model is missing |
+| File | never |
+| Location | never |
+| Tax rate | never |
+| Warranty | never |
+| Workflow objects | never |
+
+## Client
+
+`AvatarClient`. Title: the client's name. Caption: type `·` industry. A missing
+industry is a placeholder and never an issue.
+
+<Canvas of={ObjectDataStories.Client} />
+
+## Contact
+
+`AvatarUser`. Title: the contact's name. Caption: phone number `·` email
+address.
+
+One of the two is enough to reach the contact, so a single placeholder is
+normal. Losing **both** means the contact cannot be reached at all — that is the
+issue.
+
+<Canvas of={ObjectDataStories.Contact} />
+
+## Equipment
+
+`AvatarEquipment`. Title: name `·` manufacturer. Caption: "Serial: X" `·`
+"Model: Y".
+
+All three of manufacturer, serial and model are needed to order a part, so
+**any one** of them missing is an issue — the opposite of Contact's rule.
+
+<Canvas of={ObjectDataStories.Equipment} />
+
+## File
+
+`AvatarFile`. Title: the file name and its extension, joined by a **dot with no
+spaces** — a name and its extension are one value, not a pair. Caption: a
+sentence saying when it was added and by whom.
+
+<Canvas of={ObjectDataStories.File} />
+
+The year always shows. A user is their first name in full plus the surname's
+first letter — "Marcus W." An unattributed upload is by **"Someone"**, never a
+blank.
+
+## Location
+
+`AvatarLocation`. Title: the address — street, suite, city, then state and
+postal code. Commas join the parts; state and postal code are the one pair that
+takes a space, because together they are a single postal expression. Caption:
+the location's name.
+
+<Canvas of={ObjectDataStories.Location} />
+
+A location is identified by where it is, not by what it is called, so a missing
+name is a placeholder and never an issue.
+
+## Tax rate
+
+`AvatarTaxRate`. Title: the tax rate's name. Caption: the percentage.
+
+<Canvas of={ObjectDataStories.TaxRate} />
+
+## Warranty
+
+`AvatarWarranty`. Title: the warranty's name. Caption: the start date, an
+**arrow**, and the end date. A range is directional, so it takes an arrow rather
+than the text separator.
+
+<Canvas of={ObjectDataStories.Warranty} />
+
+The end date is optional — an open-ended warranty is a real thing, so its
+placeholder is not an issue.
+
+## Workflow objects
+
+Bills, credit notes, estimates, invoices, jobs and purchase orders all read the
+same way. Title: the object's id. Caption: which status was applied, when, and
+by whom.
+
+<Canvas of={ObjectDataStories.WorkflowObjects} />
+
+The id is **company-configurable** — never assume a prefix, and always name the
+object around it in copy (`job <id>`, not "the job"). As with a file, the year
+always shows and an unattributed change is by "Someone".

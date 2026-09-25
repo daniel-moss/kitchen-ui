@@ -104,7 +104,7 @@ const EquipmentRow = ({ mobile, onRemove }: { mobile: boolean; onRemove: () => v
       <ListItem
         variant="titleCaption"
         title={EQUIPMENT_TITLE}
-        caption={`Model: 01234${TEXT_SEPARATOR}Serial: 56789`}
+        caption={`Serial: 56789${TEXT_SEPARATOR}Model: 01234`}
         avatar={<AvatarEquipment size="xl" />}
         isClickable
         onClick={noop}

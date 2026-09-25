@@ -1,0 +1,25 @@
+// A source logo has a light-theme artwork and a dark-theme one. The swap is
+// CSS, not JS: the theme is a CLASS on an ancestor (.dark / .dark-theme — see
+// styles/variables/colors), so a class rule follows it wherever it is applied,
+// including on a subtree, and there is no first-paint flash. Both artworks are
+// in the DOM; the hidden one is also aria-hidden.
+//
+// `display: contents` rather than `inline-flex`: the wrapper must not become a
+// box of its own, or it would sit between the avatar and whatever lays it out.
+.lightOnly {
+  display: contents;
+}
+
+.darkOnly {
+  display: none;
+}
+
+:global(.dark) .lightOnly,
+:global(.dark-theme) .lightOnly {
+  display: none;
+}
+
+:global(.dark) .darkOnly,
+:global(.dark-theme) .darkOnly {
+  display: contents;
+}

@@ -73,7 +73,7 @@ const INITIAL_JOB_EQUIPMENT = [1, 5]; // Air Handler + Walk-in Cooler
 
 // Joined by the shared TEXT_SEPARATOR (Daniel, 2026-09-04 — was the design's "・").
 const equipmentLabel = (e: Equipment) => `${e.name}${TEXT_SEPARATOR}${e.manufacturer}`;
-const equipmentCaption = (e: Equipment) => `Model: ${e.model}${TEXT_SEPARATOR}Serial: ${e.serial}`;
+const equipmentCaption = (e: Equipment) => `Serial: ${e.serial}${TEXT_SEPARATOR}Model: ${e.model}`;
 
 // ---- small header buttons ---------------------------------------------------
 

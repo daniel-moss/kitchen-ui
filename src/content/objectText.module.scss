@@ -1,0 +1,6 @@
+// A value that is absent. It sits INSIDE a line whose own color stays as it
+// is — only the missing half turns placeholder (Daniel, 2026-09-25: "the value
+// that exists is the default color, the missing value is --text-placeholder").
+.placeholder {
+  color: var(--text-placeholder);
+}

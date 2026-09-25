@@ -1,0 +1,101 @@
+import { Meta, Canvas } from "@storybook/blocks";
+
+import * as SourceAvatarStories from "./SourceAvatars.stories";
+import { FigmaLinks } from "../stories/FigmaLinks";
+
+<Meta of={SourceAvatarStories} />
+
+# Source avatars
+
+A source is the company a job request came from. Its avatar is an ordinary
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a> —
+square, filled with an image — so there is no `AvatarSource` component. What a
+call site cannot know is which sources exist, that each logo is artwork prepared
+by hand for the light and the dark theme, and that the avatar names its source in
+a tooltip. That is what `src/content/sources.tsx` owns.
+
+<FigmaLinks doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=24033-50520" />
+
+<Canvas of={SourceAvatarStories.Gallery} />
+
+```tsx
+import SourceAvatar from "../../content/sources";
+
+<ValueDisplay label="Source" value="ServiceChannel" slotLeft={<SourceAvatar source="service-channel" size="xs" />} />
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Themes](#themes)<br />
+↳&nbsp;&nbsp;[Sizes](#sizes)<br />
+↳&nbsp;&nbsp;[Tooltip](#tooltip)<br />
+↳&nbsp;&nbsp;[Where it is used](#where-it-is-used)<br />
+↳&nbsp;&nbsp;[Adding a source](#adding-a-source)
+
+## Anatomy
+
+Each logo is a 100 × 100 SVG tile: the brand background fills the tile edge to
+edge, and the mark sits on it. The Avatar's rounded corners clip it, so the
+artwork needs no corners of its own and the tile works at every size.
+
+The logos are **prepared by hand**, not generated from a favicon or a brand
+asset — they are cropped and balanced so the mark reads at 20px. Treat them as
+fixed artwork, and never recolor or redraw one in code.
+
+## Themes
+
+A logo can have two artworks: one for the light theme and one for the dark. The
+swap is pure CSS — the theme is a class on an ancestor, so both artworks are in
+the DOM and the wrong one is `display: none`. There is no flash and no
+JavaScript, and it follows the theme even when the class is set on a subtree.
+
+<Canvas of={SourceAvatarStories.Themes} />
+
+Only three of the five need two artworks, and they differ for two different
+reasons:
+
+| Source | Light theme | Dark theme |
+| --- | --- | --- |
+| Roopairs | dark tile, light mark | **inverted** — light tile, dark mark |
+| ServiceChannel | brand blue | **tuned** — a darker blue |
+| Ecotrak | dark tile, light mark | **inverted** — light tile, dark mark |
+| Corrigo | orange tile | *same artwork* |
+| ResQ | orange tile | *same artwork* |
+
+Corrigo and ResQ export byte-identical artwork for both themes, so they keep
+**one file**. A second copy would only be a chance for the two to drift apart.
+
+## Sizes
+
+The tile is artwork, not an icon, so it takes any Avatar size without
+adjustment.
+
+<Canvas of={SourceAvatarStories.Sizes} />
+
+## Tooltip
+
+The avatar alone does not say which company it is, so hovering names the source.
+
+<Canvas of={SourceAvatarStories.Tooltip} />
+
+Roopairs is a mobile Safari PWA, and **touch has no hover** — so on a phone this
+tooltip never appears. `tapToShow` makes a tap reveal it instead, but the tap is
+then swallowed, so it must not be used on an avatar inside a row the user is
+meant to tap. The rule: set `tapToShow` where the avatar sits in a read-only
+field, and leave it off inside a clickable row, where the destination screen
+names the source anyway.
+
+## Where it is used
+
+<Canvas of={SourceAvatarStories.InAField} />
+
+The job's "Source" field, and any list column or row that shows where a request
+came from. The avatar never replaces the source's name — it sits beside it.
+
+## Adding a source
+
+1. Export the tile from the Figma "Source avatar" documentation page as SVG,
+   into `src/assets/sources/`. Name it `<id>.svg`, or `<id>-light.svg` and
+   `<id>-dark.svg` when the two themes really differ.
+2. Add an entry to `SOURCE_LOGOS` in `src/content/sources.tsx`, keyed by the
+   source id the database uses.
+3. Leave `dark` out when one artwork serves both themes.

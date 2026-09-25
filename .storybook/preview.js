@@ -69,15 +69,52 @@ const preview = {
     // Background follows the theme (--surface-level-first), so the static
     // backgrounds picker is turned off to avoid a conflicting fixed color.
     backgrounds: { disable: true },
-    // Sidebar order: Variables (tokens) first, then Components — components
-    // listed alphabetically A→Z. The Popover family (Popover, PopoverHeader,
-    // PopoverFooter, DrawerHeader) is grouped under "Popover". A few groups
-    // (Avatar, Badge, Popover) keep a deliberate story order (Playground first).
+    // Sidebar order: Variables (tokens) first, then Content (the cross-cutting
+    // content rules — what text an object row holds, how values are joined,
+    // what shows when a value is missing; they belong to no single component,
+    // so they get pages of their own under src/content/), then Components —
+    // components listed alphabetically A→Z. The Popover family (Popover,
+    // PopoverHeader, PopoverFooter, DrawerHeader) is grouped under "Popover". A
+    // few groups (Avatar, Badge, Popover) keep a deliberate story order
+    // (Playground first).
     options: {
       storySort: {
         method: "alphabetical",
         order: [
           "Variables",
+          "Content",
+          [
+            "Object data",
+            [
+              "Docs",
+              "Anatomy",
+              "PlaceholderColor",
+              "Client",
+              "Contact",
+              "Equipment",
+              "File",
+              "Location",
+              "TaxRate",
+              "Warranty",
+              "WorkflowObjects",
+            ],
+            "Source avatars",
+            ["Docs", "Gallery", "Themes", "Sizes", "Tooltip", "InAField"],
+            "Text separator",
+            [
+              "Docs",
+              "Anatomy",
+              "Pairs",
+              "DateWithTime",
+              "FileName",
+              "AddressParts",
+              "Range",
+              "SentenceCaption",
+              "IncorrectUsage",
+              "MissingValues",
+              "Wrapping",
+            ],
+          ],
           "Components",
           [
             "ActivityLog",

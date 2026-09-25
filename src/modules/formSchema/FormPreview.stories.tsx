@@ -113,7 +113,7 @@ const MAPPING_ANSWERS: FormAnswers = {
   selectAvatar: { text: users[0].name, slotLeft: <AvatarUser size="xs" content="image" imageSrc={users[0].avatar} /> },
   selectObject: {
     title: `Oven${TEXT_SEPARATOR}Bosch`,
-    caption: `Model: 01234${TEXT_SEPARATOR}Serial: 56789`,
+    caption: `Serial: 56789${TEXT_SEPARATOR}Model: 01234`,
     avatar: <AvatarEquipment size="xl" />,
   },
   // Picked out of order — the preview lists them in the OPTION order.
@@ -149,7 +149,7 @@ export const Mapping: Story = {
 const SERVICE_CALL_ANSWERS: FormAnswers = {
   equipment: {
     title: `Fryer #2${TEXT_SEPARATOR}Frymaster`,
-    caption: `Model: FPP345${TEXT_SEPARATOR}Serial: 90210`,
+    caption: `Serial: 90210${TEXT_SEPARATOR}Model: FPP345`,
     avatar: <AvatarEquipment size="xl" />,
   },
   voltage: "208V",
@@ -216,7 +216,7 @@ const HOT_SIDE_ANSWERS: FormAnswers = {
   checkIn: "Marta Reyes, kitchen manager",
   equipment: {
     title: `Range${TEXT_SEPARATOR}Vulcan`,
-    caption: `Model: V60F${TEXT_SEPARATOR}Serial: 4471`,
+    caption: `Serial: 4471${TEXT_SEPARATOR}Model: V60F`,
     avatar: <AvatarEquipment size="xl" />,
   },
   reportedIssue: "The left burner does not hold a flame.",

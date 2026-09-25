@@ -21,10 +21,18 @@
 // app and cannot match Figma. The two-space padding is what gives the small
 // dot its separating power.
 //
-// The inner space on each side is a NO-BREAK SPACE (U+00A0): HTML collapses
-// runs of ordinary spaces to one, so a plain "  ·  " would render
-// single-spaced. nbsp + space renders as two, and the nbsp keeps the dot
-// glued to its neighbours if a line ever wraps.
+// The exact characters are nbsp, nbsp, ·, nbsp, SPACE (U+00A0 ×3 and one
+// U+0020). Two reasons, and the order matters:
+//   - HTML collapses runs of ordinary spaces to one, so a plain "  ·  " would
+//     render single-spaced. A no-break space never collapses, so each side
+//     renders as the two spaces the rule asks for.
+//   - Only the LAST character is an ordinary space, so it is the only place
+//     the line may break: the dot stays glued to the value BEFORE it, and a
+//     wrapped second line starts flush with the next value.
+// FIXED 2026-09-25 (was nbsp, space, ·, space, nbsp): the old order put a
+// breaking space immediately before the dot — so the dot could start a
+// wrapped line — and left an orphan nbsp at the head of the second line,
+// which rendered as a visible indent.
 //
 // In FIGMA, type it as: space, space, · (Option+Shift+9), space, space —
 // Figma does not collapse spaces, so ordinary spaces are fine there.
@@ -34,7 +42,7 @@
 // creating the same constant in the PWA.
 
 /** `"A  ·  B"` — the dot with its two baked-in spaces per side. */
-export const TEXT_SEPARATOR = "  ·  ";
+export const TEXT_SEPARATOR = "  ·  ";
 
 /** The non-empty pieces, joined: `joinWithSeparator("HQ", null)` → `"HQ"`. */
 export const joinWithSeparator = (...parts: (string | null | undefined)[]): string =>

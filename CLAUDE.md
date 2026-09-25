@@ -455,9 +455,15 @@ is why raw `.tsx` uploads there did nothing).
 
 ### Cross-component patterns established (reuse these)
 - **The inline text separator is ONE constant:** `src/utils/textSeparator.ts` —
-  `TEXT_SEPARATOR` (middle dot `·` with TWO spaces baked in on each side; the
-  inner spaces are nbsp so HTML cannot collapse them) and `joinWithSeparator`
-  for optional parts. Decided by Daniel 2026-09-04 after the separator
+  `TEXT_SEPARATOR` (middle dot `·` with TWO spaces baked in on each side) and
+  `joinWithSeparator` for optional parts. The exact characters are `nbsp nbsp ·
+  nbsp space`: nbsp so HTML cannot collapse the runs, and the single ordinary
+  space LAST so it is the only break point — the dot stays glued to the value
+  before it and a wrapped line starts flush (order corrected 2026-09-25; it
+  used to be `nbsp space · space nbsp`, which let the dot start a line and left
+  an orphan nbsp indenting the second one). Documented on the Storybook page
+  **Content/Text separator** (`src/content/TextSeparator.mdx`). Decided by
+  Daniel 2026-09-04 after the separator
   research: `·` is one of the few dot characters Inter contains (the old `・`
   fell back to a different font per app). NEVER type a separator dot by hand —
   import the constant, so a later change is one line. Exception: a date with

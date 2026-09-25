@@ -62,8 +62,10 @@ export const INITIAL_JOB_EQUIPMENT: string[] = jobById(JOB_ID)!.equipmentIds;
 // This is prototype-local for now (Daniel, 2026-08-03) — the DS ListItem
 // templates are not built.
 export const equipmentLabel = (e: Equipment) => `${e.name}${TEXT_SEPARATOR}${e.manufacturer !== "" ? e.manufacturer : "No Manufacturer"}`;
+// SERIAL FIRST, then model (corrected 2026-09-25 — this file had them the other
+// way round, against the doc page and against EquipmentModule).
 export const equipmentCaption = (e: Equipment) =>
-  `${e.model !== "" ? `Model: ${e.model}` : "No Model number"}${TEXT_SEPARATOR}${e.serial !== "" ? `Serial: ${e.serial}` : "No Serial number"}`;
+  `${e.serial !== "" ? `Serial: ${e.serial}` : "No Serial number"}${TEXT_SEPARATOR}${e.model !== "" ? `Model: ${e.model}` : "No Model number"}`;
 
 /**
  * How a piece is named in a SENTENCE — the activity logs join several with
@@ -87,9 +89,9 @@ export const equipmentTitle = (e: Equipment) => (
 
 export const equipmentCaptionText = (e: Equipment) => (
   <TruncatingText tooltipText={equipmentCaption(e)}>
-    {e.model !== "" ? `Model: ${e.model}` : <Missing>No Model number</Missing>}
-    {TEXT_SEPARATOR}
     {e.serial !== "" ? `Serial: ${e.serial}` : <Missing>No Serial number</Missing>}
+    {TEXT_SEPARATOR}
+    {e.model !== "" ? `Model: ${e.model}` : <Missing>No Model number</Missing>}
   </TruncatingText>
 );
 
