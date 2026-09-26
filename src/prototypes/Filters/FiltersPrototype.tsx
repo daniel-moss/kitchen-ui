@@ -3,6 +3,7 @@ import { useState } from "react";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 
 import { Page, Sidebar } from "./appShell";
+import MenuPage from "./MenuPage";
 import BillsPage from "./BillsPage";
 import ClientsPage from "./ClientsPage";
 import CreditNotesPage from "./CreditNotesPage";
@@ -37,7 +38,10 @@ import styles from "./Filters.module.scss";
 // simply appear collapsed, with nothing to transition from. Each page
 // therefore renders only its work area on desktop.
 //
-// Mobile has no sidebar — each page brings its own shell and bottom bar.
+// Mobile has no sidebar — each page brings its own shell and bottom bar. The
+// MENU page (2026-09-26) is the mobile stand-in for the sidebar: the bottom
+// bar's "Menu" item navigates to it, and it navigates on to everything the bar
+// has no room for.
 export interface FiltersProps {
   /** Desktop / mobile shell. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;
@@ -51,41 +55,53 @@ const FiltersPrototype = ({ breakpoint = "auto", initialPage = "jobs" }: Filters
   // resets it — FLAGGED: lifting that up here is a small change if the reset
   // bothers testing.
   const [page, setPage] = useState<Page>(initialPage);
+  // "menu" is a DESTINATION, so going there must not lose which list you came
+  // from: the Menu page highlights `listPage`, and the bottom bar's Jobs item
+  // and every other page keep reading `page`. Desktop has a sidebar instead,
+  // so a "menu" page resolves back to the list there.
+  const [listPage, setListPage] = useState<Page>(initialPage === "menu" ? "jobs" : initialPage);
+  const navigate = (next: Page) => {
+    setPage(next);
+    if (next !== "menu") setListPage(next);
+  };
+  const resolved = isDesktop && page === "menu" ? listPage : page;
 
   const workArea =
-    page === "estimates" ? (
-      <EstimatesPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "invoices" ? (
-      <InvoicesPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "creditNotes" ? (
-      <CreditNotesPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "pos" ? (
-      <POsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "bills" ? (
-      <BillsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "vendors" ? (
-      <VendorsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "clients" ? (
-      <ClientsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "labor" ? (
-      <LaborPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "products" ? (
-      <ProductsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "other" ? (
-      <OtherPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "discounts" ? (
-      <DiscountsPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "taxRates" ? (
-      <TaxRatesPage breakpoint={breakpoint} onNavigate={setPage} />
-    ) : page === "series" ? (
-      <SeriesPage breakpoint={breakpoint} onNavigate={setPage} />
+    resolved === "menu" ? (
+      <MenuPage page={listPage} onNavigate={navigate} />
+    ) : resolved === "estimates" ? (
+      <EstimatesPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "invoices" ? (
+      <InvoicesPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "creditNotes" ? (
+      <CreditNotesPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "pos" ? (
+      <POsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "bills" ? (
+      <BillsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "vendors" ? (
+      <VendorsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "clients" ? (
+      <ClientsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "labor" ? (
+      <LaborPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "products" ? (
+      <ProductsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "other" ? (
+      <OtherPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "discounts" ? (
+      <DiscountsPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "taxRates" ? (
+      <TaxRatesPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "series" ? (
+      <SeriesPage breakpoint={breakpoint} onNavigate={navigate} />
     ) : (
-      <JobsPage breakpoint={breakpoint} onNavigate={setPage} />
+      <JobsPage breakpoint={breakpoint} onNavigate={navigate} />
     );
 
   return isDesktop ? (
     <div className={styles.desktop}>
-      <Sidebar page={page} onNavigate={setPage} />
+      <Sidebar page={resolved} onNavigate={navigate} />
       {workArea}
     </div>
   ) : (

@@ -583,3 +583,56 @@
 // The two neutral cells used to re-point --cell-text-color at --text-subtle to
 // match their node, and to paint their icon with it; both are gone, so the
 // column runs on CellBody's own `subtle` and `error` schemes.
+
+// ---- the mobile Menu page --------------------------------------------------
+
+// The mobile counterpart of the sidebar (Figma "Mobile menu page" 22623-9553).
+// It reuses `.mobile` for the shell, so only the header and the scrolling item
+// area are defined here.
+
+// Fixed on top (the node's annotation says so in as many words) — it is the
+// sidebar's 60px header, same height, same 12px sides, same minimum gap.
+.menuHeader {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  gap: var(--size-2);
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 var(--size-3);
+}
+
+// A long workspace name gives way instead of pushing the profile button off.
+.menuWorkspace {
+  min-width: 0;
+}
+
+// The overflow area: everything below the header scrolls, with the bottom
+// items pinned down while the content fits. `space-between` does the pinning
+// and `gap` is the FLOOR it collapses to once the content is taller than the
+// box — 1px here, against the sidebar's 8px (the node pins `itemSpacing`).
+//
+// `min-height: 0` is what lets a flex child shrink below its content and
+// actually scroll.
+.menuScroll {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--size-0_25); // 1px — the minimum top ↔ bottom gap
+  justify-content: space-between;
+  min-height: 0;
+  padding: 0 var(--size-3) var(--size-3); // 12px sides + bottom
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+// One block of rows, 1px apart — the SidebarNavItemGroup rhythm.
+.menuItems {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-0_25);
+  width: 100%;
+}

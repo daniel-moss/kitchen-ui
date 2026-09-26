@@ -8,7 +8,7 @@ import MenuItemGroup from "../../components/Menu/MenuItemGroup";
 import SidebarNav from "../../components/SidebarNav/SidebarNav";
 import SidebarNavItem from "../../components/SidebarNav/SidebarNavItem";
 import SidebarNavItemGroup from "../../components/SidebarNav/SidebarNavItemGroup";
-import { objectPlaceholder } from "../../data/users";
+import { objectPlaceholder, users } from "../../data/users";
 import { semanticIcons } from "../../styles/semanticIcons";
 import { noop } from "../../stories/helpers";
 
@@ -20,8 +20,14 @@ import styles from "./Filters.module.scss";
 // Split out of the Jobs page on 2026-09-11, when the Estimates page arrived —
 // one copy, every page, and no page is the home for shell chrome any more.
 
-/** The prototype's pages. The sidebar and the bottom bar navigate between them. */
+/**
+ * The prototype's pages. The sidebar and the bottom bar navigate between them.
+ *
+ * "menu" is MOBILE ONLY — it is the mobile counterpart of the desktop sidebar
+ * (see `MenuPage`), so on desktop it resolves back to the Jobs list.
+ */
 export type Page =
+  | "menu"
   | "jobs"
   | "series"
   | "estimates"
@@ -42,7 +48,22 @@ const slot = (icon: string) => <Icon icon={icon} container="square" />;
 
 // ---- SidebarNav config (display only) --------------------------------------
 
-const profileMenu = (
+/**
+ * The one workspace the prototype has. Shared by the desktop sidebar's header
+ * and the mobile Menu page's, so the two can never drift.
+ *
+ * FLAGGED: with a SINGLE workspace `SidebarNavWorkspaceButton` is
+ * non-interactive and drops its `angles-up-down` icon. The Menu page node
+ * (22623-9553) draws the icon, i.e. it assumes more than one workspace. The
+ * desktop sidebar here has the same single workspace, so the prototype is at
+ * least consistent with itself — say the word and I will add a second one.
+ */
+export const WORKSPACES = [{ id: "1", name: "Workspace", imageSrc: objectPlaceholder }];
+
+/** The signed-in user. The header shows the avatar; the menu shows name + email. */
+export const PROFILE = { name: "Lorne Riddle", email: "email@address.com", avatarSrc: users[0].avatar };
+
+export const profileMenu = (
   <>
     <MenuItemGroup>
       <MenuItem label="Settings" slotLeft={slot("gear")} />
@@ -119,7 +140,7 @@ const createMenu = (
 // each collapses when the user navigates out of it.
 type ControlledStack = { open: boolean; onOpenChange: (next: boolean) => void };
 
-const navContent = (
+export const navContent = (
   page: Page,
   onNavigate: (next: Page) => void,
   jobsStack: ControlledStack,
@@ -212,15 +233,31 @@ const navContent = (
         Tax rates
       </SidebarNavItem>
     </SidebarNavItemGroup>
+    {/* NINE items since 2026-09-26 (Daniel), in the order the Mobile menu
+        page's overflow board draws them (22623-10051). They are display-only,
+        like the rest of the Reports stack — the reports themselves are not
+        built. It was three items until now, which is why the desktop sidebar
+        never overflowed; with nine it does, on both shells.
+
+        COPY FIX, flagged: the node says "Account payable". Production spells
+        it "Accounts Payable" everywhere (core/test_views.py, the QuickBooks
+        account types), and the node's own next row is "Accounts receivable" —
+        so the singular is a slip. Using "Accounts payable". */}
     <SidebarNavItemGroup icon={semanticIcons.reports} label="Reports">
       <SidebarNavItem type="stackItem">Clients &amp; locations</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Accounts payable</SidebarNavItem>
       <SidebarNavItem type="stackItem">Jobs</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Accounts receivable</SidebarNavItem>
       <SidebarNavItem type="stackItem">Inventory</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Equipment</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Technicians</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Users</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Whiteboard</SidebarNavItem>
     </SidebarNavItemGroup>
   </>
 );
 
-const bottomItems = (
+export const bottomItems = (
   <>
     <SidebarNavItem icon="circle-question">Help center</SidebarNavItem>
     <SidebarNavItem icon="bullhorn">What&apos;s new</SidebarNavItem>
@@ -289,9 +326,10 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   return (
     <SidebarNav
       breakpoint="desktop"
-      workspaces={[{ id: "1", name: "Workspace", imageSrc: objectPlaceholder }]}
-      profileName="Lorne Riddle"
-      profileEmail="email@address.com"
+      workspaces={WORKSPACES}
+      profileName={PROFILE.name}
+      profileEmail={PROFILE.email}
+      profileAvatarSrc={PROFILE.avatarSrc}
       profileMenu={profileMenu}
       onSearchClick={noop}
       createMenu={createMenu}
@@ -311,10 +349,13 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
 // ---- the mobile bottom bar --------------------------------------------------
 
 // The design's bar holds Home · Jobs · Create · Search · Menu and has NO
-// Estimates, Invoices or Credit notes item — in the app those lists would be
-// reached through "Menu", which this prototype does not build. So on those
-// pages no item is active, and "Jobs" navigates back to the Jobs list —
-// FLAGGED: say the word if the bar should behave differently there.
+// Estimates, Invoices or Credit notes item — those lists are reached through
+// "Menu" (the `MenuPage`, built 2026-09-26). So on those pages no item in the
+// bar is active, and "Jobs" navigates back to the Jobs list — FLAGGED: say the
+// word if the bar should behave differently there.
+//
+// "Menu" is a DESTINATION, not a drawer trigger: it navigates to the Menu page
+// and stays active while you are on it, like every other item here.
 export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (next: Page) => void }) => (
   <BottomBarNav breakpoint="mobile" className={styles.bottomBar}>
     <BottomBarNavItem icon="house" label="Home" />
@@ -329,7 +370,12 @@ export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (ne
         circle-plus) is gone from the design and the component. */}
     <BottomBarNavItem icon="plus" label="Create" />
     <BottomBarNavItem icon="magnifying-glass" label="Search" />
-    <BottomBarNavItem icon="bars" label="Menu" />
+    <BottomBarNavItem
+      icon="bars"
+      label="Menu"
+      active={page === "menu"}
+      onClick={() => onNavigate("menu")}
+    />
   </BottomBarNav>
 );
 
