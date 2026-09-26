@@ -894,18 +894,6 @@ const preview = {
               '"Download PDF" Form',
               ["Parent / Desktop", "Parent / Mobile", "No Parent / Desktop", "No Parent / Mobile"],
             ],
-            "Time Tracker",
-            [
-              "Concept 3",
-              "Concept 4",
-              "Concept 5",
-              "Concept 6",
-              ["Desktop", "Mobile", "MobileFullscreen"],
-              "Concept 7",
-              ["Desktop", "Mobile", "MobileFullscreen"],
-              "Concept 8",
-              ["Tech / Desktop", "Tech / Mobile", "Office / Desktop"],
-            ],
           ],
           // The demo database (src/data/db) — its browser page lives last.
           "Data",
