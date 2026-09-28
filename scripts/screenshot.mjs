@@ -18,7 +18,7 @@ const STORYBOOK = process.env.STORYBOOK_URL ?? "http://localhost:6006";
 const OUT_DIR = fileURLToPath(new URL("../screenshots/", import.meta.url));
 const FILTER = (process.argv[2] ?? "").toLowerCase();
 const PORT = 9250;
-const SETTLE_MS = 700; // fonts, mount transitions
+const SETTLE_MS = Number(process.env.SETTLE_MS ?? 700); // fonts, mount transitions
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

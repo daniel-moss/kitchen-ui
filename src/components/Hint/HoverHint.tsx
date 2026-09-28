@@ -103,9 +103,29 @@ export default function HoverHint({
     if (e.target.matches(":focus-visible")) show();
   };
 
+  /**
+   * The alignment the bubble can actually use. A centered bubble whose trigger
+   * sits near a screen edge would hang off it — 320px centered on a button
+   * 40px from the right edge overflowed by ~120px and the hint came out capped
+   * by the screen (Daniel, 2026-09-28: the View menu's Pin limit hint). The
+   * tongue re-anchors to the near side instead, so the body grows INWARD and
+   * still points at the trigger: "start" (tongue left) at the left edge, "end"
+   * (tongue right) at the right edge. HoverTooltip does the same.
+   */
+  const effectiveAlign = (r: DOMRect): HintTongueAlignment => {
+    if (position !== "top" && position !== "bottom") return align;
+    if (align !== "center" || typeof window === "undefined") return align;
+    const cx = r.left + r.width / 2;
+    const M = 8;
+    if (cx - width / 2 < M) return "start";
+    if (cx + width / 2 > window.innerWidth - M) return "end";
+    return align;
+  };
+
   // The bubble is fixed-positioned so that its tongue (at `align`, inset 18px
   // from the corner) points at the trigger's center.
   const bubbleStyle = (r: DOMRect): CSSProperties => {
+    const align = effectiveAlign(r);
     const cx = r.left + r.width / 2;
     const cy = r.top + r.height / 2;
     const style: CSSProperties = {
@@ -177,12 +197,13 @@ export default function HoverHint({
         createPortal(
           <div
             style={bubbleStyle(anchor)}
+            data-hint-align={effectiveAlign(anchor)}
             // Keep an interactive bubble open while the pointer is inside it.
             onMouseEnter={content != null ? cancelHide : undefined}
             onMouseLeave={content != null ? hideSoon : undefined}
           >
             {content != null ? (
-              <Hint state={state} tongue={TONGUE_FOR_POSITION[position]} tongueAlignment={align}>
+              <Hint state={state} tongue={TONGUE_FOR_POSITION[position]} tongueAlignment={effectiveAlign(anchor)}>
                 {content}
               </Hint>
             ) : (
@@ -192,7 +213,7 @@ export default function HoverHint({
                 title={title}
                 caption={caption}
                 tongue={TONGUE_FOR_POSITION[position]}
-                tongueAlignment={align}
+                tongueAlignment={effectiveAlign(anchor)}
               />
             )}
           </div>,

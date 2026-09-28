@@ -1,0 +1,16 @@
+// A row of fields that share the width equally, on BOTH breakpoints (the
+// warranty forms' "Start Date & End Date" row — the mobile node keeps the two
+// date fields side by side, 163.5px each of a 343px body). The DS has no
+// field-row component, so this row lives with the modules that need it.
+.fieldRow {
+  display: flex;
+  gap: var(--size-4); // 16px — the node's row gap
+  align-self: stretch;
+
+  > * {
+    // Equal halves that may shrink: without the floor a long date string would
+    // push its half wider than the other.
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}

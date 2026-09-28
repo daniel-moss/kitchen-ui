@@ -127,3 +127,19 @@
   position: fixed;
   z-index: 1000;
 }
+
+// Fill-height drawer (`fillHeight`) — the sheet takes the whole available
+// screen instead of hugging its content, and the body stretches so a field
+// inside can use all of it. The "Text Area" form's rule: "The drawer fills
+// screen's height to provide as much space as available."
+//
+// The scroller keeps its natural overflow: `min-height: 100%` only makes a
+// SHORT body fill the sheet — a long one still grows and scrolls.
+.drawerFill {
+  height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
+
+  .bodyScroll > * {
+    box-sizing: border-box;
+    min-height: 100%;
+  }
+}

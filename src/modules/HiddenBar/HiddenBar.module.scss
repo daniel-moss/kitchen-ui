@@ -1,0 +1,38 @@
+@use "../../styles/mixins/font" as *;
+
+// HiddenBar — the "N objects hidden by …" strip. A Divider (medium) over a
+// 40px centered row with no fill of its own, so it sits on whatever surface
+// holds it: under a table on the object lists, inside a DisplayModule body in
+// the Equipment side panel's History tab.
+.root {
+  flex: none;
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  gap: var(--size-4); // 16px — between two groups in the combined state
+  align-items: center;
+  justify-content: center;
+  height: var(--size-10); // 40px
+  padding: 0 var(--size-4); // 16px
+  overflow: hidden;
+}
+
+.group {
+  display: flex;
+  gap: var(--size-1); // 4px — text to its button
+  align-items: center;
+}
+
+.text {
+  @include font("caption-medium-400"); // 13/20
+  margin: 0;
+  color: var(--text-subtle);
+  white-space: nowrap;
+
+  strong {
+    @include font("caption-medium-500");
+    color: var(--text-strong);
+  }
+}

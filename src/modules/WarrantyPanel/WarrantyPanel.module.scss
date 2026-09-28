@@ -1,0 +1,10 @@
+// The header's context-menu card, anchored under its ellipsis button.
+//
+// `--z-menu` (1100), NOT `--z-modal` (1000): the wrapper renders wherever the
+// host puts it, and the SidePanel PORTALS itself — so a wrapper that only
+// matched the panel's z-index lost on DOM order and hid behind it. The token
+// exists for exactly this ("Menu sub-cards — above modals").
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}

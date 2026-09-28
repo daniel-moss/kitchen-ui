@@ -75,7 +75,13 @@ export type ValueDisplayHorizontalTextProps = HorizontalBase &
     valueColor?: string;
     /** Icon (14px) or avatar (xs — 20px, fixed) before the text, 8px gap. */
     slotLeft?: ReactNode;
-    /** Warning: `--text-warning` text + amber warning icon pinned right. */
+    /**
+     * Warning: `--text-warning` text + amber warning icon pinned right. It
+     * also applies to an EMPTY value — a missing required field is the usual
+     * warning, so the "No [Label]" placeholder is drawn in the warning style
+     * instead of the plain placeholder one (Equipment side panel, Figma
+     * 21958-9105).
+     */
     isWarning?: boolean;
   };
 

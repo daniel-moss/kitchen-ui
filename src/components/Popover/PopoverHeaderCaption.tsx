@@ -11,12 +11,13 @@ export default function PopoverHeaderCaption({
   caption,
   leftSlot,
   rightSlot,
+  captionClassName,
   className,
 }: PopoverHeaderCaptionProps) {
   return (
     <div className={clsx(styles.row, className)}>
       {leftSlot && <span className={styles.left}>{leftSlot}</span>}
-      <TruncatingText text={caption} className={styles.caption} />
+      <TruncatingText text={caption} className={clsx(styles.caption, captionClassName)} />
       {rightSlot && <span className={styles.right}>{rightSlot}</span>}
     </div>
   );

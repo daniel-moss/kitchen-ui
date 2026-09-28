@@ -13,6 +13,7 @@ export default function PopoverHeaderText({
   title,
   titleClassName,
   caption,
+  captionClassName,
   titleLeftSlot,
   titleRightSlot,
   captionLeftSlot,
@@ -24,7 +25,7 @@ export default function PopoverHeaderText({
   );
   const captionEl =
     variant !== "title" && caption != null ? (
-      <PopoverHeaderCaption caption={caption} leftSlot={captionLeftSlot} rightSlot={captionRightSlot} />
+      <PopoverHeaderCaption caption={caption} captionClassName={captionClassName} leftSlot={captionLeftSlot} rightSlot={captionRightSlot} />
     ) : null;
 
   return (

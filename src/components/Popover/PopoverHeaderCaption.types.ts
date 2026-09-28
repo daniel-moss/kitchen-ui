@@ -7,5 +7,7 @@ export interface PopoverHeaderCaptionProps {
   leftSlot?: ReactNode;
   /** Optional right slot — an Icon. */
   rightSlot?: ReactNode;
+  /** Extra class for the caption TEXT (e.g. a placeholder color). */
+  captionClassName?: string;
   className?: string;
 }

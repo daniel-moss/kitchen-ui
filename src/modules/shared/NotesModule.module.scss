@@ -1,0 +1,10 @@
+@use "../../styles/mixins/font" as *;
+
+// The "Notes" module's text: body/400 spacious, wrapping, newlines kept.
+.notes {
+  @include font("body-400-spacious"); // 14/22
+  margin: 0;
+  color: var(--text-strong);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -24,6 +24,8 @@ export interface SidePanelProps {
   title: string;
   /** Optional caption line under the title (single line, truncates). */
   caption?: string;
+  /** Extra class for the caption line (e.g. a placeholder color) — the twin of `titleClassName`. */
+  captionClassName?: string;
   /**
    * Header text layout: title only, title + caption, or caption above title.
    * Defaults to "titleCaption" when a `caption` is set, else "title".

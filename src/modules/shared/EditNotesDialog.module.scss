@@ -1,0 +1,39 @@
+// The Text-Area form's two height rules (its Figma doc):
+//
+//   Desktop — "Minimum text area height on desktop is 12 rows." The DS
+//             TextArea's own minimum is 4 rows.
+//   Mobile  — "There is no minimum height on mobile. The drawer fills
+//             screen's height to provide as much space as available." The
+//             drawer half is Dialog's `fillHeight`; these rules are the other
+//             half — the chain from the dialog body down to the field has to
+//             stretch, or the field would still hug its text inside a tall
+//             sheet.
+//
+// The height comes from the field's auto-grow GRID (an invisible replica sets
+// the floor, the textarea just fills the cell), so both rules land on that
+// grid — its class is hashed inside the component, so these reach it
+// structurally, through the element that holds the textarea.
+
+.tallField div:has(> textarea) {
+  min-height: 264px; // 12 rows × 22px
+}
+
+.fillField {
+  flex: 1 1 auto;
+  min-height: 0;
+
+  // Every wrapper between the Input and the textarea stretches. Written as a
+  // path rather than a child chain so it does not depend on how many wrappers
+  // the field components put in between.
+  :has(textarea) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  // The field chrome pins its content to the top (`align-items: flex-start`,
+  // so a short note sits at the top of a grown field). Inside a filled drawer
+  // the grid must take the height instead.
+  div:has(> div > textarea) {
+    align-items: stretch;
+  }
+}

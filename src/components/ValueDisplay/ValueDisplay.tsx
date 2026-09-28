@@ -268,7 +268,12 @@ export default function ValueDisplay(props: ValueDisplayProps) {
           <span className={styles.placeholder}>{placeholder}</span>
         </div>
       );
-    } else if (props.value == null || props.value === "") {
+      // An EMPTY value normally renders the plain placeholder — unless it is
+      // the warning itself. A missing required field is exactly what
+      // `isWarning` marks (the Equipment panel's "No Manufacturer" rows,
+      // Figma 21958-9105), so the placeholder goes through the warning branch
+      // below and picks up the amber text and the trailing icon.
+    } else if ((props.value == null || props.value === "") && props.isWarning !== true) {
       content = (
         <div className={styles.content}>
           <span className={styles.placeholder}>{placeholder}</span>
@@ -277,15 +282,16 @@ export default function ValueDisplay(props: ValueDisplayProps) {
     } else {
       const { value, valueColor, slotLeft, isWarning = false } = props;
       const color = isWarning ? "var(--text-warning)" : valueColor;
+      const text = value == null || value === "" ? placeholder : value;
       content = (
         <div className={clsx(styles.content, isWarning && styles.contentWarning)} style={color ? { color } : undefined}>
           {slotLeft != null && <span className={styles.slotLeft}>{slotLeft}</span>}
           {/* With a left slot the text truncates to ONE line (full text in a
               tooltip); plain text wraps instead — the doc's rule. */}
           {slotLeft != null ? (
-            <TruncatingText text={value} className={styles.text} />
+            <TruncatingText text={text} className={styles.text} />
           ) : (
-            <span className={styles.text}>{value}</span>
+            <span className={styles.text}>{text}</span>
           )}
           {isWarning && (
             <span className={styles.warningIcon}>

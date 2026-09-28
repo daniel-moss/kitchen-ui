@@ -25,7 +25,17 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
   title?: ReactNode;
   /** Left slot — an Avatar (object / user / template), md (28px) size. */
   slotLeft?: ReactNode;
-  /** Right slot — up to 2 elements: IconButton, Button (ghost), or a live Avatar. */
+  /**
+   * Right slot — up to 2 elements: IconButton, Button (ghost), or a live
+   * Avatar.
+   *
+   * A `copy` or `pen` IconButton here gets its **"Copy" / "Edit" tooltip
+   * automatically** (Daniel, 2026-09-28): those two are always the same
+   * action, so the module gives them the tooltip rather than leaving every
+   * caller to remember one. Wrap a button in your own `HoverTooltip` when it
+   * needs a more specific label ("Add warranty") — the module leaves an
+   * already-wrapped button alone.
+   */
   slotRight?: ReactNode;
 
   /** Body content slot — any content (required). In the accordion it shows when open. */

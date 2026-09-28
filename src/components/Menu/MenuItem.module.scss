@@ -1,4 +1,5 @@
-@use "../../styles/mixins/font" as *;
+// No `font` mixin here any more — every text style in the row comes from
+// `ItemText`.
 @use "../../styles/mixins/interaction" as *;
 
 // MenuItem — an action row. Top-aligned (slots nudge to line 1), like
@@ -78,49 +79,17 @@
 // contribution measures 0, so a long tag (e.g. "Prep for work") squeezes the
 // title unless the menu gets an explicit width from its consumer (the session
 // menus set the Figma card width). Found 2026-07-27.
+// The row's copy is `ItemText` — it owns the internal layout (title over
+// caption on the left, the tag hugging on the right, 16px apart, vertically
+// centered) and the text styles and colors.
+//
+// So this class only says how the text region sits inside the ROW. It must NOT
+// set `flex-direction`: it lands on the same element as ItemText's own `.row`,
+// and a leftover `column` here (from before the ItemText migration) turned
+// every tag into a second line, centered under the title — which is what broke
+// the Files menu's "Download · 2.1 MB" (Daniel, 2026-09-28).
 .content {
   flex: 1 1 0;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   padding: var(--size-0_5) 0; // 2px vertical
-}
-.titleRow {
-  display: flex;
-  align-items: center;
-  gap: var(--size-4); // 16px — title ↔ tag
-  width: 100%;
-}
-.title {
-  flex: 1 1 0;
-  min-width: 0;
-  color: var(--text-strong);
-
-  // Truncates to one line (Figma "Title — truncates"). A tag next to it keeps
-  // its full width and the title ellipsizes to fit (tag takes priority); the
-  // caption on the row below still wraps.
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-
-  @include font("body-400-compact"); // Inter Regular 14/20
-}
-.tag {
-  flex: none;
-  text-align: right;
-  color: var(--text-subtle);
-
-  @include font("body-400-compact");
-}
-.caption {
-  width: 100%; // wraps — no truncation (per Figma part)
-  color: var(--text-subtle);
-
-  @include font("caption-medium-400"); // Inter Regular 13/20
-}
-.danger .title,
-.danger .tag,
-.danger .caption {
-  color: var(--text-error);
 }

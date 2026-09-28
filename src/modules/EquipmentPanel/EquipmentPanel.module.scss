@@ -1,0 +1,42 @@
+@use "../../styles/mixins/font" as *;
+
+// The wrapping Badge row of the "Labels" module — 8px apart, both axes.
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+  align-items: flex-start;
+}
+
+// The "Notes" module's text: body/400 spacious, wrapping, newlines kept.
+.notes {
+  @include font("body-400-spacious"); // 14/22
+  margin: 0;
+  color: var(--text-strong);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// A module body that holds a list: each ItemGroup brings its own 4px padding
+// and the group dividers must run edge to edge, so the body adds none. The
+// History tab stacks its "hidden by filter" bar under the groups in the same
+// column, so the bar's Divider reaches both edges too.
+.listBody {
+  display: flex;
+  flex-direction: column;
+}
+
+// A row's context-menu card, anchored under its ellipsis button — fixed, above
+// the panel (the Files module's rule). `--z-menu` (1100), not the panel's own
+// `--z-modal` (1000): matching it only worked because these wrappers happen to
+// render inside the panel's portal, so DOM order decided.
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// The header caption when the equipment has no manufacturer: the same
+// placeholder color every absent value uses (node 21976-10317).
+.placeholderCaption {
+  color: var(--text-placeholder);
+}

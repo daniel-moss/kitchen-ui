@@ -1,4 +1,4 @@
-import { isValidElement, KeyboardEvent, MouseEvent } from "react";
+import { Children, cloneElement, Fragment, isValidElement, KeyboardEvent, MouseEvent, ReactElement, ReactNode } from "react";
 import clsx from "clsx";
 
 import ItemTextBlock from "../ItemText/ItemText/ItemTextBlock";
@@ -7,10 +7,47 @@ import { Icon } from "../Icon/Icon";
 import { Divider } from "../Divider/Divider";
 import AlertBanner from "../AlertBanner/AlertBanner";
 import EmptyState from "../EmptyState/EmptyState";
+import HoverTooltip from "../Tooltip/HoverTooltip";
+import IconButton from "../IconButton/IconButton";
 import TruncatingText from "../Tooltip/TruncatingText";
 
 import styles from "./DisplayModule.module.scss";
 import { DisplayModuleProps } from "./DisplayModule.types";
+
+// ---- the header's Copy / Edit tooltips --------------------------------------
+// A "copy" or "pen" IconButton in the header is always the same two actions, so
+// the module gives them their tooltips itself rather than leaving every caller
+// to remember (Daniel, 2026-09-28 — half the call sites had one and half did
+// not). A button the caller has ALREADY wrapped in a HoverTooltip is left
+// exactly as it is, so a more specific label ("Add warranty") still wins.
+const HEADER_TOOLTIP: Record<string, string> = { copy: "Copy", pen: "Edit" };
+
+/**
+ * Fragments have to be unwrapped first: `Children.map` does NOT look inside
+ * `<>…</>`, so a header that passes two buttons in a fragment would reach this
+ * as ONE child and neither would get a tooltip (the SidePanelNavigation
+ * gotcha).
+ */
+function flatten(node: ReactNode): ReactNode[] {
+  return Children.toArray(node).flatMap((child) =>
+    isValidElement(child) && child.type === Fragment ? flatten((child.props as { children?: ReactNode }).children) : [child],
+  );
+}
+
+function withHeaderTooltips(slot: ReactNode): ReactNode {
+  return flatten(slot).map((child, index) => {
+    if (!isValidElement(child)) return child;
+    if (child.type === HoverTooltip) return child;
+    const props = child.props as { icon?: string };
+    const text = child.type === IconButton && props.icon != null ? HEADER_TOOLTIP[props.icon] : undefined;
+    if (text == null) return child;
+    return (
+      <HoverTooltip key={child.key ?? index} text={text}>
+        {cloneElement(child as ReactElement)}
+      </HoverTooltip>
+    );
+  });
+}
 
 // DisplayModule — a card section with a header + body. `default` stacks header /
 // divider / body; `accordion` makes the header an interactive toggle that
@@ -67,7 +104,7 @@ export default function DisplayModule({
       </div>
       {slotRight != null && (
         <div className={styles.slotRight} onClick={(e: MouseEvent) => e.stopPropagation()}>
-          {slotRight}
+          {withHeaderTooltips(slotRight)}
         </div>
       )}
     </div>

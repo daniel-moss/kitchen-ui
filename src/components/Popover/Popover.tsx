@@ -31,6 +31,7 @@ export default function Popover({
   header,
   footer,
   drawer = false,
+  fillHeight = false,
   open = true,
   onClose,
   dismissible = true,
@@ -64,6 +65,7 @@ export default function Popover({
       footer={footer}
       onClose={onClose}
       dismissible={dismissible}
+      fillHeight={fillHeight}
       className={className}
       style={style}
     >
@@ -74,7 +76,7 @@ export default function Popover({
 
 type DrawerProps = Pick<
   PopoverProps,
-  "children" | "header" | "footer" | "onClose" | "dismissible" | "className" | "style"
+  "children" | "header" | "footer" | "onClose" | "dismissible" | "fillHeight" | "className" | "style"
 > & {
   visible: boolean;
   setVisible: (v: boolean) => void;
@@ -88,6 +90,7 @@ function Drawer({
   footer,
   onClose,
   dismissible = true,
+  fillHeight = false,
   className,
   style,
   visible,
@@ -401,7 +404,7 @@ function Drawer({
     >
       <div
         ref={sheetRef}
-        className={clsx(styles.popover, styles.drawer, className)}
+        className={clsx(styles.popover, styles.drawer, fillHeight && styles.drawerFill, className)}
         style={{
           ...style,
           transform,

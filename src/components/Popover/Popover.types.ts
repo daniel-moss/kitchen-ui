@@ -17,6 +17,13 @@ export interface PopoverProps {
    */
   drawer?: boolean;
   /**
+   * DRAWER only: fill the available screen height instead of hugging the
+   * content, and stretch the body so a field inside can use all of it. Built
+   * for the "Text Area" form, whose doc reads "The drawer fills screen's
+   * height to provide as much space as available". Default false.
+   */
+  fillHeight?: boolean;
+  /**
    * Controls the enter/exit animation. Keep the Popover mounted and flip this:
    * true plays the open (card fades in / drawer slides up), false plays the
    * close and then the Popover unmounts itself. Default true.

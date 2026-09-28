@@ -14,7 +14,7 @@ import SelectListFooter from "../../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../../components/SelectList/SelectListItemGroup";
 import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
-import { equipmentOf } from "../../../data/db";
+import { EQUIPMENT_LABELS, equipmentOf } from "../../../data/db";
 import { Equipment } from "../../../data/db/types";
 import { TEXT_SEPARATOR } from "../../../utils/textSeparator";
 import NewEquipmentForm from "../../NewEquipmentForm/NewEquipmentForm";
@@ -88,9 +88,13 @@ export default function EquipmentModule({ value, onChange, locationId, locationL
       manufacturer: created.manufacturer || undefined,
       modelNumber: created.model || undefined,
       serialNumber: created.serial || undefined,
+      type: created.type || undefined,
       physicalLocation: created.area || undefined,
       installationDate: created.installDate?.toISOString().slice(0, 10),
       ownership: (created.ownership || "Unknown") as Equipment["ownership"],
+      // The form hands back label NAMES; only the ones that exist in the db's
+      // EQUIPMENT_LABELS become ids (a label invented in the form is not a row).
+      labelIds: EQUIPMENT_LABELS.filter((label) => created.labels.includes(label.name)).map((label) => label.id),
     };
     sessionEquipment.push(row);
     onChange([...value, row.id]);

@@ -57,9 +57,14 @@
   align-items: center;
   gap: var(--size-1_5); // 6px label ↔ counter
 }
-// label + counter inherit the tab's color + font.
+// The label and the counter inherit the tab's color + font. The counter draws
+// REGULAR figures, not tabular (Daniel, 2026-09-28): tabular numerals are for
+// columns of numbers that have to line up — a count sitting next to a label
+// only reads as loosely spaced. Stated rather than simply removed, because
+// `font-variant-numeric` INHERITS: a tab inside a tabular container would
+// otherwise pick the wide figures back up.
 .counter {
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: normal;
 }
 
 // ===== sizes (height / horizontal padding / font) =====

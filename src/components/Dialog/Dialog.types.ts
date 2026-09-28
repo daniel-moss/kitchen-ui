@@ -51,6 +51,13 @@ interface DialogBaseProps {
    * (e.g. edge-to-edge dividers, list rows).
    */
   bodyPadded?: boolean;
+  /**
+   * MOBILE drawer only: fill the available screen height instead of hugging
+   * the content, and stretch the body so a field can use all of it. The
+   * "Text Area" form's rule ("The drawer fills screen's height to provide as
+   * much space as available"). Ignored on desktop. Default false.
+   */
+  fillHeight?: boolean;
   /** Optional error AlertBanner, pinned above the footer. */
   errorMessage?: ReactNode;
 

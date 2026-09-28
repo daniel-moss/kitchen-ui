@@ -1,0 +1,19 @@
+// FilesModule — the body cancels DisplayModule's 16px padding, because each
+// ItemGroup brings its own 4px and the group dividers must run full width.
+.listBody {
+  display: flex;
+  flex-direction: column;
+  margin: calc(-1 * var(--size-4));
+}
+
+// A body that is ONLY an EmptyState: the design gives that body no padding of
+// its own, so EmptyState's 32px is the whole padding.
+.emptyBody {
+  margin: calc(-1 * var(--size-4)); // -16px
+}
+
+// A file's context-menu card, anchored under its ellipsis / card ⋯ button.
+.anchoredMenu {
+  position: fixed;
+  z-index: 1000;
+}

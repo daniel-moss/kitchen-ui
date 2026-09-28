@@ -80,6 +80,7 @@ export default function Dialog(props: DialogProps) {
     breakpoint = "auto",
     children,
     bodyPadded = true,
+    fillHeight = false,
     errorMessage,
     state = "content",
     onRetry,
@@ -323,6 +324,7 @@ export default function Dialog(props: DialogProps) {
         <div ref={layerRef} className={clsx(styles.fixedLayer, className)}>
           <Popover
             drawer
+            fillHeight={fillHeight}
             open={visible}
             onClose={attemptDismiss}
             dismissible={!requireConfirm}

@@ -1,0 +1,667 @@
+@import "../styles/mixins/font";
+
+// Filters — Concept 5 shell. App background is --surface-level-first; the nav
+// bars and the content area draw no fill of their own (app mockup rule).
+
+// ---- nav sidebar -----------------------------------------------------------
+// The DS SidebarNav since 2026-09-03 — nothing local left: the 60px header,
+// the 12px sides, Create on top, the 1px row rhythm, the 36px rows and the
+// medium (--gray-a4) edge divider are all the component's own.
+
+// ---- top bar ---------------------------------------------------------------
+// The DS TopBarNav. Since its 2026-08-27 redesign the bar IS this concept's
+// design (60px row, lg buttons, heading-h3 16/24 title, tabs slot with the
+// scroller and edge fades), so the old local size/type overrides are gone.
+
+// The ONE adjustment left: the bar's built-in bottom Divider is its LAST child
+// (the inner row is the first). TopBarNav renders it itself and takes no props
+// for it, so the colour has to come through the component's own
+// --divider-color. Every line in this concept is --gray-a4 — Divider's
+// "medium" contrast (Daniel, 2026-08-17); if TopBarNav ever exposes the
+// divider, this becomes contrast="medium".
+.topBar > :last-child {
+  --divider-color: var(--gray-a4);
+}
+
+// ---- view bar --------------------------------------------------------------
+// The DS TopBarView since 2026-09-03 — the hand-built 60px bar, its tab
+// scroller, the local StatusPicker and the Filters count control are gone;
+// the component draws all of it on both breakpoints.
+//
+// The same divider adjustment as the top bar: the concept's lines are
+// --gray-a4, and TopBarView renders its bottom Divider itself (the bar's
+// second child — on mobile a third child appears below it while the keyword
+// search is open: the search bar with its own closing Divider).
+.viewBar > :nth-child(2),
+.viewBar > :nth-child(3) > :last-child {
+  --divider-color: var(--gray-a4);
+}
+
+// A search bar with NO fill — the Filters MENU's own search, and the Assignee
+// and Client lists (Daniel, 2026-08-19). `MenuHeader` and `SelectListHeader`
+// both hand their className to the SearchField WRAPPER, whose first child is the
+// 40px row; the height, the 16px sides and the Divider (--gray-a4, the DS
+// `medium` contrast) are all untouched.
+//
+// Kept as a no-op safety net: the DS `bar` dropped its own --gray-a2 fill on
+// 2026-08-20, so there is nothing left to switch off here.
+.searchNoFill > div:first-child {
+  background: none;
+}
+
+// (The prototype-local chips header — .optionHeader and .conditionChipGroup —
+// is gone since 2026-09-03: every filter's list header is the DS
+// `SelectListHeader` now, per the documented sections.)
+
+// ---- the "Filters" menu (desktop) ------------------------------------------
+// The desktop menu card: a body portal fixed under the "Filters" button, 4px
+// below it and left-aligned with it (Figma node 13857-25352). Portaled for the
+// same reason as the Create menu — the bar would clip a card anchored inside
+// it. The card itself is the DS Menu; only the position lives here.
+// Pinned by its RIGHT edge (the tsx sets `right`, not `left`) so the card grows
+// leftwards from the button and never runs off the screen edge.
+.filtersMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// (The local `.filtersCard` 240px floor is GONE since 2026-09-11 — Daniel:
+// "update the Filters menu min width to a component default one". The card
+// now runs on the DS Menu's own min 160 / max 384, which is exactly what the
+// node pins. See the note at the Menu call site in the tsx.)
+
+// The "Priority" sub-list: a second body portal, fixed 4px to the RIGHT of the
+// row and top-aligned with it (Figma node 13855-22268). Above the menu card, so
+// its own z-index sits on the same layer — the later portal wins on DOM order.
+//
+// NOT ANIMATED (Daniel, 2026-09-11: "it now jumps every single time. Remove
+// it."). A glide between rows was tried twice and removed both times. Position
+// alone cannot carry it: each filter's list is a different WIDTH, and width is
+// intrinsic — the card re-hugs its new rows in one frame while the position is
+// still travelling, so the box appeared to jump anyway. Animating the width
+// with it is not an option either, because the layout effect that places the
+// list measures the card, and mid-transition it reads the previous list's
+// width (that is what put Labels on top of the menu). The list simply appears
+// at its row.
+.filtersSub {
+  position: fixed;
+  z-index: var(--z-menu);
+
+  // `max-content`, NOT the default shrink-to-fit (2026-09-11). A fixed box with
+  // only `left` set is bounded by what is left of the viewport, so the card's
+  // fit-content width depended on WHERE the wrapper sat — and the placement
+  // effect moves it. That was a feedback loop: place it → more room → the card
+  // grows → the ResizeObserver re-places it → more room again. Labels visibly
+  // settled over four frames (218 → 219 → 221 → 222 while its left crept 898 →
+  // 882). Sizing the wrapper to its content takes the viewport out of it, so
+  // the card is its final width on the first frame and the placement is right
+  // the first time. The DS card's own `max-width: 384px` still caps it.
+  width: max-content;
+}
+
+// SelectList gives a drawer WITH a header the full screen height, so a search
+// does not make the sheet jump on every keystroke. A filter drawer with NO
+// search never needs that, and its nodes hug the content — the date list
+// (13912-12054: 467px of 812), the single-select Type drawer (14101-53837:
+// 250px) and, since 2026-09-09, Priority (13855-23306: 358px) — so the height
+// comes off every searchless drawer. Doubled class name to out-specify the
+// component's own `.drawerFull` whatever order the two stylesheets land in.
+.hugDrawer.hugDrawer {
+  height: auto;
+}
+
+// ---- the mobile sheet's section labels + applied chips ---------------------
+// Figma node 13867-5235. The GroupLabel sits in an 8px-padded header (8 top and
+// sides, nothing below — the label's own 28px box carries the rest), and the
+// chips are an 8px stack inset 16px, with 4px above and 12px below (Daniel,
+// 2026-08-19).
+.menuSectionLabel {
+  padding: var(--size-2) var(--size-2) 0; // 8px / 8px / 0
+}
+// The stack itself is the DS FilterChipGroup (`vertical`) since 2026-09-18 —
+// it owns the column and the `--size-2` (8px) gap. This box only insets it.
+.appliedChips {
+  padding: var(--size-1) var(--size-4) var(--size-4); // 4px / 16px / 16px
+}
+
+// ---- the date filter's "Custom..." dialog ----------------------------------
+// Figma nodes 13962-8889 (desktop) / 13962-8893 (mobile). Only the two blocks'
+// spacing and the calendar's layout are local — the Dialog, the Chips, the
+// ChipGroups, the Divider, the Input + DateField, the
+// DateButtons and the Apply footer are all DS components.
+
+// TIMEFRAME — the Day / Month / Year chips, in a 16px row of their own. The
+// Range toggle that used to sit hard right is gone (Daniel, 2026-08-24); the
+// row holds only the ChipGroup now.
+.dateCustomTimeframe {
+  display: flex;
+  align-items: center;
+  padding: var(--size-4); // 16px
+}
+
+// CONDITION — the measure chips (on / before / after / within) in a container
+// of their own, between the full-bleed Divider and the Selection block (Figma
+// frame 13973-32462). ALWAYS shown, `within` included.
+.dateCustomCondition {
+  padding: var(--size-4); // 16px
+}
+
+// SELECTION — what belongs to the chosen timeframe: the date field(s) and the
+// calendar. 16px on ALL sides since 2026-09-09: the new Divider closes the
+// Condition block now, so the Selection carries its own top padding again
+// (the Day nodes' Selection frames put the field at y=16 — 14073-18714 and
+// twins). It was 0 on top while the Condition's 16 did the separating.
+.dateCustomSelection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+}
+
+// "Date from" and "Date to" share the row, 16px apart — 280px each of the
+// desktop card's 576, 163.5 each of the phone's 343.
+.dateCustomFields {
+  display: flex;
+  gap: var(--size-4); // 16px
+  width: 100%;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+// ---- the duration filter's Custom dialog -----------------------------------
+// The documented Form section 14100-38325 (nodes 13923-24049 desktop /
+// 13923-24742 mobile, and 13923-24617 / 13923-24921 for `within`): the
+// condition chips in a 16px row, a full-bleed Divider (in the tsx — NEW with
+// the documented section, the old node drew none), then the fields.
+
+// CONDITION — the four measures (over / under / is / within) in a 16px row.
+.amountCustomCondition {
+  padding: var(--size-4); // 16px
+}
+
+// CONTENT — one "N hr / NN min" field row, or two 16px apart in `within`.
+// 16px all round: the Divider above separates it from the Condition block.
+.amountCustomContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+}
+
+// The MONEY dialog's fields (node 14299-49210). The same 16px frame as the
+// duration's, but a ROW: its range puts "From" and "To" side by side on BOTH
+// breakpoints (280px each in the 608px card, 163.5px each in the drawer), where
+// a duration's two hr/min rows stack.
+.moneyCustomContent {
+  display: flex;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+// ---- the FREEFORM dialog ----------------------------------------------------
+// The documented section 14100-36446 (nodes 14100-36447 desktop /
+// 14100-36463 mobile): the condition chips in a 16px row of their own, a
+// full-bleed Divider (in the tsx), then the fields.
+
+// CONDITION — "contains" / "does not contain" as lg Chips (node 14100-36449).
+.freeformCustomCondition {
+  padding: var(--size-4); // 16px
+}
+
+// The dialog's field body: 16px all round, 24px between the fields. Bigger
+// than the duration dialog's 16 because every field here carries a label
+// above it.
+.freeformCustomContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  padding: var(--size-4); // 16px
+}
+
+// DESKTOP only — State / Province beside Postal code, 16px apart, each taking
+// half of the 608px card. The mobile node stacks them, so it renders them as two
+// ordinary rows and never uses this.
+.freeformCustomRow {
+  display: flex;
+  gap: var(--size-4); // 16px
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+// ---- the dialog's MONTH grid and YEAR list ---------------------------------
+// The documented Timeframe filter section (Month dialog 14097-21480, Year
+// dialog 14098-28104, 2026-09-03). The same list of years, drawn two ways:
+// Month gives each year a 36px header over its twelve months in three touching
+// columns; Year is one full-width cell per year, no titles. The CELLS are the
+// DS DateChip — nothing local is drawn on them any more; the old Chip restyle
+// (the dark pill, the bands, the full radius) is gone.
+//
+// The list is the dialog's own scrolling Content block: 16px padding, under a
+// second full-bleed Divider (in the tsx). The nodes fix the block at 479px on
+// desktop; the DS Dialog's body scrolls the drawer on mobile, so the same
+// height holds there too.
+.monthYears {
+  position: relative; // the scroll maths reads each year's offsetTop from here
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px between years
+  height: 479px;
+  padding: var(--size-4); // 16px
+  overflow-y: auto;
+  width: 100%;
+}
+// YEAR: one full-width cell per year, 4px apart and no titles (node
+// 14098-28104 — rows at 0/40/80…, a 36px cell plus 4).
+.monthYearsRows {
+  gap: var(--size-1); // 4px
+}
+.yearRow {
+  display: flex;
+  width: 100%;
+
+  // The DateChip inside fills the row — the node draws it edge to edge.
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+// A year block: its 36px header over the twelve months, 4px apart (node
+// 14098-24909: the MonthHeader row is 36px tall, the first cell row 4 below).
+.monthYear {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px — header ↔ grid
+  width: 100%;
+}
+.monthYearTitle {
+  @include font("heading-h3"); // Inter Semi Bold 16/24
+
+  display: flex;
+  align-items: center;
+  min-height: var(--size-9); // 36px — the node's MonthHeader row
+  width: 100%;
+  color: var(--text-strong);
+}
+
+// Three columns that TOUCH — the node's rows have no column gap, so the cells
+// join sideways (which is what lets a picked range read as one bar across a
+// row) and the rows stay 4px apart.
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-1) 0; // 4px rows / 0 columns
+  width: 100%;
+}
+
+// ---- the dialog's calendar -------------------------------------------------
+// Each visible month is the DS `Month` component since 2026-09-03 — header,
+// weekdays, DateChip grid and band all its own. Only the arrangement is local:
+// the clipping swipe wrapper and the side-by-side row.
+.dialogCalendar {
+  // The month slides sideways under a swipe; nothing may show outside the box.
+  overflow: hidden;
+  width: 100%;
+}
+
+// One or two DS Months side by side, 16px apart (node 14096-10085 draws two
+// in the 576px content column). Each takes half.
+.dialogCalendarMonths {
+  display: flex;
+  gap: var(--size-4); // 16px
+  width: 100%;
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+// (The Custom dialog needs no z-index of its own since 2026-08-20: picking
+// "Custom" closes the Filters menu and the option list, so nothing from the
+// --z-menu layer is left to compete with it — and the DateField's own
+// DatePicker, which lives on that layer, is above the dialog again, which is
+// the DS's intended order.)
+
+
+// ---- bottom bar (mobile) ---------------------------------------------------
+
+// BottomBarNav draws its top Divider itself (its FIRST child) and takes no
+// props for it, so the colour goes through the component's own
+// --divider-color. --gray-a4 is Divider's "medium" contrast (Daniel,
+// 2026-08-17); the DS default is "low" / --gray-a3.
+//
+// `margin-top: auto` pins the bar to the shell's bottom edge when the content
+// area hugs a short list (the Hidden Data Bar rule) and free space is left in
+// the column; with the area filling the height it resolves to 0.
+.bottomBar {
+  margin-top: auto;
+
+  > :first-child {
+    --divider-color: var(--gray-a4);
+  }
+}
+
+// ---- the Jobs table --------------------------------------------------------
+
+// Urgent (priority 1) is the only priority whose icon carries colour, and the
+// node (8147-25260) sets it to --orange-9 — NOT --text-caution, which resolves
+// to --orange-a11 and reads darker.
+.priorityUrgent {
+  color: var(--orange-9);
+}
+
+// Concept 1's table sizing: taller rows than the DS default (40/48). Shared
+// by BOTH pages' tables since 2026-09-11 — the Estimates table
+// (estimatesTable.tsx) uses the same class. A
+// TableRow renders [cells][divider], and the Table wraps them in a header
+// rowgroup and a body rowgroup — so the rows are reachable structurally
+// without depending on the components' hashed class names.
+// Heights, plus the header's line colour. The BODY line is left alone —
+// TableRow already draws it --gray-a3, which is what Daniel asked for.
+// (Concept 1 darkens its body line to gray-a5; Concept 5 keeps the DS's.)
+// Row pitch is 45 / 53 with the 1px lines.
+.jobsTable {
+  // header row: 44px + the 1px divider
+  [role="rowgroup"]:first-child [role="row"] > :first-child {
+    height: var(--size-11); // 44px
+  }
+
+  // The header's line: --gray-a4 (Daniel, 2026-08-17). The DS draws the
+  // header heavier than the body rows at --gray-a6; this concept lightens it
+  // to match the other bars. The divider is the row's last child.
+  [role="rowgroup"]:first-child [role="row"] > :last-child {
+    background-color: var(--gray-a4);
+  }
+
+  // body rows: 52px + the 1px divider
+  [role="rowgroup"]:last-child [role="row"] > :first-child {
+    height: var(--size-13); // 52px
+  }
+
+  // The frozen edge — the right stroke on the LAST pinned column, running
+  // from the header down through every row: --gray-a4 (Daniel, 2026-08-17),
+  // where the DS draws it --gray-a6 so the boundary reads heavier than a row
+  // line. Both CellBody and CellHeader draw it as `.lastPinned::after`, and
+  // that pseudo-element is the ONLY one either component defines — a cell
+  // that is not last-pinned has no `content`, so it never renders. That is
+  // what makes matching on the role safe without depending on the hashed
+  // class names.
+  :is([role="cell"], [role="columnheader"])::after {
+    background-color: var(--gray-a4);
+  }
+}
+
+// ---- desktop ---------------------------------------------------------------
+
+.desktop {
+  box-sizing: border-box;
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-level-first);
+  // iPad standalone draws behind the native status bar, so the shell reserves
+  // that space itself (0 in desktop browsers). No bottom reservation.
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+
+  padding-top: var(--shell-safe-top);
+}
+
+.workArea {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+}
+
+// ---- mobile ----------------------------------------------------------------
+
+.mobile {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: var(--surface-level-first);
+  // Native status-bar space. The bottom inset is NOT added here — BottomBarNav
+  // carries the home-indicator padding itself.
+  --shell-safe-top: var(--phone-safe-top, env(safe-area-inset-top, 0px));
+
+  padding-top: var(--shell-safe-top);
+}
+
+// ---- content ---------------------------------------------------------------
+
+// The content area clips its content (app mockup rule); the Table inside is
+// its own scroll container.
+.mainArea {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// The Hidden Data Bar hugs the LIST (Daniel, 2026-09-16): with few rows it
+// sits directly below the last row; once the rows overflow, the content area
+// takes all the remaining height, the table scrolls inside it, and the bar
+// ends up at the screen bottom — visible while scrolling. So while the shell
+// HAS the bar, the content area hugs its content (basis auto) and shrinks
+// when the rows are taller than the space. Without the bar the default
+// `flex: 1 1 0` above stays: the table fills the area, and the empty states
+// (`.noResults`, height 100%) keep their vertical centring.
+.workArea:has(> .hiddenBar) > .mainArea,
+.mobile:has(> .hiddenBar) > .mainArea {
+  flex: 0 1 auto;
+}
+
+// With the content area's basis auto, an overflowing table makes the flex
+// LINE overflow, and every sibling with the default shrink would give up
+// height (the DS bars set no flex of their own). The content area must be the
+// only row that shrinks.
+.workArea > :not(.mainArea),
+.mobile > :not(.mainArea) {
+  flex-shrink: 0;
+}
+
+// ---- the Hidden Data Bar (the states boards 14178-47650 / 14178-47306) -----
+// The DS Divider (medium) over a 40px centered row; no fill of its own — the
+// node draws none, so the app background shows through. `flex: none` keeps
+// the row's height out of the shells' space-sharing; the row sits wherever
+// the content area's edge is (see the hug rule above). Each text + its button
+// is a GROUP with a 4px gap; the combined desktop state puts two groups 16px
+// apart (node 14178-47701), which is the row's gap — with one group it never
+// shows.
+.hiddenBar {
+  flex: none;
+  width: 100%;
+}
+.hiddenBarRow {
+  display: flex;
+  gap: var(--size-4); // 16px — between the combined state's two groups
+  align-items: center;
+  justify-content: center;
+  height: var(--size-10); // 40px
+  padding: 0 var(--size-4); // 16px
+  overflow: hidden;
+}
+.hiddenBarGroup {
+  display: flex;
+  gap: var(--size-1); // 4px — text to its button
+  align-items: center;
+}
+.hiddenBarText {
+  @include font("caption-medium-400"); // 13/20
+  margin: 0;
+  color: var(--text-subtle);
+  white-space: nowrap;
+
+  strong {
+    @include font("caption-medium-500");
+    color: var(--text-strong);
+  }
+}
+
+// ---- no results ------------------------------------------------------------
+// The NoJobsYet EmptyState, in place of the table. Centred in whatever height
+// the content area has.
+.noResults {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--size-4);
+}
+
+// The table-area EmptyStates (No Match 14205-65447…65570 and No Objects
+// Exist 14192-60361): the nodes pin a 384 "Max Width" on the block.
+.tableEmptyState {
+  max-width: 384px;
+}
+
+// ---- the filter bar / chips ------------------------------------------------
+// The bar and the chips are the DS components now (TopBarFilter + FilterChip,
+// migrated 2026-09-08) — every local bar/chip style that lived here is gone
+// with the hand-built markup. See the notes in the tsx.
+
+// ---- "No matches" ----------------------------------------------------------
+
+// NOTHING MATCHED THE SEARCH — the DS `EmptyState`, caption only (Daniel,
+// 2026-09-14: "use this component for the Filters menu"; it was plain text for
+// two days before that). The same block on all four surfaces the nodes draw it
+// on: the Filters menu (14310-59924 desktop / 14310-59921 mobile) and a
+// multi-select filter's option list (14310-60254 / 14310-60389).
+//
+// Read off the nodes: the card's own `body` slot gets 16px all round and holds
+// ONE centred line — body/400 compact (14/20) in --text-subtle. No icon, no
+// title, no action.
+//
+// The MOBILE half is EmptyState's own `height: 100%`: those drawers fill the
+// screen (a sheet with a search always does) and both mobile nodes centre the
+// line in that tall empty body. A percentage height only resolves while every
+// box above it has one, so it still has to be handed down — see
+// `.menuFillBody`. On the desktop card the body sizes to its content, so the
+// same rule computes to `auto` and the padding alone decides the height.
+.noMatches {
+  // The ONLY override. EmptyState already brings the centring, the
+  // border-box 100% height that lets the line sit in the middle of the mobile
+  // sheet, and the caption's body/400 compact --text-subtle. Its own padding is
+  // 32px — right for the block state, where an icon and a title stand above the
+  // line; these four nodes put 16px around a single line.
+  padding: var(--size-4); // 16px
+}
+
+// The two boxes between the mobile Filters sheet's body and that line: `Menu`
+// wraps its children in a `[role="menu"]` box, and the Add-filter section adds
+// its own. Neither has a height of its own, and a percentage height stops at
+// the first box that sizes to its content — so the line sat at the top of the
+// sheet until both passed the height down.
+//
+// Set ONLY while the sheet is empty (the tsx puts the class on then), so the
+// ordinary list keeps sizing to its rows. `[role="menu"]` is Menu's own ARIA
+// role, not a class name, so this does not depend on the DS's hashing.
+.menuFillBody [role="menu"],
+.menuFillBody .filterSection {
+  height: 100%;
+}
+
+// ---- the Down payment cell -------------------------------------------------
+// NOTHING local any more (Daniel, 2026-09-12: "it shouldn't be overridden — Not
+// required and Not paid should inherit the subtle variant. No overrides").
+// The two neutral cells used to re-point --cell-text-color at --text-subtle to
+// match their node, and to paint their icon with it; both are gone, so the
+// column runs on CellBody's own `subtle` and `error` schemes.
+
+// ---- the mobile Menu page --------------------------------------------------
+
+// The mobile counterpart of the sidebar (Figma "Mobile menu page" 22623-9553).
+// It reuses `.mobile` for the shell, so only the header and the scrolling item
+// area are defined here.
+
+// Fixed on top (the node's annotation says so in as many words) — it is the
+// sidebar's 60px header, same height, same 12px sides, same minimum gap.
+.menuHeader {
+  box-sizing: border-box;
+  display: flex;
+  flex: none;
+  gap: var(--size-2);
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  padding: 0 var(--size-3);
+}
+
+// A long workspace name gives way instead of pushing the profile button off.
+.menuWorkspace {
+  min-width: 0;
+}
+
+// The overflow area: everything below the header scrolls, with the bottom
+// items pinned down while the content fits. `space-between` does the pinning
+// and `gap` is the FLOOR it collapses to once the content is taller than the
+// box — 1px here, against the sidebar's 8px (the node pins `itemSpacing`).
+//
+// `min-height: 0` is what lets a flex child shrink below its content and
+// actually scroll.
+.menuScroll {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--size-0_25); // 1px — the minimum top ↔ bottom gap
+  justify-content: space-between;
+  min-height: 0;
+  padding: 0 var(--size-3) var(--size-3); // 12px sides + bottom
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+// One block of rows, 1px apart — the SidebarNavItemGroup rhythm.
+.menuItems {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--size-0_25);
+  width: 100%;
+}
+
+// ---- object details --------------------------------------------------------
+
+// The details page's scrolling body. The shell (.mobile / .workArea) owns the
+// height; this is the one scroll container, with the modules stacked in it.
+.detailsBody {
+  box-sizing: border-box;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--size-4);
+  min-height: 0;
+  padding: var(--size-4);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  // A flex child shrinks by default, which squashes every module to fit and
+  // clips its content. The modules keep their natural height and the BODY
+  // scrolls instead.
+  > * {
+    flex: none;
+  }
+}
+
+// A value that is not set, inside a details row. The doubled class wins over
+// ListItem's own title colour without !important.
+.placeholderText.placeholderText {
+  color: var(--text-placeholder);
+}

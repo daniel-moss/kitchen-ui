@@ -1,4 +1,4 @@
-import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
+import { ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { AvatarGroupItem, AvatarGroupSize } from "../Avatar/AvatarGroup.types";
@@ -95,19 +95,13 @@ export default function HoverTooltip({
     const room = variant === "text" ? 56 : 160;
     const placement: "top" | "bottom" = r.top < room ? "bottom" : "top";
     const cx = r.left + r.width / 2;
-    // Horizontal: a centered body near a screen edge would overflow it (the
-    // "Bill to client" hint touched the left edge). If so, re-anchor the tongue
-    // to the near side so the body grows inward: "start" (tongue left, body
-    // extends right) at the left edge, "end" (tongue right, body extends left)
-    // at the right edge. Uses maxWidth as a conservative half-width estimate.
-    const halfW = (typeof maxWidth === "number" ? maxWidth : 240) / 2;
-    const M = 8;
-    let effAlign = align;
-    if (align === "center") {
-      if (cx - halfW < M) effAlign = "start";
-      else if (cx + halfW > window.innerWidth - M) effAlign = "end";
-    }
-    setPos({ x: cx, y: placement === "top" ? r.top : r.bottom, placement, align: effAlign });
+    // Horizontal alignment starts as the caller asked. A centered body near a
+    // screen edge would overflow it, so it re-anchors to the near side — but
+    // only once the REAL width is known (see the layout effect below). It used
+    // to guess with `maxWidth / 2`, i.e. 120px for every tooltip, which
+    // re-anchored a 50px "Copy" tooltip that had ample room (Daniel,
+    // 2026-09-28).
+    setPos({ x: cx, y: placement === "top" ? r.top : r.bottom, placement, align });
   };
   const hide = () => setPos(null);
   // Keyboard focus only — a click/tap also focuses the trigger, and on touch
@@ -163,13 +157,37 @@ export default function HoverTooltip({
     return undefined;
   }, [triggerRef, pos]);
 
+  // Re-anchor AFTER the first paint, from the body's real width: a centered
+  // tooltip that overflows a screen edge moves its tongue to the near side so
+  // the body grows inward. Runs once per show — `align` only ever leaves
+  // "center", so it cannot oscillate.
+  const bodyRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    if (pos == null || pos.align !== "center") return;
+    const el = bodyRef.current;
+    if (el == null) return;
+    const r = el.getBoundingClientRect();
+    const M = 8;
+    const next: TooltipAlign | null = r.left < M ? "start" : r.right > window.innerWidth - M ? "end" : null;
+    if (next != null) setPos((prev) => (prev == null ? prev : { ...prev, align: next }));
+  }, [pos]);
+
   const tip = pos && (
     createPortal(
       <span
+        ref={bodyRef}
         style={{
           position: "fixed",
           left: pos.x,
           top: pos.y,
+          // A fixed box with only `left` is shrink-to-fit against the space
+          // LEFT OF THE SCREEN EDGE — anchored 60px from the right edge, the
+          // body could not exceed 60px and "Add warranty" wrapped onto two
+          // lines. `max-content` sizes it from the text instead; `maxWidth`
+          // keeps the Tooltip's own clamp so long text still wraps
+          // (Daniel, 2026-09-28).
+          width: "max-content",
+          maxWidth: maxWidth ?? 240,
           // 8px = 4px gap + ~4px tongue protrusion → 4px between button and tongue tip.
           transform: `translate(${X_SHIFT[pos.align]}, ${pos.placement === "top" ? "calc(-100% - 8px)" : "8px"})`,
           zIndex: 9999,

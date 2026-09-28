@@ -10,6 +10,8 @@ export interface PopoverHeaderTextProps {
   /** Optional extra class for the title line (e.g. a status color). */
   titleClassName?: string;
   caption?: string;
+  /** Extra class for the caption line (e.g. a placeholder color). */
+  captionClassName?: string;
 
   /** Title slots (left = Icon, right = Icon or HintTrigger). */
   titleLeftSlot?: ReactNode;

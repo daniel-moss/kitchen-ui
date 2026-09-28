@@ -1,3 +1,4 @@
+import { AvatarFileType } from "../../components/Avatar/AvatarFile.types";
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 
 // The demo database's SCHEMA (started 2026-09-04, Daniel: "we need to start
@@ -51,6 +52,12 @@ export type EquipmentCategory =
   | "Beverage Equipment"
   | "Food Preparation Equipment"
   | "Laundry"
+  | "Plumbing"
+  | "Air Purifiers"
+  | "Worktable, Shelf, and Transport Cart"
+  | "HVAC"
+  | "Water Filtration"
+  | "Lighting and Electrical"
   | "Other";
 
 /** Production `Estimate.Statuses` (estimates/models.py). */
@@ -163,8 +170,13 @@ export interface JobSeries {
 /**
  * The statuses a SUB-STATUS can hang under. In production a sub-status is
  * offered only where the job is paused or on hold (`JobPauseForm` asks for one
- * behind `PAUSED_SUBSTATUSES_EXIST` / `ON_HOLD_SUBSTATUSES_EXIST`), so those are
- * the three DS statuses that can carry one.
+ * behind `PAUSED_SUBSTATUSES_EXIST` / `ON_HOLD_SUBSTATUSES_EXIST`), so those
+ * are the three DS statuses that can carry one.
+ *
+ * ACTIVE deliberately carries NONE (Daniel, 2026-09-28): the tech's check-in
+ * status already says what they are doing, so an active sub-status would be a
+ * second answer to the same question — Roopairs advises companies not to
+ * configure them. A job that is being worked is simply "Active".
  */
 export type SubStatusParent = Extract<JobStatus, "quickPaused" | "onHoldExternal" | "onHoldInternal">;
 
@@ -353,12 +365,53 @@ export interface Warranty {
   details?: string;
 }
 
+/** An equipment label — production `EquipmentLabel`, its own table. */
+export interface EquipmentLabel {
+  id: string;
+  name: string;
+}
+
+/**
+ * Where a file sits. "public" is visible to the client, "private" to team
+ * members only — the two groups the Files module lists under its GroupLabels.
+ */
+export type FileVisibility = "public" | "private";
+
+/**
+ * A file attached to an equipment. The Files module groups by `visibility` and
+ * orders inside each group by `order` (the rows are drag-reorderable), so the
+ * array order in `db.ts` is not what the UI reads.
+ */
+export interface EquipmentFile {
+  id: string;
+  equipmentId: string;
+  /** File name with its extension, e.g. "Compressor spec.pdf". */
+  name: string;
+  /** Drives AvatarFile's icon and colors. */
+  fileType: AvatarFileType;
+  /** Already formatted for display ("2 MB") — the demo stores no byte count. */
+  size: string;
+  visibility: FileVisibility;
+  /** ISO. Production `date_created`. */
+  addedAt: string;
+  /** A `src/data/users.ts` id. */
+  addedById: number;
+  /** Position inside its visibility group, ascending. */
+  order: number;
+}
+
 /** Production `Equipment` — always under a location. */
 export interface Equipment {
   id: string;
   locationId: string;
   displayName: string;
   category: EquipmentCategory;
+  /**
+   * The narrower kind inside the category ("Air handler" under "HVAC") —
+   * production `EquipmentTypes`, whose options are filtered by `category`.
+   * Optional, like every field below the name.
+   */
+  type?: string;
   manufacturer?: string;
   modelNumber?: string;
   serialNumber?: string;
@@ -366,6 +419,8 @@ export interface Equipment {
   physicalLocation?: string;
   installationDate?: string;
   ownership: EquipmentOwnership;
+  /** EQUIPMENT_LABELS ids. */
+  labelIds: string[];
   notes?: string;
 }
 
@@ -424,6 +479,15 @@ export interface Job {
   labelIds: string[];
   /** The Service module's "Type": a fresh request, or a recall of old work. */
   type: "new" | "recall";
+  /**
+   * The COMPANY BRANCH handling the job — a BRANCHES id. The dispatcher picks
+   * it when creating the job (the "New job" form's Branch field; with a single
+   * branch it auto-selects and goes read-only). It is NOT derived from the
+   * client or the location: those carry no branch today. Daniel, 2026-09-28 —
+   * "later I think I'll allow clients and locations to be connected to a
+   * branch, so selecting a service location will auto-populate it".
+   */
+  branchId: string;
   /** Where the request came from — a JOB_SOURCES id (production origin type). */
   sourceId: string;
   /** The source's own reference ("SC-8590"); unset when the source has none. */
@@ -442,6 +506,14 @@ export interface Job {
    * (Active ↔ Quick-paused, On hold external ↔ internal) does.
    */
   statusChangedAt: string | null;
+  /**
+   * The user who made the last status transition — production's
+   * `last_status_transition_user`. Added 2026-09-28 for the Equipment side
+   * panel's History tab, whose rows read "Finalized on Aug 22, 2026 by
+   * Lorne R."; OPTIONAL, and a row without one simply drops the "by" half.
+   * A `src/data/users.ts` id.
+   */
+  statusChangedById?: number;
   /** ISO. Any edit to the job. */
   lastModifiedAt: string;
   /** Who reported the issue — the job's own contact. */
@@ -477,6 +549,13 @@ export interface Estimate {
   /** Set when the estimate was turned into (or written for) a job. */
   jobId?: string;
   /**
+   * The equipment the estimate covers, from the same location — the Job's own
+   * `equipmentIds`, added 2026-09-28 so an equipment's History tab can list
+   * estimates directly. OPTIONAL (unlike the job's) because most of the
+   * materialized mass rows carry no equipment: only the curated rows do.
+   */
+  equipmentIds?: string[];
+  /**
    * The pricebook service behind the estimate (a SERVICES id) — the Job's own
    * pattern, added 2026-09-11 so the Estimates list's Service filter can match
    * by id rather than by a name that may have drifted. Unset when the estimate
@@ -504,6 +583,14 @@ export interface Estimate {
    * estimate cannot go back to Unsent.
    */
   statusChangedAt: string | null;
+  /**
+   * The user who made the last status transition — production's
+   * `last_status_transition_user`. Added 2026-09-28 for the Equipment side
+   * panel's History tab, whose rows read "Finalized on Aug 22, 2026 by
+   * Lorne R."; OPTIONAL, and a row without one simply drops the "by" half.
+   * A `src/data/users.ts` id.
+   */
+  statusChangedById?: number;
   /** ISO. Any edit. */
   lastModifiedAt: string;
   /** ISO — the client opened it (production `last_viewed`). Unset = never. */
@@ -861,6 +948,11 @@ export interface Invoice {
   /** Set when the invoice bills a job. */
   jobId?: string;
   /**
+   * The equipment the invoice bills for, from the same location — see
+   * `Estimate.equipmentIds`. Optional for the same reason.
+   */
+  equipmentIds?: string[];
+  /**
    * The pricebook service behind the invoice (a SERVICES id) — the Estimate's
    * own pattern. Unset when the invoice is not for a pricebook service.
    */
@@ -899,6 +991,14 @@ export interface Invoice {
    * Overdue is the clock, not an action, and writes nothing.
    */
   statusChangedAt: string | null;
+  /**
+   * The user who made the last status transition — production's
+   * `last_status_transition_user`. Added 2026-09-28 for the Equipment side
+   * panel's History tab, whose rows read "Finalized on Aug 22, 2026 by
+   * Lorne R."; OPTIONAL, and a row without one simply drops the "by" half.
+   * A `src/data/users.ts` id.
+   */
+  statusChangedById?: number;
   /** ISO. Any edit. */
   lastModifiedAt: string;
   /** ISO — the client opened it (production `last_viewed`). Unset = never. */
@@ -1223,6 +1323,14 @@ export interface JobForm {
  * `ServiceCompany` fields of the same names).
  */
 export interface CompanySettings {
+  /**
+   * The service company's own name — what the sidebar header carries (Daniel,
+   * 2026-09-28: it used to say "Workspace", which is the shell's word for the
+   * thing, not the company's name).
+   */
+  name: string;
+  /** The company logo, per theme. Same shape as a job source's artwork. */
+  logo: { light: string; dark: string };
   /** Max files per upload. Production default 25, absolute max 100. */
   maxFileUploads: number;
   /** Max file size in MB. Production default 100. */

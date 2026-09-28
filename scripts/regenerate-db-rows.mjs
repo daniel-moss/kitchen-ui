@@ -211,6 +211,9 @@ function dumpJobs() {
     if (j.scheduledFor != null) parts.push(`scheduledFor: ${q(j.scheduledFor)}`);
     if (j.durationMinutes != null) parts.push(`durationMinutes: ${j.durationMinutes}`);
     parts.push(`assigneeIds: [${j.assigneeIds.join(", ")}]`);
+    // Emitted EMPTY on purpose — the service→equipment mapping lives in
+    // scripts/assign-job-equipment.mjs. RUN THAT AFTER this script, or every
+    // regenerated job loses the equipment it is about.
     parts.push(`equipmentIds: []`);
     parts.push(`labelIds: [${j.labelIds.map(q).join(", ")}]`);
     parts.push(`type: ${q(j.type)}`);

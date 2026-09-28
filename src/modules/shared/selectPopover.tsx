@@ -62,9 +62,13 @@ const EDGE = 24; // min gap to the screen edge (Daniel's rule)
  * lists, e.g. the New-location Labels picker — Figma 25810-6069); "above" pins
  * it OVER the trigger at the trigger's width — for fields that sit low in a
  * form, where below leaves too little room (the Job-contacts lists; Daniel,
- * 2026-09-08).
+ * 2026-09-08); "belowEnd" pins it UNDER the trigger with their RIGHT edges
+ * aligned, at the card's natural width — for a small BUTTON trigger, where
+ * matching the trigger's width would squeeze the list to nothing (the
+ * Equipment panel's History filter, Figma 22110-9884: a 56px button over a
+ * 149px list, right edges flush; Daniel, 2026-09-28).
  */
-export type SelectPopoverPlacement = "below" | "left" | "above";
+export type SelectPopoverPlacement = "below" | "left" | "above" | "belowEnd";
 
 export function useSelectPopover(mobile: boolean, placement: SelectPopoverPlacement = "below"): SelectPopover {
   const [open, setOpen] = useState(false);
@@ -87,6 +91,16 @@ export function useSelectPopover(mobile: boolean, placement: SelectPopoverPlacem
     }
     const below = vh - r.bottom - GAP - EDGE; // room under the trigger
     const above = r.top - GAP - EDGE; // room over the trigger
+    if (placement === "belowEnd") {
+      // Natural width, so NO `width` — the card hugs its rows; anchored by its
+      // right edge so it grows leftwards away from the screen edge.
+      return {
+        top: r.bottom + GAP,
+        right: window.innerWidth - r.right,
+        maxWidth: Math.max(160, r.right - EDGE),
+        maxHeight: Math.max(160, below),
+      };
+    }
     if (placement === "above") {
       return { bottom: vh - r.top + GAP, left: r.left, width: r.width, maxHeight: Math.max(160, above) };
     }

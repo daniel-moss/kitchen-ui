@@ -65,6 +65,7 @@ export default function SidePanel({
   caption,
   titleVariant,
   titleClassName,
+  captionClassName,
   titleLeftSlot,
   titleRightSlot,
   captionLeftSlot,
@@ -136,6 +137,7 @@ export default function SidePanel({
             title={title}
             titleClassName={titleClassName}
             caption={caption}
+            captionClassName={captionClassName}
             titleLeftSlot={titleLeftSlot}
             titleRightSlot={titleRightSlot}
             captionLeftSlot={captionLeftSlot}

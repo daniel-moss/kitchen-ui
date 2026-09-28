@@ -8,6 +8,8 @@ import {
   CreditNote,
   CreditNoteLabel,
   Equipment,
+  EquipmentFile,
+  EquipmentLabel,
   Estimate,
   EstimateLabel,
   Invoice,
@@ -464,23 +466,329 @@ export const LOCATION_CONTACTS: LocationContact[] = [
   { id: "lc-harbour-pier-1", locationId: "harbour-pier", name: "Jimmy Tran", position: "Head Chef", phone: "(415) 555-0163" },
   { id: "lc-bayside-commissary-1", locationId: "bayside-commissary", name: "Grace Palmer", position: "Night Supervisor", phone: "(510) 555-0128", phoneExtension: "12" },
   { id: "lc-northpoint-hotel-1", locationId: "northpoint-hotel", name: "Stefan Iversen", position: "Executive Chef", email: "s.iversen@northpointhotel.com" },
+
+  // Added 2026-09-28: SIX of the eleven locations had no contact at all, so
+  // anything that names the person on site — a sign-off, the Send-summary
+  // form — had nobody to name. Every location now has at least one. The
+  // photos come from the avatars pool's TAIL (user-10 and up), so a contact
+  // never shares a face with a tech.
+  { id: "lc-mission-24th-1", locationId: "mission-24th", name: "Elena Vargas", position: "Owner", phone: "(415) 555-0144", email: "elena@missiontaqueria.com", avatar: "avatars/user-11.jpg" },
+  { id: "lc-mission-24th-2", locationId: "mission-24th", name: "Tomás Reyes", position: "Kitchen Manager", phone: "(415) 555-0192" },
+  { id: "lc-sunset-judah-1", locationId: "sunset-judah", name: "Hana Okafor", position: "Head Baker", phone: "(415) 555-0158", email: "hana@sunsetbakery.com", avatar: "avatars/user-13.jpg" },
+  { id: "lc-ferry-main-1", locationId: "ferry-main", name: "Priya Raman", position: "General Manager", phone: "(415) 555-0107", email: "priya@ferrybuildingdeli.com", avatar: "avatars/user-14.jpg" },
+  { id: "lc-ferry-main-2", locationId: "ferry-main", name: "Dmitri Sokolov", position: "Shift Lead", phone: "(415) 555-0119", phoneExtension: "4" },
+  { id: "lc-northpoint-banquet-1", locationId: "northpoint-banquet", name: "Claire Whitfield", position: "Banquet Manager", phone: "(415) 555-0172", email: "c.whitfield@northpointhotel.com", avatar: "avatars/user-17.jpg" },
+  { id: "lc-harbour-marina-1", locationId: "harbour-marina", name: "Noel Byrne", position: "Head Chef", phone: "(415) 555-0135", email: "noel@harbourgrill.com", avatar: "avatars/user-18.jpg" },
+  { id: "lc-presidio-canteen-1", locationId: "presidio-canteen", name: "Aiko Tanaka", position: "Site Supervisor", phone: "(415) 555-0166", email: "aiko@presidiocanteen.com", avatar: "avatars/user-19.jpg" },
+];
+
+// Equipment CATEGORIES, TYPES and OWNERSHIP — the REAL product lists, read out
+// of the production app's `EquipmentCategories` / `EquipmentTypes` /
+// `EquipmentOwnershipTypes` choices (roopairs_api core/models.py and
+// equipment/choices.py, read-only reference). Categories keep their product
+// order; every type belongs to one category, so a Type picker follows the
+// chosen Category. Moved here from NewEquipmentForm/data.ts on 2026-09-28 so
+// the Equipment side panel and the New-equipment form read ONE list.
+export const EQUIPMENT_CATEGORIES: string[] = [
+  "Cooking Equipment",
+  "Fryers",
+  "Ice Machines",
+  "Ovens and Ranges",
+  "Concession and Condiment Equipment",
+  "Dishwashing Equipment",
+  "Holding and Warming Equipment",
+  "Refrigeration",
+  "Beverage Equipment",
+  "Food Preparation Equipment",
+  "Laundry",
+  "Plumbing",
+  "Air Purifiers",
+  "Worktable, Shelf, and Transport Cart",
+  "HVAC",
+  "Water Filtration",
+  "Lighting and Electrical",
+  "Other",
+];
+
+/** The types of each category — the Type list is filtered by the chosen Category. */
+export const EQUIPMENT_TYPES: Record<string, string[]> = {
+  "Cooking Equipment": [
+    "Broiler",
+    "Charbroiler",
+    "Commercial Microwave",
+    "Commercial Toaster",
+    "Food Rethermalizer and Bain-Marie Heater",
+    "Grill and Griddle",
+    "Kettle, Skillet, and Pan",
+    "Pasta Cooker",
+    "Non-Commercial Microwave",
+    "Rice Cooker",
+    "Salamander and Cheesemelter",
+    "Specialty Cooking Equipment",
+    "Panini Press",
+  ],
+  "Fryers": [
+    "Electric Fryer",
+    "Fryer Filtration Equipment",
+    "Gas Fryer",
+  ],
+  "Ice Machines": [
+    "Ice Bin",
+    "Ice Dispenser",
+    "Ice Maker",
+    "Ice Merchandiser",
+  ],
+  "Ovens and Ranges": [
+    "Combi Oven",
+    "Convection Oven",
+    "Countertop Electric Range",
+    "Countertop Gas Range",
+    "Electric Oven",
+    "Electric Range",
+    "Gas Oven",
+    "Gas Range",
+    "Rotisserie Oven",
+    "Smoker",
+    "Steamer",
+    "Rack and Rotary Oven",
+    "Conveyor Oven",
+    "Speed Oven",
+  ],
+  "Concession and Condiment Equipment": [
+    "Cheese Warmer",
+    "Condiment Holder",
+    "Condiment Pump",
+    "Cotton Candy Machine",
+    "Dessert Equipment",
+    "Nacho Station",
+    "Napkin Dispenser",
+    "Popcorn Machine",
+  ],
+  "Dishwashing Equipment": [
+    "Burnisher",
+    "Dishtable",
+    "Dishwasher",
+    "Garbage Disposer",
+    "Glass Washer",
+    "Powersoak Sink",
+    "Tray Conveyor",
+  ],
+  "Holding and Warming Equipment": [
+    "Bun Warmer",
+    "Dish and Tray Dispenser",
+    "Display Cabinet",
+    "Drawer Warmer",
+    "Fried Food Holding Station",
+    "Heat Lamp and Carving Station",
+    "Heated Merchandiser and Display Cabinet",
+    "Heated Shelf",
+    "Hot and Cold Food Well",
+    "Hot Dog Roller",
+    "Hot Dog Steamer",
+    "Overhead Food Warmer",
+    "Proofing Cabinet",
+    "Soup Warmer and Kettle",
+    "Soup Well",
+    "Warming Cabinet",
+    "Steam Table",
+    "Steam Well",
+  ],
+  "Refrigeration": [
+    "Bar Refrigeration",
+    "Blast Chiller",
+    "Chef Base Freezer",
+    "Chef Base Refrigerator",
+    "Combination Refrigerator and Freezer",
+    "Condensing Unit",
+    "Ice Cream Equipment",
+    "Prep Table",
+    "Reach-In Freezer",
+    "Reach-In Refrigerator",
+    "Refrigerated Merchandiser",
+    "Undercounter Freezer",
+    "Undercounter Refrigerator",
+    "Walk-In Cooler",
+    "Walk-In Freezer",
+  ],
+  "Beverage Equipment": [
+    "Bar Blender",
+    "Coffee Grinder",
+    "Coffee Maker",
+    "Coffee Urn",
+    "Frozen Drink Machine",
+    "Hot Chocolate Machine",
+    "Hot Water Dispenser",
+    "Juice and Cold Beverage Dispenser",
+    "Liquor and Beer Dispenser",
+    "Milk and Cream Dispenser",
+    "Milkshake Machine",
+    "Soft Drink Beverage Dispenser",
+    "Tea Brewer",
+    "Tea Dispenser",
+    "Espresso Machine",
+    "Iced Coffee Brewer",
+  ],
+  "Food Preparation Equipment": [
+    "Blender",
+    "Commercial Can Openers",
+    "Dicer, Cutter, and Chopper",
+    "Dough Roller, Press, and Sheeter",
+    "Food Packaging",
+    "Food Processor",
+    "Juicer",
+    "Meat Grinder",
+    "Meat Press and Pusher",
+    "Mixer",
+    "Peeler, Corer, and Wedger",
+    "Salad Dryer and Spinner",
+    "Slicer",
+    "Timer and Scale",
+  ],
+  "Laundry": [
+    "Dryer",
+    "Washer Dryer Combo",
+    "Washer",
+  ],
+  "Plumbing": [
+    "Faucet and Nozzle",
+    "Hand Dryer",
+    "Hands-Free Faucet",
+    "Sink and Drain",
+    "Water Heater",
+    "Grease Trap",
+  ],
+  "Air Purifiers": [
+    "Commercial Air Purifier",
+    "Home Air Purifier",
+  ],
+  "Worktable, Shelf, and Transport Cart": [
+    "Cart, Truck, and Dolly",
+    "Rack and Shelf",
+    "Worktable and Station",
+  ],
+  "HVAC": [
+    "Condenser",
+    "Furnace",
+    "Chiller",
+    "Air Handler",
+    "VRF",
+    "Mini Split",
+    "Makeup Air Unit (MAU)",
+    "Exhaust Fan",
+    "Fly Fan and Air Curtain",
+    "Portable Unit",
+    "Package Unit",
+    "Thermostat",
+    "Boiler",
+    "Dehumidifier",
+  ],
+  "Water Filtration": [
+    "Water Filter",
+  ],
+  "Lighting and Electrical": [
+    "Lighting",
+    "Electrical",
+  ],
+  "Other": [],
+};
+
+/** Ownership options (Figma 23960-15937 — the same values as the product's
+ *  `EquipmentOwnershipTypes`). */
+export const OWNERSHIP_TYPES: string[] = ["Unknown", "Owned", "Leased", "Rented"];
+
+/** The label pool — the Figma "Equipment labels" select list values
+ *  (23849-7052). */
+
+// Equipment labels — production `EquipmentLabel`, a table of its own (the job,
+// estimate and invoice labels are all separate tables too). Added 2026-09-28
+// with the Equipment side panel's "Labels" module.
+export const EQUIPMENT_LABELS: EquipmentLabel[] = [
+  { id: "kitchen", name: "Kitchen" },
+  { id: "bar", name: "Bar" },
+  { id: "critical", name: "Critical" },
+  { id: "complicated", name: "Complicated" },
+  { id: "hard-to-install", name: "Hard to install" },
+  { id: "easy-to-maintain", name: "Easy to maintain" },
+  { id: "under-contract", name: "Under contract" },
+  { id: "end-of-life", name: "End of life" },
+  { id: "leased-unit", name: "Leased unit" },
+  { id: "health-inspected", name: "Health inspected" },
 ];
 
 const EQUIPMENT_AT_ANCHOR: Equipment[] = [
-  { id: "eq-wd-walkin", locationId: "wildwood-downtown", displayName: "Walk-in Cooler", category: "Refrigeration", manufacturer: "True Manufacturing", modelNumber: "TWT-48", serialNumber: "TM-88412", physicalLocation: "Back kitchen", installationDate: "2022-03-14", ownership: "Owned" },
-  { id: "eq-wd-range", locationId: "wildwood-downtown", displayName: "6-Burner Range", category: "Ovens and Ranges", manufacturer: "Vulcan", modelNumber: "V60F", serialNumber: "VU-20441", physicalLocation: "Hot line", installationDate: "2021-08-02", ownership: "Owned" },
-  // No manufacturer / model / serial — created in a hurry from the field.
-  { id: "eq-wd-mixer", locationId: "wildwood-downtown", displayName: "Dough Mixer", category: "Food Preparation Equipment", ownership: "Unknown" },
-  { id: "eq-wd-griddle", locationId: "wildwood-downtown", displayName: "Griddle", category: "Cooking Equipment", manufacturer: "American Range", modelNumber: "GR-2436", serialNumber: "AR-55102", physicalLocation: "Cook line", installationDate: "2024-03-12", ownership: "Owned" },
-  { id: "eq-wd-reachin", locationId: "wildwood-downtown", displayName: "Reach-in Freezer", category: "Refrigeration", manufacturer: "True Manufacturing", modelNumber: "T-23F-2", serialNumber: "TM-88213", physicalLocation: "Storage room", installationDate: "2021-11-02", ownership: "Owned" },
-  { id: "eq-wa-fryer1", locationId: "wildwood-airport", displayName: "Fryer #1", category: "Fryers", manufacturer: "Frymaster", modelNumber: "FPP345", serialNumber: "FM-90210", physicalLocation: "Fry station", installationDate: "2023-01-19", ownership: "Leased" },
-  { id: "eq-wa-fryer2", locationId: "wildwood-airport", displayName: "Fryer #2", category: "Fryers", manufacturer: "Frymaster", modelNumber: "FPP345", serialNumber: "FM-90211", physicalLocation: "Fry station", installationDate: "2023-01-19", ownership: "Leased" },
-  { id: "eq-hp-ice", locationId: "harbour-pier", displayName: "Ice Machine", category: "Ice Machines", manufacturer: "Hoshizaki", modelNumber: "KM-660", serialNumber: "HZ-33172", physicalLocation: "Bar", installationDate: "2020-06-30", ownership: "Owned" },
-  { id: "eq-hp-dish", locationId: "harbour-pier", displayName: "Dishwasher", category: "Dishwashing Equipment", manufacturer: "Hobart", modelNumber: "AM16", serialNumber: "HB-55201", physicalLocation: "Dish pit", installationDate: "2019-11-12", ownership: "Owned" },
-  { id: "eq-bc-oven", locationId: "bayside-commissary", displayName: "Combi Oven", category: "Ovens and Ranges", manufacturer: "Rational", modelNumber: "iCombi Pro 10", serialNumber: "RA-71034", physicalLocation: "Line 2", installationDate: "2024-02-27", ownership: "Rented" },
-  { id: "eq-np-walkin", locationId: "northpoint-hotel", displayName: "Walk-in Freezer", category: "Refrigeration", manufacturer: "Kolpak", modelNumber: "QS7-0810-FT", serialNumber: "KP-10986", physicalLocation: "Basement", installationDate: "2018-04-09", ownership: "Owned", notes: "Door gasket replaced twice; check on every visit." },
-  { id: "eq-np-espresso", locationId: "northpoint-hotel", displayName: "Espresso Machine", category: "Beverage Equipment", manufacturer: "La Marzocco", modelNumber: "Linea PB", serialNumber: "LM-44520", physicalLocation: "Lobby bar", installationDate: "2023-09-05", ownership: "Owned" },
-  { id: "eq-sj-proofer", locationId: "sunset-judah", displayName: "Proofer Cabinet", category: "Holding and Warming Equipment", manufacturer: "Metro", serialNumber: "MT-61077", physicalLocation: "Bakery back room", ownership: "Owned" },
+  { id: "eq-wd-walkin", locationId: "wildwood-downtown", displayName: "Walk-in Cooler", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "True Manufacturing", modelNumber: "TWT-48", serialNumber: "TM-88412", physicalLocation: "Back kitchen", installationDate: "2022-03-14", ownership: "Owned", labelIds: ["kitchen", "critical", "health-inspected"], notes: "🔥 Gas Supply: none — electric only.\n⚡ Electrical Info: 208V, breaker panel in the storage room.\n🛑 Safety Concerns: door closes slowly; prop it while loading.\n📦 Spare Parts Availability: spare gaskets in storage, shelf B-3.\n📋 Additional Notes: chef prefers minimal downtime — schedule service before 10 AM or after 3 PM." },
+  { id: "eq-wd-range", locationId: "wildwood-downtown", displayName: "6-Burner Range", category: "Ovens and Ranges", type: "Gas Range", manufacturer: "Vulcan", modelNumber: "V60F", serialNumber: "VU-20441", physicalLocation: "Hot line", installationDate: "2021-08-02", ownership: "Owned", labelIds: ["kitchen", "complicated"] },
+  // No manufacturer / model / serial — created in a hurry from the field. This
+  // is the row behind the panel's WARNING state (key details missing), so it
+  // also carries no type, area, installation date or labels.
+  { id: "eq-wd-mixer", locationId: "wildwood-downtown", displayName: "Dough Mixer", category: "Food Preparation Equipment", ownership: "Unknown", labelIds: [] },
+  { id: "eq-wd-griddle", locationId: "wildwood-downtown", displayName: "Griddle", category: "Cooking Equipment", type: "Grill and Griddle", manufacturer: "American Range", modelNumber: "GR-2436", serialNumber: "AR-55102", physicalLocation: "Cook line", installationDate: "2024-03-12", ownership: "Owned", labelIds: ["kitchen", "easy-to-maintain"] },
+  { id: "eq-wd-reachin", locationId: "wildwood-downtown", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "T-23F-2", serialNumber: "TM-88213", physicalLocation: "Storage room", installationDate: "2021-11-02", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-wa-fryer1", locationId: "wildwood-airport", displayName: "Fryer #1", category: "Fryers", type: "Gas Fryer", manufacturer: "Frymaster", modelNumber: "FPP345", serialNumber: "FM-90210", physicalLocation: "Fry station", installationDate: "2023-01-19", ownership: "Leased", labelIds: ["kitchen", "leased-unit", "under-contract"] },
+  { id: "eq-wa-fryer2", locationId: "wildwood-airport", displayName: "Fryer #2", category: "Fryers", type: "Gas Fryer", manufacturer: "Frymaster", modelNumber: "FPP345", serialNumber: "FM-90211", physicalLocation: "Fry station", installationDate: "2023-01-19", ownership: "Leased", labelIds: ["kitchen", "leased-unit", "under-contract"] },
+  { id: "eq-hp-ice", locationId: "harbour-pier", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-660", serialNumber: "HZ-33172", physicalLocation: "Bar", installationDate: "2020-06-30", ownership: "Owned", labelIds: ["bar", "critical"] },
+  { id: "eq-hp-dish", locationId: "harbour-pier", displayName: "Dishwasher", category: "Dishwashing Equipment", type: "Dishwasher", manufacturer: "Hobart", modelNumber: "AM16", serialNumber: "HB-55201", physicalLocation: "Dish pit", installationDate: "2019-11-12", ownership: "Owned", labelIds: ["kitchen", "end-of-life"] },
+  { id: "eq-bc-oven", locationId: "bayside-commissary", displayName: "Combi Oven", category: "Ovens and Ranges", type: "Combi Oven", manufacturer: "Rational", modelNumber: "iCombi Pro 10", serialNumber: "RA-71034", physicalLocation: "Line 2", installationDate: "2024-02-27", ownership: "Rented", labelIds: ["kitchen", "leased-unit"] },
+  { id: "eq-np-walkin", locationId: "northpoint-hotel", displayName: "Walk-in Freezer", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "Kolpak", modelNumber: "QS7-0810-FT", serialNumber: "KP-10986", physicalLocation: "Basement", installationDate: "2018-04-09", ownership: "Owned", labelIds: ["critical", "end-of-life"], notes: "Door gasket replaced twice; check on every visit." },
+  { id: "eq-np-espresso", locationId: "northpoint-hotel", displayName: "Espresso Machine", category: "Beverage Equipment", type: "Coffee Maker", manufacturer: "La Marzocco", modelNumber: "Linea PB", serialNumber: "LM-44520", physicalLocation: "Lobby bar", installationDate: "2023-09-05", ownership: "Owned", labelIds: ["bar", "complicated", "hard-to-install"] },
+  // No installation date — the proofer came with the bakery.
+  { id: "eq-sj-proofer", locationId: "sunset-judah", displayName: "Proofer Cabinet", category: "Holding and Warming Equipment", type: "Proofing Cabinet", manufacturer: "Metro", serialNumber: "MT-61077", physicalLocation: "Bakery back room", ownership: "Owned", labelIds: [] },
+  // ---- the rest of the sites' equipment (2026-09-28) ----------------------
+  // Added because most jobs had NO equipment while their service clearly names
+  // one (Daniel: "the service sounds like the work is related to a piece of
+  // equipment ... in most of the cases equipment is involved"). One piece per
+  // (location, service) the job table actually uses, so every such job can
+  // point at the box it is about; scripts/assign-job-equipment.mjs does the
+  // pointing and can be re-run.
+  { id: "eq-m24-hood", locationId: "mission-24th", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-637", serialNumber: "CA-40137", physicalLocation: "Cook line", installationDate: "2025-10-16", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-fm-prepfridge", locationId: "ferry-main", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-674", serialNumber: "TM-40174", physicalLocation: "Back kitchen", installationDate: "2020-11-26", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-nb-ice", locationId: "northpoint-banquet", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-711", serialNumber: "HZ-40211", physicalLocation: "Bar", installationDate: "2022-12-09", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-wa-hood", locationId: "wildwood-airport", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-748", serialNumber: "CA-40248", physicalLocation: "Cook line", installationDate: "2024-01-19", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-nb-oven", locationId: "northpoint-banquet", displayName: "Combi Oven", category: "Ovens and Ranges", type: "Combi Oven", manufacturer: "Rational", modelNumber: "iCP-785", serialNumber: "RA-40285", physicalLocation: "Hot line", installationDate: "2019-02-02", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-wa-walkin", locationId: "wildwood-airport", displayName: "Walk-in Cooler", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "True Manufacturing", modelNumber: "TWT-822", serialNumber: "TM-40322", physicalLocation: "Back kitchen", installationDate: "2021-03-12", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-np-steamtable", locationId: "northpoint-hotel", displayName: "Steam Table", category: "Holding and Warming Equipment", type: "Steam Table", manufacturer: "Vollrath", modelNumber: "ST-859", serialNumber: "VL-40359", physicalLocation: "Service line", installationDate: "2023-04-22", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-hp-prepfridge", locationId: "harbour-pier", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-896", serialNumber: "TM-40396", physicalLocation: "Back kitchen", installationDate: "2025-05-05", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-hm-fryer", locationId: "harbour-marina", displayName: "Fryer", category: "Fryers", type: "Gas Fryer", manufacturer: "Frymaster", modelNumber: "FPP-933", serialNumber: "FM-40433", physicalLocation: "Fry station", installationDate: "2020-06-15", ownership: "Owned", labelIds: ["kitchen", "under-contract"] },
+  { id: "eq-sj-hood", locationId: "sunset-judah", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-970", serialNumber: "CA-40470", physicalLocation: "Cook line", installationDate: "2022-07-25", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-hm-dish", locationId: "harbour-marina", displayName: "Dishwasher", category: "Dishwashing Equipment", type: "Dishwasher", manufacturer: "Hobart", modelNumber: "AM-107", serialNumber: "HB-40507", physicalLocation: "Dish pit", installationDate: "2024-08-08", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-sj-reachin", locationId: "sunset-judah", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-144", serialNumber: "TM-40544", physicalLocation: "Back kitchen", installationDate: "2019-09-18", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-np-oven", locationId: "northpoint-hotel", displayName: "Combi Oven", category: "Ovens and Ranges", type: "Combi Oven", manufacturer: "Rational", modelNumber: "iCP-181", serialNumber: "RA-40581", physicalLocation: "Hot line", installationDate: "2021-10-01", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-hm-steamtable", locationId: "harbour-marina", displayName: "Steam Table", category: "Holding and Warming Equipment", type: "Steam Table", manufacturer: "Vollrath", modelNumber: "ST-218", serialNumber: "VL-40618", physicalLocation: "Service line", installationDate: "2023-11-11", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-m24-steamtable", locationId: "mission-24th", displayName: "Steam Table", category: "Holding and Warming Equipment", type: "Steam Table", manufacturer: "Vollrath", modelNumber: "ST-255", serialNumber: "VL-40655", physicalLocation: "Service line", installationDate: "2025-12-21", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-sj-greasetrap", locationId: "sunset-judah", displayName: "Grease Trap", category: "Plumbing", type: "Grease Trap", manufacturer: "Thermaco", modelNumber: "BGX-292", serialNumber: "TC-40692", physicalLocation: "Back of house", installationDate: "2020-01-04", ownership: "Owned", labelIds: ["health-inspected"] },
+  { id: "eq-pc-steamtable", locationId: "presidio-canteen", displayName: "Steam Table", category: "Holding and Warming Equipment", type: "Steam Table", manufacturer: "Vollrath", modelNumber: "ST-329", serialNumber: "VL-40729", physicalLocation: "Service line", installationDate: "2022-02-14", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-hm-greasetrap", locationId: "harbour-marina", displayName: "Grease Trap", category: "Plumbing", type: "Grease Trap", manufacturer: "Thermaco", modelNumber: "BGX-366", serialNumber: "TC-40766", physicalLocation: "Back of house", installationDate: "2024-03-24", ownership: "Owned", labelIds: ["health-inspected"] },
+  { id: "eq-m24-reachin", locationId: "mission-24th", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-403", serialNumber: "TM-40803", physicalLocation: "Back kitchen", installationDate: "2019-04-07", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-pc-reachin", locationId: "presidio-canteen", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-440", serialNumber: "TM-40840", physicalLocation: "Back kitchen", installationDate: "2021-05-17", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-np-hood", locationId: "northpoint-hotel", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-477", serialNumber: "CA-40877", physicalLocation: "Cook line", installationDate: "2023-06-27", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-np-dish", locationId: "northpoint-hotel", displayName: "Dishwasher", category: "Dishwashing Equipment", type: "Dishwasher", manufacturer: "Hobart", modelNumber: "AM-514", serialNumber: "HB-40914", physicalLocation: "Dish pit", installationDate: "2025-07-10", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-sj-espresso", locationId: "sunset-judah", displayName: "Espresso Machine", category: "Beverage Equipment", type: "Espresso Machine", manufacturer: "Nuova Simonelli", modelNumber: "AP-551", serialNumber: "NS-40951", physicalLocation: "Coffee station", installationDate: "2020-08-20", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-bc-hood", locationId: "bayside-commissary", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-588", serialNumber: "CA-40988", physicalLocation: "Cook line", installationDate: "2022-09-03", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-nb-dish", locationId: "northpoint-banquet", displayName: "Dishwasher", category: "Dishwashing Equipment", type: "Dishwasher", manufacturer: "Hobart", modelNumber: "AM-625", serialNumber: "HB-41025", physicalLocation: "Dish pit", installationDate: "2024-10-13", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-pc-dish", locationId: "presidio-canteen", displayName: "Dishwasher", category: "Dishwashing Equipment", type: "Dishwasher", manufacturer: "Hobart", modelNumber: "AM-662", serialNumber: "HB-41062", physicalLocation: "Dish pit", installationDate: "2019-11-23", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-bc-fryer", locationId: "bayside-commissary", displayName: "Fryer", category: "Fryers", type: "Gas Fryer", manufacturer: "Frymaster", modelNumber: "FPP-699", serialNumber: "FM-41099", physicalLocation: "Fry station", installationDate: "2021-12-06", ownership: "Owned", labelIds: ["kitchen", "under-contract"] },
+  { id: "eq-bc-ice", locationId: "bayside-commissary", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-736", serialNumber: "HZ-41136", physicalLocation: "Bar", installationDate: "2023-01-16", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-pc-hood", locationId: "presidio-canteen", displayName: "Grill Hood", category: "HVAC", type: "Exhaust Fan", manufacturer: "CaptiveAire", modelNumber: "ND2-773", serialNumber: "CA-41173", physicalLocation: "Cook line", installationDate: "2025-02-26", ownership: "Owned", labelIds: ["kitchen", "health-inspected"] },
+  { id: "eq-hm-ice", locationId: "harbour-marina", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-810", serialNumber: "HZ-41210", physicalLocation: "Bar", installationDate: "2020-03-09", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-fm-ice", locationId: "ferry-main", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-847", serialNumber: "HZ-41247", physicalLocation: "Bar", installationDate: "2022-04-19", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-hm-walkin", locationId: "harbour-marina", displayName: "Walk-in Cooler", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "True Manufacturing", modelNumber: "TWT-884", serialNumber: "TM-41284", physicalLocation: "Back kitchen", installationDate: "2024-05-02", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-hp-oven", locationId: "harbour-pier", displayName: "Combi Oven", category: "Ovens and Ranges", type: "Combi Oven", manufacturer: "Rational", modelNumber: "iCP-921", serialNumber: "RA-41321", physicalLocation: "Hot line", installationDate: "2019-06-12", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-hp-fryer", locationId: "harbour-pier", displayName: "Fryer", category: "Fryers", type: "Gas Fryer", manufacturer: "Frymaster", modelNumber: "FPP-958", serialNumber: "FM-41358", physicalLocation: "Fry station", installationDate: "2021-07-22", ownership: "Owned", labelIds: ["kitchen", "under-contract"] },
+  { id: "eq-pc-espresso", locationId: "presidio-canteen", displayName: "Espresso Machine", category: "Beverage Equipment", type: "Espresso Machine", manufacturer: "Nuova Simonelli", modelNumber: "AP-995", serialNumber: "NS-41395", physicalLocation: "Coffee station", installationDate: "2023-08-05", ownership: "Owned", labelIds: ["bar"] },
+  { id: "eq-wa-ice", locationId: "wildwood-airport", displayName: "Ice Machine", category: "Ice Machines", type: "Ice Maker", manufacturer: "Hoshizaki", modelNumber: "KM-132", serialNumber: "HZ-41432", physicalLocation: "Bar", installationDate: "2025-09-15", ownership: "Owned", labelIds: ["bar"] },
+  // A site can hold more than one box of the same CATEGORY — a walk-in and a
+  // reach-in are both Refrigeration but different calls — so these fill the
+  // exact TYPE each service asks for (2026-09-28).
+  { id: "eq-np-reachin", locationId: "northpoint-hotel", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-741", serialNumber: "TM-42041", physicalLocation: "Back kitchen", installationDate: "2025-06-03", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-fm-reachin", locationId: "ferry-main", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-782", serialNumber: "TM-42082", physicalLocation: "Back kitchen", installationDate: "2024-11-17", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-wa-prepfridge", locationId: "wildwood-airport", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-823", serialNumber: "TM-42123", physicalLocation: "Back kitchen", installationDate: "2023-04-04", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-hp-reachin", locationId: "harbour-pier", displayName: "Reach-in Freezer", category: "Refrigeration", type: "Reach-In Freezer", manufacturer: "True Manufacturing", modelNumber: "TWT-864", serialNumber: "TM-42164", physicalLocation: "Back kitchen", installationDate: "2022-09-18", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-np-prepfridge", locationId: "northpoint-hotel", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-905", serialNumber: "TM-42205", physicalLocation: "Back kitchen", installationDate: "2021-02-05", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-wd-oven", locationId: "wildwood-downtown", displayName: "Combi Oven", category: "Ovens and Ranges", type: "Combi Oven", manufacturer: "Rational", modelNumber: "iCP-946", serialNumber: "RA-42246", physicalLocation: "Hot line", installationDate: "2020-07-19", ownership: "Owned", labelIds: ["kitchen"] },
+  { id: "eq-fm-walkin", locationId: "ferry-main", displayName: "Walk-in Cooler", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "True Manufacturing", modelNumber: "TWT-987", serialNumber: "TM-42287", physicalLocation: "Back kitchen", installationDate: "2019-12-06", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-sj-prepfridge", locationId: "sunset-judah", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-128", serialNumber: "TM-42328", physicalLocation: "Back kitchen", installationDate: "2025-05-20", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-sj-walkin", locationId: "sunset-judah", displayName: "Walk-in Cooler", category: "Refrigeration", type: "Walk-In Cooler", manufacturer: "True Manufacturing", modelNumber: "TWT-169", serialNumber: "TM-42369", physicalLocation: "Back kitchen", installationDate: "2024-10-07", ownership: "Owned", labelIds: ["kitchen", "critical"] },
+  { id: "eq-pc-prepfridge", locationId: "presidio-canteen", displayName: "Prep Fridge", category: "Refrigeration", type: "Prep Table", manufacturer: "True Manufacturing", modelNumber: "TWT-210", serialNumber: "TM-42410", physicalLocation: "Back kitchen", installationDate: "2023-03-21", ownership: "Owned", labelIds: ["kitchen", "critical"] },
 ];
 
 const WARRANTIES_AT_ANCHOR: Warranty[] = [
@@ -493,6 +801,34 @@ const WARRANTIES_AT_ANCHOR: Warranty[] = [
   { id: "w-bc-oven", equipmentId: "eq-bc-oven", name: "Rental full coverage", startDate: "2024-02-27" },
   { id: "w-np-espresso", equipmentId: "eq-np-espresso", name: "Extended parts + labor", startDate: "2023-09-05", endDate: "2026-09-05", details: "Purchased extension; excludes grinder burrs." },
   { id: "w-wd-reachin", equipmentId: "eq-wd-reachin", name: "Manufacturer parts", startDate: "2021-11-02", endDate: "2026-11-02" },
+  // The only UPCOMING warranty — it starts after the demo clock, which is the
+  // Warranty side panel's third status (added 2026-09-28). On the griddle, so
+  // the Equipment panel's two demo rows keep their coverage stories.
+  {
+    id: "w-wd-griddle",
+    equipmentId: "eq-wd-griddle",
+    name: "Extended parts + labor",
+    startDate: "2026-12-01",
+    endDate: "2029-12-01",
+    details: "Starts when the manufacturer coverage ends. Covers the burners and the thermostat; excludes the griddle plate.",
+  },
+];
+
+// Files attached to equipment — the Equipment side panel's "Files" tab, which
+// reuses the shared Files module (Public / Private groups, drag-reorderable).
+// `order` is the position inside a visibility group, so a drag writes `order`,
+// not the array. Added 2026-09-28.
+const EQUIPMENT_FILES_AT_ANCHOR: EquipmentFile[] = [
+  // The walk-in cooler is the panel's demo row: both groups filled, five files.
+  { id: "ef-wd-walkin-1", equipmentId: "eq-wd-walkin", name: "Nameplate.jpg", fileType: "image", size: "2 MB", visibility: "public", addedAt: "2026-08-12T09:20:00", addedById: 1, order: 0 },
+  { id: "ef-wd-walkin-2", equipmentId: "eq-wd-walkin", name: "Spec sheet.pdf", fileType: "pdf", size: "4 MB", visibility: "public", addedAt: "2026-08-12T09:22:00", addedById: 1, order: 1 },
+  { id: "ef-wd-walkin-3", equipmentId: "eq-wd-walkin", name: "Compressor noise.mp4", fileType: "video", size: "18 MB", visibility: "public", addedAt: "2026-09-01T14:05:00", addedById: 5, order: 2 },
+  { id: "ef-wd-walkin-4", equipmentId: "eq-wd-walkin", name: "Service log.xls", fileType: "spreadsheet", size: "1 MB", visibility: "private", addedAt: "2026-07-03T11:40:00", addedById: 3, order: 0 },
+  { id: "ef-wd-walkin-5", equipmentId: "eq-wd-walkin", name: "Install notes.doc", fileType: "word", size: "3 MB", visibility: "private", addedAt: "2026-07-03T11:44:00", addedById: 3, order: 1 },
+  // Public only — the Private group renders its own empty state.
+  { id: "ef-wd-range-1", equipmentId: "eq-wd-range", name: "Burner diagram.pdf", fileType: "pdf", size: "2 MB", visibility: "public", addedAt: "2026-06-18T08:15:00", addedById: 2, order: 0 },
+  { id: "ef-np-espresso-1", equipmentId: "eq-np-espresso", name: "Warranty certificate.pdf", fileType: "pdf", size: "1 MB", visibility: "private", addedAt: "2026-05-22T16:30:00", addedById: 4, order: 0 },
+  // eq-wd-mixer, eq-wd-griddle and the rest keep NO files — the empty state.
 ];
 
 const JOBS_AT_ANCHOR: Job[] = [
@@ -511,9 +847,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-walkin", "eq-wd-reachin"],
     labelIds: ["refrigeration"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-09-01T08:30:00",
     statusChangedAt: "2026-09-04T08:05:00",
+    statusChangedById: 1,
     lastModifiedAt: "2026-09-04T08:05:00",
     // The reporter is a saved location contact's details, copied onto the job
     // (production denormalizes exactly like this).
@@ -530,9 +868,10 @@ const JOBS_AT_ANCHOR: Job[] = [
     scheduledFor: "2026-09-09T06:30:00",
     durationMinutes: 180,
     assigneeIds: [4, 7],
-    equipmentIds: ["eq-wa-fryer1", "eq-wa-fryer2"],
+    equipmentIds: ["eq-wa-fryer1"],
     labelIds: ["recurring"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-28T10:15:00",
     statusChangedAt: "2026-08-29T09:00:00",
@@ -550,9 +889,10 @@ const JOBS_AT_ANCHOR: Job[] = [
     scheduledFor: "2026-08-28T22:00:00",
     durationMinutes: 90,
     assigneeIds: [5],
-    equipmentIds: ["eq-np-walkin"],
+    equipmentIds: ["eq-np-reachin"],
     labelIds: ["refrigeration", "priority-client"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-26T23:30:00",
     statusChangedAt: null,
@@ -573,6 +913,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-hp-ice"],
     labelIds: ["quarterly"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-14T09:45:00",
     // Completed on the visit; invoiced the next day (INV-3101, Aug 21).
@@ -590,6 +931,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-hp-dish"],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-31T12:00:00",
     statusChangedAt: null,
@@ -608,6 +950,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-bc-oven"],
     labelIds: ["contract", "quarterly"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-27T07:30:00",
     statusChangedAt: "2026-08-28T08:00:00",
@@ -621,9 +964,10 @@ const JOBS_AT_ANCHOR: Job[] = [
     serviceName: "Hood cleaning estimate visit",
     status: "draft",
     assigneeIds: [],
-    equipmentIds: [],
+    equipmentIds: ["eq-m24-hood"],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-09-02T16:20:00",
     statusChangedAt: null,
@@ -645,6 +989,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-sj-proofer"],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-21T09:10:00",
     statusChangedAt: "2026-08-26T10:30:00",
@@ -663,6 +1008,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-range"],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-07-28T11:00:00",
     // Finalized with its invoice (INV-3102, Aug 1).
@@ -678,9 +1024,10 @@ const JOBS_AT_ANCHOR: Job[] = [
     scheduledFor: "2026-08-15T13:00:00",
     durationMinutes: 90,
     assigneeIds: [6],
-    equipmentIds: [],
+    equipmentIds: ["eq-fm-prepfridge"],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-13T15:40:00",
     // Cancelled on the day; its invoice voided the next (INV-3105, Aug 16).
@@ -705,9 +1052,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-walkin"],
     labelIds: ["refrigeration"],
     type: "recall",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-09-01T11:30:00",
     statusChangedAt: "2026-09-02T09:00:00",
+    statusChangedById: 4,
     lastModifiedAt: "2026-09-02T09:00:00",
   },
   {
@@ -724,9 +1073,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-walkin"],
     labelIds: ["refrigeration", "warranty"],
     type: "recall",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-30T14:00:00",
     statusChangedAt: "2026-09-03T15:00:00",
+    statusChangedById: 7,
     lastModifiedAt: "2026-09-03T15:00:00",
     notes: "Waiting for the replacement gasket to arrive.",
   },
@@ -746,9 +1097,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-walkin"],
     labelIds: ["refrigeration"],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-15T10:00:00",
     statusChangedAt: "2026-08-22T09:00:00",
+    statusChangedById: 3,
     lastModifiedAt: "2026-08-22T09:00:00",
   },
   {
@@ -764,6 +1117,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: [],
     labelIds: [],
     type: "new",
+    branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-09-03T13:45:00",
     statusChangedAt: "2026-09-03T13:45:00",
@@ -776,85 +1130,85 @@ const JOBS_AT_ANCHOR: Job[] = [
   // Sep 4, so every date shifted +18 days while ids, statuses and relative
   // offsets stayed identical). Regenerate with a new anchor via
   // scripts/regenerate-db-rows.mjs if the clock ever moves again.
-  { id: "JOB-1070", locationId: "northpoint-banquet", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "completed", priority: 3, scheduledFor: "2026-08-15T12:15:00", durationMinutes: 105, assigneeIds: [7, 6], equipmentIds: [], labelIds: ["priority-client", "quarterly", "warranty"], type: "recall", sourceId: "corrigo", sourceRef: "COR-6028", receivedAt: "2026-08-11T13:30:00", statusChangedAt: "2026-08-28T16:00:00", lastModifiedAt: "2026-08-30T09:00:00" },
-  { id: "JOB-1105", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "completed", scheduledFor: "2026-08-18T08:45:00", durationMinutes: 210, assigneeIds: [5, 1], equipmentIds: [], labelIds: [], type: "new", sourceId: "service-channel", sourceRef: "SC-8590", receivedAt: "2026-08-10T14:00:00", statusChangedAt: "2026-08-25T13:00:00", lastModifiedAt: "2026-09-02T15:00:00" },
-  { id: "JOB-1068", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 3, scheduledFor: "2026-08-18T13:30:00", durationMinutes: 90, assigneeIds: [2], equipmentIds: [], labelIds: [], type: "recall", sourceId: "service-channel", sourceRef: "SC-7339", receivedAt: "2026-08-12T11:30:00", statusChangedAt: "2026-09-02T14:00:00", lastModifiedAt: "2026-09-03T14:00:00" },
-  { id: "JOB-1073", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "finalized", priority: 3, scheduledFor: "2026-08-18T13:45:00", durationMinutes: 300, assigneeIds: [8, 4], equipmentIds: [], labelIds: ["contract"], type: "new", sourceId: "direct", receivedAt: "2026-08-12T10:15:00", statusChangedAt: "2026-09-03T14:00:00", lastModifiedAt: "2026-09-03T12:00:00" },
-  { id: "JOB-1069", locationId: "wildwood-downtown", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", scheduledFor: "2026-08-18T15:30:00", durationMinutes: 150, assigneeIds: [5, 6, 4], equipmentIds: [], labelIds: ["recurring", "ventilation"], type: "new", sourceId: "direct", receivedAt: "2026-08-15T13:30:00", statusChangedAt: "2026-08-29T08:00:00", lastModifiedAt: "2026-08-31T17:00:00" },
-  { id: "JOB-1106", locationId: "wildwood-airport", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "completed", priority: 3, scheduledFor: "2026-08-19T13:30:00", durationMinutes: 240, assigneeIds: [2, 3, 4], equipmentIds: [], labelIds: [], type: "new", sourceId: "direct", receivedAt: "2026-08-09T14:45:00", statusChangedAt: "2026-08-25T11:00:00", lastModifiedAt: "2026-08-30T09:00:00" },
-  { id: "JOB-1074", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "finalized", scheduledFor: "2026-08-23T12:45:00", durationMinutes: 240, assigneeIds: [2], equipmentIds: [], labelIds: ["cooking", "recurring", "warranty"], type: "new", sourceId: "direct", receivedAt: "2026-08-15T12:30:00", statusChangedAt: "2026-08-23T12:45:00", lastModifiedAt: "2026-08-31T08:00:00" },
-  { id: "JOB-1066", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "pastDue", priority: 4, scheduledFor: "2026-08-28T15:30:00", durationMinutes: 60, assigneeIds: [8, 9], equipmentIds: [], labelIds: ["quarterly", "recurring"], type: "recall", sourceId: "corrigo", sourceRef: "COR-5749", receivedAt: "2026-08-18T12:45:00", statusChangedAt: "2026-08-30T11:00:00", lastModifiedAt: "2026-09-02T09:00:00" },
-  { id: "JOB-1100", locationId: "harbour-pier", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "pastDue", priority: 4, scheduledFor: "2026-08-29T08:15:00", durationMinutes: 90, assigneeIds: [9], equipmentIds: [], labelIds: ["contract"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-6468", receivedAt: "2026-08-23T13:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-31T15:00:00" },
-  { id: "JOB-1064", locationId: "harbour-marina", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "pastDue", priority: 4, scheduledFor: "2026-08-30T12:45:00", durationMinutes: 150, assigneeIds: [6, 8], equipmentIds: [], labelIds: [], type: "recall", sourceId: "corrigo", sourceRef: "COR-5085", receivedAt: "2026-08-19T08:45:00", statusChangedAt: "2026-08-19T09:00:00", lastModifiedAt: "2026-08-26T16:00:00" },
-  { id: "JOB-1067", locationId: "sunset-judah", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "pastDue", priority: 1, scheduledFor: "2026-08-31T09:15:00", durationMinutes: 30, assigneeIds: [3], equipmentIds: [], labelIds: ["warranty", "contract"], type: "recall", sourceId: "direct", receivedAt: "2026-08-25T09:45:00", statusChangedAt: null, lastModifiedAt: "2026-08-28T11:00:00" },
-  { id: "JOB-1065", locationId: "wildwood-airport", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "pastDue", priority: 2, scheduledFor: "2026-08-31T15:45:00", durationMinutes: 120, assigneeIds: [5, 4], equipmentIds: [], labelIds: ["ventilation", "warranty", "recurring"], type: "recall", sourceId: "corrigo", sourceRef: "COR-8711", receivedAt: "2026-08-29T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-02T14:00:00" },
-  { id: "JOB-1103", locationId: "harbour-pier", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "pastDue", priority: 1, scheduledFor: "2026-09-02T07:15:00", durationMinutes: 120, assigneeIds: [4], equipmentIds: [], labelIds: ["cooking", "priority-client", "warranty"], type: "new", sourceId: "direct", receivedAt: "2026-08-27T16:30:00", statusChangedAt: "2026-08-31T13:00:00", lastModifiedAt: "2026-09-03T16:00:00" },
-  { id: "JOB-1104", locationId: "northpoint-hotel", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "completed", priority: 3, scheduledFor: "2026-09-02T08:00:00", durationMinutes: 240, assigneeIds: [6, 9, 8], equipmentIds: [], labelIds: [], type: "new", sourceId: "service-channel", sourceRef: "SC-7077", receivedAt: "2026-08-21T16:15:00", statusChangedAt: "2026-09-02T08:00:00", lastModifiedAt: "2026-09-03T14:00:00" },
-  { id: "JOB-1102", locationId: "harbour-marina", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "pastDue", priority: 4, scheduledFor: "2026-09-03T14:30:00", durationMinutes: 180, assigneeIds: [6, 7], equipmentIds: [], labelIds: ["priority-client", "contract", "ventilation"], type: "recall", sourceId: "direct", receivedAt: "2026-08-22T13:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T15:00:00" },
-  { id: "JOB-1101", locationId: "sunset-judah", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "pastDue", priority: 2, scheduledFor: "2026-09-03T17:15:00", durationMinutes: 105, assigneeIds: [7, 8], equipmentIds: [], labelIds: [], type: "new", sourceId: "service-channel", sourceRef: "SC-3836", receivedAt: "2026-08-26T14:00:00", statusChangedAt: "2026-08-29T15:00:00", lastModifiedAt: "2026-09-03T13:00:00" },
-  { id: "JOB-1077", locationId: "wildwood-downtown", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "onHoldInternal", subStatusId: "sub-tech", priority: 2, scheduledFor: "2026-09-04T07:45:00", durationMinutes: 60, assigneeIds: [9], equipmentIds: [], labelIds: ["plumbing", "warranty", "recurring"], type: "recall", sourceId: "service-channel", sourceRef: "SC-3044", receivedAt: "2026-08-24T09:30:00", statusChangedAt: "2026-09-04T07:45:00", lastModifiedAt: "2026-09-03T11:00:00" },
-  { id: "JOB-1059", locationId: "northpoint-hotel", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "active", priority: 4, scheduledFor: "2026-09-04T08:45:00", durationMinutes: 60, assigneeIds: [5, 7], equipmentIds: [], labelIds: ["warranty", "compliance"], type: "recall", sourceId: "direct", receivedAt: "2026-08-23T12:30:00", statusChangedAt: "2026-09-04T08:45:00", lastModifiedAt: "2026-09-02T09:00:00" },
-  { id: "JOB-1072", locationId: "harbour-marina", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "quickPaused", subStatusId: "sub-another-call", priority: 2, scheduledFor: "2026-09-04T09:00:00", durationMinutes: 105, assigneeIds: [1, 8, 5], equipmentIds: [], labelIds: ["cooking", "refrigeration", "contract"], type: "new", sourceId: "service-channel", sourceRef: "SC-3829", receivedAt: "2026-08-27T15:15:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T11:00:00" },
-  { id: "JOB-1060", locationId: "harbour-pier", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "active", priority: 2, scheduledFor: "2026-09-04T09:30:00", durationMinutes: 180, assigneeIds: [7, 9, 5], equipmentIds: [], labelIds: ["recurring", "priority-client", "compliance"], type: "new", sourceId: "corrigo", sourceRef: "COR-3507", receivedAt: "2026-08-30T16:45:00", statusChangedAt: "2026-08-30T16:45:00", lastModifiedAt: "2026-09-02T17:00:00" },
-  { id: "JOB-1099", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "active", priority: 3, scheduledFor: "2026-09-04T13:30:00", durationMinutes: 45, assigneeIds: [6, 1], equipmentIds: [], labelIds: ["refrigeration"], type: "recall", sourceId: "corrigo", sourceRef: "COR-2345", receivedAt: "2026-08-30T08:15:00", statusChangedAt: "2026-08-31T15:00:00", lastModifiedAt: "2026-09-01T11:00:00" },
-  { id: "JOB-1096", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "active", priority: 2, scheduledFor: "2026-09-04T14:00:00", durationMinutes: 240, assigneeIds: [6], equipmentIds: [], labelIds: [], type: "recall", sourceId: "ecotrak", sourceRef: "ECO-3419", receivedAt: "2026-08-24T16:15:00", statusChangedAt: "2026-08-24T16:15:00", lastModifiedAt: "2026-08-31T17:00:00" },
-  { id: "JOB-1063", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "active", priority: 3, scheduledFor: "2026-09-04T14:15:00", durationMinutes: 30, assigneeIds: [4], equipmentIds: [], labelIds: [], type: "recall", sourceId: "corrigo", sourceRef: "COR-6834", receivedAt: "2026-08-27T13:30:00", statusChangedAt: "2026-08-31T16:00:00", lastModifiedAt: "2026-09-04T14:00:00" },
-  { id: "JOB-1062", locationId: "sunset-judah", serviceId: "grease-trap", serviceName: "Grease trap service", status: "active", scheduledFor: "2026-09-04T14:30:00", durationMinutes: 75, assigneeIds: [4], equipmentIds: [], labelIds: [], type: "new", sourceId: "ecotrak", sourceRef: "ECO-1100", receivedAt: "2026-08-27T09:00:00", statusChangedAt: "2026-08-28T09:00:00", lastModifiedAt: "2026-08-31T11:00:00" },
-  { id: "JOB-1071", locationId: "presidio-canteen", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "quickPaused", subStatusId: "sub-lunch", priority: 4, scheduledFor: "2026-09-04T15:00:00", durationMinutes: 210, assigneeIds: [5, 2], equipmentIds: [], labelIds: [], type: "recall", sourceId: "direct", receivedAt: "2026-09-01T09:15:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T09:00:00" },
-  { id: "JOB-1095", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "active", priority: 4, scheduledFor: "2026-09-04T15:30:00", durationMinutes: 90, assigneeIds: [8], equipmentIds: [], labelIds: ["plumbing"], type: "recall", sourceId: "ecotrak", sourceRef: "ECO-4814", receivedAt: "2026-09-01T12:15:00", statusChangedAt: "2026-09-03T16:00:00", lastModifiedAt: "2026-09-04T11:00:00" },
-  { id: "JOB-1097", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "active", priority: 3, scheduledFor: "2026-09-04T15:30:00", durationMinutes: 120, assigneeIds: [1, 4], equipmentIds: [], labelIds: [], type: "new", sourceId: "corrigo", sourceRef: "COR-2523", receivedAt: "2026-08-26T11:30:00", statusChangedAt: "2026-08-27T12:00:00", lastModifiedAt: "2026-08-30T13:00:00" },
-  { id: "JOB-1098", locationId: "mission-24th", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "active", scheduledFor: "2026-09-04T16:30:00", durationMinutes: 45, assigneeIds: [6, 4], equipmentIds: [], labelIds: ["priority-client", "quarterly"], type: "new", sourceId: "direct", receivedAt: "2026-08-25T13:00:00", statusChangedAt: "2026-08-26T12:00:00", lastModifiedAt: "2026-08-27T11:00:00" },
-  { id: "JOB-1061", locationId: "presidio-canteen", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "active", priority: 3, scheduledFor: "2026-09-04T17:45:00", durationMinutes: 120, assigneeIds: [3], equipmentIds: [], labelIds: ["plumbing", "quarterly", "contract"], type: "new", sourceId: "corrigo", sourceRef: "COR-1780", receivedAt: "2026-08-31T08:45:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T13:00:00" },
-  { id: "JOB-1079", locationId: "ferry-main", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "upcoming", priority: 1, scheduledFor: "2026-09-05T10:45:00", durationMinutes: 75, assigneeIds: [4, 9], equipmentIds: [], labelIds: ["quarterly", "priority-client"], type: "new", sourceId: "corrigo", sourceRef: "COR-1395", receivedAt: "2026-08-27T12:45:00", statusChangedAt: "2026-09-02T10:00:00", lastModifiedAt: "2026-09-02T09:00:00" },
-  { id: "JOB-1078", locationId: "northpoint-hotel", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "cancelled", priority: 4, scheduledFor: "2026-09-05T16:15:00", durationMinutes: 45, assigneeIds: [6], equipmentIds: [], labelIds: ["refrigeration", "recurring"], type: "new", sourceId: "corrigo", sourceRef: "COR-1403", receivedAt: "2026-08-26T09:30:00", statusChangedAt: "2026-08-31T12:00:00", lastModifiedAt: "2026-09-01T13:00:00" },
-  { id: "JOB-1081", locationId: "sunset-judah", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", scheduledFor: "2026-09-07T07:00:00", durationMinutes: 180, assigneeIds: [3, 7], equipmentIds: [], labelIds: ["contract"], type: "new", sourceId: "service-channel", sourceRef: "SC-4886", receivedAt: "2026-08-30T11:30:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T08:00:00" },
-  { id: "JOB-1051", locationId: "northpoint-hotel", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "upcoming", priority: 3, scheduledFor: "2026-09-08T07:45:00", durationMinutes: 300, assigneeIds: [7], equipmentIds: [], labelIds: ["warranty", "recurring", "contract"], type: "new", sourceId: "service-channel", sourceRef: "SC-1049", receivedAt: "2026-09-03T09:00:00", statusChangedAt: "2026-09-03T09:00:00", lastModifiedAt: "2026-09-03T17:00:00" },
-  { id: "JOB-1047", locationId: "northpoint-hotel", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-08T08:45:00", durationMinutes: 45, assigneeIds: [4, 6, 7], equipmentIds: [], labelIds: ["ventilation", "plumbing"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-4744", receivedAt: "2026-09-01T13:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T16:00:00" },
-  { id: "JOB-1087", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "upcoming", priority: 3, scheduledFor: "2026-09-08T14:15:00", durationMinutes: 30, assigneeIds: [2, 9], equipmentIds: [], labelIds: ["cooking", "priority-client", "warranty"], type: "new", sourceId: "corrigo", sourceRef: "COR-1045", receivedAt: "2026-09-03T08:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T17:00:00" },
-  { id: "JOB-1085", locationId: "ferry-main", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "upcoming", priority: 3, scheduledFor: "2026-09-09T09:15:00", durationMinutes: 75, assigneeIds: [7, 1, 9], equipmentIds: [], labelIds: ["plumbing", "compliance"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-7572", receivedAt: "2026-09-03T12:30:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T13:00:00" },
-  { id: "JOB-1043", locationId: "sunset-judah", serviceId: "espresso", serviceName: "Espresso machine descale", status: "upcoming", priority: 1, scheduledFor: "2026-09-09T15:45:00", durationMinutes: 60, assigneeIds: [5], equipmentIds: [], labelIds: ["warranty", "recurring"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-9049", receivedAt: "2026-09-03T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T12:00:00" },
-  { id: "JOB-1084", locationId: "bayside-commissary", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "upcoming", priority: 2, scheduledFor: "2026-09-10T12:30:00", durationMinutes: 60, assigneeIds: [9, 5, 2], equipmentIds: [], labelIds: ["refrigeration", "contract", "warranty"], type: "new", sourceId: "direct", receivedAt: "2026-09-01T12:00:00", statusChangedAt: "2026-09-01T12:00:00", lastModifiedAt: "2026-09-03T09:00:00" },
-  { id: "JOB-1082", locationId: "wildwood-downtown", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "upcoming", priority: 3, scheduledFor: "2026-09-11T15:00:00", durationMinutes: 240, assigneeIds: [5, 8], equipmentIds: [], labelIds: ["refrigeration", "priority-client", "plumbing"], type: "new", sourceId: "corrigo", sourceRef: "COR-1986", receivedAt: "2026-09-03T16:15:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T09:00:00" },
-  { id: "JOB-1076", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "onHoldExternal", subStatusId: "sub-client-approval", priority: 4, scheduledFor: "2026-09-12T09:00:00", durationMinutes: 30, assigneeIds: [7], equipmentIds: [], labelIds: [], type: "new", sourceId: "ecotrak", sourceRef: "ECO-1280", receivedAt: "2026-09-03T16:45:00", statusChangedAt: "2026-09-03T16:45:00", lastModifiedAt: "2026-09-03T09:00:00" },
-  { id: "JOB-1086", locationId: "presidio-canteen", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", scheduledFor: "2026-09-12T16:00:00", durationMinutes: 210, assigneeIds: [7, 2, 8], equipmentIds: [], labelIds: ["priority-client", "quarterly", "refrigeration"], type: "new", sourceId: "corrigo", sourceRef: "COR-7509", receivedAt: "2026-09-03T11:15:00", statusChangedAt: "2026-09-03T15:00:00", lastModifiedAt: "2026-09-04T14:00:00" },
-  { id: "JOB-1080", locationId: "bayside-commissary", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "upcoming", priority: 3, scheduledFor: "2026-09-16T12:00:00", durationMinutes: 210, assigneeIds: [5, 3], equipmentIds: [], labelIds: ["plumbing", "cooking"], type: "new", sourceId: "corrigo", sourceRef: "COR-3638", receivedAt: "2026-09-03T16:15:00", statusChangedAt: "2026-09-03T16:15:00", lastModifiedAt: "2026-09-04T16:00:00" },
-  { id: "JOB-1083", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 4, scheduledFor: "2026-09-17T15:15:00", durationMinutes: 45, assigneeIds: [7], equipmentIds: [], labelIds: ["contract", "refrigeration"], type: "recall", sourceId: "direct", receivedAt: "2026-09-03T12:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T12:00:00" },
-  { id: "JOB-1049", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "upcoming", priority: 3, scheduledFor: "2026-09-18T14:00:00", durationMinutes: 210, assigneeIds: [9, 7], equipmentIds: [], labelIds: ["compliance"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-2977", receivedAt: "2026-09-03T08:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T10:00:00" },
-  { id: "JOB-1048", locationId: "presidio-canteen", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "upcoming", priority: 2, scheduledFor: "2026-09-20T10:45:00", durationMinutes: 180, assigneeIds: [5, 9, 8], equipmentIds: [], labelIds: [], type: "new", sourceId: "direct", receivedAt: "2026-09-03T14:15:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T15:00:00" },
-  { id: "JOB-1045", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", scheduledFor: "2026-09-21T07:45:00", durationMinutes: 210, assigneeIds: [6], equipmentIds: [], labelIds: [], type: "new", sourceId: "service-channel", sourceRef: "SC-5488", receivedAt: "2026-09-03T14:30:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T11:00:00" },
-  { id: "JOB-1050", locationId: "harbour-marina", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "upcoming", scheduledFor: "2026-09-23T11:30:00", durationMinutes: 120, assigneeIds: [6, 2, 3], equipmentIds: [], labelIds: ["contract"], type: "new", sourceId: "corrigo", sourceRef: "COR-6709", receivedAt: "2026-09-03T08:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T09:00:00" },
-  { id: "JOB-1046", locationId: "northpoint-hotel", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "upcoming", priority: 3, scheduledFor: "2026-09-23T15:45:00", durationMinutes: 30, assigneeIds: [5, 6, 7], equipmentIds: [], labelIds: ["plumbing", "compliance", "cooking"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-3162", receivedAt: "2026-09-03T08:15:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T14:00:00" },
-  { id: "JOB-1044", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "upcoming", priority: 3, scheduledFor: "2026-09-25T07:00:00", durationMinutes: 180, assigneeIds: [2], equipmentIds: [], labelIds: ["quarterly"], type: "new", sourceId: "ecotrak", sourceRef: "ECO-9087", receivedAt: "2026-09-03T15:45:00", statusChangedAt: "2026-09-04T09:00:00", lastModifiedAt: "2026-09-04T12:00:00" },
-  { id: "JOB-1052", locationId: "ferry-main", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "unscheduled", priority: 4, durationMinutes: 60, assigneeIds: [], equipmentIds: [], labelIds: ["recurring"], type: "new", sourceId: "service-channel", sourceRef: "SC-1550", receivedAt: "2026-08-31T16:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T10:00:00" },
-  { id: "JOB-1053", locationId: "sunset-judah", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "unscheduled", priority: 2, durationMinutes: 120, assigneeIds: [5], equipmentIds: [], labelIds: ["compliance", "recurring"], type: "new", sourceId: "corrigo", sourceRef: "COR-9962", receivedAt: "2026-09-03T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T08:00:00" },
-  { id: "JOB-1054", locationId: "wildwood-airport", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "unscheduled", priority: 4, durationMinutes: 90, assigneeIds: [7], equipmentIds: [], labelIds: ["priority-client", "refrigeration", "cooking"], type: "new", sourceId: "corrigo", sourceRef: "COR-4354", receivedAt: "2026-09-02T08:15:00", statusChangedAt: "2026-09-03T12:00:00", lastModifiedAt: "2026-09-03T14:00:00" },
-  { id: "JOB-1055", locationId: "wildwood-downtown", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "unscheduled", priority: 1, durationMinutes: 120, assigneeIds: [2], equipmentIds: [], labelIds: ["warranty", "quarterly", "recurring"], type: "new", sourceId: "corrigo", sourceRef: "COR-4490", receivedAt: "2026-09-03T13:30:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T15:00:00" },
-  { id: "JOB-1056", locationId: "harbour-marina", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "unscheduled", priority: 3, durationMinutes: 150, assigneeIds: [], equipmentIds: [], labelIds: ["warranty", "recurring", "refrigeration"], type: "new", sourceId: "direct", receivedAt: "2026-08-25T10:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-31T10:00:00" },
-  { id: "JOB-1057", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "unscheduled", durationMinutes: 75, assigneeIds: [], equipmentIds: [], labelIds: ["quarterly"], type: "new", sourceId: "corrigo", sourceRef: "COR-7407", receivedAt: "2026-08-27T10:30:00", statusChangedAt: "2026-09-03T14:00:00", lastModifiedAt: "2026-09-03T15:00:00" },
-  { id: "JOB-1058", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "unscheduled", priority: 3, durationMinutes: 45, assigneeIds: [8], equipmentIds: [], labelIds: ["compliance", "ventilation", "plumbing"], type: "new", sourceId: "service-channel", sourceRef: "SC-1695", receivedAt: "2026-08-30T09:30:00", statusChangedAt: null, lastModifiedAt: "2026-09-01T14:00:00" },
-  { id: "JOB-1075", locationId: "harbour-pier", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "draft", priority: 3, assigneeIds: [], equipmentIds: [], labelIds: ["refrigeration", "contract"], type: "new", sourceId: "service-channel", sourceRef: "SC-8659", receivedAt: "2026-09-03T16:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T12:00:00" },
-  { id: "JOB-1088", locationId: "sunset-judah", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "unscheduled", priority: 4, durationMinutes: 120, assigneeIds: [4], equipmentIds: [], labelIds: ["priority-client", "contract"], type: "recall", sourceId: "ecotrak", sourceRef: "ECO-7022", receivedAt: "2026-08-30T15:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T17:00:00" },
-  { id: "JOB-1089", locationId: "presidio-canteen", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "unscheduled", priority: 2, durationMinutes: 240, assigneeIds: [], equipmentIds: [], labelIds: ["warranty", "priority-client"], type: "new", sourceId: "direct", receivedAt: "2026-08-27T15:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-02T14:00:00" },
-  { id: "JOB-1090", locationId: "harbour-pier", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "unscheduled", priority: 4, durationMinutes: 180, assigneeIds: [6], equipmentIds: [], labelIds: ["refrigeration"], type: "new", sourceId: "service-channel", sourceRef: "SC-9771", receivedAt: "2026-08-27T13:00:00", statusChangedAt: "2026-09-01T15:00:00", lastModifiedAt: "2026-09-02T10:00:00" },
-  { id: "JOB-1091", locationId: "presidio-canteen", serviceId: "espresso", serviceName: "Espresso machine descale", status: "unscheduled", priority: 1, durationMinutes: 60, assigneeIds: [5], equipmentIds: [], labelIds: ["ventilation", "warranty"], type: "new", sourceId: "service-channel", sourceRef: "SC-3785", receivedAt: "2026-08-27T11:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T13:00:00" },
-  { id: "JOB-1092", locationId: "harbour-marina", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "unscheduled", priority: 3, durationMinutes: 300, assigneeIds: [], equipmentIds: [], labelIds: ["plumbing", "recurring", "quarterly"], type: "new", sourceId: "corrigo", sourceRef: "COR-6864", receivedAt: "2026-08-31T10:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-04T11:00:00" },
-  { id: "JOB-1093", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "unscheduled", durationMinutes: 105, assigneeIds: [], equipmentIds: [], labelIds: ["plumbing"], type: "new", sourceId: "service-channel", sourceRef: "SC-9431", receivedAt: "2026-08-25T16:00:00", statusChangedAt: "2026-08-29T14:00:00", lastModifiedAt: "2026-08-29T08:00:00" },
-  { id: "JOB-1094", locationId: "wildwood-airport", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "unscheduled", priority: 3, durationMinutes: 210, assigneeIds: [], equipmentIds: [], labelIds: ["refrigeration"], type: "new", sourceId: "service-channel", sourceRef: "SC-4001", receivedAt: "2026-08-27T13:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T08:00:00" },
+  { id: "JOB-1070", locationId: "northpoint-banquet", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "finalized", priority: 3, scheduledFor: "2026-07-14T13:15:00", durationMinutes: 105, assigneeIds: [7, 6], equipmentIds: ["eq-nb-ice"], labelIds: ["priority-client", "quarterly", "warranty"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6028", receivedAt: "2026-07-09T07:00:00", statusChangedAt: "2026-07-17T15:12:00", lastModifiedAt: "2026-07-18T06:12:00" },
+  { id: "JOB-1105", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "completed", scheduledFor: "2026-08-10T14:00:00", durationMinutes: 210, assigneeIds: [5, 1], equipmentIds: ["eq-wd-range"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-8590", receivedAt: "2026-07-20T15:00:00", statusChangedAt: "2026-08-10T18:06:00", lastModifiedAt: "2026-08-11T09:06:00" },
+  { id: "JOB-1068", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "cancelled", priority: 3, scheduledFor: "2026-08-09T10:00:00", durationMinutes: 90, assigneeIds: [2], equipmentIds: ["eq-wa-hood"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-7339", receivedAt: "2026-08-07T14:45:00", statusChangedAt: "2026-08-09T12:29:00", lastModifiedAt: "2026-08-10T08:29:00" },
+  { id: "JOB-1073", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "finalized", priority: 3, scheduledFor: "2026-07-28T10:15:00", durationMinutes: 300, assigneeIds: [8, 4], equipmentIds: ["eq-nb-oven"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-12T14:00:00", statusChangedAt: "2026-08-01T15:52:00", lastModifiedAt: "2026-08-02T18:52:00" },
+  { id: "JOB-1069", locationId: "wildwood-downtown", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "cancelled", scheduledFor: "2026-07-11T13:45:00", durationMinutes: 150, assigneeIds: [5, 6, 4], equipmentIds: ["eq-wd-reachin"], labelIds: ["recurring", "ventilation"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-06-20T10:15:00", statusChangedAt: "2026-07-11T17:11:00", lastModifiedAt: "2026-07-13T03:11:00" },
+  { id: "JOB-1106", locationId: "wildwood-airport", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "active", priority: 3, scheduledFor: "2026-09-04T10:30:00", durationMinutes: 240, assigneeIds: [2, 3, 4], equipmentIds: ["eq-wa-walkin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-26T07:00:00", statusChangedAt: "2026-09-04T10:30:00", lastModifiedAt: "2026-09-04T17:00:00" },
+  { id: "JOB-1074", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "active", scheduledFor: "2026-09-04T11:45:00", durationMinutes: 240, assigneeIds: [2], equipmentIds: ["eq-fm-reachin"], labelIds: ["cooking", "recurring", "warranty"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-18T07:15:00", statusChangedAt: "2026-09-04T11:55:00", lastModifiedAt: "2026-09-04T17:00:00" },
+  { id: "JOB-1066", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "completed", priority: 4, scheduledFor: "2026-07-07T07:30:00", durationMinutes: 60, assigneeIds: [8, 9], equipmentIds: ["eq-np-steamtable"], labelIds: ["quarterly", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5749", receivedAt: "2026-07-01T07:15:00", statusChangedAt: "2026-07-07T09:53:00", lastModifiedAt: "2026-07-08T21:53:00" },
+  { id: "JOB-1100", locationId: "harbour-pier", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", priority: 4, scheduledFor: "2026-07-02T13:45:00", durationMinutes: 90, assigneeIds: [9], equipmentIds: ["eq-hp-prepfridge"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-6468", receivedAt: "2026-06-15T14:30:00", statusChangedAt: "2026-07-03T16:04:00", lastModifiedAt: "2026-07-03T19:04:00" },
+  { id: "JOB-1064", locationId: "harbour-marina", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "completed", priority: 4, scheduledFor: "2026-08-25T15:45:00", durationMinutes: 150, assigneeIds: [6, 8], equipmentIds: ["eq-hm-fryer"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5085", receivedAt: "2026-08-11T13:45:00", statusChangedAt: "2026-08-25T18:25:00", lastModifiedAt: "2026-08-26T02:25:00" },
+  { id: "JOB-1067", locationId: "sunset-judah", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 1, scheduledFor: "2026-06-24T12:30:00", durationMinutes: 30, assigneeIds: [3], equipmentIds: ["eq-sj-hood"], labelIds: ["warranty", "contract"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-06-11T10:15:00", statusChangedAt: "2026-06-24T13:41:00", lastModifiedAt: "2026-06-25T05:41:00" },
+  { id: "JOB-1065", locationId: "wildwood-airport", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", priority: 2, scheduledFor: "2026-07-04T07:00:00", durationMinutes: 120, assigneeIds: [5, 4], equipmentIds: ["eq-wa-prepfridge"], labelIds: ["ventilation", "warranty", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-8711", receivedAt: "2026-07-02T15:15:00", statusChangedAt: "2026-07-07T10:29:00", lastModifiedAt: "2026-07-07T14:29:00" },
+  { id: "JOB-1103", locationId: "harbour-pier", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "upcoming", priority: 1, scheduledFor: "2026-09-28T08:00:00", durationMinutes: 120, assigneeIds: [4], equipmentIds: ["eq-hp-reachin"], labelIds: ["cooking", "priority-client", "warranty"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-31T14:30:00", statusChangedAt: "2026-09-01T21:30:00", lastModifiedAt: "2026-09-02T15:30:00" },
+  { id: "JOB-1104", locationId: "northpoint-hotel", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "completed", priority: 3, scheduledFor: "2026-08-31T11:30:00", durationMinutes: 240, assigneeIds: [6, 9, 8], equipmentIds: ["eq-np-prepfridge"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-7077", receivedAt: "2026-08-10T12:00:00", statusChangedAt: "2026-08-31T15:54:00", lastModifiedAt: "2026-08-31T17:54:00" },
+  { id: "JOB-1102", locationId: "harbour-marina", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-20T07:45:00", durationMinutes: 180, assigneeIds: [6, 7], equipmentIds: ["eq-hm-dish"], labelIds: ["priority-client", "contract", "ventilation"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-26T15:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-26T23:15:00" },
+  { id: "JOB-1101", locationId: "sunset-judah", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", priority: 2, scheduledFor: "2026-08-27T10:30:00", durationMinutes: 105, assigneeIds: [7, 8], equipmentIds: ["eq-sj-reachin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3836", receivedAt: "2026-08-12T09:15:00", statusChangedAt: "2026-08-27T13:02:00", lastModifiedAt: "2026-08-27T18:02:00" },
+  { id: "JOB-1077", locationId: "wildwood-downtown", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 2, scheduledFor: "2026-08-13T12:45:00", durationMinutes: 60, assigneeIds: [9], equipmentIds: ["eq-wd-oven"], labelIds: ["plumbing", "warranty", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3044", receivedAt: "2026-08-06T09:45:00", statusChangedAt: "2026-08-13T15:08:00", lastModifiedAt: "2026-08-13T16:08:00" },
+  { id: "JOB-1059", locationId: "northpoint-hotel", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 4, scheduledFor: "2026-09-01T14:15:00", durationMinutes: 60, assigneeIds: [5, 7], equipmentIds: ["eq-np-oven"], labelIds: ["warranty", "compliance"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-12T15:00:00", statusChangedAt: "2026-09-01T15:59:00", lastModifiedAt: "2026-09-02T17:59:00" },
+  { id: "JOB-1072", locationId: "harbour-marina", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "completed", priority: 2, scheduledFor: "2026-07-12T10:30:00", durationMinutes: 105, assigneeIds: [1, 8, 5], equipmentIds: ["eq-hm-steamtable"], labelIds: ["cooking", "refrigeration", "contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3829", receivedAt: "2026-07-07T14:15:00", statusChangedAt: "2026-07-12T13:38:00", lastModifiedAt: "2026-07-12T18:38:00" },
+  { id: "JOB-1060", locationId: "harbour-pier", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "unscheduled", priority: 2, durationMinutes: 180, assigneeIds: [7, 9, 5], equipmentIds: ["eq-hp-dish"], labelIds: ["recurring", "priority-client", "compliance"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-3507", receivedAt: "2026-08-22T13:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-24T09:00:00" },
+  { id: "JOB-1099", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "quickPaused", subStatusId: "sub-another-call", priority: 3, scheduledFor: "2026-09-02T11:15:00", durationMinutes: 45, assigneeIds: [6, 1], equipmentIds: ["eq-nb-oven"], labelIds: ["refrigeration"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-2345", receivedAt: "2026-08-21T12:45:00", statusChangedAt: "2026-09-02T11:49:00", lastModifiedAt: "2026-09-02T11:49:00" },
+  { id: "JOB-1096", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 2, scheduledFor: "2026-09-05T13:45:00", durationMinutes: 240, assigneeIds: [6], equipmentIds: ["eq-m24-steamtable"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-3419", receivedAt: "2026-08-30T09:30:00", statusChangedAt: "2026-09-02T07:15:00", lastModifiedAt: "2026-09-02T22:15:00" },
+  { id: "JOB-1063", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "unscheduled", priority: 3, durationMinutes: 30, assigneeIds: [4], equipmentIds: ["eq-wd-range"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6834", receivedAt: "2026-08-24T08:00:00", statusChangedAt: "2026-09-02T08:30:00", lastModifiedAt: "2026-09-03T14:30:00" },
+  { id: "JOB-1062", locationId: "sunset-judah", serviceId: "grease-trap", serviceName: "Grease trap service", status: "upcoming", scheduledFor: "2026-09-17T12:00:00", durationMinutes: 75, assigneeIds: [4], equipmentIds: ["eq-sj-greasetrap"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-1100", receivedAt: "2026-09-03T11:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T19:45:00" },
+  { id: "JOB-1071", locationId: "presidio-canteen", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 4, scheduledFor: "2026-09-26T13:00:00", durationMinutes: 210, assigneeIds: [5, 2], equipmentIds: ["eq-pc-steamtable"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-27T11:00:00", statusChangedAt: "2026-09-03T14:30:00", lastModifiedAt: "2026-09-03T20:30:00" },
+  { id: "JOB-1095", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "unscheduled", priority: 4, durationMinutes: 90, assigneeIds: [8], equipmentIds: ["eq-hm-greasetrap"], labelIds: ["plumbing"], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-4814", receivedAt: "2026-08-13T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-14T07:15:00" },
+  { id: "JOB-1097", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "unscheduled", priority: 3, durationMinutes: 120, assigneeIds: [1, 4], equipmentIds: ["eq-fm-reachin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-2523", receivedAt: "2026-08-25T11:15:00", statusChangedAt: "2026-08-29T13:45:00", lastModifiedAt: "2026-08-30T01:45:00" },
+  { id: "JOB-1098", locationId: "mission-24th", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", scheduledFor: "2026-07-29T14:45:00", durationMinutes: 45, assigneeIds: [6, 4], equipmentIds: ["eq-m24-reachin"], labelIds: ["priority-client", "quarterly"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-16T15:45:00", statusChangedAt: "2026-07-29T16:31:00", lastModifiedAt: "2026-07-31T02:31:00" },
+  { id: "JOB-1061", locationId: "presidio-canteen", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "pastDue", priority: 3, scheduledFor: "2026-08-31T11:30:00", durationMinutes: 120, assigneeIds: [3], equipmentIds: ["eq-pc-reachin"], labelIds: ["plumbing", "quarterly", "contract"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1780", receivedAt: "2026-08-26T09:30:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T17:30:00" },
+  { id: "JOB-1079", locationId: "ferry-main", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "completed", priority: 1, scheduledFor: "2026-08-04T09:30:00", durationMinutes: 75, assigneeIds: [4, 9], equipmentIds: ["eq-fm-walkin"], labelIds: ["quarterly", "priority-client"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1395", receivedAt: "2026-07-16T12:00:00", statusChangedAt: "2026-08-04T11:06:00", lastModifiedAt: "2026-08-04T18:06:00" },
+  { id: "JOB-1078", locationId: "northpoint-hotel", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "upcoming", priority: 4, scheduledFor: "2026-09-23T10:30:00", durationMinutes: 45, assigneeIds: [6], equipmentIds: ["eq-np-hood"], labelIds: ["refrigeration", "recurring"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1403", receivedAt: "2026-09-02T08:15:00", statusChangedAt: "2026-09-02T15:45:00", lastModifiedAt: "2026-09-02T18:45:00" },
+  { id: "JOB-1081", locationId: "sunset-judah", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "pastDue", scheduledFor: "2026-09-02T10:45:00", durationMinutes: 180, assigneeIds: [3, 7], equipmentIds: ["eq-sj-proofer"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-4886", receivedAt: "2026-08-21T11:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-01T13:45:00" },
+  { id: "JOB-1051", locationId: "northpoint-hotel", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "completed", priority: 3, scheduledFor: "2026-07-27T11:30:00", durationMinutes: 300, assigneeIds: [7], equipmentIds: ["eq-np-walkin"], labelIds: ["warranty", "recurring", "contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-1049", receivedAt: "2026-07-23T11:00:00", statusChangedAt: "2026-07-27T17:08:00", lastModifiedAt: "2026-07-28T04:08:00" },
+  { id: "JOB-1047", locationId: "northpoint-hotel", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-25T08:00:00", durationMinutes: 45, assigneeIds: [4, 6, 7], equipmentIds: ["eq-np-dish"], labelIds: ["ventilation", "plumbing"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-4744", receivedAt: "2026-08-21T11:45:00", statusChangedAt: "2026-08-30T11:45:00", lastModifiedAt: "2026-08-31T05:45:00" },
+  { id: "JOB-1087", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "finalized", priority: 3, scheduledFor: "2026-07-09T12:30:00", durationMinutes: 30, assigneeIds: [2, 9], equipmentIds: ["eq-wa-hood"], labelIds: ["cooking", "priority-client", "warranty"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1045", receivedAt: "2026-06-29T11:45:00", statusChangedAt: "2026-07-11T14:16:00", lastModifiedAt: "2026-07-11T21:16:00" },
+  { id: "JOB-1085", locationId: "ferry-main", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "finalized", priority: 3, scheduledFor: "2026-08-13T12:00:00", durationMinutes: 75, assigneeIds: [7, 1, 9], equipmentIds: ["eq-fm-walkin"], labelIds: ["plumbing", "compliance"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-7572", receivedAt: "2026-08-09T08:30:00", statusChangedAt: "2026-08-14T14:44:00", lastModifiedAt: "2026-08-15T12:44:00" },
+  { id: "JOB-1043", locationId: "sunset-judah", serviceId: "espresso", serviceName: "Espresso machine descale", status: "upcoming", priority: 1, scheduledFor: "2026-09-28T10:00:00", durationMinutes: 60, assigneeIds: [5], equipmentIds: ["eq-sj-espresso"], labelIds: ["warranty", "recurring"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-9049", receivedAt: "2026-08-25T11:15:00", statusChangedAt: "2026-09-01T15:45:00", lastModifiedAt: "2026-09-02T05:45:00" },
+  { id: "JOB-1084", locationId: "bayside-commissary", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "pastDue", priority: 2, scheduledFor: "2026-08-31T08:00:00", durationMinutes: 60, assigneeIds: [9, 5, 2], equipmentIds: ["eq-bc-hood"], labelIds: ["refrigeration", "contract", "warranty"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-14T10:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T16:00:00" },
+  { id: "JOB-1082", locationId: "wildwood-downtown", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "upcoming", priority: 3, scheduledFor: "2026-09-23T13:30:00", durationMinutes: 240, assigneeIds: [5, 8], equipmentIds: ["eq-wd-walkin"], labelIds: ["refrigeration", "priority-client", "plumbing"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1986", receivedAt: "2026-08-25T12:45:00", statusChangedAt: null, lastModifiedAt: "2026-08-25T17:45:00" },
+  { id: "JOB-1076", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-25T07:45:00", durationMinutes: 30, assigneeIds: [7], equipmentIds: ["eq-nb-dish"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-1280", receivedAt: "2026-08-18T13:15:00", statusChangedAt: "2026-09-04T10:15:00", lastModifiedAt: "2026-09-04T17:00:00" },
+  { id: "JOB-1086", locationId: "presidio-canteen", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", scheduledFor: "2026-09-06T09:45:00", durationMinutes: 210, assigneeIds: [7, 2, 8], equipmentIds: ["eq-pc-dish"], labelIds: ["priority-client", "quarterly", "refrigeration"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-7509", receivedAt: "2026-08-17T09:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-18T00:00:00" },
+  { id: "JOB-1080", locationId: "bayside-commissary", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "completed", priority: 3, scheduledFor: "2026-08-02T15:45:00", durationMinutes: 210, assigneeIds: [5, 3], equipmentIds: ["eq-bc-fryer"], labelIds: ["plumbing", "cooking"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-3638", receivedAt: "2026-07-25T13:00:00", statusChangedAt: "2026-08-02T19:33:00", lastModifiedAt: "2026-08-03T08:33:00" },
+  { id: "JOB-1083", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "pastDue", priority: 4, scheduledFor: "2026-08-30T13:30:00", durationMinutes: 45, assigneeIds: [7], equipmentIds: ["eq-m24-steamtable"], labelIds: ["contract", "refrigeration"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-13T12:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T14:30:00" },
+  { id: "JOB-1049", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "onHoldInternal", subStatusId: "sub-tech", priority: 3, scheduledFor: "2026-09-02T10:15:00", durationMinutes: 210, assigneeIds: [9, 7], equipmentIds: ["eq-bc-ice"], labelIds: ["compliance"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-2977", receivedAt: "2026-08-15T07:15:00", statusChangedAt: "2026-09-02T10:42:00", lastModifiedAt: "2026-09-02T10:42:00" },
+  { id: "JOB-1048", locationId: "presidio-canteen", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 2, scheduledFor: "2026-07-30T12:30:00", durationMinutes: 180, assigneeIds: [5, 9, 8], equipmentIds: ["eq-pc-hood"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-17T14:15:00", statusChangedAt: "2026-07-30T16:23:00", lastModifiedAt: "2026-07-31T00:23:00" },
+  { id: "JOB-1045", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", scheduledFor: "2026-09-20T09:15:00", durationMinutes: 210, assigneeIds: [6], equipmentIds: ["eq-np-steamtable"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-5488", receivedAt: "2026-09-01T09:15:00", statusChangedAt: "2026-09-01T15:15:00", lastModifiedAt: "2026-09-01T21:15:00" },
+  { id: "JOB-1050", locationId: "harbour-marina", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "completed", scheduledFor: "2026-08-30T07:45:00", durationMinutes: 120, assigneeIds: [6, 2, 3], equipmentIds: ["eq-hm-ice"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6709", receivedAt: "2026-08-09T14:15:00", statusChangedAt: "2026-08-30T10:45:00", lastModifiedAt: "2026-08-30T21:45:00" },
+  { id: "JOB-1046", locationId: "northpoint-hotel", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 3, scheduledFor: "2026-07-05T13:00:00", durationMinutes: 30, assigneeIds: [5, 6, 7], equipmentIds: ["eq-np-hood"], labelIds: ["plumbing", "compliance", "cooking"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-3162", receivedAt: "2026-06-20T14:00:00", statusChangedAt: "2026-07-05T14:35:00", lastModifiedAt: "2026-07-06T17:35:00" },
+  { id: "JOB-1044", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "completed", priority: 3, scheduledFor: "2026-08-02T11:00:00", durationMinutes: 180, assigneeIds: [2], equipmentIds: ["eq-bc-ice"], labelIds: ["quarterly"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-9087", receivedAt: "2026-07-15T14:15:00", statusChangedAt: "2026-08-02T14:19:00", lastModifiedAt: "2026-08-02T15:19:00" },
+  { id: "JOB-1052", locationId: "ferry-main", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "draft", priority: 4, durationMinutes: 60, assigneeIds: [], equipmentIds: ["eq-fm-ice"], labelIds: ["recurring"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-1550", receivedAt: "2026-09-03T11:15:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T15:15:00" },
+  { id: "JOB-1053", locationId: "sunset-judah", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", scheduledFor: "2026-07-07T15:45:00", priority: 2, durationMinutes: 120, assigneeIds: [5], equipmentIds: ["eq-sj-prepfridge"], labelIds: ["compliance", "recurring"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-9962", receivedAt: "2026-06-16T08:00:00", statusChangedAt: "2026-07-11T18:05:00", lastModifiedAt: "2026-07-11T20:05:00" },
+  { id: "JOB-1054", locationId: "wildwood-airport", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "completed", scheduledFor: "2026-07-25T07:30:00", priority: 4, durationMinutes: 90, assigneeIds: [7], equipmentIds: ["eq-wa-walkin"], labelIds: ["priority-client", "refrigeration", "cooking"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-4354", receivedAt: "2026-07-16T07:45:00", statusChangedAt: "2026-07-25T10:07:00", lastModifiedAt: "2026-07-26T02:07:00" },
+  { id: "JOB-1055", locationId: "wildwood-downtown", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", scheduledFor: "2026-07-17T13:30:00", priority: 1, durationMinutes: 120, assigneeIds: [2], equipmentIds: ["eq-wd-reachin"], labelIds: ["warranty", "quarterly", "recurring"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-4490", receivedAt: "2026-07-14T08:45:00", statusChangedAt: "2026-07-17T16:45:00", lastModifiedAt: "2026-07-18T17:45:00" },
+  { id: "JOB-1056", locationId: "harbour-marina", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "finalized", scheduledFor: "2026-08-22T08:30:00", priority: 3, durationMinutes: 150, assigneeIds: [8], equipmentIds: ["eq-hm-walkin"], labelIds: ["warranty", "recurring", "refrigeration"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-19T08:45:00", statusChangedAt: "2026-08-27T12:15:00", lastModifiedAt: "2026-08-28T15:15:00" },
+  { id: "JOB-1057", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "pastDue", scheduledFor: "2026-08-30T09:00:00", durationMinutes: 75, assigneeIds: [5], equipmentIds: ["eq-hm-greasetrap"], labelIds: ["quarterly"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-7407", receivedAt: "2026-08-14T08:45:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T03:00:00" },
+  { id: "JOB-1058", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "active", scheduledFor: "2026-09-04T10:15:00", priority: 3, durationMinutes: 45, assigneeIds: [8], equipmentIds: ["eq-nb-dish"], labelIds: ["compliance", "ventilation", "plumbing"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-1695", receivedAt: "2026-08-26T07:30:00", statusChangedAt: "2026-09-04T10:29:00", lastModifiedAt: "2026-09-04T17:00:00" },
+  { id: "JOB-1075", locationId: "harbour-pier", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", scheduledFor: "2026-08-14T13:00:00", priority: 3, durationMinutes: 60, assigneeIds: [4], equipmentIds: ["eq-hp-oven"], labelIds: ["refrigeration", "contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-8659", receivedAt: "2026-08-07T13:30:00", statusChangedAt: "2026-08-14T14:42:00", lastModifiedAt: "2026-08-14T18:42:00" },
+  { id: "JOB-1088", locationId: "sunset-judah", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "pastDue", scheduledFor: "2026-08-29T13:15:00", priority: 4, durationMinutes: 120, assigneeIds: [4], equipmentIds: ["eq-sj-walkin"], labelIds: ["priority-client", "contract"], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-7022", receivedAt: "2026-08-18T11:30:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T03:15:00" },
+  { id: "JOB-1089", locationId: "presidio-canteen", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "cancelled", scheduledFor: "2026-08-20T15:00:00", priority: 2, durationMinutes: 240, assigneeIds: [5], equipmentIds: ["eq-pc-prepfridge"], labelIds: ["warranty", "priority-client"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-03T07:15:00", statusChangedAt: "2026-08-20T19:34:00", lastModifiedAt: "2026-08-22T06:34:00" },
+  { id: "JOB-1090", locationId: "harbour-pier", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "onHoldExternal", subStatusId: "sub-parts", scheduledFor: "2026-09-04T10:15:00", priority: 4, durationMinutes: 180, assigneeIds: [6], equipmentIds: ["eq-hp-fryer"], labelIds: ["refrigeration"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-9771", receivedAt: "2026-08-18T09:15:00", statusChangedAt: "2026-09-04T10:15:00", lastModifiedAt: "2026-09-04T17:00:00" },
+  { id: "JOB-1091", locationId: "presidio-canteen", serviceId: "espresso", serviceName: "Espresso machine descale", status: "completed", scheduledFor: "2026-08-20T08:30:00", priority: 1, durationMinutes: 60, assigneeIds: [5], equipmentIds: ["eq-pc-espresso"], labelIds: ["ventilation", "warranty"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3785", receivedAt: "2026-08-01T14:30:00", statusChangedAt: "2026-08-20T09:42:00", lastModifiedAt: "2026-08-20T17:42:00" },
+  { id: "JOB-1092", locationId: "harbour-marina", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "completed", scheduledFor: "2026-07-01T12:00:00", priority: 3, durationMinutes: 300, assigneeIds: [5], equipmentIds: ["eq-hm-walkin"], labelIds: ["plumbing", "recurring", "quarterly"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6864", receivedAt: "2026-06-28T08:45:00", statusChangedAt: "2026-07-01T17:25:00", lastModifiedAt: "2026-07-01T18:25:00" },
+  { id: "JOB-1093", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "completed", scheduledFor: "2026-07-27T07:15:00", durationMinutes: 105, assigneeIds: [7], equipmentIds: ["eq-bc-ice"], labelIds: ["plumbing"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-9431", receivedAt: "2026-07-22T15:15:00", statusChangedAt: "2026-07-27T09:23:00", lastModifiedAt: "2026-07-27T12:23:00" },
+  { id: "JOB-1094", locationId: "wildwood-airport", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "completed", scheduledFor: "2026-06-30T14:45:00", priority: 3, durationMinutes: 210, assigneeIds: [5], equipmentIds: ["eq-wa-ice"], labelIds: ["refrigeration"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-4001", receivedAt: "2026-06-15T12:15:00", statusChangedAt: "2026-06-30T19:23:00", lastModifiedAt: "2026-07-02T05:23:00" },
 ];
 
 const ESTIMATES_AT_ANCHOR: Estimate[] = [
   // The six original curated estimates (their ids, links and stories kept),
   // UPGRADED 2026-09-11 with the full production field set — see the
   // Estimate schema note in types.ts for the two status levels.
-  { id: "EST-2201", locationId: "wildwood-downtown", jobId: "JOB-1201", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler compressor replacement", status: "awaitingApproval", labelIds: ["replacement"], total: 3480.0, issuedAt: "2026-09-02T11:20:00", dueAt: "2026-10-02T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-09-02T11:20:00", lastModifiedAt: "2026-09-02T11:20:00", lastViewedAt: "2026-09-03T08:40:00" },
+  { id: "EST-2201", locationId: "wildwood-downtown", jobId: "JOB-1201", equipmentIds: ["eq-wd-walkin"], serviceId: "walk-in-cooler", serviceName: "Walk-in cooler compressor replacement", status: "awaitingApproval", labelIds: ["replacement"], total: 3480.0, issuedAt: "2026-09-02T11:20:00", dueAt: "2026-10-02T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-09-02T11:20:00", statusChangedById: 2, lastModifiedAt: "2026-09-02T11:20:00", lastViewedAt: "2026-09-03T08:40:00" },
   { id: "EST-2202", locationId: "mission-24th", jobId: "JOB-1207", serviceId: "hood-cleaning", serviceName: "Hood deep cleaning", status: "draft", labelIds: [], total: 1250.0, issuedAt: "2026-08-30T15:00:00", dueAt: "2026-09-29T17:00:00", downPayment: "notRequired", statusChangedAt: null, lastModifiedAt: "2026-09-01T09:30:00" },
   // Invoiced as INV-3104 (same 2,190.50 at North Point).
-  { id: "EST-2203", locationId: "northpoint-hotel", serviceId: "freezer-seal", serviceName: "Walk-in freezer door assembly", status: "invoiced", labelIds: ["replacement"], total: 2190.5, issuedAt: "2026-08-25T10:00:00", dueAt: "2026-09-24T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-27T14:10:00", lastModifiedAt: "2026-08-27T14:10:00", lastViewedAt: "2026-08-27T09:15:00" },
+  { id: "EST-2203", locationId: "northpoint-hotel", equipmentIds: ["eq-np-walkin"], serviceId: "freezer-seal", serviceName: "Walk-in freezer door assembly", status: "invoiced", labelIds: ["replacement"], total: 2190.5, issuedAt: "2026-08-25T10:00:00", dueAt: "2026-09-24T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-27T14:10:00", statusChangedById: 3, lastModifiedAt: "2026-08-27T14:10:00", lastViewedAt: "2026-08-27T09:15:00" },
   // Won and turned into the quarterly service job (JOB-1206).
-  { id: "EST-2204", locationId: "bayside-commissary", jobId: "JOB-1206", serviceId: "combi-oven", serviceName: "Combi oven annual contract", status: "jobbed", labelIds: ["contract-renewal", "preventive-plan"], total: 5400.0, issuedAt: "2026-07-18T09:00:00", dueAt: "2026-08-17T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-05T11:00:00", lastModifiedAt: "2026-08-05T11:00:00", lastViewedAt: "2026-07-20T13:25:00" },
+  { id: "EST-2204", locationId: "bayside-commissary", jobId: "JOB-1206", equipmentIds: ["eq-bc-oven"], serviceId: "combi-oven", serviceName: "Combi oven annual contract", status: "jobbed", labelIds: ["contract-renewal", "preventive-plan"], total: 5400.0, issuedAt: "2026-07-18T09:00:00", dueAt: "2026-08-17T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-05T11:00:00", statusChangedById: 5, lastModifiedAt: "2026-08-05T11:00:00", lastViewedAt: "2026-07-20T13:25:00" },
   { id: "EST-2205", locationId: "harbour-marina", serviceName: "Kitchen build-out consultation", status: "lost", labelIds: ["budgetary"], total: 8900.0, issuedAt: "2026-06-11T14:30:00", dueAt: "2026-07-11T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-07-02T10:00:00", lastModifiedAt: "2026-07-02T10:00:00", lastViewedAt: "2026-06-15T16:45:00" },
   // Sent but never opened (no lastViewedAt) — the "Seen" column's gap.
-  { id: "EST-2206", locationId: "sunset-judah", jobId: "JOB-1208", serviceId: "steam-table", serviceName: "Proofer thermostat + calibration", status: "awaitingApproval", labelIds: ["repair"], total: 480.0, issuedAt: "2026-08-24T12:10:00", dueAt: "2026-09-23T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-08-24T12:10:00", lastModifiedAt: "2026-08-24T12:10:00" },
+  { id: "EST-2206", locationId: "sunset-judah", jobId: "JOB-1208", equipmentIds: ["eq-sj-proofer"], serviceId: "steam-table", serviceName: "Proofer thermostat + calibration", status: "awaitingApproval", labelIds: ["repair"], total: 480.0, issuedAt: "2026-08-24T12:10:00", dueAt: "2026-09-23T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-08-24T12:10:00", statusChangedById: 1, lastModifiedAt: "2026-08-24T12:10:00" },
   // ---- the mass of the estimates list (moved into the db 2026-09-11) -------
   // 56 more, formerly generated inside the Filters prototype
   // (estimatesData.ts, seed 20260911) — materialized against the demo clock
@@ -1377,14 +1731,39 @@ const TAX_RATE_ITEMS_AT_ANCHOR: TaxRateItem[] = [
  * an external hold (waiting on someone else), two on an internal one (waiting
  * on itself).
  */
+// A workspace's own named reasons, each belonging to ONE status. Extended
+// 2026-09-28 (Daniel): ACTIVE carries them too, and every name has to read
+// correctly for its own status — "Lunch break" is a quick pause, "Waiting for
+// parts" is a hold, neither is a way of being active.
+//
+// ACTIVE has none on purpose (Daniel, 2026-09-28) — the check-in status
+// already says what the tech is doing. The two kinds that remain differ:
+//   quickPaused — a SHORT interruption the tech takes; they are coming back.
+//   onHold*     — the job is BLOCKED and nobody is working it. External waits
+//                 on the client or a supplier (crimson); internal waits on us
+//                 (brown).
 export const JOB_SUB_STATUSES: JobSubStatusRecord[] = [
+  { id: "sub-break", name: "Break", status: "quickPaused" },
   { id: "sub-lunch", name: "Lunch break", status: "quickPaused" },
   { id: "sub-another-call", name: "Pulled to another call", status: "quickPaused" },
+  { id: "sub-getting-parts", name: "Collecting parts", status: "quickPaused" },
+
   { id: "sub-parts", name: "Waiting for parts", status: "onHoldExternal" },
   { id: "sub-client-approval", name: "Waiting for client approval", status: "onHoldExternal" },
+  { id: "sub-access", name: "Waiting for site access", status: "onHoldExternal" },
+
   { id: "sub-tech", name: "Waiting for a tech", status: "onHoldInternal" },
   { id: "sub-quote", name: "Quote in progress", status: "onHoldInternal" },
+  { id: "sub-parts-order", name: "Parts on order", status: "onHoldInternal" },
 ];
+
+/** The reasons one status offers — what a form's sub-status picker lists. */
+export const subStatusesFor = (status: JobSubStatusRecord["status"]): JobSubStatusRecord[] =>
+  JOB_SUB_STATUSES.filter((sub) => sub.status === status);
+
+/** True when this reason waits on US rather than the client (brown, not crimson). */
+export const isInternalHold = (name: string): boolean =>
+  JOB_SUB_STATUSES.some((sub) => sub.name === name && sub.status === "onHoldInternal");
 
 export const JOB_LABELS: JobLabel[] = [
   { id: "refrigeration", name: "Refrigeration" },
@@ -1443,11 +1822,26 @@ export const JOB_SOURCES: JobSource[] = [
 // ---- "New Job" form reference tables (added 2026-09-07) --------------------
 
 // NEW concept — production has no Branch model; see types.ts.
+//
+// A BRANCH is an OFFICE OF THE SERVICE COMPANY (Daniel, 2026-09-28), not a
+// client's site. Every company has at least one; a bigger one has several, and
+// they can sit in different cities, different states, even different countries.
+// So a branch is named for its CITY, not for a neighbourhood — the earlier set
+// (Mission District / Oakland / San Jose) read as three offices inside one
+// metro, which is not what the concept is for.
+//
+// Roopairs runs three: San Francisco is the home office and serves every
+// client in this demo, with Los Angeles and Portland showing that the list is
+// genuinely multi-city.
 export const BRANCHES: Branch[] = [
-  { id: "sf-mission", name: "Mission District", street: "2201 Bryant Street", city: "San Francisco", state: "CA", postalCode: "94110" },
-  { id: "oakland", name: "Oakland", street: "477 8th Avenue", city: "Oakland", state: "CA", postalCode: "94606" },
-  { id: "san-jose", name: "San Jose", street: "1698 Monterey Road", city: "San Jose", state: "CA", postalCode: "95112" },
+  { id: "san-francisco", name: "San Francisco", street: "2201 Bryant Street", city: "San Francisco", state: "CA", postalCode: "94110" },
+  { id: "los-angeles", name: "Los Angeles", street: "1543 Sawtelle Boulevard", city: "Los Angeles", state: "CA", postalCode: "90025" },
+  { id: "portland", name: "Portland", street: "820 SE Belmont Street", city: "Portland", state: "OR", postalCode: "97214" },
 ];
+
+/** The branch handling a job — the one its dispatcher chose at creation. */
+export const branchOf = (job: { branchId: string }): Branch =>
+  BRANCHES.find((branch) => branch.id === job.branchId) ?? BRANCHES[0];
 
 // NEW concept — production has no form-template model; see types.ts.
 export const JOB_FORMS: JobForm[] = [
@@ -1461,6 +1855,8 @@ export const JOB_FORMS: JobForm[] = [
 
 /** Production `ServiceCompany` defaults; "manual" keeps the Job ID field visible. */
 export const COMPANY: CompanySettings = {
+  name: "Roopairs",
+  logo: { light: "roopairs-light.svg", dark: "roopairs-dark.svg" },
   maxFileUploads: 25,
   maxFileUploadSizeMb: 100,
   jobCustomIdGenerationMode: "manual",
@@ -1474,11 +1870,11 @@ export const COMPANY: CompanySettings = {
 // invoices 2026-09-04` (seed 20260914), the estimates mass's pattern.
 const INVOICES_AT_ANCHOR: Invoice[] = [
   // Paid two weeks into its Net 15 — JOB-1204's completed ice-machine call.
-  { id: "INV-3101", locationId: "harbour-pier", jobId: "JOB-1204", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "paid", labelIds: [], total: 320.0, amountPaid: 320.0, issuedAt: "2026-08-21T10:00:00", dueAt: "2026-09-05T17:00:00", statusChangedAt: "2026-09-02T10:30:00", lastModifiedAt: "2026-09-02T10:30:00", lastViewedAt: "2026-08-30T14:00:00" },
+  { id: "INV-3101", locationId: "harbour-pier", jobId: "JOB-1204", equipmentIds: ["eq-hp-ice"], serviceId: "ice-machine", serviceName: "Ice machine descale", status: "paid", labelIds: [], total: 320.0, amountPaid: 320.0, issuedAt: "2026-08-21T10:00:00", dueAt: "2026-09-05T17:00:00", statusChangedAt: "2026-09-02T10:30:00", statusChangedById: 4, lastModifiedAt: "2026-09-02T10:30:00", lastViewedAt: "2026-08-30T14:00:00" },
   // Its Net 30 ran out on Aug 31, so the badge reads OVERDUE (derived — the
   // stored status stays "outstanding"). The invoice that finalized JOB-1209.
-  { id: "INV-3102", locationId: "wildwood-downtown", jobId: "JOB-1209", serviceId: "range-burner", serviceName: "Range pilot relight", status: "outstanding", labelIds: ["final-bill"], total: 185.0, amountPaid: 0, issuedAt: "2026-08-01T09:00:00", dueAt: "2026-08-31T17:00:00", statusChangedAt: "2026-08-01T09:00:00", lastModifiedAt: "2026-08-01T09:00:00", lastViewedAt: "2026-08-05T11:15:00" },
-  { id: "INV-3103", locationId: "bayside-commissary", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "unsent", labelIds: ["quarterly"], total: 1350.0, amountPaid: 0, issuedAt: "2026-08-29T16:20:00", dueAt: "2026-09-28T17:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T16:20:00" },
+  { id: "INV-3102", locationId: "wildwood-downtown", jobId: "JOB-1209", equipmentIds: ["eq-wd-range"], serviceId: "range-burner", serviceName: "Range pilot relight", status: "outstanding", labelIds: ["final-bill"], total: 185.0, amountPaid: 0, issuedAt: "2026-08-01T09:00:00", dueAt: "2026-08-31T17:00:00", statusChangedAt: "2026-08-01T09:00:00", statusChangedById: 2, lastModifiedAt: "2026-08-01T09:00:00", lastViewedAt: "2026-08-05T11:15:00" },
+  { id: "INV-3103", locationId: "bayside-commissary", equipmentIds: ["eq-bc-oven"], serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "unsent", labelIds: ["quarterly"], total: 1350.0, amountPaid: 0, issuedAt: "2026-08-29T16:20:00", dueAt: "2026-09-28T17:00:00", statusChangedAt: null, statusChangedById: 5, lastModifiedAt: "2026-08-29T16:20:00" },
   { id: "INV-3104", locationId: "northpoint-hotel", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "outstanding", labelIds: [], total: 2190.5, amountPaid: 0, issuedAt: "2026-08-27T15:00:00", dueAt: "2026-10-11T17:00:00", statusChangedAt: "2026-08-27T15:00:00", lastModifiedAt: "2026-08-27T15:00:00", lastViewedAt: "2026-09-01T09:40:00" },
   // Voided the day after JOB-1210 was cancelled. Due on receipt, never paid.
   { id: "INV-3105", locationId: "ferry-main", jobId: "JOB-1210", serviceId: "prep-fridge", serviceName: "Reach-in cooler diagnostic", status: "voided", labelIds: [], total: 95.0, amountPaid: 0, issuedAt: "2026-08-16T09:30:00", dueAt: "2026-08-16T17:00:00", statusChangedAt: "2026-08-16T09:30:00", lastModifiedAt: "2026-08-16T09:30:00" },
@@ -1514,7 +1910,7 @@ const INVOICES_AT_ANCHOR: Invoice[] = [
   { id: "INV-3116", locationId: "bayside-commissary", serviceId: "grease-trap", serviceName: "Grease trap service", status: "outstanding", labelIds: ["labor-only", "quarterly"], total: 2350, amountPaid: 0, issuedAt: "2026-07-19T10:15:00", dueAt: "2026-08-18T17:00:00", statusChangedAt: "2026-07-20T17:00:00", lastModifiedAt: "2026-07-22T17:00:00", lastViewedAt: "2026-08-17T08:00:00" },
   { id: "INV-3152", locationId: "sunset-judah", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "paid", labelIds: [], total: 250, amountPaid: 250, issuedAt: "2026-07-04T13:30:00", dueAt: "2026-08-18T17:00:00", statusChangedAt: "2026-07-15T10:00:00", lastModifiedAt: "2026-07-17T11:00:00", lastViewedAt: "2026-07-10T11:00:00" },
   { id: "INV-3109", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "paid", labelIds: ["final-bill", "quarterly"], total: 8000, amountPaid: 8000, issuedAt: "2026-07-05T14:45:00", dueAt: "2026-08-19T17:00:00", statusChangedAt: "2026-08-02T10:00:00", lastModifiedAt: "2026-08-14T13:00:00", lastViewedAt: "2026-08-04T20:15:00" },
-  { id: "INV-3138", locationId: "wildwood-downtown", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "paid", labelIds: ["progress-billing", "deposit-applied"], total: 300, amountPaid: 300, issuedAt: "2026-08-04T09:00:00", dueAt: "2026-08-19T17:00:00", statusChangedAt: "2026-08-19T12:00:00", lastModifiedAt: "2026-08-24T11:00:00", lastViewedAt: "2026-08-24T19:30:00" },
+  { id: "INV-3138", locationId: "wildwood-downtown", equipmentIds: ["eq-wd-walkin"], serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "paid", labelIds: ["progress-billing", "deposit-applied"], total: 300, amountPaid: 300, issuedAt: "2026-08-04T09:00:00", dueAt: "2026-08-19T17:00:00", statusChangedAt: "2026-08-19T12:00:00", statusChangedById: 1, lastModifiedAt: "2026-08-24T11:00:00", lastViewedAt: "2026-08-24T19:30:00" },
   { id: "INV-3135", locationId: "mission-24th", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "forgiven", labelIds: ["progress-billing", "parts-only"], total: 11100, amountPaid: 0, issuedAt: "2026-07-23T14:30:00", dueAt: "2026-08-22T17:00:00", statusChangedAt: "2026-08-20T12:00:00", lastModifiedAt: "2026-09-04T11:00:00" },
   { id: "INV-3134", locationId: "bayside-commissary", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "voided", labelIds: ["deposit-applied"], total: 3072, amountPaid: 0, issuedAt: "2026-07-11T12:00:00", dueAt: "2026-08-25T17:00:00", statusChangedAt: "2026-08-10T15:00:00", lastModifiedAt: "2026-08-25T11:00:00" },
   { id: "INV-3144", locationId: "wildwood-airport", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "outstanding", labelIds: ["deposit-applied"], total: 635, amountPaid: 0, issuedAt: "2026-07-31T11:00:00", dueAt: "2026-08-30T17:00:00", statusChangedAt: "2026-08-01T15:00:00", lastModifiedAt: "2026-08-19T11:00:00", lastViewedAt: "2026-08-23T08:45:00" },
@@ -1920,6 +2316,7 @@ export const CLIENTS: Client[] = shiftDates(CLIENTS_AT_ANCHOR);
 export const VENDORS: Vendor[] = shiftDates(VENDORS_AT_ANCHOR);
 export const EQUIPMENT: Equipment[] = shiftDates(EQUIPMENT_AT_ANCHOR);
 export const WARRANTIES: Warranty[] = shiftDates(WARRANTIES_AT_ANCHOR);
+export const EQUIPMENT_FILES: EquipmentFile[] = shiftDates(EQUIPMENT_FILES_AT_ANCHOR);
 export const JOBS: Job[] = shiftDates(JOBS_AT_ANCHOR);
 export const ESTIMATES: Estimate[] = shiftDates(ESTIMATES_AT_ANCHOR);
 export const INVOICES: Invoice[] = shiftDates(INVOICES_AT_ANCHOR);
