@@ -5,7 +5,7 @@ import {
   INVOICES as DB_INVOICES,
   Invoice,
   LOCATIONS,
-} from "../../data/db";
+} from "./db";
 import { dayOffset } from "./listData";
 
 // The Invoices list's data door — a READER over the shared demo database,

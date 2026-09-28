@@ -1,5 +1,5 @@
 import { STATUS } from "../../components/Badge/BadgePricebookStatus";
-import { LABOR_ITEMS, LABOR_LABELS, LABOR_SUBTYPES, LaborItem, PricebookStatus } from "../../data/db";
+import { LABOR_ITEMS, LABOR_LABELS, LABOR_SUBTYPES, LaborItem, PricebookStatus } from "./db";
 
 // The Labor list's data door — a READER over the shared demo database, like
 // the other lists' (Daniel, 2026-09-11: "each row gets the data from the

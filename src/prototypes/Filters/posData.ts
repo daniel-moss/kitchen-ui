@@ -11,11 +11,11 @@ import {
   Vendor,
   shippingCarrierOf,
   shippingMethodOf,
-} from "../../data/db";
+} from "./db";
 
 // The Shipping COLUMN's combined string lives with the db (production's
 // `get_shipping_details` shape) — re-exported so the table keeps one door.
-export { shippingOf } from "../../data/db";
+export { shippingOf } from "./db";
 
 // The POs list's data door — a READER over the shared demo database, like the
 // other six (Daniel, 2026-09-11: "each row gets the data from the db"). The

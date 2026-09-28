@@ -1,6 +1,6 @@
 import { BadgeEstimateStatusStatus, STATUS } from "../../components/Badge/BadgeEstimateStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { ESTIMATE_LABELS } from "../../data/db";
+import { ESTIMATE_LABELS } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import { dateFilter, forwardWindows } from "./filterKinds";

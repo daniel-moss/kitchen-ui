@@ -1,5 +1,5 @@
 import { Icon } from "../../components/Icon/Icon";
-import { PRODUCT_LABELS, PRODUCT_SUBTYPES, PricebookStatus } from "../../data/db";
+import { PRODUCT_LABELS, PRODUCT_SUBTYPES, PricebookStatus } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import { freeformFilter } from "./filterKinds";

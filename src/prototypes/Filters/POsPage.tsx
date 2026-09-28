@@ -1,7 +1,7 @@
 import { useCallback, useDeferredValue, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
-import { POStatus } from "../../data/db";
+import { POStatus } from "./db";
 import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";

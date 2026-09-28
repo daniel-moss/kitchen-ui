@@ -2,7 +2,7 @@ import AvatarUser from "../../components/Avatar/AvatarUser";
 import { STATUS } from "../../components/Badge/BadgeJobStatus";
 import { Icon } from "../../components/Icon/Icon";
 import { IconPack } from "../../components/Icon/Icon.types";
-import { JOB_SUB_STATUSES } from "../../data/db";
+import { JOB_SUB_STATUSES } from "./db";
 import { semanticIcons } from "../../styles/semanticIcons";
 
 import { DateWindowPreset, FilterDef, optionCounts } from "./filterDefs";

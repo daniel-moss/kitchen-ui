@@ -1,6 +1,6 @@
 import { BadgeCreditNoteStatusStatus, STATUS } from "../../components/Badge/BadgeCreditNoteStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { CREDIT_NOTE_LABELS } from "../../data/db";
+import { CREDIT_NOTE_LABELS } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import {

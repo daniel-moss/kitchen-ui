@@ -1,4 +1,4 @@
-import { PricebookStatus } from "../../data/db";
+import { PricebookStatus } from "./db";
 
 import { ChargeList, ChargeRow } from "./chargesData";
 import { FilterDef } from "./filterDefs";

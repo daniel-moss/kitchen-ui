@@ -1,6 +1,6 @@
 import { BadgeInvoiceStatusStatus, STATUS } from "../../components/Badge/BadgeInvoiceStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { INVOICE_LABELS } from "../../data/db";
+import { INVOICE_LABELS } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import { moneyFilter } from "./filterKinds";

@@ -1,4 +1,4 @@
-import { PricebookStatus, TAX_RATE_LABELS } from "../../data/db";
+import { PricebookStatus, TAX_RATE_LABELS } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import { percentFilter } from "./filterKinds";

@@ -1,5 +1,5 @@
 import { STATUS } from "../../components/Badge/BadgePricebookStatus";
-import { PRODUCT_ITEMS, PRODUCT_LABELS, PRODUCT_SUBTYPES, PricebookStatus, ProductItem, StockStatus } from "../../data/db";
+import { PRODUCT_ITEMS, PRODUCT_LABELS, PRODUCT_SUBTYPES, PricebookStatus, ProductItem, StockStatus } from "./db";
 
 // The PRODUCTS list's data door — a READER over the shared demo database,
 // like the other lists' (Daniel, 2026-09-11: "each row gets the data from the

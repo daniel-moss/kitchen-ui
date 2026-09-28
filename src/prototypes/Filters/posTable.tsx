@@ -1,7 +1,7 @@
 import Badge from "../../components/Badge/Badge";
 import BadgePOStatus, { STATUS as PO_STATUS } from "../../components/Badge/BadgePOStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { POStatus } from "../../data/db";
+import { POStatus } from "./db";
 import { CellBody } from "../../components/Table/CellBody/CellBody";
 import { ViewMenuColumnsState } from "../../modules/ViewMenu/ViewMenu.types";
 

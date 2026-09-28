@@ -1,5 +1,5 @@
 import { BadgeCreditNoteStatusStatus, STATUS } from "../../components/Badge/BadgeCreditNoteStatus";
-import { CLIENTS, CREDIT_NOTE_LABELS, CREDIT_NOTES as DB_CREDIT_NOTES, CreditNote, CreditNoteType } from "../../data/db";
+import { CLIENTS, CREDIT_NOTE_LABELS, CREDIT_NOTES as DB_CREDIT_NOTES, CreditNote, CreditNoteType } from "./db";
 
 // The Credit notes list's data door — a READER over the shared demo database,
 // like the other three (Daniel, 2026-09-11: "each row gets the data from the

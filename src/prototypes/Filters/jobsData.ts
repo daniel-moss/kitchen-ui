@@ -7,7 +7,7 @@ import {
   JobLabel,
   JobSource,
   subStatusOf,
-} from "../../data/db";
+} from "./db";
 import { users } from "../../data/users";
 
 import { CLIENTS, LOCATIONS, SERVICES } from "./listData";

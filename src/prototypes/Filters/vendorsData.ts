@@ -5,7 +5,7 @@ import {
   VENDOR_LABELS,
   VENDORS as DB_VENDORS,
   Vendor,
-} from "../../data/db";
+} from "./db";
 import { joinWithSeparator } from "../../utils/textSeparator";
 
 // The Vendors list's data door — a READER over the shared demo database, like

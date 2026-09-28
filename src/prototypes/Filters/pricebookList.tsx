@@ -9,7 +9,7 @@ import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
 import { ViewMenuColumnsState, ViewMenuView } from "../../modules/ViewMenu/ViewMenu.types";
-import { PricebookStatus } from "../../data/db";
+import { PricebookStatus } from "./db";
 import useIsDesktop, { Breakpoint } from "../../hooks/useIsDesktop";
 import { noop } from "../../stories/helpers";
 

@@ -1,4 +1,4 @@
-import { LABOR_LABELS, LABOR_SUBTYPES, PricebookStatus } from "../../data/db";
+import { LABOR_LABELS, LABOR_SUBTYPES, PricebookStatus } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import { durationFilter, moneyFilter } from "./filterKinds";

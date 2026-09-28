@@ -1,5 +1,5 @@
 import { STATUS } from "../../components/Badge/BadgePricebookStatus";
-import { PricebookStatus, TAX_RATE_ITEMS, TAX_RATE_LABELS, TaxRateItem } from "../../data/db";
+import { PricebookStatus, TAX_RATE_ITEMS, TAX_RATE_LABELS, TaxRateItem } from "./db";
 
 // The TAX RATES list's data door — a READER over the shared demo database.
 // The table lives in src/data/db (`TAX_RATE_ITEMS`), and its first four rows

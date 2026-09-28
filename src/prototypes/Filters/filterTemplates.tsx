@@ -2,7 +2,7 @@ import AvatarClient from "../../components/Avatar/AvatarClient";
 import AvatarLocation from "../../components/Avatar/AvatarLocation";
 import { STATUS as PRICEBOOK_STATUS } from "../../components/Badge/BadgePricebookStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { PricebookStatus, PricebookSubtype } from "../../data/db";
+import { PricebookStatus, PricebookSubtype } from "./db";
 import { semanticIcons } from "../../styles/semanticIcons";
 import { joinWithSeparator } from "../../utils/textSeparator";
 

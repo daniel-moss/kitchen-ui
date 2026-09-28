@@ -1,5 +1,5 @@
 import { BadgeBillStatusStatus, STATUS } from "../../components/Badge/BadgeBillStatus";
-import { BILL_LABELS, BILLS as DB_BILLS, Bill, VENDORS, Vendor } from "../../data/db";
+import { BILL_LABELS, BILLS as DB_BILLS, Bill, VENDORS, Vendor } from "./db";
 import { dayOffset } from "./listData";
 
 // The Bills list's data door — a READER over the shared demo database, like

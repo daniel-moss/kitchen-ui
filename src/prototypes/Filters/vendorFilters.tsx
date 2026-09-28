@@ -1,5 +1,5 @@
 import AvatarVendor from "../../components/Avatar/AvatarVendor";
-import { VENDOR_LABELS, VENDORS } from "../../data/db";
+import { VENDOR_LABELS, VENDORS } from "./db";
 
 import { FilterDef, FilterOption } from "./filterDefs";
 import { countFilter, moneyFilter } from "./filterKinds";

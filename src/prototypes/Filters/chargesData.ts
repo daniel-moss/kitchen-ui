@@ -10,7 +10,7 @@ import {
   PricebookLabel,
   PricebookStatus,
   PricebookSubtype,
-} from "../../data/db";
+} from "./db";
 
 // The OTHER and DISCOUNTS lists' data door — ONE module, because the two are
 // one production shape (`ChargeItem`, PriceBookItem types 3 and 4) and the

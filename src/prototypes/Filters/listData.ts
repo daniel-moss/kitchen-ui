@@ -7,7 +7,7 @@ import {
   Client,
   Location,
   Service,
-} from "../../data/db";
+} from "./db";
 
 // The prototype's SHARED data door — the demo clock, the workspace tables that
 // belong to no single object, and the formatters every list prints with.

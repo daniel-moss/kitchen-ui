@@ -6,7 +6,7 @@ import {
   LOCATIONS,
   TAX_RATES,
   TaxRate,
-} from "../../data/db";
+} from "./db";
 import { joinWithSeparator } from "../../utils/textSeparator";
 
 import { LocationRecord, locationAddress } from "./listData";

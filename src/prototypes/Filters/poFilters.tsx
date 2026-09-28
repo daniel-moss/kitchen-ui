@@ -1,7 +1,7 @@
 import AvatarVendor from "../../components/Avatar/AvatarVendor";
 import { STATUS } from "../../components/Badge/BadgePOStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { PO_LABELS, POStatus, VENDORS } from "../../data/db";
+import { PO_LABELS, POStatus, VENDORS } from "./db";
 import { semanticIcons } from "../../styles/semanticIcons";
 
 import { DateWindowPreset, FilterDef } from "./filterDefs";

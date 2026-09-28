@@ -1,4 +1,4 @@
-import { CLIENTS, JOB_SERIES as DB_JOB_SERIES, JobSeries, JobSeriesType, LOCATIONS } from "../../data/db";
+import { CLIENTS, JOB_SERIES as DB_JOB_SERIES, JobSeries, JobSeriesType, LOCATIONS } from "./db";
 import { dayOffset } from "./listData";
 
 // The Series list's data door — a READER over the shared demo database, like

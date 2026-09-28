@@ -1,5 +1,5 @@
 import AvatarClient from "../../components/Avatar/AvatarClient";
-import { CLIENT_LABELS, IndustryType, TAX_RATES } from "../../data/db";
+import { CLIENT_LABELS, IndustryType, TAX_RATES } from "./db";
 import { semanticIcons } from "../../styles/semanticIcons";
 
 import { FilterDef, FilterOption, MONEY_LADDER } from "./filterDefs";

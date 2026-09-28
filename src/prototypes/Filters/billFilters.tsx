@@ -1,7 +1,7 @@
 import AvatarVendor from "../../components/Avatar/AvatarVendor";
 import { BadgeBillStatusStatus, STATUS } from "../../components/Badge/BadgeBillStatus";
 import { Icon } from "../../components/Icon/Icon";
-import { BILL_LABELS, VENDORS } from "../../data/db";
+import { BILL_LABELS, VENDORS } from "./db";
 
 import { FilterDef } from "./filterDefs";
 import {
