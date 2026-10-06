@@ -86,6 +86,23 @@ export interface JobsViewState {
 
 export const JOBS_VIEW_DEFAULT: JobsViewState = { branch: "open", tabs: { open: "all", closed: "closedAll" } };
 
+/**
+ * The state as ONE id, and back — what the url carries as `?view=`.
+ *
+ * It is a single id because the view ids are unique ACROSS branches, so the
+ * id tells you the phase as well: "pending" is an Open view, "cancelled" a
+ * Closed one. That is what lets the whole selection survive a reload in six
+ * characters (Daniel, 2026-10-06).
+ */
+export const jobsViewId = (view: JobsViewState): string => view.tabs[view.branch];
+
+export function jobsViewFromId(id: string | null | undefined): JobsViewState | null {
+  if (id == null) return null;
+  const found = BRANCHES.find((branch) => branch.tabs.some((tab) => tab.id === id));
+  if (found == null) return null;
+  return { ...JOBS_VIEW_DEFAULT, branch: found.id, tabs: { ...JOBS_VIEW_DEFAULT.tabs, [found.id]: id } };
+}
+
 export interface JobsPageProps {
   /** Desktop / mobile shell. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;

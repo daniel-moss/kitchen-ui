@@ -107,10 +107,13 @@ export function useJobLifecycle(
   // The sub-status names its own row; without one the row keeps the general
   // status name, so the row is never nameless.
   const sub = SUBSTATUS_ROWS.includes(job.status) ? (job.subStatus || undefined) : undefined;
-  // An "On hold" that waits on something INSIDE the company is a brown row.
+  // An "On hold" that waits on something INSIDE the company is a brown row —
+  // `displayStatus` already resolves which of the two it is, so this reads it
+  // rather than repeating the test (they disagreed until 2026-10-06: the chart
+  // split the two, the badge did not).
   const statusKind =
-    job.status === "onHold" && sub != null && INTERNAL_ON_HOLD.includes(sub)
-      ? "onHoldInternal"
+    job.status === "onHold"
+      ? display
       : SUBSTATUS_ROWS.includes(job.status)
         ? job.status
         : display;
@@ -187,8 +190,15 @@ export const formatStatusTimestamp = (d: Date) => `${TS_DATE.format(d)} at ${TS_
 /** The Badge/Avatar status to show — an upcoming job reads "pastDue" once late. */
 export function displayStatus(job: JobState, scheduling: Scheduling): BadgeJobStatusStatus {
   if (job.status === "upcoming" && isPastDue(scheduling)) return "pastDue";
-  // "On hold" maps to the external (crimson) badge/avatar variant.
-  if (job.status === "onHold") return "onHoldExternal";
+  // "On hold" is ONE page status but TWO badges: waiting on US is brown
+  // (internal), waiting on the client or a supplier is crimson (external).
+  // The SUB-STATUS is what says which, so changing it in "Change job on hold
+  // status" has to move the badge with it (Daniel, 2026-10-06 — JOB-1208 kept
+  // the crimson badge after switching to an internal reason, because this
+  // returned `onHoldExternal` for every held job).
+  if (job.status === "onHold") {
+    return job.subStatus != null && INTERNAL_ON_HOLD.includes(job.subStatus) ? "onHoldInternal" : "onHoldExternal";
+  }
   return job.status;
 }
 

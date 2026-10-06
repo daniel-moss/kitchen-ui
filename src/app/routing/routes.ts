@@ -112,8 +112,30 @@ export function parseHash(hash: string): Route | null {
   return { kind: "object", object, id: decodeURIComponent(rawId) };
 }
 
-/** Writes a route as a hash. Always starts "#/", so it replaces cleanly. */
-export function formatHash(route: Route): string {
-  if (route.kind === "list") return `#/${SLUG_OF_PAGE[route.page]}`;
-  return `#/${SLUG_OF_PAGE[PAGE_OF_OBJECT[route.object]]}/${encodeURIComponent(route.id)}`;
+/**
+ * The OPTIONS on the hash — everything after the "?", which `parseHash`
+ * deliberately ignores. They qualify the place without being part of it:
+ * today the only one is `view`, the Jobs list's selected view, which rides
+ * along so Back lands where you left even after a RELOAD (Daniel,
+ * 2026-10-06 — the view lived in React state alone, so refreshing on a job
+ * and pressing Back dropped you on "All").
+ */
+export function parseHashQuery(hash: string): URLSearchParams {
+  return new URLSearchParams(hash.split("?")[1] ?? "");
+}
+
+/**
+ * Writes a route as a hash. Always starts "#/", so it replaces cleanly.
+ * `query` entries with no value are left out, so passing `undefined` simply
+ * drops the option rather than writing "?view=undefined".
+ */
+export function formatHash(route: Route, query?: Record<string, string | undefined>): string {
+  const path =
+    route.kind === "list"
+      ? `#/${SLUG_OF_PAGE[route.page]}`
+      : `#/${SLUG_OF_PAGE[PAGE_OF_OBJECT[route.object]]}/${encodeURIComponent(route.id)}`;
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query ?? {})) if (value != null && value !== "") params.set(key, value);
+  const search = params.toString();
+  return search === "" ? path : `${path}?${search}`;
 }

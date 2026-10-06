@@ -227,6 +227,18 @@ a third button with the same action and the same wand icon, still labelled
 "Generate" / "No completed forms" (`CompleteJobForm.tsx`). Daniel named only
 the two, so it was left alone.
 
+## "On hold" is two badges (2026-10-06)
+
+`displayStatus` returned `onHoldExternal` for EVERY held job, so changing the
+reason from an external one to an internal one left the badge crimson
+(Daniel, JOB-1208). The page has one `onHold` status but the DS has two
+badges — brown for waiting on US, crimson for waiting on the client or a
+supplier — and the SUB-STATUS is what says which. `displayStatus` now tests
+`INTERNAL_ON_HOLD`, and the lifecycle chart (which already split the two and
+therefore disagreed with the badge) reads its answer instead of repeating the
+test. Verified: "Waiting for parts" → crimson-a11, "Parts on order" →
+brown-a11.
+
 ## Still open
 
 Edits made in the Equipment side panel (General details, Notes) update the

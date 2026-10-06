@@ -18,7 +18,7 @@ import CreditNotesPage from "./CreditNotesPage";
 import DiscountsPage from "./DiscountsPage";
 import EstimatesPage from "./EstimatesPage";
 import InvoicesPage from "./InvoicesPage";
-import JobsPage, { JOBS_VIEW_DEFAULT, JobsViewState } from "./JobsPage";
+import JobsPage, { JOBS_VIEW_DEFAULT, JobsViewState, jobsViewFromId, jobsViewId } from "./JobsPage";
 import LaborPage from "./LaborPage";
 import OtherPage from "./OtherPage";
 import POsPage from "./POsPage";
@@ -63,7 +63,7 @@ export interface AppProps {
 const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
   const isDesktop = useIsDesktop(breakpoint);
   const initialRoute: Route = { kind: "list", page: initialPage };
-  const { route, navigate: navigateToObject, navigateToPage } = useRoute(initialRoute);
+  const { route, query, navigate: navigateToObject, navigateToPage, replaceQuery } = useRoute(initialRoute);
 
   // Which LIST the current route belongs to. An object route resolves to the
   // list that holds it, so the sidebar and the bottom bar mark the right item
@@ -79,15 +79,27 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
     if (page !== "menu") setListPage(page);
   }, [page]);
 
-  // Which VIEW the Jobs list was on, kept here for the same reason `listPage`
-  // is: opening a job UNMOUNTS the list, so without somewhere outside to keep
-  // it, Back always landed on "All" (Daniel, 2026-10-06 — open a job from
-  // "Pending", come back to "Pending"). It is a memory of where you were, not
-  // a place, so like `listPage` it stays out of the hash.
+  // Which VIEW the Jobs list is on. Opening a job UNMOUNTS the list, so
+  // without somewhere outside to keep it, Back always landed on "All"
+  // (Daniel, 2026-10-06 — open a job from "Pending", come back to "Pending").
   //
-  // The list's own filters, sort and search still reset on the same trip. Say
-  // the word and they move up here too, the same way.
-  const [jobsView, setJobsView] = useState<JobsViewState>(JOBS_VIEW_DEFAULT);
+  // It lives in the hash's QUERY, which routing/routes.ts reserves for
+  // exactly this: an OPTION that qualifies the place without being part of
+  // it. React state alone was not enough — it survived Back, but a RELOAD
+  // (or a job link opened cold) remounted the app and reset it to "All",
+  // which is the second half of the same report. Seeding from the url fixes
+  // both, and makes a shared link carry the view it was copied from.
+  //
+  // The list's own filters, sort and search still reset on that trip.
+  const [jobsView, setJobsView] = useState<JobsViewState>(() => jobsViewFromId(query.get("view")) ?? JOBS_VIEW_DEFAULT);
+  const viewId = jobsViewId(jobsView);
+  // Keep the url in step WITHOUT a history entry — switching tabs is not a
+  // destination, so it must not fill the back button. Only while a Jobs page
+  // is on screen; every other list leaves the query alone.
+  useEffect(() => {
+    if (listOfRoute(route) !== "jobs") return;
+    replaceQuery({ view: viewId === jobsViewId(JOBS_VIEW_DEFAULT) ? undefined : viewId });
+  }, [route, viewId, replaceQuery]);
 
   const navigate = navigateToPage;
   const resolved = isDesktop && page === "menu" ? listPage : page;
@@ -139,7 +151,9 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
       <JobsPage
         breakpoint={breakpoint}
         onNavigate={navigate}
-        onOpenJob={(jobId) => navigateToObject({ kind: "object", object: "job", id: jobId })}
+        // The view rides along on the job's url, so Back knows where to
+        // return even if the page is reloaded in between.
+        onOpenJob={(jobId) => navigateToObject({ kind: "object", object: "job", id: jobId }, { view: viewId })}
         viewState={jobsView}
         onViewStateChange={setJobsView}
       />

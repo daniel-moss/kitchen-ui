@@ -433,15 +433,38 @@ Opening a job unmounts the Jobs list, so everything the list held in state is
 gone when you press Back. Daniel: opening a job from **"Pending"** has to come
 back to "Pending".
 
-`App.tsx` now holds `jobsView` (`JobsViewState` — the phase, and the active
-view inside each phase) and hands it to `JobsPage` as a controlled prop. It
-sits next to `listPage` and for the same reason: **it is a memory of where you
-were, not a place**, so it stays out of the hash. `JobsPage` keeps the pair
-itself when the props are omitted, so its stories are unaffected.
+`App.tsx` holds `jobsView` (`JobsViewState` — the phase, and the active view
+inside each phase) and hands it to `JobsPage` as a controlled prop. `JobsPage`
+keeps the pair itself when the props are omitted, so its stories are
+unaffected.
+
+**And it lives in the hash's QUERY**, `?view=<id>` — the slot this file
+already reserved for an OPTION that qualifies the place without being part of
+it. React state alone was half a fix: it survived Back, but a RELOAD, or a job
+link opened cold, remounted the app and reset the list to "All" (Daniel
+reported that second half on 2026-10-06, after refreshing for a new build).
+
+Three pieces make it work:
+
+- `parseHashQuery` reads the options; `formatHash(route, query)` writes them,
+  dropping any that are empty so the url stays clean.
+- `useRoute` exposes `query` and a **`replaceQuery`** that rewrites the
+  options with `history.replaceState` — switching tabs is not a destination,
+  so it must not fill the back button, and `replaceState` fires no
+  `hashchange`, so it cannot loop.
+- One id carries everything: view ids are unique ACROSS phases, so "pending"
+  implies Open and "cancelled" implies Closed (`jobsViewId` /
+  `jobsViewFromId`). The DEFAULT view writes no query at all.
+
+Opening a job carries it (`#/jobs/JOB-1052?view=pending`), so a shared link
+remembers the view it was copied from.
+
+Verified: page-Back and browser-Back, desktop and mobile, the Closed phase, a
+reload mid-job, and a cold link both with and without the option.
 
 What still resets on that trip: the view's FILTERS, its sort, the search box
-and the View-menu settings. They can move up the same way, one `useState` each
-— it was left out because Daniel asked for the tab.
+and the View-menu settings. They can move the same way — left out because
+Daniel asked for the tab.
 
 ## The module map (inherited from the Filters prototype)
 
