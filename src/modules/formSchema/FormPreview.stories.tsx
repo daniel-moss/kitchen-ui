@@ -23,7 +23,7 @@ import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 // The mapping comes from Figma "Mapping / Input -> Preview" (24469-37438) and
 // "Mapping / FormModuleGroup -> Preview" (24470-39311).
 const meta: Meta<typeof FormPreview> = {
-  title: 'Modules/"Job Form" Preview',
+  title: 'Modules/Job/"Job Form" Preview',
   component: FormPreview,
   parameters: { controls: { disable: true } },
 };

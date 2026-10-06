@@ -93,7 +93,7 @@
 // card's size — the Kitchen UI border pattern. The elevation shadow (when
 // selected) is layered onto the same box-shadow.
 .card {
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
   background: var(--gray-a2);
   box-shadow: inset 0 0 0 1px var(--gray-a7);
   overflow: hidden;

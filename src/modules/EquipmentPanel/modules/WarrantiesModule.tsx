@@ -136,6 +136,8 @@ export default function WarrantiesModule({
   isLoading = false,
   loadingCount = 3,
 }: WarrantiesModuleProps) {
+  const count = isLoading ? loadingCount : warranties.length;
+
   const content = isLoading ? (
     <ItemGroup>
       {Array.from({ length: loadingCount }, (unused, index) => (
@@ -155,9 +157,11 @@ export default function WarrantiesModule({
   return (
     <DisplayModule
       title="Warranties"
-      // No counter while loading, and none at zero (Daniel, 2026-09-28; the
-      // Empty State node sets the title's right slot to false).
-      titleSlotRight={isLoading || warranties.length === 0 ? undefined : <Counter value={warranties.length} />}
+      // None at zero (Daniel, 2026-09-28; the Empty State node sets the title's
+      // right slot to false). While LOADING the count is already known — it is
+      // what decides how many skeleton rows to draw — so the counter shows it
+      // (node 22012-20142 draws "3" over 3 skeleton rows).
+      titleSlotRight={count === 0 ? undefined : <Counter value={count} />}
       slotRight={
         isLoading ? undefined : (
           <HoverTooltip text="Add warranty">

@@ -1,5 +1,5 @@
-import { Children, MouseEvent, ReactNode, isValidElement, useLayoutEffect, useRef, useState } from "react";
-import { createPortal, flushSync } from "react-dom";
+import { Children, ReactNode, isValidElement, useLayoutEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import clsx from "clsx";
 
@@ -14,8 +14,8 @@ import { Icon } from "../Icon/Icon";
 import LinkButton from "../LinkButton/LinkButton";
 import ListItem from "../ListItem/ListItem";
 import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
-import Tooltip from "../Tooltip/Tooltip";
 import TruncatingText from "../Tooltip/TruncatingText";
+import useAnchoredTooltip, { isTextClipped } from "../Tooltip/useAnchoredTooltip";
 
 import styles from "./ValueDisplay.module.scss";
 import { ValueDisplayLimit, ValueDisplayProps } from "./ValueDisplay.types";
@@ -45,37 +45,23 @@ const isEmptySlot = (node: ReactNode): boolean =>
 
 // A badge / LinkButton value that may get squeezed by the available width.
 // When its content actually truncates, hovering shows the full text in a
-// tooltip — the trigger is the badge/button itself, the tooltip sits 4px
-// above and follows the cursor's x (the TruncatingText behavior; the doc
-// describes the same for badges and buttons).
+// tooltip — the trigger is the badge/button itself, and the tooltip sits 4px
+// above it, centered on it (the TruncatingText behavior; the doc describes the
+// same for badges and buttons).
 function OverflowTip({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
   const [text, setText] = useState("");
+  const tip = useAnchoredTooltip({ text, textAlign: "left" });
   // Tooltips are a hover affordance — on touch they do not exist.
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
-  const track = (clientX: number) => {
+  const handleEnter = () => {
     const el = ref.current;
-    if (el) setPos({ x: clientX, y: el.getBoundingClientRect().top });
-  };
-  const handleEnter = (e: MouseEvent) => {
-    const el = ref.current;
-    if (!el) return;
-    // Truncated = an element whose content overflows AND is clipped. The
-    // clipping check matters: overflow-visible boxes over-report scrollWidth
-    // without hiding anything (e.g. LinkButton's ::before hit-area extends
-    // 8px past the button), which read as "truncated" on every hover.
-    const truncated = [el, ...Array.from(el.querySelectorAll("*"))].some((n) => {
-      if (n.scrollWidth <= n.clientWidth + 1) return false;
-      const overflowX = getComputedStyle(n).overflowX;
-      return overflowX === "hidden" || overflowX === "clip";
-    });
-    if (!truncated) return;
+    // `deep`: this span WRAPS the clipped element (the badge or LinkButton),
+    // it is not the clipped element itself.
+    if (el == null || !isTextClipped(el, { deep: true })) return;
     setText(el.textContent ?? "");
-    track(e.clientX);
-    setOpen(true);
+    tip.show(el);
   };
 
   return (
@@ -83,17 +69,10 @@ function OverflowTip({ children }: { children: ReactNode }) {
       ref={ref}
       className={styles.overflowWrap}
       onMouseEnter={canHover ? handleEnter : undefined}
-      onMouseMove={canHover && open ? (e) => track(e.clientX) : undefined}
-      onMouseLeave={canHover ? () => setOpen(false) : undefined}
+      onMouseLeave={canHover ? tip.hide : undefined}
     >
       {children}
-      {open &&
-        createPortal(
-          <span className={styles.tooltipOverlay} style={{ left: pos.x, top: pos.y }}>
-            <Tooltip placement="top" textAlign="left" text={text} />
-          </span>,
-          document.body,
-        )}
+      {tip.node}
     </span>
   );
 }
@@ -284,15 +263,17 @@ export default function ValueDisplay(props: ValueDisplayProps) {
       const color = isWarning ? "var(--text-warning)" : valueColor;
       const text = value == null || value === "" ? placeholder : value;
       content = (
-        <div className={clsx(styles.content, isWarning && styles.contentWarning)} style={color ? { color } : undefined}>
+        <div
+          className={clsx(styles.content, slotLeft != null && styles.contentTop, isWarning && styles.contentWarning)}
+          style={color ? { color } : undefined}
+        >
+          {/* A text value ALWAYS wraps, with or without a left slot (Daniel,
+              2026-10-05 — it used to truncate to one line with a tooltip, which
+              hid the end of a long value on mobile, where there is no hover).
+              The slot then sits on the FIRST line: the row top-aligns, which
+              matches every node that pairs an icon with a wrapping value. */}
           {slotLeft != null && <span className={styles.slotLeft}>{slotLeft}</span>}
-          {/* With a left slot the text truncates to ONE line (full text in a
-              tooltip); plain text wraps instead — the doc's rule. */}
-          {slotLeft != null ? (
-            <TruncatingText text={text} className={styles.text} />
-          ) : (
-            <span className={styles.text}>{text}</span>
-          )}
+          <span className={styles.text}>{text}</span>
           {isWarning && (
             <span className={styles.warningIcon}>
               <Icon icon="triangle-exclamation" pack="solid" size={14} />
@@ -324,7 +305,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
         <div ref={filesRef} className={styles.filesGrid}>
           {Array.from({ length: fileLoadingCount }, (_, i) => (
             <div key={i} className={styles.fileCell} style={fileCellStyle}>
-              <CardFile name="" loading />
+              <CardFile name="" isLoading />
             </div>
           ))}
         </div>

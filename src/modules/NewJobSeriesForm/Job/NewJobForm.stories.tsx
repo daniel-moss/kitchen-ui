@@ -11,10 +11,14 @@ import NewJobForm from "./NewJobForm";
 // series flow is deferred). The sidebar group name uses "∕" (U+2215) instead
 // of "/" — a real slash would split the Storybook level.
 const meta: Meta = {
-  title: 'Modules/"New Job ∕ Series" Form/Job',
+  title: 'Modules/Job/"New Job ∕ Series" Form/Job',
   // Explicit ASCII id: the auto id inherits the title's "∕" (U+2215), and
   // messengers/keyboards silently turn it into "/" when the story URL is
   // shared — the link then 404s (Daniel hit this, 2026-09-08).
+  //
+  // LEFT ALONE by the 2026-09-29 folder reorganisation, on purpose: the title
+  // moved under "Job" but a pinned id does not follow the title, so the link
+  // already shared keeps working. It is the only Modules link the reorg spared.
   id: "modules-new-job-series-form-job",
   parameters: { controls: { disable: true } },
 };

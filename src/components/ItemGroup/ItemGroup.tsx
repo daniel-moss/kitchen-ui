@@ -419,8 +419,9 @@ export default function ItemGroup({
         body
       )}
       {/* Between two stacked groups the gap is 0, so this line carries the
-          whole separation — medium contrast, not the default low (Figma). */}
-      {divider && <Divider contrast="medium" padding="0 var(--size-4)" />}
+          whole separation. LOW contrast (Daniel, 2026-10-04): a group boundary
+          is a lighter break than a bar's edge, which is where medium belongs. */}
+      {divider && <Divider padding="0 var(--size-4)" />}
       {/* The lifted copy = the dragged child cloned into its "dragging" look,
           rendered in a body portal (fixed position) so no overflow ancestor —
           e.g. a drawer's scrolling body — can clip it. List items take

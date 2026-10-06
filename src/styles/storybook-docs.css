@@ -84,7 +84,9 @@
   left: 0;
   right: 0;
   height: 1px;
-  background: var(--gray-a4);
+  /* --gray-a5, matching the Figma `_Spacer bottomBorder=true` block that draws
+     this line on the doc pages (Daniel, 2026-10-01 — it was a4). */
+  background: var(--gray-a5);
 }
 .sbdocs h3:not(.docs-story *) {
   font-size: 24px;
@@ -140,6 +142,21 @@
 /* The intro paragraph right below the page title: 24px both sides. */
 .sbdocs h1 + p:not(.docs-story *) {
   padding: var(--size-6) 0; /* 24 */
+}
+
+/* The caption block (<DocCaption> in src/stories/DocCaption.tsx), from Figma
+   31479-94199 — the label above a preview naming the variant it shows
+   ("isSelected = false"). Not prose: small text, 48 above and only 8 below,
+   so it belongs to the preview under it. Same rhythm as an h4. */
+.sbdocs .docs-caption:not(.docs-story *) {
+  font: var(--font-body-400-compact); /* 14/20 Regular */
+  color: var(--text-subtle);
+  padding: var(--size-12) 0 var(--size-2); /* 48 / 8 */
+}
+/* A paragraph before a caption drops its own bottom space, so the caption's 48
+   is the whole gap — the same deal the headings get above. */
+.sbdocs p:has(+ .docs-caption):not(.docs-story *) {
+  padding-bottom: 0;
 }
 
 /* The Figma resource row (FigmaLinks in src/stories/FigmaLinks.tsx) — chip
@@ -345,7 +362,7 @@
    overflows symmetrically on both sides (how the Figma doc pages place their
    wide previews). width: max-content lets the block exceed the column; the
    50% margin + -50% transform center it. NEVER narrower than the text
-   column (min-width: 100% = the 700px content column), so a narrow preview
+   column (min-width: 100% = the 600px content column), so a narrow preview
    keeps its borders aligned with the text and centers its content inside. */
 .sbdocs .sbdocs-content > .sbdocs-preview:has([data-hug]) {
   width: max-content;
@@ -353,6 +370,91 @@
   max-width: none;
   margin-left: 50% !important;
   transform: translateX(-50%);
+}
+
+/* ---- Do / Don't previews ---------------------------------------------------
+   <DoDont> + <Do> / <Dont> in src/stories/DoDont.tsx, from Figma
+   _DoDon'tCaption (31498-109348) and _PreviewSurface do/don't (31498-109342),
+   laid out like the reference pair 22623-9230: the Do above the Don't,
+   --size-4 apart, both the width of the text column (Daniel, 2026-10-01 —
+   side by side halved every preview and pushed the block outside the column;
+   stacked, the content fits the standard width and the caption wraps).
+
+   The pair is ONE story, so the two stay the same width. The Canvas wrapper's
+   border, radius and fill are dropped and each box draws its whole frame —
+   the only way to get the coloured bar flush with the outer edge of the 2px
+   border instead of inset by it. */
+.sbdocs .sbdocs-content > .sbdocs-preview:has(.docs-dodont) {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+/* Stacked, the way the Figma doc pages draw a pair (Daniel, 2026-10-01): the
+   Do above the Don't, --size-4 apart, at the text column's own width. */
+.docs-dodont {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); /* 16 */
+}
+.docs-dodont-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+/* The bar: 10px TOP corners only — it sits on the body with no gap. The text
+   and glyph are pure white in BOTH themes (Daniel, 2026-10-01): the node's
+   jade-1 / tomato-1 would flip to near-black in dark and the bar would read
+   as a different thing. */
+.docs-dodont-caption {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-3); /* 12 */
+  margin: 0;
+  padding: var(--size-2_5) var(--size-3); /* 10 / 12 */
+  border-radius: var(--border-radius-2_5) var(--border-radius-2_5) 0 0;
+  font: var(--font-body-500-compact); /* 14/20 Medium */
+  color: var(--pure-white);
+  /* The bar wraps instead of stretching the block — the preview keeps the
+     text column's width however long the sentence is. */
+  min-width: 0;
+  text-wrap: pretty;
+}
+/* The icon's own 20px slot box, like every other 14px glyph in the DS. */
+.docs-dodont-icon {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+/* The body: the preview surface with its border on three sides — the bar
+   closes the top. 80px padding, the same as any other preview. */
+.docs-dodont-body {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-20); /* 80 */
+  background: var(--surface-level-first);
+  border: 2px solid;
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-2_5) var(--border-radius-2_5);
+}
+.docs-dodont-body[data-dodont-tinted] {
+  background: var(--gray-5);
+}
+.docs-dodont-item[data-variant="do"] .docs-dodont-caption {
+  background: var(--jade-9);
+}
+.docs-dodont-item[data-variant="do"] .docs-dodont-body {
+  border-color: var(--jade-9);
+}
+.docs-dodont-item[data-variant="dont"] .docs-dodont-caption {
+  background: var(--tomato-9);
+}
+.docs-dodont-item[data-variant="dont"] .docs-dodont-body {
+  border-color: var(--tomato-9);
 }
 
 /* ---- Markdown tables in the docs prose -------------------------------------

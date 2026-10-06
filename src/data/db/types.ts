@@ -168,17 +168,32 @@ export interface JobSeries {
 }
 
 /**
- * The statuses a SUB-STATUS can hang under. In production a sub-status is
- * offered only where the job is paused or on hold (`JobPauseForm` asks for one
- * behind `PAUSED_SUBSTATUSES_EXIST` / `ON_HOLD_SUBSTATUSES_EXIST`), so those
- * are the three DS statuses that can carry one.
+ * The statuses a SUB-STATUS can hang under: **active, quick-paused and on
+ * hold** (Daniel, 2026-10-04). On hold is two parents here because the DS
+ * splits it by who is being waited on; to a company it is one status.
  *
- * ACTIVE deliberately carries NONE (Daniel, 2026-09-28): the tech's check-in
- * status already says what they are doing, so an active sub-status would be a
- * second answer to the same question — Roopairs advises companies not to
- * configure them. A job that is being worked is simply "Active".
+ * Whether a status actually ASKS for a sub-status is a per-company switch,
+ * thrown on the backend — see `CompanySettings.subStatuses`. Where it is on,
+ * a job in that status REQUIRES one; where it is off, the status carries none.
+ * The names themselves are company-unique, which is why they are rows and not
+ * an enum.
  */
-export type SubStatusParent = Extract<JobStatus, "quickPaused" | "onHoldExternal" | "onHoldInternal">;
+export type SubStatusParent = Extract<JobStatus, "active" | "quickPaused" | "onHoldExternal" | "onHoldInternal">;
+
+/**
+ * Which statuses this company configures sub-statuses for — production's
+ * `…_SUBSTATUSES_EXIST` switches. `onHold` covers both hold parents.
+ *
+ * The demo company runs ACTIVE OFF (Daniel, 2026-10-04): the tech's check-in
+ * status stands in for an active sub-status, so the Start / Resume dialog asks
+ * for that instead. The feature still exists for companies that want it — the
+ * UI it drives is written and simply hidden.
+ */
+export interface CompanySubStatusSettings {
+  active: boolean;
+  quickPaused: boolean;
+  onHold: boolean;
+}
 
 /**
  * A job SUB-STATUS — production `JobSubStatus` (the search-or-CREATE select in
@@ -479,6 +494,14 @@ export interface Job {
   labelIds: string[];
   /** The Service module's "Type": a fresh request, or a recall of old work. */
   type: "new" | "recall";
+  /**
+   * The job this one is a RECALL of — a return visit for work already done, so
+   * it points at an earlier job at the SAME location for the SAME service.
+   * Set on every `type: "recall"` row and on no other (Daniel, 2026-10-04: a
+   * job marked Recall must say what it recalls to). The Service module shows
+   * it as "Recall to" and the Related module mirrors the row.
+   */
+  recallToId?: string;
   /**
    * The COMPANY BRANCH handling the job — a BRANCHES id. The dispatcher picks
    * it when creating the job (the "New job" form's Branch field; with a single
@@ -1258,9 +1281,57 @@ export interface TaxRateItem {
   rate: number;
   /** Production `summary_template`. "" = none. */
   summary: string;
+  /** Production `notes` — the internal notes. "" = none. */
+  notes: string;
   /** → TAX_RATE_LABELS (production `PriceBookItemLabel`). */
   labelIds: string[];
+
+  createdAt: string;
+  /**
+   * Who created it (→ `users`). UNDEFINED when nobody here did, which
+   * production's nullable `created_by` covers in two ways: a rate imported
+   * FROM QuickBooks (`quickbooksId` is then set) or one bulk-loaded during
+   * onboarding (it is not). Anything created through the app or the API always
+   * carries its user.
+   */
+  createdById?: number;
   lastModifiedAt: string;
+
+  // ---- accounting: production's QuickBooks Desktop fields ------------------
+
+  /**
+   * → QUICKBOOKS_VENDORS. Production
+   * `quickbooks_desktop_tax_agency_vendor_id` — the agency the tax is
+   * collected for and paid to. REQUIRED for a tax item while the company is on
+   * QuickBooks Desktop, so every rate here carries one.
+   */
+  quickbooksVendorId?: string;
+  /**
+   * Production `quickbooks_desktop_id` — QuickBooks' own record key. It is
+   * written in BOTH directions (an import sets it, and so does a successful
+   * push of one of ours), so on its own it does not mean "imported": no
+   * `createdById` PLUS this set is what identifies an import.
+   */
+  quickbooksId?: string;
+  /** Production `needs_syncing`. True renders as "Not synced". */
+  needsSyncing: boolean;
+  /**
+   * Production `quickbooks_desktop_last_synced`. Undefined = never synced.
+   * Note the production quirk it reproduces: an imported rate gets this stamp
+   * but keeps `needsSyncing` true (the import never clears the flag, and an
+   * unconfirmed rate is never pushed), so it still reads "Not synced".
+   */
+  syncedAt?: string;
+}
+
+/**
+ * A QuickBooks Desktop vendor — production `QuickBooksDesktopVendor`, synced
+ * from QuickBooks and offered as the tax collection agency on a tax rate. The
+ * picker shows the name; production stores QuickBooks' own ListID.
+ */
+export interface QuickbooksVendor {
+  id: string;
+  name: string;
 }
 
 /** A job label — free-form tags on jobs (production `JobLabel`). */
@@ -1341,4 +1412,37 @@ export interface CompanySettings {
    * generates one. The demo runs "manual" so the field is visible.
    */
   jobCustomIdGenerationMode: "off" | "manual" | "automatic";
+  /**
+   * Which statuses ask for a sub-status. See `CompanySubStatusSettings` — the
+   * demo has active OFF, the two pause statuses ON.
+   */
+  subStatuses: CompanySubStatusSettings;
+  /**
+   * The company rounds logged time UP to the next 5 minutes — a per-company
+   * setting, like the two above. It decides what every duration on the
+   * Timesheet tab shows, and it is the CONDITION for the exact-time tooltips:
+   * "If a company has a setting to round up the time, we show a tooltip with
+   * the exact time by hovering" (Figma 24620-84353). A company that does not
+   * round has nothing to reveal, so no tooltip appears.
+   */
+  roundsTimeUp: boolean;
+  /**
+   * The company's accounting integration — production
+   * `ServiceCompany.accounting_integration`, which is ONE value, never a set:
+   * none (0), APIDeck (1) or QuickBooks Desktop (2). Connecting a different
+   * one replaces it, so a company can never report two sync states.
+   *
+   * It decides what a tax rate shows. On **quickbooksDesktop** the rate needs
+   * a collection agency (production makes the field required) and reports a
+   * sync state, so the "New tax rate" form shows the agency field plus the
+   * sync notice, and the side panel shows its "Accounting" module. On
+   * **none** both disappear. **apideck** is the odd one: the module would
+   * appear, but APIDeck never syncs the tax type at all, so its sync status
+   * could only ever read "Not synced" — flagged to the dev team.
+   *
+   * Added 2026-10-05. Until then nothing recorded it and the app simply
+   * assumed QuickBooks Desktop, which is the kind of thing that should be in
+   * the database rather than in a component.
+   */
+  accountingIntegration: "none" | "apideck" | "quickbooksDesktop";
 }

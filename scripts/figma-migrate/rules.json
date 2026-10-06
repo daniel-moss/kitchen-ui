@@ -1,0 +1,41 @@
+{
+  "_note": "Mapping rules for the 2026-10 Roopairs DS update — design file ubqeGmv6rQW4yUUDQAs3ku against library ArSNpC1K8KiEvjCRHTzaLd. REWRITTEN 2026-10-03 for the redo: only the Chip rebuild is in `rules`, and every clause in it was read off a live instance or the published component, not guessed. Everything that was guesswork is parked in `_retired`, which restore.js does not load. A wrong rule is not harmless: a rule that says `null` stops the fallback and reports the override as unrecoverable, and a wrong rename can send a write to the wrong layer. Unmatched entries are REPORTED — that is the intended outcome for anything unverified.",
+  "_keyedBy": "The component key that OWNS the layer (the nearest ancestor instance above it — the component whose structure defines where the layer sits). Paths are relative to that owner. `collapse` = the owner component itself was deleted, so drop its own segment from the path and keep the rest; it COMPOSES with `renames`. `liftProps` = property values recorded on this child must be written to the owner instance instead, because the child wrapper is gone. `renames` maps an old owner-relative path to the new one; null means there is no successor. `propRenames` / `propValues` fix a property that was renamed or changed its value vocabulary.",
+  "rules": {
+    "de85195f3b6ac26f90d61f0e7d626ffa53859e4c": {
+      "label": "#️⃣ Content — Chip's old content wrapper, deleted in the rebuild",
+      "collapse": true,
+      "_verified": "2026-10-03. The key resolves to neither a component nor a component set in the library any more (both imports fail), so it is gone. Live in the rolled-back file its shape is `#️⃣ Content → [TEXT:Label]`, and the new Chip carries `Label` directly, so dropping the wrapper's segment lands the path on the right layer. 28 of the 46 Jobs chips have a `fills` override on that Label — this rule is what carries them across."
+    },
+    "bcab2f235fa806a1e86d6bbed059204338d4db02": {
+      "label": "Chip",
+      "liftProps": ["#️⃣ Content"],
+      "renames": {
+        "#️⃣ Content": ""
+      },
+      "propRenames": { "⚙️ slotLeft": "slotLeft" },
+      "propValues": { "slotLeft": { "none": "false", "*": "true" } },
+      "propDefaults": { "slotLeft": "false" },
+      "_propDefaultsWhy": "Measured after the update was accepted, 2026-10-03: every chip that had a custom label came out with slotLeft=true AND a visible icon slot it never had (46 of 46 on Jobs, 184 of 200 on Shared Behavior/Filters). The old wrapper's `⚙️ slotLeft` default was \"none\", so a chip with no icon recorded nothing — and across the whole file ZERO chip entries recorded a slotLeft value, i.e. no chip in this file ever had an icon. So when the snapshot carries no slotLeft for a chip, false is the measured truth, not a guess.",
+      "_verified": "2026-10-03, read off both sides. OLD wrapper props (live, all 46 Jobs chips): `↳ label#29793:4` (TEXT) + `⚙️ slotLeft` (VARIANT, value \"none\"). NEW published Chip (126 variants) declares `↳ label#31300:0` (TEXT) — so the chip copy lifts by plain name — plus `slotLeft` as a VARIANT with options [\"true\",\"false\"], which is why the value map is needed. `size`, `isSelected`, `isValid` and `state` are unchanged; `isLoading` is new and keeps its default.",
+      "_knownGap": "A chip with an ICON is not covered. The old wrapper held an `Icon` instance; the new Chip holds `Slot Left`, an instance of the NEW component `#️⃣ ChipSmallSlotLeft` (cdbe57a7aa215442a3371bec295f1e0a2a88bd92) with an `instance` property. Different component, so the identity check refuses to write an old Icon override into it and reports it instead. All 46 chips on Jobs are slotLeft=none; if the dry run reports icon-chip entries on another page, read one live and add the rule then.",
+      "_knownGap2": "In the `state=focused` variants the new Chip wraps its parts in a `Focus State Offsets` frame, so a sub-layer path there is `Focus State Offsets / Label`, not `Label`. The path-first resolution handles the default variants; a focused chip with a sub-layer override would be reported as unmatched."
+    }
+  },
+  "_retired": {
+    "_why": "These were written by comparing recorded override paths against the library's variant UNION, which is not the variant an instance actually uses. One of them (`#️⃣ ActionBar: Button → Primary`) was proven wrong against a live instance, and the first pass's three headline findings were all resolver bugs rather than real damage. None of the rest was ever confirmed, so they are out of the loaded rule set. Keep them only as a list of places to LOOK IN THE DRY RUN.",
+    "c90d2d28d21c449dc0a8a44da4265c5efbfb0979": "#️⃣ ActionBar — PROVEN WRONG. Do not re-add `Button → Primary`: those instances still have a child named `Button`, and the rename broke paths that already resolved.",
+    "565cc35f6fe40af722f22e34a3f5069f86b63fda": "#️⃣ Actions — guessed `Button → First`.",
+    "52313133296ad0ae5f4d07c2106926a94fb96daa": "#️⃣ Action Instance — guessed `Button → IconButton`.",
+    "6e2a7e317ec0905fd4e8e8fb43ca97dd72102fc9": "ItemGroup — guessed `bodyList / ListItem → bodyList / ListItem Template`. Slot content, so its survival follows the slot, not the child.",
+    "f42220b7e40d83b4e2dfd407a7d5b88bbf4d3689": "#️⃣ GroupLabelContentPrimary — guessed `#️⃣ GroupLabelContentPrimaryLabel → Label`.",
+    "38a3ca583db0d4115a6417542b29bc499799aa15": "#️⃣ ListItemBody — guessed `#️⃣ ListItemBodySlotRight → Slot Right`.",
+    "ee691498dbb657b5e54f7d6ecfcd2c11c479a91a": "TabGroup — guessed `tabs / #️⃣ Default → tabs / #️⃣ Tab`.",
+    "24bb7a72a33190348691e64f5fca3c1941f29c86": "#️⃣ Tab — guessed `#️⃣ Content → Label + Counter`.",
+    "e1596c6b0d7f911dd59bbada56d3cadd587b007d": "#️⃣ Content (table cell) — guessed `Text → #️⃣ Text`.",
+    "028d68532b310431e1c1a1e0cdc606fca75e56ef": "#️⃣ Content (FilterChip value) — guessed two paths as deleted (null), which would have SUPPRESSED the fallback.",
+    "7c6fee7c2d5c6e372f6989b9edbd797d57792c56": "#️⃣ Container — guessed `#️⃣ isClickable` as deleted (null).",
+    "ffc4dea885a0524783c3235e0fa3aea0e73c0b8e": "FilterChip — guessed `#️⃣ Container` as deleted (null).",
+    "bca061800d9332ee99d3a14a5e90006002da19c0": "Button — guessed `Text` as deleted (null)."
+  }
+}

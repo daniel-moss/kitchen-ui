@@ -1,0 +1,260 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as SegmentedControlStories from "./SegmentedControl.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
+
+<Meta of={SegmentedControlStories} />
+
+# SegmentedControl
+
+SegmentedControl switches between views of the same content — table or cards,
+day or week, the client or the location a panel shows. It holds two to six
+Segments on one track, with a divider between them, and exactly one is always
+selected. Unlike
+<a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
+it does not navigate: the surface under it stays, and only what it shows
+changes.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=31446-51168"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=31471-82273"
+/>
+
+<Canvas of={SegmentedControlStories.Hero} />
+
+```tsx
+<SegmentedControl value={view} onChange={setView}>
+  <Segment value="list">List</Segment>
+  <Segment value="cards">Cards</Segment>
+</SegmentedControl>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[Segments](#segments)<br />
+↳&nbsp;&nbsp;[Full width](#full-width)<br />
+↳&nbsp;&nbsp;[Sizes](#sizes)<br />
+↳&nbsp;&nbsp;[Content](#content)<br />
+↳&nbsp;&nbsp;[Left slot](#left-slot)<br />
+↳&nbsp;&nbsp;[Orientation](#orientation)<br />
+↳&nbsp;&nbsp;[Selection](#selection)<br />
+↳&nbsp;&nbsp;[Divider](#divider)<br />
+↳&nbsp;&nbsp;[Warning](#warning)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Motion](#motion)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+A track holding the segments edge to edge, with a divider between each pair.
+The track has a `--gray-a2` fill, a 1px `--gray-a7` border and
+`--border-radius-2` (8px) corners, and it clips its content, so the first and
+last segments follow those corners. The border is an inset `box-shadow`, so it
+never adds to the control's size.
+
+The track has no padding and no gap of its own. The segments set the height and
+the track takes it.
+
+<Canvas of={SegmentedControlStories.Anatomy} />
+
+## Segments
+
+Two to six. Past six the row stops reading as one control — use a
+<a href="/?path=/docs/components-selectlist-selectlist--docs" target="_top">SelectList</a>
+instead. The control says so in the console when it is given more.
+
+One segment is always selected; there is no empty state. With no `value` and no
+`defaultValue` the first segment is the selected one.
+
+<Canvas of={SegmentedControlStories.Segments} />
+
+## Full width
+
+By default every segment hugs its label and the control hugs the row.
+
+`isFullWidth` stretches the track to its container and the segments share the
+width equally. This is the mode for a narrow surface — a panel, a drawer, a
+dialog — where a hugging control would float in the space.
+
+<Canvas of={SegmentedControlStories.FullWidth} />
+
+## Sizes
+
+Two sizes: **lg** (`--size-9`, 36px) and **md** (`--size-8`, 32px). The step
+down changes the padding — `--size-2` `--size-3` (8px / 12px) becomes
+`--size-1_5` `--size-2_5` (6px / 10px) — and nothing else. Both carry
+`body-500-compact` (14/20).
+
+**lg is the default**, and the size the designs use. Reach for md only where the
+row it sits in is too tight for it.
+
+The size belongs to the Segment. `size` on the control is a convenience that
+sets it on every one of them, and a Segment's own `size` still wins.
+
+<Canvas of={SegmentedControlStories.Sizes} />
+
+## Content
+
+Two switches build a segment: `children` for the label and `slotLeft` for an
+icon or an avatar before it. That makes three shapes — label, slot and label,
+and slot alone.
+
+**There is no counter.** A segmented control's options are known before any data
+arrives — Table or Cards, Open or Closed — so there is never a number to wait
+for. A tab is the opposite, and TabItem keeps its counter.
+
+<Canvas of={SegmentedControlStories.Content} />
+
+## Left slot
+
+Takes an
+<a href="/?path=/story/components-icon--default" target="_top">Icon</a>
+or an avatar before the label, `--size-2` (8px) away from it. The Icon is 14px
+in both sizes and all its parameters are the caller's; the avatar is **xs**
+(20px).
+
+An icon with no colour of its own follows the label through every state. An icon
+the caller coloured keeps that colour.
+
+Slot only drops the label and keeps the same box. It needs an `aria-label`, or
+the segment has nothing to announce.
+
+<Canvas of={SegmentedControlStories.LeftSlot} />
+
+## Orientation
+
+**horizontal** is the default: slot and label on one line, the segment at the
+height its size gives it.
+
+**vertical** stacks them — the slot on top in a `--size-5` (20px) square box,
+the label under it, both centred. It hugs its content instead of taking the
+size's height: `--size-3` (12px) above, `--size-3` (12px) at the sides,
+`--size-2` (8px) below and `--size-1` (4px) between slot and label. It exists at
+lg only.
+
+A vertical segment always carries a slot — the picture of the option is the
+reason to use this layout. Give its control `isFullWidth`.
+
+<Canvas of={SegmentedControlStories.Orientation} />
+
+## Selection
+
+The control owns the value. `value` with `onChange` drives it from outside,
+`defaultValue` leaves it to the control, and the selected Segment gets
+`isSelected` injected — a Segment does not decide on its own.
+
+The selected segment takes its own `--gray-a2` fill over the track's, which
+reads a step darker because both are transparent, and a 1px `--gray-12` border
+drawn inside its bounds. The label steps to `--text-strong`.
+
+The row is a radio group: `role="radiogroup"` on the track, `role="radio"` with
+`aria-checked` on each segment, one tab stop — the selected segment — and the
+arrow keys move the focus and select as they go, so the selection follows the
+focus. Home and End jump to the ends.
+
+<Canvas of={SegmentedControlStories.Selection} />
+
+## Divider
+
+A 1px `--gray-a5` line stands between two inactive segments, inset `--size-2`
+(8px) from the top and the bottom of the track, so it is shorter than the
+segments it separates.
+
+The two dividers touching the selected segment are hidden, and the last segment
+has none. They are hidden with opacity, never removed — a removed divider takes
+its width with it and the whole row shifts.
+
+With two segments the rule leaves nothing to draw: one of the two is always
+selected, so its only divider is always hidden. The divider starts doing work at
+three.
+
+<Canvas of={SegmentedControlStories.Divider} />
+
+## Warning
+
+`isWarning` points at something behind the segment that needs attention — a
+detail that is missing, a value that does not add up. The whole scheme turns
+amber — the icon and the label take `--text-warning`, the fill ladder runs on
+`--amber-a2`…`--amber-a4`, and the selected segment's border is `--amber-a11`
+instead of `--gray-12`. It holds in every state, so an inactive segment still
+shows the problem and a selected one still reads as selected.
+
+The slot draws the solid `warning` icon and replaces `slotLeft`. The state is
+not a colour applied to any icon — it is that icon.
+
+It needs a label. On a slot-only segment an amber glyph alone says nothing, and
+the component says so in the console.
+
+<Canvas of={SegmentedControlStories.Warning} />
+
+## States
+
+**The fill never moves.** An unselected segment has none in any state; a
+selected one carries `--gray-a2` and its border in every state. Engaging a
+segment shows in the label alone — `--text-subtle` steps to `--text-strong` on
+hover, press, focus and selection — and a warning segment holds
+`--text-warning` throughout.
+
+| | rest | hover | press | focus |
+| --- | --- | --- | --- | --- |
+| inactive | — | — | — | — |
+| selected | `--gray-a2` | `--gray-a2` | `--gray-a2` | `--gray-a2` |
+| selected, warning | `--amber-a2` | `--amber-a2` | `--amber-a2` | `--amber-a2` |
+
+That quiet is deliberate: with no fills appearing and disappearing under the
+pointer, the selected surface is the only thing that moves — which is what makes
+[Motion](#motion) readable.
+
+Disabled dims the whole segment to 30% and it stops responding.
+
+<Canvas of={SegmentedControlStories.InactiveStates} />
+
+Focus draws the ring: a 2px `--gray-12` stroke at the segment's bounds, a 2px
+gap, then the segment's own fill redrawn inside with `--border-radius-1` (4px)
+corners — nothing for an unselected segment, the fill and its 1px border for a
+selected one, so both rings stay visible. On a warning segment the whole ring is
+`--amber-a11`. Nothing changes size, so a focused segment stays in line with its
+neighbours.
+
+<Canvas of={SegmentedControlStories.Focus} />
+
+State never changes the segment's size.
+
+## Motion
+
+The selection **slides**. The control measures the selected segment and moves
+one shared element — the fill and its border — over 200ms with the design
+system's `cubic-bezier(0.4, 0, 0.2, 1)`, the same curve and duration as
+TabGroup's indicator, so the two feel like one family. The segments never paint
+the surface themselves; only their labels change colour where they are.
+
+<Canvas of={SegmentedControlStories.Motion} />
+
+Two details make it behave:
+
+- The first placement never animates, and the slide is off under
+  `prefers-reduced-motion` — the surface still lands in the right place.
+- **Focus takes the surface's place.** The focus ring redraws its own fill
+  inside the ring, and the two treatments cannot stack, so the sliding surface
+  fades out while the selected segment holds focus and returns when focus
+  leaves. Keyboard users see the focus ring travel instead of the fill.
+
+Nothing else moves with it. Since the fill never changes on hover or press, the
+surface is the only thing the pointer sets in motion — which is what makes the
+movement readable.
+
+## Usage
+
+A SegmentedControl sits in the surface whose view it changes — a bar, a header,
+or a menu block.
+
+| Component | Where |
+| --- | --- |
+| SidePanel | the object row — which object the panel shows |
+| TopBarNav | the phase row on list pages |
+| DisplayModule | the list and cards switch in a module header |
+| "View" menu | view switcher, Timeline orientation and time frame |
+
+## Props
+
+<ArgTypes of={SegmentedControlStories} />

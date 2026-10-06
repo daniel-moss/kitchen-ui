@@ -39,6 +39,10 @@ interface SelectFieldBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "pre
   /**
    * Hug the value instead of filling the container (the DS default is full
    * width, like every other field).
+   *
+   * Inside an `InputGroup` this makes the segment hug too: it takes only its
+   * content's width and never shrinks, so the other segments get the rest of
+   * the row (the Scheduling form's "Monday, January 1, 2027" + "12:00 AM").
    */
   fitContent?: boolean;
 

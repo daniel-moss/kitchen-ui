@@ -6,6 +6,7 @@ import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
@@ -146,32 +147,32 @@ const branchViews = (branch: InvoicesPhase) =>
 
 // ---- the list top bar ------------------------------------------------------
 
-// The other pages' TopBar, for invoices: the DS TopBarNav `list` variant with
-// the [Open · Closed] branch tabs in its `tabs` slot. The title carries the
-// sidebar stack's sub-pages — "Invoices" / "Credit notes" — the Jobs page's
-// pattern (its title lists Requests / Jobs / Series, its sidebar stack's
-// items). Since 2026-09-14 the Credit notes page EXISTS, so picking it here
-// NAVIGATES there (and its title navigates back).
+// The other pages' TopBar, for invoices: the DS TopBarNav with the
+// [Open · Closed] branch tabs in its `tabs` slot. Invoices and Credit notes are
+// one sidebar stack, and the sidebar is how the user moves between them — the
+// title names the page and nothing more (TopBarNav rebuild, 2026-10-01).
 const InvoicesTopBar = ({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
 }: {
   mobile?: boolean;
   branch: InvoicesPhase;
   onBranchChange: (next: InvoicesPhase) => void;
-  onNavigate: (next: Page) => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as InvoicesPhase)}
         aria-label="Open or closed invoices"
@@ -185,17 +186,7 @@ const InvoicesTopBar = ({
     }
   >
     <TopBarNavLeftElements>
-      <TopBarNavTitle
-        title="Invoices"
-        subPages={[
-          { id: "invoices", label: "Invoices" },
-          { id: "credit-notes", label: "Credit notes" },
-        ]}
-        subPage="invoices"
-        onSubPageChange={(id) => {
-          if (id === "credit-notes") onNavigate("creditNotes");
-        }}
-      />
+      <TopBarNavTitle title="Invoices" />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -490,7 +481,7 @@ const DesktopShell = ({
   // The WORK AREA only — `Filters` renders the sidebar once, outside the page
   // switch, so it survives a move between pages and its stack can animate shut.
   <div className={styles.workArea}>
-    <InvoicesTopBar branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+    <InvoicesTopBar branch={branch} onBranchChange={onBranchChange} />
     <DesktopViewBar
       branch={branch}
       tab={tab}
@@ -580,7 +571,7 @@ const MobileShell = ({
   const tableRef = useSingleAxisScroll(true);
   return (
     <div className={styles.mobile}>
-      <InvoicesTopBar mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <InvoicesTopBar mobile branch={branch} onBranchChange={onBranchChange} />
       <MobileViewBar
         branch={branch}
         tab={tab}

@@ -202,6 +202,7 @@ export const Keyboards: Story = {
         {row('url — URL-format data', <TextField keyboard="url" />)}
         {row('tel — phone numbers', <TextField keyboard="tel" />)}
         {row('numeric — phone extensions, digit-only data', <TextField keyboard="numeric" />)}
+        {row('decimal — numbers with a fractional part', <TextField keyboard="decimal" />)}
       </div>
     </div>
   ),

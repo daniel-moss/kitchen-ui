@@ -1,13 +1,5 @@
 @use "../../styles/mixins/font" as *;
 
-// The wrapping Badge row of the "Labels" module — 8px apart, both axes.
-.badgeRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-2); // 8px
-  align-items: flex-start;
-}
-
 // The "Notes" module's text: body/400 spacious, wrapping, newlines kept.
 .notes {
   @include font("body-400-spacious"); // 14/22

@@ -10,8 +10,11 @@ import AvatarLive from "../Avatar/AvatarLive";
 import IconButton from "../IconButton/IconButton";
 import Button from "../Button/Button";
 import HoverTooltip from "../Tooltip/HoverTooltip";
+import { Icon } from "../Icon/Icon";
+import Segment from "../SegmentedControl/Segment";
+import SegmentedControl from "../SegmentedControl/SegmentedControl";
 
-type RightSlot = "none" | "iconButton" | "button" | "avatar" | "two";
+type RightSlot = "none" | "iconButton" | "button" | "avatar" | "segmented" | "two";
 type TitleExtra = "none" | "caption" | "counter" | "badge";
 
 type StoryArgs = {
@@ -55,6 +58,15 @@ const editingAvatar = (
   </HoverTooltip>
 );
 
+// The slot's view switcher — always `md` (32px), the height the header row's
+// padding leaves. It replaced the contained TabGroup that used to sit here.
+const viewSwitcher = (
+  <SegmentedControl size="md" defaultValue="list">
+    <Segment value="list" slotLeft={<Icon icon="list" size={14} />} aria-label="List view" />
+    <Segment value="cards" slotLeft={<Icon icon="grid-2" size={14} />} aria-label="Cards view" />
+  </SegmentedControl>
+);
+
 const rightSlots: Record<RightSlot, React.ReactNode> = {
   none: undefined,
   iconButton,
@@ -64,6 +76,7 @@ const rightSlots: Record<RightSlot, React.ReactNode> = {
     </Button>
   ),
   avatar: liveAvatar,
+  segmented: viewSwitcher,
   two: (
     <>
       <Button size="md" variant="ghost">
@@ -107,7 +120,7 @@ const meta: Meta<StoryArgs> = {
     captionText: { name: "caption text", control: { type: "text" }, if: { arg: "extra", eq: "caption" } },
     extra: { name: "title extra", options: ["none", "caption", "counter", "badge"], control: { type: "inline-radio" } },
     slotLeft: { name: "left avatar", control: { type: "boolean" } },
-    slotRight: { name: "right slot", options: ["none", "iconButton", "button", "avatar", "two"], control: { type: "inline-radio" } },
+    slotRight: { name: "right slot", options: ["none", "iconButton", "button", "avatar", "segmented", "two"], control: { type: "inline-radio" } },
     status: { options: STATUS_OPTIONS, control: { type: "inline-radio" } },
     banner: { control: { type: "boolean" }, if: { arg: "status", neq: "none" } },
   },
@@ -253,6 +266,9 @@ export const Slots: Story = {
  * Right-slot actions. Edit and Copy are ordinary IconButtons with a hover
  * tooltip — they compose freely (alone, together, or beside a menu / Button).
  * While a module is being edited, the Edit button becomes the editor's avatar.
+ * The slot also takes a `md` SegmentedControl as a view switcher — in an
+ * accordion header it switches the view without opening or closing the module,
+ * by pointer and by keyboard.
  */
 export const Actions: Story = {
   parameters: { controls: { disable: true } },
@@ -290,6 +306,14 @@ export const Actions: Story = {
           }
           content={sampleContent}
         />
+      </div>
+      <div>
+        <span style={cap}>view switcher — SegmentedControl md</span>
+        <DisplayModule title="Title" slotRight={viewSwitcher} content={sampleContent} />
+      </div>
+      <div>
+        <span style={cap}>view switcher in an accordion — switching never toggles the module</span>
+        <DisplayModule variant="accordion" title="Title" slotRight={viewSwitcher} content={sampleContent} defaultOpen />
       </div>
     </div>
   ),

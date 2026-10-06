@@ -1,242 +1,202 @@
 @use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
 
-// ===== base =====
+// TabItem — one tab of a TabGroup. Values read off Figma "Tab"
+// (set 28689-123318).
+//
+// `color` is the label AND a default-coloured Icon (the Icon inherits it): a
+// resting inactive tab is `--text-subtle` and steps to `--text-strong` on
+// hover, press, focus and selection. The warning colour overrides every step.
+//
+// The two styles differ in how the selection is marked, and in how much the
+// fill moves:
+//
+//   pill        rest        hover       press       focus
+//   inactive    —           gray-a2     gray-a3     ring + gray-a2
+//   selected    gray-a3     gray-a4     gray-a4     ring + gray-a4
+//
+//   underline   no fill in any state — the line and the label carry it all.
 .tab {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--size-2); // 8px icon ↔ text (sm overrides to 6px)
-  flex: none;
-
-  border: 0;
-  background: transparent;
+  gap: var(--size-2); // 8px slot ↔ content
+  margin: 0;
+  border: none;
+  outline: none;
   cursor: pointer;
-  color: var(--text-subtle); // muted icon + text, resting (gray-a11)
+  max-width: 100%;
+
+  color: var(--text-subtle);
+  background: transparent;
+  @include font("body-500-compact"); // Inter Medium 14/20, both sizes
 
   transition:
     background-color 120ms ease,
-    color 120ms ease,
-    box-shadow 120ms ease;
-}
+    color 120ms ease;
 
-// Focus — 2px gray-12 ring drawn just inside the edge (no layout shift, keeps
-// any variant shadow). outline-offset follows the border-radius.
-.tab:focus-visible {
-  outline: 2px solid var(--gray-12);
-  outline-offset: -2px;
-}
+  @media (hover: hover) {
+    &:hover:not(:disabled):not(.warning) {
+      color: var(--text-strong);
+    }
+  }
 
-.tab:disabled {
-  opacity: 0.3;
-  cursor: not-allowed;
-}
-.tab.loading {
-  cursor: progress;
-  opacity: 1;
+  &:active:not(:disabled):not(.warning) {
+    color: var(--text-strong);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  &.loading {
+    cursor: progress;
+  }
 }
 
 // ===== content =====
-.icon {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-4); // 16px box, 14px glyph (md / lg)
-  height: var(--size-4);
-}
-// Left-slot avatar (xxs 16px at sm, xs 20px at md/lg — sized by the element).
-.avatar {
+.slot {
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  // A 14px glyph sits in a --size-4 (16px) box; an avatar brings its own 20px.
+  min-width: var(--size-4);
+  min-height: var(--size-4);
 }
+
 .text {
   display: inline-flex;
   align-items: center;
   gap: var(--size-1_5); // 6px label ↔ counter
+  min-width: 0;
 }
-// The label and the counter inherit the tab's color + font. The counter draws
-// REGULAR figures, not tabular (Daniel, 2026-09-28): tabular numerals are for
-// columns of numbers that have to line up — a count sitting next to a label
-// only reads as loosely spaced. Stated rather than simply removed, because
-// `font-variant-numeric` INHERITS: a tab inside a tabular container would
-// otherwise pick the wide figures back up.
+
+// The counter draws REGULAR figures, not tabular: tabular numerals are for
+// columns of numbers that have to line up, and `font-variant-numeric` inherits,
+// so a tab inside a tabular container would otherwise pick them up.
 .counter {
   font-variant-numeric: normal;
 }
 
-// ===== sizes (height / horizontal padding / font) =====
-.sm {
-  height: var(--size-7); // 28px
-  padding: 0 var(--size-2); // 8px
-  gap: var(--size-1_5); // 6px at sm
-  @include font("caption-medium-500"); // Inter Medium 13/20
+// ===== pill =====
+// A fixed height, side padding per size, and `--border-radius-2` corners — the
+// same radius as SegmentedControl's track, so the family reads as one.
+.pill {
+  border-radius: var(--border-radius-2); // 8px
 }
-// sm draws a 12px glyph in a 14px box.
-.sm .icon {
-  width: var(--size-3_5); // 14px
-  height: var(--size-3_5);
-}
-.md {
+.pill.md {
   height: var(--size-8); // 32px
   padding: 0 var(--size-2_5); // 10px
-  @include font("body-500-compact"); // Inter Medium 14/20
 }
-.lg {
+.pill.lg {
   height: var(--size-9); // 36px
   padding: 0 var(--size-3); // 12px
-  @include font("body-500-compact"); // Inter Medium 14/20
-}
-
-// iconOnly draws icon (+ counter) closer together.
-.iconOnly {
-  gap: var(--size-1_5); // 6px
-}
-
-// ===== variant: default (soft fill when selected) =====
-.default {
-  border-radius: var(--border-radius-1_5); // 6px
 }
 
 @media (hover: hover) {
-.default:hover {
-  color: var(--text-strong); // brighten, no fill
+  .pill:hover:not(:disabled):not(.selected) {
+    background: var(--gray-a2);
+  }
 }
-}
-.default:active {
+.pill:active:not(:disabled):not(.selected) {
   background: var(--gray-a3);
-  color: var(--text-strong);
 }
-.default.selected {
+
+.pill.selected {
+  color: var(--text-strong);
   background: var(--gray-a3);
-  color: var(--text-strong);
 }
-.default.selected:active {
+
+@media (hover: hover) {
+  .pill.selected:hover:not(:disabled) {
+    background: var(--gray-a4);
+  }
+}
+.pill.selected:active:not(:disabled) {
   background: var(--gray-a4);
 }
 
-// ===== variant: container (raised segmented look when selected) =====
-.container {
-  border-radius: 5px; // Figma uses 5px here (between radius-1 and radius-1_5)
-}
-
-@media (hover: hover) {
-.container:hover {
-  color: var(--text-strong);
-}
-}
-.container:active {
-  background: var(--gray-a3);
-  color: var(--text-strong);
-}
-.container.selected {
-  background: var(--surface-interactive-default); // raised neutral surface (white / white-alpha in dark)
-  color: var(--text-strong);
-  box-shadow: 0 1px 1.5px 0 var(--box-shadow-shadow-default);
-}
-// The group owns the sliding indicator → the tab drops its own raised surface
-// (text stays strong). Higher specificity wins over the fill rules above.
-.container.selected.noSurface {
-  background: transparent;
-  box-shadow: none;
-}
-
-// Container tabs sit inside the group's 2px-padded track, so they are 4px
-// shorter than the nominal size — the track then totals it (e.g. lg: 32 + 2×2
-// = 36). Vertical tabs keep their auto height.
-.container.sm:not(.vertical) {
-  height: var(--size-6); // 24px
-}
-.container.md:not(.vertical) {
-  height: var(--size-7); // 28px
-}
-.container.lg:not(.vertical) {
-  height: var(--size-8); // 32px
-}
-
-// container vertical — icon on top, label below.
-.vertical {
-  flex-direction: column;
-  gap: var(--size-0_5); // 2px
-  height: auto;
-  padding: var(--size-2_5) var(--size-3) var(--size-1_5); // 10px 12px 6px
-}
-.vertical .text {
-  justify-content: center;
-}
-
-// ===== variant: underline (bottom line when selected) =====
+// ===== underline =====
+// NO height and NO horizontal padding: the tab fills the bar it sits in, so the
+// line lands on the bar's bottom edge, and the line is exactly as wide as the
+// content. The size therefore changes nothing here — TabGroup passes `md`.
 .underline {
   position: relative;
+  height: auto;
+  align-self: stretch;
+  min-height: var(--size-9); // 36px floor for a tab with no bar to fill
+  padding: 0;
   border-radius: 0;
 }
-// Full-width bottom line (spans the +10px hit area); shown only when selected.
+
+// The 2px line, shown only when selected.
 .underline::after {
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
-  height: 1px;
+  height: 2px;
   background: transparent;
 }
 
-@media (hover: hover) {
-.underline:hover {
-  color: var(--text-strong);
-}
-}
-.underline:active {
-  color: var(--text-strong);
-}
 .underline.selected {
   color: var(--text-strong);
 }
 .underline.selected::after {
   background: var(--gray-12);
 }
+
 // The group owns the sliding line → this tab drops its own.
 .underline.selected.noSurface::after {
   background: transparent;
 }
 
-// ===== warning (attention) =====
-// The tab points at something that needs the user's attention. Only the COLOR
-// changes — the selected fill (default: gray-a3 / container: the raised white
-// surface) is untouched, so an inactive warning tab still reads as inactive.
-// Last in the file on purpose: it must win over every variant's color rule
-// above (same specificity, later wins), in rest, selected, hover and press.
+// ===== warning =====
+// Only the COLOUR changes — the fill ladder above is untouched, so an inactive
+// warning tab still reads as inactive.
 .tab.warning,
 .tab.warning:hover,
 .tab.warning:active,
+.tab.warning:focus-visible,
 .tab.warning.selected,
+.tab.warning.selected:hover,
 .tab.warning.selected:active {
   color: var(--text-warning);
 }
 
-// ===== loading skeleton =====
-.skeleton {
-  width: 40px;
-  height: 14px;
-  border-radius: var(--border-radius-full);
-  background: var(--gray-a3);
-  animation: ku-tabitem-loading 800ms ease-in-out infinite alternate;
-}
-.iconOnly .skeleton {
-  width: var(--size-4); // 16px
-}
-.vertical .skeleton {
-  width: 40px;
-  height: 30px;
+// The selected line follows the label and the glyph (Daniel, 2026-10-06 — it
+// stayed gray-12 while everything above it was amber). This covers a STANDALONE
+// underline tab; inside a TabGroup the group owns one sliding line and colours
+// it itself (`.indicatorWarning` in TabGroup.module.scss).
+// `:not(.noSurface)` matters: this rule comes AFTER the one that blanks the
+// tab's own line inside a group, and at equal specificity the later rule wins
+// — without it a grouped tab would draw a second line under the sliding one.
+.underline.warning.selected:not(.noSurface)::after {
+  background: var(--text-warning);
 }
 
-@keyframes ku-tabitem-loading {
-  from {
-    opacity: 0.3;
-  }
-  to {
-    opacity: 1;
-  }
+// ===== focus (keyboard only) =====
+// Declared last so focus wins over hover and press.
+//
+// A pill takes the inset ring: a 2px `--gray-12` stroke at its bounds, a 2px
+// visible gap, then its own fill redrawn inside with `--border-radius-1`
+// corners. An underline tab has no fill to redraw, so the ring sits at its
+// bounds and nothing else changes. Neither changes size.
+.pill:focus-visible:not(:disabled) {
+  color: var(--text-strong);
+
+  @include row-focus-ring-inset(var(--gray-a2));
+}
+
+.pill.selected:focus-visible:not(:disabled) {
+  @include row-focus-ring-inset(var(--gray-a4));
+}
+
+.underline:focus-visible:not(:disabled) {
+  color: var(--text-strong);
+  box-shadow: inset 0 0 0 2px var(--gray-12);
 }

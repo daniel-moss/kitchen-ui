@@ -100,10 +100,8 @@ const RECEIVED_BY_USERS: User[] = users
   .filter((u) => u.id <= 9)
   .sort((a, b) => a.name.localeCompare(b.name));
 
-// The module writes the date in full ("January 1, 2026"); the FIELD writes it
-// as weekday + day ("Monday, January 1"), per its node. Two different formats
-// for one value — both are what the design shows.
-const FIELD_DATE = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+// "January 1, 2027" — ONE format for this date, in the module and in the edit
+// field alike (Daniel, 2026-10-04; the field used to write "Monday, January 1").
 export const MODULE_DATE = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" });
 
 const DATE_RECEIVED_HINT = "When did you first hear from the customer about this request?";
@@ -429,7 +427,7 @@ export default function JobPropertiesForm({
             <DateField
               value={dateReceived}
               onDateChange={setDateReceived}
-              formatValue={(d) => FIELD_DATE.format(d)}
+              formatValue={(d) => MODULE_DATE.format(d)}
               isValid={!(showErrors && dateReceived == null)}
               breakpoint={mobile ? "mobile" : "desktop"}
             />
@@ -451,7 +449,7 @@ export default function JobPropertiesForm({
         mobile={mobile}
         title="Branch"
         searchable
-        searchPlaceholder="Search by branch name or address"
+        searchPlaceholder="Branch..."
       >
         <SelectListItemGroup>
           {BRANCHES.map((b) => (
@@ -476,7 +474,7 @@ export default function JobPropertiesForm({
         mobile={mobile}
         title="Source"
         searchable
-        searchPlaceholder="Search by source name..."
+        searchPlaceholder="Source..."
         noResultsCaption="Try a different search or add a new source"
         footer={
           <SelectListFooter>
@@ -516,7 +514,7 @@ export default function JobPropertiesForm({
         mobile={mobile}
         title="Received by"
         searchable
-        searchPlaceholder="Search by user name..."
+        searchPlaceholder="User..."
       >
         <SelectListItemGroup>
           {RECEIVED_BY_USERS.map((u) => (

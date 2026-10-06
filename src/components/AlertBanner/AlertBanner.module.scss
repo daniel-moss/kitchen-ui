@@ -24,7 +24,7 @@
   // Border drawn as an inset ring (like Figma's inside stroke) so it does not
   // add 2px to the height — keeps card the same 42px as banner.
   box-shadow: inset 0 0 0 1px var(--al-border);
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
 }
 .banner {
   // same tint, no border/radius (full-bleed). Padding may be adjusted per host.

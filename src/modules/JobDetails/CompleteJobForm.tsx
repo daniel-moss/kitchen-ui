@@ -502,7 +502,7 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
             Job subtotal. The groups carry NO total row of their own any more
             (Figma 24429-51526, 2026-08-07). */}
         {step === 3 && (
-          <FormModule title="Charges" caption="Add labor, products, and any other charges or discounts">
+          <FormModule title="Charges" caption="Add labor rates, products, and any other charges or discounts">
             <div className={styles.stack}>
               {charges.map((g) => (
                 <ChargeModule key={g.key} group={g} />

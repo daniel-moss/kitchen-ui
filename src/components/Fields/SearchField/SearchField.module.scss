@@ -24,7 +24,7 @@
 .field {
   height: var(--size-9); // 36px
   padding: 0 var(--size-3); // 12px
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px — the shared field chrome
   background: var(--gray-a2);
   box-shadow: inset 0 0 0 1px var(--gray-a7);
 }

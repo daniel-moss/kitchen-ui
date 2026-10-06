@@ -6,7 +6,7 @@ import { FULL_ROWS } from "../lifecycleData";
 
 // CONCEPT 1 — the built one: an ActivityLog timeline, one accordion row per status, each opening into its separate stretches. This is what the Job Details Activity tab renders.
 const meta: Meta = {
-  title: 'Modules/Job Details/"Job Lifecycle" Module/Concept 1',
+  title: 'Modules/Job/Job Details/"Job Lifecycle" Module/Concept 1',
   ...conceptMeta,
 };
 

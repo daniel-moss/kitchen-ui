@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { BadgeJobStatusStatus } from "../components/Badge/BadgeJobStatus";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -11,6 +12,7 @@ import { ViewMenuColumnsState, ViewMenuTimelineState, ViewMenuView } from "../mo
 import { SCHEDULED_OPTIONS, SCHEDULED_WINDOW_DAYS, defaultTimelineState } from "../modules/ViewMenu/viewMenuData";
 import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
+import useControllableState from "../hooks/useControllableState";
 import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
 import { noop } from "../stories/helpers";
 
@@ -68,6 +70,22 @@ import styles from "./App.module.scss";
 // under the filter bar, and under the table's header row. The table's BODY rows
 // keep the DS's lighter --gray-a3.
 
+/**
+ * WHICH VIEW the list is on: the phase, and the view inside each phase.
+ *
+ * It is its own value because the page UNMOUNTS whenever a job's details page
+ * opens, so without somewhere outside to keep it, pressing Back always landed
+ * the user on "All" (Daniel, 2026-10-06: opening a job from "Pending" must
+ * come back to "Pending"). `App` holds it and hands it back.
+ */
+export interface JobsViewState {
+  branch: JobsPhase;
+  /** The active view per phase, so toggling Open ↔ Closed also comes back. */
+  tabs: Record<JobsPhase, string>;
+}
+
+export const JOBS_VIEW_DEFAULT: JobsViewState = { branch: "open", tabs: { open: "all", closed: "closedAll" } };
+
 export interface JobsPageProps {
   /** Desktop / mobile shell. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;
@@ -75,6 +93,12 @@ export interface JobsPageProps {
   onNavigate: (next: Page) => void;
   /** Opening a job's details page. A STABLE reference — the table is memoised. */
   onOpenJob?: (id: string) => void;
+  /**
+   * The phase + view, kept by the caller so a trip to a details page does not
+   * lose it. Omit both and the page keeps them itself (the stories do).
+   */
+  viewState?: JobsViewState;
+  onViewStateChange?: (next: JobsViewState) => void;
 }
 
 // The SIDEBAR, the mobile BOTTOM BAR and the two positioning hooks
@@ -105,28 +129,30 @@ const TopBar = ({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
   onCreate,
 }: {
   mobile?: boolean;
   branch: BranchId;
   onBranchChange: (next: BranchId) => void;
-  onNavigate: (next: Page) => void;
   /** The "New" Button (desktop) / solid plus IconButton (mobile). */
   onCreate: () => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={onCreate}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={onCreate}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       // Both branches WORK since the documented Views section (14032-23326) —
       // switching phases swaps the views, the filter registry and the table's
       // jobs. See BRANCHES.
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as BranchId)}
         aria-label="Open or closed jobs"
@@ -140,22 +166,10 @@ const TopBar = ({
     }
   >
     <TopBarNavLeftElements>
-      {/* The sub-pages read "Requests" / "Series", not "Job requests" / "Job
-          series" (Daniel, 2026-08-17) — the same labels the sidebar's Jobs
-          stack already uses. Since the SERIES page exists (2026-09-14),
-          picking it here NAVIGATES there; Requests stays a label. */}
-      <TopBarNavTitle
-        title="Jobs"
-        subPages={[
-          { id: "requests", label: "Requests" },
-          { id: "jobs", label: "Jobs" },
-          { id: "series", label: "Series" },
-        ]}
-        subPage="jobs"
-        onSubPageChange={(id) => {
-          if (id === "series") onNavigate("series");
-        }}
-      />
+      {/* The title is a label, not a control (TopBarNav rebuild, 2026-10-01):
+          Requests / Jobs / Series are reached from the sidebar on desktop and
+          the menu page on mobile. */}
+      <TopBarNavTitle title="Jobs" />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -232,7 +246,7 @@ const BRANCHES: TabBranch[] = [
     id: "open",
     label: "Open",
     tabs: [
-      { id: "all", label: "All", statuses: [] },
+      { id: "all", label: "All open", statuses: [] },
       // Pending = the two statuses a job has before it starts. STATUS CHANGED
       // used to be hidden here; it is not any more (Daniel, 2026-09-12) — under
       // the new rule the column says something real on this view: a draft is
@@ -249,7 +263,7 @@ const BRANCHES: TabBranch[] = [
     id: "closed",
     label: "Closed",
     tabs: [
-      { id: "closedAll", label: "All", statuses: [] },
+      { id: "closedAll", label: "All closed", statuses: [] },
       { id: "finalized", label: "Finalized", statuses: ["finalized"] },
       { id: "cancelled", label: "Cancelled", statuses: ["cancelled"] },
     ],
@@ -722,7 +736,7 @@ const DesktopShell = ({
   return (
     <>
       <div className={styles.workArea}>
-        <TopBar branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} onCreate={openNewJob} />
+        <TopBar branch={branch} onBranchChange={onBranchChange} onCreate={openNewJob} />
         <DesktopViewBar
           branch={branch}
           tab={tab}
@@ -834,7 +848,7 @@ const MobileShell = ({
 
   return (
     <div className={styles.mobile}>
-      <TopBar mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} onCreate={openNewJob} />
+      <TopBar mobile branch={branch} onBranchChange={onBranchChange} onCreate={openNewJob} />
       <MobileViewBar
         branch={branch}
         tab={tab}
@@ -940,18 +954,22 @@ const searchHaystack = (job: Job) => {
 // is active. It then narrows the tab ("Pending" + Status is Draft = the drafts),
 // and two chips both named Status show in the bar. FLAGGED: say the word and the
 // Status row disappears from the menu whenever a tab owns it.
-const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob }: JobsPageProps) => {
+const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onViewStateChange }: JobsPageProps) => {
   const isDesktop = useIsDesktop(breakpoint);
   // The STORE's jobs, not the frozen array — so an edit made on a details page
   // shows here the moment you come back.
   const allJobs = useJobs();
-  const [branch, setBranch] = useState<BranchId>("open");
-  // The active view, remembered PER BRANCH, so toggling Open ↔ Closed brings
-  // the user back to the view they were on. The nodes do not draw the switch
-  // itself — the memory is mine, flagged.
-  const [tabs, setTabs] = useState<Record<BranchId, string>>({ open: "all", closed: "closedAll" });
-  const tab = tabs[branch];
-  const setTab = (next: string) => setTabs((current) => ({ ...current, [branch]: next }));
+  // The phase and the active view, remembered PER BRANCH so toggling
+  // Open ↔ Closed brings the user back to the view they were on. The nodes do
+  // not draw the switch itself — the memory is mine, flagged.
+  //
+  // CONTROLLED by `App` in the demo app, so the pair also survives opening a
+  // job and pressing Back (the page unmounts in between).
+  const [view, setView] = useControllableState<JobsViewState>(viewState, JOBS_VIEW_DEFAULT, onViewStateChange);
+  const branch = view.branch;
+  const setBranch = (next: BranchId) => setView({ ...view, branch: next });
+  const tab = view.tabs[branch];
+  const setTab = (next: string) => setView({ ...view, tabs: { ...view.tabs, [branch]: next } });
   // A TAB IS A VIEW (Daniel, 2026-08-18), and a view owns its filters: they are
   // kept per tab and never carried from one to another. Custom views come later
   // and will slot in the same way — a view id with its own set. The view ids

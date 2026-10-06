@@ -6,6 +6,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -108,7 +109,7 @@ const BRANCHES: EstimateBranch[] = [
     id: "open",
     label: "Open",
     tabs: [
-      { id: "all", label: "All", statuses: [] },
+      { id: "all", label: "All open", statuses: [] },
       // Still being written, or written and not sent yet. Both columns this
       // view used to hide — Down payment and Status changed — are shown now
       // (Daniel, 2026-09-12): every view starts from the same arrangement, and
@@ -127,7 +128,7 @@ const BRANCHES: EstimateBranch[] = [
     id: "closed",
     label: "Closed",
     tabs: [
-      { id: "closedAll", label: "All", statuses: [] },
+      { id: "closedAll", label: "All closed", statuses: [] },
       // Converted — the estimate became a job or an invoice. That IS winning it.
       { id: "won", label: "Won", statuses: ["jobbed", "invoiced"] },
       { id: "lost", label: "Lost", statuses: ["lost"] },
@@ -170,13 +171,17 @@ const EstimatesTopBar = ({
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as EstimatesPhase)}
         aria-label="Open or closed estimates"

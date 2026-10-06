@@ -1,17 +1,8 @@
-import { ReactNode, RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { ReactNode, RefObject, useEffect, useRef } from "react";
 
 import { AvatarGroupItem, AvatarGroupSize } from "../Avatar/AvatarGroup.types";
-import Tooltip from "./Tooltip";
 import { TooltipAlign, TooltipVariant } from "./Tooltip.types";
-
-// Tongue center ↔ tooltip edge distance for start/end: 8px inset + half of
-// the 8px tongue (see Tooltip.module.scss).
-const X_SHIFT: Record<TooltipAlign, string> = {
-  start: "-12px",
-  center: "-50%",
-  end: "calc(-100% + 12px)",
-};
+import useAnchoredTooltip from "./useAnchoredTooltip";
 
 interface HoverTooltipProps {
   /** Body content type. Default "text". */
@@ -58,9 +49,9 @@ interface HoverTooltipProps {
 }
 
 // Shows a Tooltip while hovering/focusing the trigger — any Tooltip content:
-// text, an avatar stack, or a free slot. Rendered in a portal to <body> so it
-// sits above everything and is never clipped by an ancestor's overflow.
-// Placement top, flips to bottom when there isn't room above.
+// text, an avatar stack, or a free slot. Placement comes from the shared
+// `useAnchoredTooltip` hook: a <body> portal, pinned to the trigger's box,
+// above it unless there is no room.
 export default function HoverTooltip({
   variant = "text",
   align = "center",
@@ -82,28 +73,11 @@ export default function HoverTooltip({
   // Touch devices emulate mouseenter on tap (and never end it) — a tooltip is
   // a hover affordance, so on touch it simply does not exist.
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
-  const [pos, setPos] = useState<{ x: number; y: number; placement: "top" | "bottom"; align: TooltipAlign } | null>(
-    null,
-  );
+  const tip = useAnchoredTooltip({ variant, align, textAlign, text, items, avatarGroupSize, content, maxWidth });
   const tapMode = tapToShow && !canHover;
 
-  const show = () => {
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    // Rich tooltips are taller than a text line — keep a larger flip margin.
-    const room = variant === "text" ? 56 : 160;
-    const placement: "top" | "bottom" = r.top < room ? "bottom" : "top";
-    const cx = r.left + r.width / 2;
-    // Horizontal alignment starts as the caller asked. A centered body near a
-    // screen edge would overflow it, so it re-anchors to the near side — but
-    // only once the REAL width is known (see the layout effect below). It used
-    // to guess with `maxWidth / 2`, i.e. 120px for every tooltip, which
-    // re-anchored a 50px "Copy" tooltip that had ample room (Daniel,
-    // 2026-09-28).
-    setPos({ x: cx, y: placement === "top" ? r.top : r.bottom, placement, align });
-  };
-  const hide = () => setPos(null);
+  const show = () => tip.show(ref.current);
+  const hide = () => tip.hide();
   // Keyboard focus only — a click/tap also focuses the trigger, and on touch
   // that used to leave the tooltip stuck with no hover to end it.
   const showOnKeyboardFocus = (e: React.FocusEvent) => {
@@ -115,13 +89,13 @@ export default function HoverTooltip({
   const onTap = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (pos) hide();
+    if (tip.isOpen) hide();
     else show();
   };
   // While a tapped tooltip is open, dismiss it on any outside tap or scroll (it
   // is pinned at show-time, so a scroll would otherwise leave it floating).
   useEffect(() => {
-    if (!tapMode || pos == null) return undefined;
+    if (!tapMode || !tip.isOpen) return undefined;
     const onDown = (e: Event) => {
       if (!ref.current?.contains(e.target as Node)) hide();
     };
@@ -131,7 +105,7 @@ export default function HoverTooltip({
       document.removeEventListener("pointerdown", onDown, true);
       window.removeEventListener("scroll", hide, true);
     };
-  }, [tapMode, pos]);
+  }, [tapMode, tip.isOpen]);
 
   // External trigger: React's onMouseEnter is not available on an element we do
   // not render, so the listeners go on directly. `mouseenter`/`mouseleave` are
@@ -152,64 +126,10 @@ export default function HoverTooltip({
   useEffect(() => {
     const el = triggerRef?.current;
     if (el == null) return undefined;
-    if (pos != null) el.setAttribute("data-tooltip-open", "true");
+    if (tip.isOpen) el.setAttribute("data-tooltip-open", "true");
     else el.removeAttribute("data-tooltip-open");
     return undefined;
-  }, [triggerRef, pos]);
-
-  // Re-anchor AFTER the first paint, from the body's real width: a centered
-  // tooltip that overflows a screen edge moves its tongue to the near side so
-  // the body grows inward. Runs once per show — `align` only ever leaves
-  // "center", so it cannot oscillate.
-  const bodyRef = useRef<HTMLSpanElement>(null);
-  useLayoutEffect(() => {
-    if (pos == null || pos.align !== "center") return;
-    const el = bodyRef.current;
-    if (el == null) return;
-    const r = el.getBoundingClientRect();
-    const M = 8;
-    const next: TooltipAlign | null = r.left < M ? "start" : r.right > window.innerWidth - M ? "end" : null;
-    if (next != null) setPos((prev) => (prev == null ? prev : { ...prev, align: next }));
-  }, [pos]);
-
-  const tip = pos && (
-    createPortal(
-      <span
-        ref={bodyRef}
-        style={{
-          position: "fixed",
-          left: pos.x,
-          top: pos.y,
-          // A fixed box with only `left` is shrink-to-fit against the space
-          // LEFT OF THE SCREEN EDGE — anchored 60px from the right edge, the
-          // body could not exceed 60px and "Add warranty" wrapped onto two
-          // lines. `max-content` sizes it from the text instead; `maxWidth`
-          // keeps the Tooltip's own clamp so long text still wraps
-          // (Daniel, 2026-09-28).
-          width: "max-content",
-          maxWidth: maxWidth ?? 240,
-          // 8px = 4px gap + ~4px tongue protrusion → 4px between button and tongue tip.
-          transform: `translate(${X_SHIFT[pos.align]}, ${pos.placement === "top" ? "calc(-100% - 8px)" : "8px"})`,
-          zIndex: 9999,
-          pointerEvents: "none",
-        }}
-      >
-        <Tooltip
-          placement={pos.placement}
-          align={pos.align}
-          textAlign={textAlign}
-          variant={variant}
-          text={text}
-          items={items}
-          avatarGroupSize={avatarGroupSize}
-          maxWidth={maxWidth}
-        >
-          {content}
-        </Tooltip>
-      </span>,
-      document.body,
-    )
-  );
+  }, [triggerRef, tip.isOpen]);
 
   // With a caller-owned trigger there is no wrapper to render — the children
   // are handed back untouched, so the trigger's own layout is never disturbed.
@@ -217,7 +137,7 @@ export default function HoverTooltip({
     return (
       <>
         {children}
-        {tip}
+        {tip.node}
       </>
     );
   }
@@ -230,7 +150,7 @@ export default function HoverTooltip({
       // Marks the trigger while the tooltip is open — a HintTrigger inside reads
       // this to show its active (hover-color) state even on touch, where :hover
       // never fires.
-      data-tooltip-open={pos != null ? "true" : undefined}
+      data-tooltip-open={tip.isOpen ? "true" : undefined}
       onMouseEnter={canHover ? show : undefined}
       onMouseLeave={canHover ? hide : undefined}
       onClick={tapMode ? onTap : undefined}
@@ -238,7 +158,7 @@ export default function HoverTooltip({
       onBlur={tapMode ? undefined : hide}
     >
       {children}
-      {tip}
+      {tip.node}
     </span>
   );
 }

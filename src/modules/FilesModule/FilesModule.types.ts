@@ -30,7 +30,15 @@ export interface FilesModuleProps {
   onReorder?: (visibility: FileVisibility, from: number, to: number) => void;
   /** Flip one file between Public and Private. */
   onToggleVisibility?: (file: ModuleFile) => void;
-  /** Delete one file. */
+  /**
+   * Delete one file — called AFTER the user confirms. The module owns the
+   * whole flow (Daniel, 2026-10-06: "it's a standard behaviour"): the row's
+   * "Delete" opens the **"Delete file?"** Prompt (Figma 21807-1721), and the
+   * **"File deleted"** toast (21807-1733) is raised here once this returns.
+   * So a consumer only removes the row — no confirm, no toast of its own.
+   *
+   * Leave it out and the row's Delete item does nothing at all.
+   */
   onDelete?: (file: ModuleFile) => void;
   /** Preview one file — the row click and the menu's "Preview". */
   onPreview?: (file: ModuleFile) => void;
@@ -57,13 +65,23 @@ export interface FilesModuleProps {
   maxFiles?: number;
 
   /**
-   * The list / cards TabGroup in the header. OFF by default — a 400px side
+   * The list / cards SegmentedControl in the header. OFF by default — a 400px side
    * panel has no room for cards (Equipment side panel Figma 21979-7536), while
    * a full details page turns it on.
    */
   showViewToggle?: boolean;
   /** Initial view when the toggle is shown. Default "list". */
   defaultView?: FileView;
+
+  /**
+   * Loading: the body becomes a flat list of skeleton rows and every header
+   * action is hidden. The COUNT is already known by then (the object's own
+   * record carries it), so the title keeps its counter and the list draws that
+   * many rows — see `loadingCount`. Equipment side panel node 22012-20559.
+   */
+  isLoading?: boolean;
+  /** How many skeleton rows to draw, and what the counter shows. Default 5. */
+  loadingCount?: number;
 
   /** Mobile presentation for the per-file menus (drawer instead of a card). */
   mobile?: boolean;

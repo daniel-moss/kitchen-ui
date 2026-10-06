@@ -6,6 +6,8 @@ import TextArea from "../../components/Fields/TextArea/TextArea";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import { toast } from "../../components/Toast/Toaster";
 
+import textDialog from "../shared/textDialog.module.scss";
+
 /**
  * The hint bubble on the dialog title (Figma 23869-13367 / 23869-13366 —
  * desktop bubble above the trigger, mobile drawer). Copy is the node's.
@@ -50,6 +52,8 @@ export default function NotesForm({ open, onClose, value, onSave, mobile = false
       title="Notes to dispatcher(s)"
       titleHintContent={NOTES_HINT}
       breakpoint={mobile ? "mobile" : "desktop"}
+      // Mobile: the sheet takes the whole screen so the field can use it all.
+      fillHeight
       confirmOnDismiss={notes !== value}
       footer={
         <PopoverFooter
@@ -65,12 +69,25 @@ export default function NotesForm({ open, onClose, value, onSave, mobile = false
         </PopoverFooter>
       }
     >
-      <TextArea
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        onClear={() => setNotes("")}
-        clearPromptLabel="notes to dispatcher(s)"
-      />
+      {/* The TEXT DIALOG height rules (Daniel, 2026-10-06; the Text-Area
+          form's own Figma doc): 12 rows minimum on DESKTOP, and on MOBILE no
+          minimum at all — the drawer takes the screen (`fillHeight`) and the
+          field stretches to use it. Both come from the shared
+          `textDialog` sheet, the same one EditNotesDialog and the Cancel-job
+          form use.
+
+          The class goes on a bare carrier because this body has NO `Input`:
+          the dialog title IS the field's label, so there is nothing else to
+          hang it on. The sheet's selectors are structural, so a plain div
+          carries them. */}
+      <div className={mobile ? textDialog.fillField : textDialog.tallField}>
+        <TextArea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          onClear={() => setNotes("")}
+          clearPromptLabel="notes to dispatcher(s)"
+        />
+      </div>
     </Dialog>
   );
 }

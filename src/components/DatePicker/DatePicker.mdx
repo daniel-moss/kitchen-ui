@@ -107,11 +107,12 @@ contains 7 date chips with no gap between them. The date chips fill the width.
 
 ### DateChip
 
-The chip is fixed height — `--size-9` (36px) — with `--border-radius-1_5`
-(6px) corners. It provides the `isToday` and `isSelected` properties. The
+The chip is fixed height — `--size-9` (36px) — with `--border-radius-2`
+(8px) corners. It provides the `isToday` and `isSelected` properties. The
 date is `body-400-compact` (14/20) `--text-strong`; hover fills the chip
 `--gray-a3`, press `--gray-a4`; the focus ring is a 2px `--gray-12` stroke
-2px outside the chip; disabled dims to 0.3.
+4px outside the chip, which puts the ring's radius at `--border-radius-3`
+(12px) — the chip's 8px plus the 4px offset; disabled dims to 0.3.
 
 <Canvas of={DateChipStories.Unselected} />
 
@@ -134,8 +135,10 @@ The selected "today" date:
 The DateChip is wrapped into a DateCell. The DateCell provides a background
 in date ranges (`--gray-a2`) through the `band` property, which controls the
 background corner radius: square where the band runs on to the neighbor
-cell, a `--border-radius-1_5` (6px) cap wherever it stops — a range end, a
-row break, and the hover preview's end all look the same:
+cell, a `--border-radius-2` (8px) cap wherever it stops — a range end, a
+row break, and the hover preview's end all look the same. The cap matches
+the chip's own corner, so a capped band and the selected chip on it are
+concentric:
 
 <Canvas of={DateChipStories.Band} />
 
@@ -276,7 +279,7 @@ neither of the 2 months, within the right month's header only:
 <Canvas of={DatePickerStories.RangeReturn} />
 
 The date chips within the range get the DateCell band (`--gray-a2`): square
-between the neighbor chips, capped with the `--border-radius-1_5` (6px)
+between the neighbor chips, capped with the `--border-radius-2` (8px)
 radius wherever the band stops — at the range ends, at the row edges, and at
 the hover preview's end:
 

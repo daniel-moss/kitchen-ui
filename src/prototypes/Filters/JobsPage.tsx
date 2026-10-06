@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
@@ -101,25 +102,27 @@ const TopBar = ({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
 }: {
   mobile?: boolean;
   branch: BranchId;
   onBranchChange: (next: BranchId) => void;
-  onNavigate: (next: Page) => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       // Both branches WORK since the documented Views section (14032-23326) —
       // switching phases swaps the views, the filter registry and the table's
       // jobs. See BRANCHES.
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as BranchId)}
         aria-label="Open or closed jobs"
@@ -133,22 +136,10 @@ const TopBar = ({
     }
   >
     <TopBarNavLeftElements>
-      {/* The sub-pages read "Requests" / "Series", not "Job requests" / "Job
-          series" (Daniel, 2026-08-17) — the same labels the sidebar's Jobs
-          stack already uses. Since the SERIES page exists (2026-09-14),
-          picking it here NAVIGATES there; Requests stays a label. */}
-      <TopBarNavTitle
-        title="Jobs"
-        subPages={[
-          { id: "requests", label: "Requests" },
-          { id: "jobs", label: "Jobs" },
-          { id: "series", label: "Series" },
-        ]}
-        subPage="jobs"
-        onSubPageChange={(id) => {
-          if (id === "series") onNavigate("series");
-        }}
-      />
+      {/* The title is a label, not a control (TopBarNav rebuild, 2026-10-01):
+          Requests / Jobs / Series are reached from the sidebar on desktop and
+          the menu page on mobile. */}
+      <TopBarNavTitle title="Jobs" />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -709,7 +700,7 @@ const DesktopShell = ({
   return (
     <>
       <div className={styles.workArea}>
-        <TopBar branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+        <TopBar branch={branch} onBranchChange={onBranchChange} />
         <DesktopViewBar
           branch={branch}
           tab={tab}
@@ -811,7 +802,7 @@ const MobileShell = ({
 
   return (
     <div className={styles.mobile}>
-      <TopBar mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <TopBar mobile branch={branch} onBranchChange={onBranchChange} />
       <MobileViewBar
         branch={branch}
         tab={tab}

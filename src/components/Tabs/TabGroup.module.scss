@@ -1,59 +1,56 @@
-// TabGroup — a tablist row. The variant sets the gap and (for contained) the
-// track surface; the child TabItems carry the per-tab look. See Figma "TabGroup".
+// TabGroup — a tablist row. The variant sets the gap; the child TabItems carry
+// the per-tab look. No container of its own: no fill, no border, no padding.
+// See Figma "TabGroup" (set 28713-136630).
 .group {
   display: inline-flex;
   align-items: center;
   width: fit-content;
 }
 
-// default — plain row of soft-fill tabs.
-.default {
+// pill — a plain row of soft-fill tabs.
+.pill {
   gap: var(--size-0_5); // 2px
-}
-
-// contained — a gray segmented track wrapping raised tabs.
-.contained {
-  position: relative; // origin for the sliding indicator
-  gap: var(--size-0_5); // 2px
-  padding: var(--size-0_5); // 2px
-  background: var(--gray-a3);
-  border-radius: var(--border-radius-1_5); // 6px
 }
 
 // underlined — wider spacing; the selected tab's bottom line slides.
+// The group takes the full height of the row it sits in (align-self) and its
+// tabs take the group's (align-items), so the line sits on the row's bottom
+// edge, next to the bar's divider.
 .underlined {
-  position: relative; // origin for the sliding indicator
-  gap: var(--size-5); // 20px
+  position: relative; // origin for the sliding line
+  gap: var(--size-6); // 24px
   align-items: stretch;
+  align-self: stretch;
 }
 
-// Tabs paint above the sliding indicator.
-.contained > [role="tab"],
+// Tabs paint above the sliding line.
 .underlined > [role="tab"] {
   position: relative;
   z-index: 1;
 }
 
-// ===== sliding indicator (contained surface / underlined line) =====
+// ===== the sliding line =====
 // One shared element the group moves to the selected tab. The tab itself drops
-// its own surface (TabItem `selectedSurface={false}`), so only this animates.
+// its own line (TabItem `selectedSurface={false}`), so only this animates.
 .indicator {
   position: absolute;
   left: 0;
+  bottom: 0;
   z-index: 0;
+  height: 2px;
+  background: var(--gray-12);
   pointer-events: none;
 }
-.indicatorContained {
-  top: 0;
-  background: var(--surface-interactive-default); // raised neutral surface (white / white-alpha in dark)
-  border-radius: 5px; // matches the contained tab
-  box-shadow: 0 1px 1.5px 0 var(--box-shadow-shadow-default);
+
+// The selected tab carries `warning`, so the line takes the warning colour
+// too (Daniel, 2026-10-06 — the label and the glyph were amber while the line
+// stayed gray-12). The group owns the line, so the colour has to be decided
+// here: TabItem's own `.underline.warning.selected::after` only covers a
+// standalone tab outside a group.
+.indicatorWarning {
+  background: var(--text-warning);
 }
-.indicatorUnderlined {
-  bottom: 0;
-  height: 1px;
-  background: var(--gray-12);
-}
+
 // Enabled after the first placement so mounting doesn't animate from 0,0.
 .indicatorReady {
   transition:

@@ -1,0 +1,15 @@
+// The portal span that carries a tooltip body. Rendered into <body>, so
+// `left`/`top` (set inline by the hook) are viewport coordinates of the
+// trigger's edge, and `transform` draws the body off that anchor point.
+.anchor {
+  position: fixed;
+
+  // A fixed box with only `left` would be shrink-to-fit against the space left
+  // of the screen edge, which squeezed tooltips near the right edge onto two
+  // lines. Intrinsic width sizes it from the text instead; the hook's inline
+  // `max-width` keeps the Tooltip's own clamp so long text still wraps.
+  width: max-content;
+
+  pointer-events: none;
+  z-index: var(--z-tooltip);
+}

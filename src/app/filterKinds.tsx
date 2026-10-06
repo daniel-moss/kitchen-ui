@@ -22,6 +22,8 @@ import SelectField from "../components/Fields/SelectField/SelectField";
 import TextField from "../components/Fields/TextField/TextField";
 import Input from "../components/Input/Input";
 import PopoverFooter from "../components/Popover/PopoverFooter";
+import Segment from "../components/SegmentedControl/Segment";
+import SegmentedControl from "../components/SegmentedControl/SegmentedControl";
 import SelectList from "../components/SelectList/SelectList";
 import SelectListItem from "../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../components/SelectList/SelectListItemGroup";
@@ -36,6 +38,7 @@ import {
   AnyFilterDef,
   DATE_CONDITIONS,
   AMOUNT_DIALOG_CONDITIONS,
+  amountCompareLabel,
   DateCompare,
   DateTimeframe,
   DateValue,
@@ -524,23 +527,29 @@ export function freeformFilter<TRow>(fields: FreeformFieldDef<TRow>[]): {
 
 // ---- the date filter's "Custom..." dialog -----------------------------------
 
-// The modal behind the list's "Custom..." row, from Figma nodes 13962-8889
-// (desktop) / 13962-8893 (mobile). The DS `Dialog`, titled with the filter's own
-// name, holding four blocks:
+// The modal behind the list's "Custom..." row. REBUILT 2026-10-02 from the
+// "Custom" section (14073-22059): Day single 14095-7347, Day range 14096-10083,
+// Month 14098-25008, Year 14098-28104. The DS `Dialog`, titled with the
+// filter's own name, holding THREE blocks:
 //
-//   TIMEFRAME (a 16px row) — a `ChipGroup` of `lg` Chips, Day / Month / Year,
-//     that picks WHICH timeframe the date is expressed in.
-//   a `Divider`, FULL-BLEED — edge to edge, no side inset.
-//   CONDITION (its own 16px container) — a second `ChipGroup` of `lg` Chips:
-//     HOW the timeframe is measured — on / before / after / within.
-//   SELECTION (16px sides and bottom, none on top — the Condition block above
-//     closes with its own 16 — and 16px between items). Unique to the chosen
-//     timeframe:
-//     - a `DateField` labelled "Date". It does NOT open the DatePicker
-//       (`withPicker={false}`, Daniel 2026-08-23) — the calendar is already in
-//       the dialog, so the field is a text field that parses what is typed;
-//     - the calendar itself (`DialogCalendar` below).
-//   the FOOTER: the picked date on the left, "Apply" on the right.
+//   CONTROLS (one 16px container, 16px between its parts):
+//     - a `SegmentedControl`, full width, that picks the TIMEFRAME —
+//       Day / Month / Year (it was a ChipGroup of three until 2026-10-02);
+//     - DAY ONLY: a `ChipGroup isFullWidth` of `lg` Chips — HOW the day is
+//       measured: after / before / on / within;
+//     - DAY ONLY: the `DateField`(s) — "Date", or "From" + "To" in range mode.
+//       They do NOT open the DatePicker (`withPicker={false}`, Daniel
+//       2026-08-23) — the calendar is already in the dialog, so a field is a
+//       text field that parses what is typed.
+//   a `Divider`, FULL-BLEED — edge to edge, no side inset. The dialog's only
+//     one: the fields moved up into the controls, so nothing separates them
+//     from the calendar any more.
+//   the CONTENT (16px): the calendar on Day, the period grid on Month / Year.
+//   the FOOTER: Cancel on the left, "Apply" on the right.
+//
+// MONTH and YEAR carry NO condition and NO field (Daniel, 2026-10-02): the
+// period IS a range, so the measure is always `on` — printed "in" — and the
+// chip's operator box is inert (`conditionChoices` returns a list of one).
 //
 // REBUILT 2026-08-24 (Daniel): the "Range (within)" ToggleItem that used to
 // share the Timeframe row is GONE, and its job is now the fourth condition chip,
@@ -559,7 +568,7 @@ export function freeformFilter<TRow>(fields: FreeformFieldDef<TRow>[]): {
 // of it, which the 2026-09-11 re-organisation removed.)
 const dateOf = (iso: string | null) => (iso == null ? null : new Date(`${iso}T12:00:00`));
 
-/** The top ChipGroup, in the node's order. All three are built. */
+/** The timeframe SegmentedControl's segments, in the node's order. All three are built. */
 const TIMEFRAMES: { id: DateTimeframe; label: string }[] = [
   { id: "day", label: "Day" },
   { id: "month", label: "Month" },
@@ -578,19 +587,16 @@ const TIMEFRAMES: { id: DateTimeframe; label: string }[] = [
 // 36px tall, 6px radius, stretching to fill its column; the picked period =
 // the chip's own `selected` (a2 fill + gray-12 stroke, Medium); the CURRENT
 // period — the one holding today — reads `--text-error`, like the calendar's
-// today (the nodes' annotation: "A year with the current day is highlighted");
-// a range runs as the chip's own band. The old local Chip restyle (the dark
-// pill, the full radius) is gone with it.
+// today (the nodes' annotation: "A year with the current day is highlighted").
+// The old local Chip restyle (the dark pill, the full radius) is gone with it.
+// There is no band: ONE period is picked, never a span of them (2026-10-02).
 const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 interface PeriodListProps {
   /** "month" draws twelve chips per year; "year" draws one chip per year. */
   timeframe: "month" | "year";
-  /** SINGLE mode: the picked period as an ISO first-of-period, or null. */
+  /** The picked period as an ISO first-of-period, or null. ONE period — see below. */
   from: string | null;
-  /** RANGE mode's second end; `range` says which mode this is. */
-  to: string | null;
-  range: boolean;
   onPick: (iso: string) => void;
   today: Date;
 }
@@ -601,10 +607,7 @@ interface PeriodListProps {
 // one full-width cell per year, 4px apart, no titles (node 14098-28104). The
 // list SCROLLS and opens on the period holding today (the nodes' annotation),
 // or on the picked one.
-function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListProps) {
-  // Same preview as the calendar's: with only one end picked, the band follows
-  // the pointer. NOT IN THE NODE — a static frame cannot draw a hover.
-  const [hovered, setHovered] = useState<string | null>(null);
+function PeriodList({ timeframe, from, onPick, today }: PeriodListProps) {
   const listRef = useRef<HTMLDivElement>(null);
   const openYearRef = useRef<HTMLDivElement>(null);
 
@@ -619,9 +622,6 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
     if (list != null && year != null) list.scrollTop = year.offsetTop;
   }, []);
 
-  const bandFrom = range ? from : null;
-  const bandTo = range ? (to ?? (bandFrom != null && hovered != null && hovered > bandFrom ? hovered : null)) : null;
-
   const openYear = from != null ? Number(from.slice(0, 4)) : today.getFullYear();
   // 1990 up to ten years past today — the annotation on node 14098-28104.
   const years: number[] = [];
@@ -633,47 +633,34 @@ function PeriodList({ timeframe, from, to, range, onPick, today }: PeriodListPro
       ? `${today.getFullYear()}-01-01`
       : `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
 
-  // One cell — a month or a whole year: the DS DateChip. `rowStart`/`rowEnd`
-  // cap the range band at the row's edges, the chip's own band rule ("a range
-  // end, a row break … they all look the same").
-  const cell = (iso: string, label: string, rowStart: boolean, rowEnd: boolean) => {
-    const picked = range ? iso === bandFrom || iso === bandTo : iso === from;
-    const inBand = bandFrom != null && bandTo != null && iso >= bandFrom && iso <= bandTo;
-    const capLeft = iso === bandFrom || rowStart;
-    const capRight = iso === bandTo || rowEnd;
-    return (
-      <DateChip
-        key={iso}
-        day={label}
-        isSelected={picked}
-        isToday={iso === currentIso}
-        band={!inBand ? "none" : capLeft && capRight ? "capBoth" : capLeft ? "capLeft" : capRight ? "capRight" : "middle"}
-        aria-label={label}
-        onPointerEnter={() => setHovered(iso)}
-        onClick={() => onPick(iso)}
-      />
-    );
-  };
+  // One cell — a month or a whole year: the DS DateChip. There is NO range
+  // band any more (2026-10-02): a month or a year can only be picked one at a
+  // time, because the period already IS the range ("in August 2026"). So a
+  // cell carries two states only — picked, and the one holding today.
+  const cell = (iso: string, label: string) => (
+    <DateChip
+      key={iso}
+      day={label}
+      isSelected={iso === from}
+      isToday={iso === currentIso}
+      band="none"
+      aria-label={label}
+      onClick={() => onPick(iso)}
+    />
+  );
 
   return (
-    <div
-      ref={listRef}
-      className={clsx(styles.monthYears, timeframe === "year" && styles.monthYearsRows)}
-      onPointerLeave={() => setHovered(null)}
-    >
+    <div ref={listRef} className={clsx(styles.monthYears, timeframe === "year" && styles.monthYearsRows)}>
       {years.map((year) =>
         timeframe === "year" ? (
-          // A year is a row of its own, so an in-band year is capped both ways.
           <div key={year} ref={year === openYear ? openYearRef : undefined} className={styles.yearRow}>
-            {cell(`${year}-01-01`, String(year), true, true)}
+            {cell(`${year}-01-01`, String(year))}
           </div>
         ) : (
           <div key={year} ref={year === openYear ? openYearRef : undefined} className={styles.monthYear}>
             <div className={styles.monthYearTitle}>{year}</div>
             <div className={styles.monthGrid}>
-              {MONTH_LABELS.map((label, index) =>
-                cell(`${year}-${String(index + 1).padStart(2, "0")}-01`, label, index % 3 === 0, index % 3 === 2),
-              )}
+              {MONTH_LABELS.map((label, index) => cell(`${year}-${String(index + 1).padStart(2, "0")}-01`, label))}
             </div>
           </div>
         ),
@@ -890,10 +877,23 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
 
   // Switching timeframe DROPS the picked dates: a day is not a month, so
   // carrying "Aug 5" over to the Month grid would leave a value nobody chose.
-  // The CONDITION survives — since 2026-08-24 the four chips are the same on
-  // every timeframe, so there is nothing to reset.
-  const setTimeframe = (next: DateTimeframe) =>
-    setDraft((current) => ({ ...current, timeframe: next, from: null, to: null }));
+  //
+  // The CONDITION survives, but MONTH and YEAR no longer have one (Daniel,
+  // 2026-10-02): a month or a year IS a range, so the measure is forced to
+  // `on` — which prints as "in" (`dateCompareLabel`) — and the chips are not
+  // drawn at all. Coming back to Day restores the condition the day value had,
+  // so a trip through Month cannot silently rewrite it.
+  const lastDayCompare = useRef<DateCompare>(draft.compare ?? "after");
+  const setTimeframe = (next: DateTimeframe) => {
+    if (timeframe === "day" && draft.compare != null) lastDayCompare.current = draft.compare;
+    setDraft((current) => ({
+      ...current,
+      timeframe: next,
+      from: null,
+      to: null,
+      compare: next === "day" ? lastDayCompare.current : "on",
+    }));
+  };
 
   // The condition chips. Picking one keeps `from` — the date already chosen
   // becomes the range's first end, or the single value again — and always drops
@@ -953,65 +953,46 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
         </PopoverFooter>
       }
     >
-      {/* TIMEFRAME — the chips that pick Day / Month / Year. The Range toggle
-          that used to share this row is gone (Daniel, 2026-08-24); the row is
-          the ChipGroup and nothing else. */}
-      <div className={styles.dateCustomTimeframe}>
-        <ChipGroup>
+      {/* CONTROLS — ONE 16px container, 16px between its parts (Daniel,
+          2026-10-02; Figma 14095-7347 single / 14096-10083 range): the
+          timeframe SegmentedControl, then the Day condition chips, then the
+          date field(s).
+          MONTH and YEAR hold NEITHER: the measure is always "in" and the
+          period is picked in the grid below, so the container is the
+          SegmentedControl alone (nodes 14098-25008 / 14098-28104). */}
+      <div className={styles.dateCustomControls}>
+        {/* The timeframe picker is a SegmentedControl since 2026-10-02 — it was
+            a ChipGroup of three. Full width, `lg`, the control owning the
+            value. */}
+        <SegmentedControl isFullWidth value={timeframe} onChange={(next) => setTimeframe(next as DateTimeframe)}>
           {TIMEFRAMES.map((option) => (
-            <Chip key={option.id} size="lg" isSelected={timeframe === option.id} onClick={() => setTimeframe(option.id)}>
+            <Segment key={option.id} value={option.id}>
               {option.label}
-            </Chip>
+            </Segment>
           ))}
-        </ChipGroup>
-      </div>
+        </SegmentedControl>
 
-      {/* FULL-BLEED — edge to edge, no side inset (Daniel, 2026-08-23). */}
-      <Divider contrast="medium" />
-
-      {/* CONDITION — its own 16px container, between the Divider and the
-          Selection block (Figma frame 13973-32462). ALWAYS shown, `within`
-          included: the nodes draw it in range mode too now (13962-12748 /
-          13962-12750), because `within` is the chip that PUTS the dialog in
-          range mode. */}
-      <div className={styles.dateCustomCondition}>
-        <ChipGroup>
-          {DATE_CONDITIONS.map((choice) => (
-            <Chip key={choice} size="lg" isSelected={draft.compare === choice} onClick={() => setCompare(choice)}>
-              {/* "on" a day, "in" a month or a year — the only measure whose
-                  wording follows the timeframe (nodes 13979-34143 / 13979-35147). */}
-              {dateCompareLabel(choice, timeframe)}
-            </Chip>
-          ))}
-        </ChipGroup>
-      </div>
-
-      {/* A SECOND full-bleed Divider closes the Condition block on EVERY
-          timeframe now — DAY joined Month and Year on 2026-09-09 (the Day
-          section's new dividers, nodes 14205-65591…65613; Month/Year drew it
-          all along, 14097-21480 / 14098-28104). */}
-      <Divider contrast="medium" />
-
-      {/* The chosen timeframe's own content. MONTH and YEAR: the period list,
-          which carries its own 16px padding and scrolls behind the line. DAY
-          keeps the Selection block (field + calendar). */}
-      {timeframe !== "day" ? (
-        <PeriodList
-          timeframe={timeframe}
-          from={draft.from}
-          to={draft.to}
-          range={range}
-          onPick={pickIso}
-          today={todayDate}
-        />
-      ) : (
-        <div className={styles.dateCustomSelection}>
+        {timeframe === "day" && (
           <>
+            {/* CONDITION — the four measures, the ChipGroup filling the
+                container's width (`isFullWidth`, the node's four equal chips).
+                The range measure is included: it is the chip that PUTS the
+                dialog in range mode. It is STORED as `within` and PRINTED as
+                "range" — `dateCompareLabel` carries both renamings. */}
+            <ChipGroup isFullWidth>
+              {DATE_CONDITIONS.map((choice) => (
+                <Chip key={choice} size="lg" isSelected={draft.compare === choice} onClick={() => setCompare(choice)}>
+                  {dateCompareLabel(choice, timeframe)}
+                </Chip>
+              ))}
+            </ChipGroup>
+
             {range ? (
-              // Two fields sharing the row, 16px apart (nodes 13962-12748 /
-              // 13962-12750). Neither opens a DatePicker, like the single field.
+              // Two fields sharing the row, 16px apart. Neither opens a
+              // DatePicker, like the single field. The labels are the node's
+              // "From" / "To" (they read "Date from" / "Date to" before).
               <div className={styles.dateCustomFields}>
-                <Input label="Date from">
+                <Input label="From">
                   <DateField
                     value={from}
                     onDateChange={(date) => setEnd("from", date)}
@@ -1019,7 +1000,7 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
                     formatValue={formatField}
                   />
                 </Input>
-                <Input label="Date to">
+                <Input label="To">
                   <DateField
                     value={to}
                     onDateChange={(date) => setEnd("to", date)}
@@ -1041,20 +1022,34 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
                 />
               </Input>
             )}
-
-            <DialogCalendar
-              value={range ? undefined : from}
-              range={range ? { from: draft.from, to: draft.to } : undefined}
-              onChange={(date) => pickIso(isoOf(date))}
-              month={month}
-              onMonthChange={setMonth}
-              monthCount={monthCount}
-              // The demo clock — see `todayDate` above. Without it the grid
-              // circles the REAL today and the "jump to today" button aims at
-              // the wrong month.
-              today={todayDate}
-            />
           </>
+        )}
+      </div>
+
+      {/* FULL-BLEED — edge to edge, no side inset (Daniel, 2026-08-23). The
+          dialog's ONE divider since 2026-10-02: it closes the controls
+          container, and the calendar / period grid follows it. */}
+      <Divider contrast="medium" />
+
+      {/* The chosen timeframe's own content. MONTH and YEAR: the period list,
+          which carries its own 16px padding and scrolls behind the line. DAY
+          gets the calendar. */}
+      {timeframe !== "day" ? (
+        <PeriodList timeframe={timeframe} from={draft.from} onPick={pickIso} today={todayDate} />
+      ) : (
+        <div className={styles.dateCustomSelection}>
+          <DialogCalendar
+            value={range ? undefined : from}
+            range={range ? { from: draft.from, to: draft.to } : undefined}
+            onChange={(date) => pickIso(isoOf(date))}
+            month={month}
+            onMonthChange={setMonth}
+            monthCount={monthCount}
+            // The demo clock — see `todayDate` above. Without it the grid
+            // circles the REAL today and the "jump to today" button aims at
+            // the wrong month.
+            today={todayDate}
+          />
         </div>
       )}
     </Dialog>
@@ -1068,16 +1063,17 @@ function DateCustom({ def, value, onApply, onClose, open, breakpoint }: DateCust
 // 13923-24742 mobile, Range 13923-24617 / 13923-24921, plus their Filled
 // twins). The DS `Dialog`, titled with the filter's own name, holding:
 //
-//   CONDITION (a 16px row) — a `ChipGroup` of `lg` Chips: at least / at most /
-//     is / within. This is the ONE place `within` can be chosen, because it is
-//     the only place that can collect a second value.
-//   a `Divider`, FULL-BLEED — edge to edge, like the date and address
-//     dialogs'. NEW with the documented section; the old node drew none here.
-//   CONTENT (16px all round, 16px between items):
+//   ONE BODY BLOCK (16px all round, 16px between its parts) since 2026-10-03 —
+//   the Divider that used to split the condition from the fields is GONE, and
+//   both sit directly in the body slot:
+//     - a `ChipGroup` of `lg` Chips: at least / at most / is / **range** (the
+//       stored value is still `within`; `amountCompareLabel` prints it). This
+//       is the ONE place a range can be chosen, because it is the only place
+//       that can collect a second value.
 //     - one `Input` labelled with the FILTER's name ("Est. duration" on the
-//       jobs list — node 14758-68028 draws the label and the dialog title from
-//       it, the same rule the Money dialog follows), or, in `within`, two
-//       stacked Inputs labelled "From" and "To";
+//       jobs list — node 14758-68026 draws the label and the dialog title from
+//       it, the same rule the Money dialog follows), or, in a range, two
+//       Inputs labelled "From" and "To" STACKED 24px apart;
 //     - each is the DS `InputGroup` in its TextField + SelectField shape: hours
 //       typed with an "hr" suffix, minutes picked from a list with a "min" one.
 //   the FOOTER: a ghost Cancel and a solid Apply, like the date and address
@@ -1346,39 +1342,43 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
         </PopoverFooter>
       }
     >
-      {/* CONDITION — the four measures, `within` among them. */}
-      <div className={styles.amountCustomCondition}>
-        <ChipGroup>
+      {/* ONE body block since 2026-10-03 (Daniel): the chips and the fields sit
+          directly in the body slot, 16px all round and 16px apart, and the
+          full-bleed Divider that used to separate two blocks is GONE. Every
+          rebuilt amount node now draws that — body slot VERTICAL, gap 16,
+          padding 16, zero dividers (Est. duration 14758-68026, Total
+          14299-49210, Items 14854-31217 …). */}
+      <div className={styles.amountCustomBody}>
+        <ChipGroup isFullWidth>
           {AMOUNT_DIALOG_CONDITIONS.map((choice) => (
             <Chip key={choice} size="lg" isSelected={compare === choice} onClick={() => setCompare(choice)}>
-              {choice}
+              {amountCompareLabel(choice)}
             </Chip>
           ))}
         </ChipGroup>
-      </div>
 
-      {/* FULL-BLEED — edge to edge, like the date and address dialogs'. NEW
-          with the documented section; the old build drew none here. */}
-      <Divider contrast="medium" />
-
-      {/* CONTENT — one field row, or two when the condition needs both ends.
-          The single amount row and the range's "From" SHARE one state,
-          which is the node's own annotation made real (13923-24617): "selecting
-          'within' automatically populates 'From' duration with that value".
-          Leaving `within` keeps whatever was typed into the second row, so a
-          slip on the chips costs nothing; only Apply reads it. */}
-      <div className={styles.amountCustomContent}>
+        {/* The single field and the range's "From" SHARE one state, which is
+            the node's own annotation made real (13923-24617): "selecting
+            'range' automatically populates 'From' with that value". Leaving
+            the range keeps whatever was typed into the second row, so a slip
+            on the chips costs nothing; only Apply reads it. */}
         {within ? (
-          <>
+          // A duration's two ends STACK, 24px apart, in their own `Inputs`
+          // frame — the hr/min pair needs the full width, so it cannot share a
+          // row the way money's From / To do.
+          <div className={styles.amountCustomStack}>
             <DurationInput label="From" value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
             <DurationInput label="To" value={to} onChange={setTo} pop={toPop} mobile={mobile} />
-          </>
+          </div>
         ) : (
-          // A SINGLE value carries NO label (Daniel, 2026-09-16 — node
-          // 13923-24049 draws the Input with `header: false`), which retired
-          // the 2026-09-15 unit-word relabel: the dialog's title already
-          // names what is being typed. The RANGE above keeps From / To.
-          <DurationInput value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
+          // A SINGLE value is labelled with the FILTER'S OWN NAME (Daniel,
+          // 2026-10-03 — every rebuilt node draws it: "Est. duration", "Cost",
+          // "Tax rate", "Current POs"), and the generic spec's annotation says
+          // so in words: "Label inherits the name from the 'Filters' menu".
+          // This reverses the 2026-09-16 no-label rule, so the name now appears
+          // twice — once as the dialog title, once over the field. Confirmed
+          // deliberate.
+          <DurationInput label={def.label} value={from} onChange={setFrom} pop={fromPop} mobile={mobile} />
         )}
       </div>
     </Dialog>
@@ -1387,21 +1387,22 @@ function DurationCustom({ def, value, onApply, onClose, open, breakpoint }: Dura
 
 // ---- the Money dialog -------------------------------------------------------
 
-// The MONEY kind's Custom dialog — section 14299-49210, built 2026-09-12. The
-// duration dialog's twin, and deliberately so: the same Dialog titled with the
-// filter's name, the same four `lg` condition Chips over a full-bleed Divider,
-// the same Cancel / Apply footer with Apply disabled until the value is there
-// (the node's annotations: "Stays disabled until the value is provided" /
-// "until both inputs are filled out").
+// The MONEY kind's Custom dialog — section 14299-49210, built 2026-09-12,
+// rebuilt with the rest on 2026-10-03. The duration dialog's twin, and
+// deliberately so: the same Dialog titled with the filter's name, the same four
+// `lg` condition Chips in the same single body block (no Divider any more), the
+// same Cancel / Apply footer with Apply disabled until the value is there (the
+// node's annotations: "Stays disabled until the value is provided" / "until
+// both inputs are filled out").
 //
-// What differs is the field: ONE `Input` labelled with the KIND's unit word —
-// "Amount" for money, "Number" for count (Daniel's 2026-09-15 relabel; the
-// nodes 14299-49210, 14787-82929, 14854-31217 and 14767-79594 all draw it, and
-// the duration dialog's "Duration" is the same rule) — holding a TextField
-// with a "$" PREFIX and nothing else. A range swaps it for "From" and
-// "To", and those two sit SIDE BY SIDE on both breakpoints (the node puts them
-// at 280px each in the 608px card, 163.5px each in the drawer), where the
-// duration's stack. Hence its own content class.
+// What differs is the field: ONE `Input` labelled with the FILTER'S OWN NAME —
+// "Cost", "Total", "Tax rate", "Current POs" (every rebuilt node draws it, and
+// the generic spec annotates it: "Label inherits the name from the 'Filters'
+// menu") — holding a TextField with a "$" PREFIX for money, a "%" SUFFIX for
+// percent and nothing for a count. A range swaps it for "From" and "To", and
+// those two sit SIDE BY SIDE on both breakpoints (280px each in the 608px card,
+// 164px each in the drawer), where the duration's stack. Hence its own row
+// class.
 //
 // Dollars are whole numbers here — every node draws "$1,000", no cents — so the
 // field takes digits only. The db stores cents-bearing totals (3480.5), and the
@@ -1479,51 +1480,59 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
         </PopoverFooter>
       }
     >
-      <div className={styles.amountCustomCondition}>
-        <ChipGroup>
+      {/* ONE body block, no Divider — see the duration dialog above. */}
+      <div className={styles.amountCustomBody}>
+        <ChipGroup isFullWidth>
           {AMOUNT_DIALOG_CONDITIONS.map((choice) => (
             <Chip key={choice} size="lg" isSelected={compare === choice} onClick={() => setCompare(choice)}>
-              {choice}
+              {amountCompareLabel(choice)}
             </Chip>
           ))}
         </ChipGroup>
-      </div>
 
-      <Divider contrast="medium" />
-
-      {/* The single field and the range's "From" SHARE one state — the node's
-          annotation made real: "If the user provides the value on 'over',
-          'under' or 'is', then selecting 'within' automatically populates
-          'From' with that value". The "$" belongs to the MONEY kind alone: a
-          COUNT's field is a bare number (the Open jobs Custom nodes,
-          14767-79595 / 14767-80100, draw no prefix). */}
-      <div className={styles.moneyCustomContent}>
-        {/* A SINGLE value carries NO label (Daniel, 2026-09-16 — node
-            13923-24049 draws its Input with `header: false`): the dialog's
-            title already names what is being typed, so the unit word under
-            it only repeated it. It is the MFG / MFG part # rule applied to
-            the amount kinds. A RANGE still labels both ends, because "From"
-            and "To" say which is which — the node keeps `header: true` on
-            those two. */}
-        <Input label={within ? "From" : undefined}>
-          <TextField
-            value={from}
-            onChange={(e) => setFrom(moneyDigits(e.target.value))}
-            keyboard="numeric"
-            prefix={amountPrefix(def)}
-            suffix={def.kind === "percent" ? "%" : undefined}
-            aria-label={within ? `${def.label} from` : def.label}
-          />
-        </Input>
-        {within && (
-          <Input label="To">
+        {/* The single field and the range's "From" SHARE one state — the node's
+            annotation made real: "If the user provides the value on 'at least',
+            'at most' or 'is', then selecting 'range' automatically populates
+            'From' with that value". The "$" belongs to the MONEY kind alone: a
+            COUNT's field is a bare number (the Open jobs, Items, Locations and
+            Current POs nodes draw no prefix), and a PERCENT carries "%" after
+            it instead (Tax rate 15368-50101).
+            A single value is labelled with the FILTER'S OWN NAME since
+            2026-10-03; a range labels both ends From / To and puts them SIDE BY
+            SIDE on both breakpoints (280px each in the 608px card, 164px each
+            in the drawer), where a duration's two ends stack. */}
+        {within ? (
+          <div className={styles.amountCustomRow}>
+            <Input label="From">
+              <TextField
+                value={from}
+                onChange={(e) => setFrom(moneyDigits(e.target.value))}
+                keyboard="numeric"
+                prefix={amountPrefix(def)}
+                suffix={def.kind === "percent" ? "%" : undefined}
+                aria-label={`${def.label} from`}
+              />
+            </Input>
+            <Input label="To">
+              <TextField
+                value={to}
+                onChange={(e) => setTo(moneyDigits(e.target.value))}
+                keyboard="numeric"
+                prefix={amountPrefix(def)}
+                suffix={def.kind === "percent" ? "%" : undefined}
+                aria-label={`${def.label} to`}
+              />
+            </Input>
+          </div>
+        ) : (
+          <Input label={def.label}>
             <TextField
-              value={to}
-              onChange={(e) => setTo(moneyDigits(e.target.value))}
+              value={from}
+              onChange={(e) => setFrom(moneyDigits(e.target.value))}
               keyboard="numeric"
               prefix={amountPrefix(def)}
               suffix={def.kind === "percent" ? "%" : undefined}
-              aria-label={`${def.label} to`}
+              aria-label={def.label}
             />
           </Input>
         )}
@@ -1542,13 +1551,14 @@ function MoneyCustom({ def, value, onApply, onClose, open, breakpoint }: MoneyCu
 //
 // The DS `Dialog`, titled with the filter's name, holding:
 //
-//   CONDITION (a 16px row, NEW with the documented section) — a `ChipGroup` of
-//     two `lg` Chips, "contains" / "does not contain". The same pair the chip's
-//     condition segment offers, from the same `conditionChoices` source — so
-//     the dialog and the chip cannot drift apart.
-//   a `Divider`, FULL-BLEED — edge to edge, like the date dialog's.
-//   the DEF's `Input`s at 24px apart inside 16px padding — five for the two
-//     address filters, one for MFG — each with a PLAIN label: the "(optional)"
+//   ONE BODY BLOCK (16px all round, 16px between its parts) since 2026-10-03 —
+//   no Divider, the amount dialogs' rule:
+//     - a `ChipGroup` of two `lg` Chips, "contains" / "does not contain". The
+//       same pair the chip's condition segment offers, from the same
+//       `conditionChoices` source — so the dialog and the chip cannot drift.
+//     - the DEF's `Input`s, 24px apart — five for the two address filters, one
+//       for MFG (labelled with the FILTER's name since 2026-10-03, where it
+//       used to draw no header) — each with a PLAIN label: the "(optional)"
 //     condition was dropped on 2026-09-16 (Daniel), because every field of a
 //     freeform filter is optional and the word was on all of them at once. The
 //     only difference between the breakpoints is the address filters' last
@@ -1584,16 +1594,22 @@ function FreeformCustom({ def, value, onApply, onClose, open, breakpoint }: Free
   // Apply writes it back.
   const [negated, setNegated] = useState(value.negated);
 
-  // A field with no `label` renders with NO header — Input draws one only when
-  // it has something to put in it, so a one-field filter (MFG, MFG part #) is
-  // the bare TextField its node draws.
+  // A ONE-FIELD filter (MFG, MFG part #) is labelled with the FILTER'S OWN
+  // NAME when the field declares none of its own — the rebuilt nodes draw it
+  // ("MFG", "MFG part #": 15339-34571 / 15339-34948) and the generic spec says
+  // so in words: "Label inherits the name from the 'Filters' menu". Before
+  // 2026-10-03 that field drew no header at all.
+  //
+  // The fallback is deliberately scoped to the single-field case: in a
+  // multi-field filter every field names itself, and borrowing the filter's
+  // name for one of them would be wrong.
   //
   // NO label condition on any of them (Daniel, 2026-09-16 — the "(optional)"
   // is gone from Location address and Billing address): in a freeform filter
   // every field is optional, so the word sat on all five at once and carried
   // no information.
   const field = (spec: FreeformField) => (
-    <Input key={spec.key} label={spec.label}>
+    <Input key={spec.key} label={spec.label ?? (fields.length === 1 ? def.label : undefined)}>
       <TextField
         aria-label={spec.label ?? def.label}
         value={draft[spec.key] ?? ""}
@@ -1659,8 +1675,12 @@ function FreeformCustom({ def, value, onApply, onClose, open, breakpoint }: Free
       {/* CONDITION — "contains" / "does not contain" as lg Chips in a 16px row
           (node 14100-36449), the pair `conditionChoices` already defines for a
           freeform value. Picking one only marks it; Apply commits it. */}
-      <div className={styles.freeformCustomCondition}>
-        <ChipGroup>
+      {/* ONE body block since 2026-10-03, no Divider — the amount dialogs'
+          rule, and the rebuilt freeform nodes draw the same body slot
+          (VERTICAL, gap 16, padding 16, zero dividers: the generic spec
+          14100-36446, Billing address 14947-34564, MFG 15339-34571). */}
+      <div className={styles.freeformCustomBody}>
+        <ChipGroup isFullWidth>
           {conditionChoices(value).map((choice) => (
             <Chip
               key={choice.label}
@@ -1672,12 +1692,14 @@ function FreeformCustom({ def, value, onApply, onClose, open, breakpoint }: Free
             </Chip>
           ))}
         </ChipGroup>
+
+        {/* The fields keep their own 24px rhythm inside the block — every one
+            carries a label above it, so they need more room between them than
+            the 16px that separates them from the chips. The address nodes draw
+            that as an `Inputs` frame with gap 24. A SINGLE field needs no frame
+            at all, which is what the one-field nodes draw. */}
+        {rows.length === 1 ? rows : <div className={styles.freeformCustomFields}>{rows}</div>}
       </div>
-
-      {/* FULL-BLEED — edge to edge, no side inset, like the date dialog's. */}
-      <Divider contrast="medium" />
-
-      <div className={styles.freeformCustomContent}>{rows}</div>
     </Dialog>
   );
 }

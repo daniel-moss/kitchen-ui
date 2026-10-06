@@ -12,7 +12,7 @@
   height: var(--size-9); // 36px — fixed, same on every breakpoint (the doc)
   padding: 0 var(--size-2_5); // 10px sides
   border: none;
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2); // 8px
   background: none;
   cursor: pointer;
   text-decoration: none;
@@ -167,7 +167,8 @@
   }
 }
 
-// Focus: ring at the row bounds, 4px gap, inner radius-4 fill = the row's
+// Focus: ring at the row bounds, 2px visible gap, inner `--border-radius-1`
+// (4px) fill = the row's
 // hover fill (active default/stackItem step to a4, like their hover). Last
 // among the states: the focus look wins over the fills below it.
 .item:focus-visible {

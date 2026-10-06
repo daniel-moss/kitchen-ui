@@ -6,6 +6,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -99,7 +100,7 @@ const BRANCHES: BillBranch[] = [
     id: "open",
     label: "Open",
     tabs: [
-      { id: "all", label: "All", statuses: [] },
+      { id: "all", label: "All open", statuses: [] },
       // "Draft", not production's "Pending" (Daniel renamed the view
       // 2026-09-15): production's tab holds Draft + Unsent, and with Unsent
       // ruled out the single status names the tab.
@@ -114,7 +115,7 @@ const BRANCHES: BillBranch[] = [
     id: "closed",
     label: "Closed",
     tabs: [
-      { id: "closedAll", label: "All", statuses: [] },
+      { id: "closedAll", label: "All closed", statuses: [] },
       { id: "paid", label: "Paid", statuses: ["paid"] },
       { id: "voided", label: "Voided", statuses: ["voided"] },
     ],
@@ -155,13 +156,17 @@ const BillsTopBar = ({
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as BillsPhase)}
         aria-label="Open or closed bills"

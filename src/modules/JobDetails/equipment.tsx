@@ -1,6 +1,6 @@
-import Avatar from "../../components/Avatar/Avatar";
 import { AvatarSize } from "../../components/Avatar/Avatar.types";
 import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
+import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import TruncatingText from "../../components/Tooltip/TruncatingText";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
@@ -106,21 +106,14 @@ export const equipmentCaptionText = (e: Equipment) => (
 );
 
 /**
- * The row avatar: the equipment avatar, or the WARNING avatar while any of the
- * three properties is missing (the warranty status is then not shown). The
- * warning look is built from the DS Avatar — it is not an AvatarEquipment
- * status (Daniel, 2026-08-03: prototype-local for now).
+ * The row avatar: the equipment avatar, or the DS `AvatarWarning` while any of
+ * the three properties is missing (the warranty status is then not shown).
+ *
+ * It used to hand-build the warning look from the bare Avatar — a leftover
+ * from 2026-08-03, when `AvatarWarning` did not exist yet. It had drifted on
+ * two counts (Daniel spotted it, 2026-10-06): the glyph was REGULAR where the
+ * component draws it solid, and the colour was `--amber-10` where the
+ * component uses `--amber-a11`. A named DS component must BE that component.
  */
 export const EquipmentAvatar = ({ equipment, size = "xl" }: { equipment: Equipment; size?: AvatarSize }) =>
-  equipmentIncomplete(equipment) ? (
-    <Avatar
-      shape="square"
-      content="icon"
-      icon="triangle-exclamation"
-      size={size}
-      backgroundColor="var(--amber-a3)"
-      iconColor="var(--amber-10)"
-    />
-  ) : (
-    <AvatarEquipment size={size} />
-  );
+  equipmentIncomplete(equipment) ? <AvatarWarning size={size} /> : <AvatarEquipment size={size} />;

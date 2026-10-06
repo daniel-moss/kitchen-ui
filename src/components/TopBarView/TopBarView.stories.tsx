@@ -14,7 +14,7 @@ const meta: Meta<typeof TopBarView> = {
   parameters: { layout: "fullscreen" },
   args: {
     breakpoint: "desktop",
-    searchPlaceholder: "Keyword search...",
+    searchPlaceholder: "Search...",
   },
   argTypes: {
     views: { control: false },

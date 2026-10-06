@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { CSSProperties } from "react";
 
-import { cap, docsFrame, noop } from "../../stories/helpers";
+import Counter from "../Counter/Counter";
+import DisplayModule from "../DisplayModule/DisplayModule";
+import { Icon } from "../Icon/Icon";
+import Segment from "../SegmentedControl/Segment";
+import SegmentedControl from "../SegmentedControl/SegmentedControl";
+
+import { PSEUDO_SELF, cap, docsFrame, noop } from "../../stories/helpers";
 
 import CardFile from "./CardFile";
 import { FileType } from "./CardFile.types";
@@ -23,28 +29,28 @@ const SAMPLE_IMG =
      </svg>`,
   );
 
-// The 12 file types, in the Figma "Unsupported preview" documentation order,
-// with the label + sample file name each preview uses.
-const DOC_TYPES: { type: FileType; name: string; label: string }[] = [
-  { type: "generic", name: "File.xyz", label: "Generic files (unknown file type)" },
-  { type: "word", name: "File.doc", label: "Word" },
-  { type: "pdf", name: "File.pdf", label: "PDF" },
-  { type: "spreadsheet", name: "File.xls", label: "Spreadsheet" },
-  { type: "presentation", name: "File.pptx", label: "Presentation" },
-  { type: "image", name: "File.png", label: "Image (unsupported preview)" },
-  { type: "audio", name: "File.mp3", label: "Audio" },
-  { type: "video", name: "File.mp4", label: "Video (unsupported preview)" },
-  { type: "vector", name: "File.svg", label: "Vector" },
-  { type: "gif", name: "File.gif", label: "GIF" },
-  { type: "markdown", name: "File.md", label: "Markdown" },
-  { type: "archive", name: "File.zip", label: "Archive" },
+const FILE_TYPES: FileType[] = [
+  "generic",
+  "word",
+  "pdf",
+  "spreadsheet",
+  "presentation",
+  "image",
+  "audio",
+  "video",
+  "vector",
+  "gif",
+  "markdown",
+  "archive",
 ];
-
-const FILE_TYPES = DOC_TYPES.map((t) => t.type);
 
 // Default card width. CardFile fills its container, so each preview sits in a
 // fixed-width cell (place CardFile in a grid in real use).
 const CELL = 150;
+
+// The Figma documentation page's own placeholder name — a preview of the
+// component shows the component, not a scene.
+const NAME = "File name";
 
 // A name too long to fit — the footer truncates it (hover for the tooltip) and
 // the no-preview tile wraps it, then truncates.
@@ -58,7 +64,7 @@ const frameCol: CSSProperties = {
   alignItems: "center",
   gap: "var(--size-20)",
 };
-// The Actions story is the exception — a centered row.
+// A centered row — two or more cards side by side.
 const frameRow: CSSProperties = {
   ...docsFrame,
   display: "flex",
@@ -105,7 +111,7 @@ export const Playground: Story = {
   // Synthetic playground args live on THIS story (not the meta) so the docs-page
   // ArgTypes table stays pure docgen from CardFile.types.ts.
   parameters: { layout: "centered" },
-  args: { name: "File name", fileType: "pdf", hasPreview: false, hasMenu: true, actionDanger: false, state: "default" },
+  args: { name: NAME, fileType: "pdf", hasPreview: false, hasMenu: true, actionDanger: false, state: "default" },
   argTypes: {
     fileType: { options: FILE_TYPES, control: { type: "select" } },
     state: { options: ["default", "disabled", "loading"], control: { type: "inline-radio" } },
@@ -126,148 +132,170 @@ export const Playground: Story = {
         actionIcon={actionDanger ? "trash-can" : undefined}
         actionLabel={actionDanger ? "Delete file" : undefined}
         disabled={state === "disabled"}
-        loading={state === "loading"}
+        isLoading={state === "loading"}
       />
     </div>
   ),
 };
 
-/** The full anatomy: a square preview tile above the footer (name + action). */
-export const Hero: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={{ width: CELL }}>
-        <CardFile name="Kitchen.jpg" fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
-      </div>
-    </div>
-  ),
-};
+// One card at the default width — the shape most previews need.
+const card = (props: Partial<Parameters<typeof CardFile>[0]> = {}, width: number = CELL) => (
+  <div style={{ width }}>
+    <CardFile name={NAME} onClick={noop} onMenuClick={noop} {...props} />
+  </div>
+);
 
-/** A video file — a dark overlay + a centered play icon over the thumbnail. */
-export const AnatomyVideo: Story = {
+const simple = (render: () => JSX.Element): Story => ({
   parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={{ width: CELL }}>
-        <CardFile name="Walkthrough.mp4" fileType="video" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
-      </div>
-    </div>
-  ),
-};
+  render,
+});
 
-/** No preview — the colored file-type placeholder (file name + type icon). */
-export const AnatomyNoPreview: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={{ width: CELL }}>
-        <CardFile name="Service report.pdf" fileType="pdf" onClick={noop} onMenuClick={noop} />
-      </div>
-    </div>
-  ),
-};
+/** The default card — an image preview above the footer. */
+export const Hero: Story = simple(() => (
+  <div style={frameCol}>{card({ fileType: "image", previewSrc: SAMPLE_IMG })}</div>
+));
 
-/**
- * Min (106px) and max (184px) width — the tile keeps its 1:1 ratio; the name
- * truncates and, when truncated, hovering the title shows a tooltip.
- */
-export const Responsiveness: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={labeled}>
-        <span style={cap}>min — 106px</span>
-        <div style={{ width: 106 }}>
-          <CardFile name="Kitchen renovation.jpg" fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
-        </div>
-      </div>
-      <div style={labeled}>
-        <span style={cap}>max — 184px</span>
-        <div style={{ width: 184 }}>
-          <CardFile name="Kitchen renovation.jpg" fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
-        </div>
-      </div>
-    </div>
-  ),
-};
+/** The anatomy: the square tile, the divider, and the footer (name + action). */
+export const Anatomy: Story = simple(() => (
+  <div style={frameCol}>{card({ fileType: "image", previewSrc: SAMPLE_IMG })}</div>
+));
 
-/** The action button runs its own action — a context menu (`ellipsis`) or a delete (`trash-can`, danger). */
-export const Actions: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameRow}>
-      <div style={labeled}>
-        <span style={cap}>context menu</span>
-        <div style={{ width: CELL }}>
-          <CardFile name="Kitchen.jpg" fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
+/** A files module in its cards view — where CardFile lives in the product. */
+export const WhenToUse: Story = simple(() => (
+  <div style={docsFrame}>
+    <DisplayModule
+      title="Files"
+      titleSlotRight={<Counter value={6} />}
+      slotRight={
+        <SegmentedControl size="md" value="cards" onChange={noop}>
+          <Segment value="list" slotLeft={<Icon icon="list" size={14} />} aria-label="List view" />
+          <Segment value="cards" slotLeft={<Icon icon="grid-2" size={14} />} aria-label="Cards view" />
+        </SegmentedControl>
+      }
+      content={
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(106px, 1fr))",
+            gap: "var(--size-3)",
+          }}
+        >
+          <CardFile name={NAME} fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
+          <CardFile name={NAME} fileType="video" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
+          <CardFile name={NAME} fileType="pdf" onClick={noop} onMenuClick={noop} />
+          <CardFile name={NAME} fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
+          <CardFile name={NAME} fileType="spreadsheet" onClick={noop} onMenuClick={noop} />
+          <CardFile name={NAME} fileType="image" previewSrc={SAMPLE_IMG} onClick={noop} onMenuClick={noop} />
         </div>
-      </div>
-      <div style={labeled}>
-        <span style={cap}>delete</span>
-        <div style={{ width: CELL }}>
-          <CardFile
-            name="Kitchen.jpg"
-            fileType="image"
-            previewSrc={SAMPLE_IMG}
-            onClick={noop}
-            onMenuClick={noop}
-            actionIcon="trash-can"
-            actionLabel="Delete file"
-            actionDanger
-          />
-        </div>
-      </div>
-    </div>
-  ),
-};
+      }
+    />
+  </div>
+));
 
-/** The placeholder file name wraps until it fills the tile, then truncates — shown at min and max width. */
-export const Wrapping: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={labeled}>
-        <span style={cap}>min — 106px</span>
-        <div style={{ width: 106 }}>
-          <CardFile name={LONG_NAME} fileType="generic" onClick={noop} onMenuClick={noop} />
-        </div>
-      </div>
-      <div style={labeled}>
-        <span style={cap}>max — 184px</span>
-        <div style={{ width: 184 }}>
-          <CardFile name={LONG_NAME} fileType="generic" onClick={noop} onMenuClick={noop} />
-        </div>
-      </div>
-    </div>
-  ),
-};
+/** An image preview — it fills the tile and is cropped to the square. */
+export const PreviewImage: Story = simple(() => (
+  <div style={frameCol}>{card({ fileType: "image", previewSrc: SAMPLE_IMG })}</div>
+));
 
-/** Each file type has its own placeholder — icon + color. The name wraps, then truncates. */
-export const FileTypes: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      {DOC_TYPES.map(({ type, name, label }) => (
-        <div key={type} style={labeled}>
-          <span style={cap}>{label}</span>
-          <div style={{ width: CELL }}>
-            <CardFile name={name} fileType={type} onClick={noop} onMenuClick={noop} />
-          </div>
-        </div>
-      ))}
-    </div>
-  ),
-};
+/** A video preview — a dark overlay and a centered play icon over the thumbnail. */
+export const PreviewVideo: Story = simple(() => (
+  <div style={frameCol}>{card({ fileType: "video", previewSrc: SAMPLE_IMG })}</div>
+));
 
-/** Loading — non-interactive; skeletons replace the text and the action button is hidden. */
-export const Loading: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={frameCol}>
-      <div style={{ width: CELL }}>
-        <CardFile name="Kitchen.jpg" fileType="generic" loading />
-      </div>
+/** No preview — the file-type placeholder: an icon above the file name. */
+export const PreviewPlaceholder: Story = simple(() => <div style={frameCol}>{card({ fileType: "generic" })}</div>);
+
+/** The placeholder name wraps over as many lines as fit, then truncates. */
+export const PreviewWrapping: Story = simple(() => (
+  <div style={frameCol}>{card({ name: LONG_NAME, fileType: "generic" })}</div>
+));
+
+// The twelve file types, each its own preview — the documentation page's order
+// and its sample names.
+const fileType = (type: FileType, name: string): Story =>
+  simple(() => <div style={frameCol}>{card({ name, fileType: type })}</div>);
+
+export const FileTypeGeneric = fileType("generic", "File.xyz");
+export const FileTypeWord = fileType("word", "File.doc");
+export const FileTypePdf = fileType("pdf", "File.pdf");
+export const FileTypeSpreadsheet = fileType("spreadsheet", "File.xls");
+export const FileTypePresentation = fileType("presentation", "File.pptx");
+export const FileTypeImage = fileType("image", "File.png");
+export const FileTypeAudio = fileType("audio", "File.mp3");
+export const FileTypeVideo = fileType("video", "File.mp4");
+export const FileTypeVector = fileType("vector", "File.svg");
+export const FileTypeGif = fileType("gif", "File.gif");
+export const FileTypeMarkdown = fileType("markdown", "File.md");
+export const FileTypeArchive = fileType("archive", "File.zip");
+
+/** With an action — the name truncates and hovering it shows the full name. */
+export const FooterAction: Story = simple(() => (
+  <div style={frameCol}>
+    {card({ name: "Image file name.png", fileType: "image", previewSrc: SAMPLE_IMG })}
+  </div>
+));
+
+/** Without an action — the name uses the full width. */
+export const FooterNoAction: Story = simple(() => (
+  <div style={frameCol}>
+    {card({ name: "Image file name.png", fileType: "image", previewSrc: SAMPLE_IMG, onMenuClick: undefined })}
+  </div>
+));
+
+/** The action button can also run a destructive action, in the danger style. */
+export const FooterDanger: Story = simple(() => (
+  <div style={frameRow}>
+    {card({ fileType: "image", previewSrc: SAMPLE_IMG })}
+    {card({
+      fileType: "image",
+      previewSrc: SAMPLE_IMG,
+      actionIcon: "trash-can",
+      actionLabel: "Delete file",
+      actionDanger: true,
+    })}
+  </div>
+));
+
+/** The same card at its smallest and its largest width — the tile stays square. */
+export const Responsiveness: Story = simple(() => (
+  <div style={frameRow}>
+    {card({ fileType: "image", previewSrc: SAMPLE_IMG }, 106)}
+    {card({ fileType: "image", previewSrc: SAMPLE_IMG }, 184)}
+  </div>
+));
+
+/** Loading — non-interactive; skeletons replace the name and the picture. */
+export const Loading: Story = simple(() => (
+  <div style={frameCol}>
+    <div style={{ width: CELL }}>
+      <CardFile name={NAME} isLoading />
     </div>
-  ),
-};
+  </div>
+));
+
+// The five interactive states, side by side — wider than the text column, so
+// the frame hugs its content (data-hug).
+// Card reaches its fill through :has(.body:hover), so the pseudo class goes on
+// the BODY (Card's own stories do the same) — marking the root would do nothing.
+const STATES: { label: string; props: Partial<Parameters<typeof CardFile>[0]> }[] = [
+  { label: "Hovered", props: { bodyClassName: PSEUDO_SELF.hover } },
+  { label: "Pressed", props: { bodyClassName: PSEUDO_SELF.press } },
+  { label: "Focused", props: { bodyClassName: PSEUDO_SELF.focus } },
+  { label: "Disabled", props: { disabled: true } },
+  { label: "Dragging", props: { dragging: true } },
+];
+
+/** Hover, press, focus, disabled and dragging — all of them Card's. */
+export const States: Story = simple(() => (
+  <div
+    data-hug
+    style={{ ...docsFrame, maxWidth: "none", display: "flex", justifyContent: "center", gap: "var(--size-4)" }}
+  >
+    {STATES.map(({ label, props }) => (
+      <div key={label} style={labeled}>
+        <span style={cap}>{label}</span>
+        {card({ fileType: "image", previewSrc: SAMPLE_IMG, ...props }, 106)}
+      </div>
+    ))}
+  </div>
+));

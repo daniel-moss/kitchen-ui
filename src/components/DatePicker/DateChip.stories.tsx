@@ -8,9 +8,9 @@ import { DateChipBand, DateChipProps } from "./DateChip.types";
 
 /**
  * DateChip — one date cell of the DatePicker calendar (Figma "#️⃣ DateChip"):
- * fixed 36px height, 6px radius, fills its cell. Selected = gray-a2 fill +
+ * fixed 36px height, 8px radius, fills its cell. Selected = gray-a2 fill +
  * a 1px gray-12 inside stroke; today = error-colored text. The range band
- * (`band`) draws behind the chip with uniform 6px caps wherever it stops.
+ * (`band`) draws behind the chip with uniform 8px caps wherever it stops.
  */
 const meta: Meta<typeof DateChip> = {
   title: "Components/DatePicker/DateChip",
@@ -93,7 +93,7 @@ export const SelectedToday: Story = {
 
 /**
  * The range band behind the chip (`band`): square where it runs on to the
- * neighbor, a uniform 6px cap wherever it stops — a range end, a row break,
+ * neighbor, a uniform 8px cap wherever it stops — a range end, a row break,
  * and the hover preview's end all look the same.
  */
 export const Band: Story = {

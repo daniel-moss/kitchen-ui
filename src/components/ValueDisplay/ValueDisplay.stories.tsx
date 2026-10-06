@@ -213,13 +213,13 @@ export const TextSlotLeft: Story = {
   ),
 };
 
-/** With a left slot the text truncates to one line. Hover it for the full text. */
-export const TextTruncates: Story = {
+/** A long value wraps, with or without a left slot; the slot stays on the first line. */
+export const TextWraps: Story = {
   render: () => (
     <Frame width={320}>
       <ValueDisplay
         label="Label"
-        value="Very long value which does not fit 1 line and needs to be truncated"
+        value="Very long value which does not fit 1 line and wraps onto the next one"
         slotLeft={<Icon icon="diamonds-4" size={14} />}
       />
     </Frame>

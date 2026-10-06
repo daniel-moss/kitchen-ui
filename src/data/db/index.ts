@@ -10,8 +10,8 @@
 // else may read that copy, and both it and the prototype are deleted when the
 // test is over.
 
-import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TODAY, VENDORS, WARRANTIES } from "./db";
-import { Bill, Client, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, Location, PurchaseOrder, Vendor, Warranty } from "./types";
+import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
+import { Bill, Client, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, Location, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
 
 export * from "./types";
 export {
@@ -60,6 +60,7 @@ export {
   DISCOUNT_SUBTYPES,
   TAX_RATE_ITEMS,
   TAX_RATE_LABELS,
+  QUICKBOOKS_VENDORS,
   JOB_LABELS,
   JOB_SOURCES,
   branchOf,
@@ -108,6 +109,17 @@ export const vendorById = (id: string): Vendor | undefined => VENDOR_BY_ID.get(i
 export const subStatusOf = (job: Job): JobSubStatusRecord | undefined =>
   job.subStatusId == null ? undefined : SUB_STATUS_BY_ID.get(job.subStatusId);
 
+/**
+ * The job that RECALLS this one — the other end of `recallToId`. The Related
+ * module shows it as a "Recall" row, the mirror of the "Recall to" row on the
+ * recalling side (Figma 24735-109840, 2026-10-05).
+ *
+ * A job can be on BOTH ends at once: a second return visit recalls the first
+ * recall, so that middle job shows two rows. There is at most one of each —
+ * nothing in the data creates two recalls of the same job.
+ */
+export const recallOf = (jobId: string): Job | undefined => JOBS.find((job) => job.recallToId === jobId);
+
 // ---- down the hierarchy ----------------------------------------------------
 
 export const locationsOf = (clientId: string) => LOCATIONS.filter((row) => row.clientId === clientId);
@@ -117,6 +129,8 @@ export const equipmentOf = (locationId: string) => EQUIPMENT.filter((row) => row
 export const warrantiesOf = (equipmentId: string) => WARRANTIES.filter((row) => row.equipmentId === equipmentId);
 /** One warranty by id — what the "Warranty" side panel is opened with. */
 export const warrantyById = (id: string): Warranty | undefined => WARRANTIES.find((row) => row.id === id);
+/** One tax rate by id — what the "Tax rate" side panel is opened with. */
+export const taxRateItemById = (id: string): TaxRateItem | undefined => TAX_RATE_ITEMS.find((row) => row.id === id);
 export const equipmentFilesOf = (equipmentId: string) => EQUIPMENT_FILES.filter((row) => row.equipmentId === equipmentId);
 export const jobsOf = (locationId: string) => JOBS.filter((row) => row.locationId === locationId);
 export const estimatesOf = (locationId: string) => ESTIMATES.filter((row) => row.locationId === locationId);

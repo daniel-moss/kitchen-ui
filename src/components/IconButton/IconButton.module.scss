@@ -1,6 +1,13 @@
 .base {
   position: relative;
 
+  // Corner radius is per SIZE (2026-10-01): xxxs–sm keep `--border-radius-1_5`
+  // (6px), `md` and `lg` are `--border-radius-2` (8px). The focus ring's inner
+  // block is always the outer radius minus the 2px stroke and the 2px gap —
+  // `--border-radius-0_5` (2px) up to sm, `--border-radius-1` (4px) on md/lg.
+  --ibtn-radius: var(--border-radius-1_5);
+  --ibtn-radius-inner: var(--border-radius-0_5);
+
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
@@ -14,7 +21,7 @@
   cursor: pointer;
 
   border: none;
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--ibtn-radius);
 
   color: var(--ibtn-fg);
   background: var(--ibtn-bg, transparent);
@@ -73,7 +80,7 @@
     inset: 2px;
     z-index: -1;
 
-    border-radius: var(--border-radius-0_5);
+    border-radius: var(--ibtn-radius-inner);
 
     background: var(--ibtn-focus-bg);
   }
@@ -160,11 +167,17 @@
 }
 
 .mdSize {
+  --ibtn-radius: var(--border-radius-2); // 8px
+  --ibtn-radius-inner: var(--border-radius-1); // 4px
+
   width: var(--size-8); /* 32px */
   height: var(--size-8);
 }
 
 .lgSize {
+  --ibtn-radius: var(--border-radius-2); // 8px
+  --ibtn-radius-inner: var(--border-radius-1); // 4px
+
   width: var(--size-9); /* 36px */
   height: var(--size-9);
 }

@@ -7,10 +7,10 @@ import { TabItemProps, TabItemVariant } from "./TabItem.types";
 import styles from "./TabGroup.module.scss";
 import { TabGroupProps } from "./TabGroup.types";
 
-// Figma's group style → the TabItem variant it lays out.
+// Figma's group style → the TabItem variant it lays out. (The names differ by
+// one letter in Figma: the group says "underlined", the tab "underline".)
 const VARIANT_TO_ITEM: Record<TabGroupProps["variant"] & string, TabItemVariant> = {
-  default: "default",
-  contained: "container",
+  pill: "pill",
   underlined: "underline",
 };
 
@@ -22,10 +22,10 @@ type IndicatorRect = { x: number; y: number; w: number; h: number };
 
 // TabGroup — lays out TabItem children as a tablist and owns the selection.
 // It injects the variant + size into each child, marks the selected one, wires
-// clicks to onChange, and adds roving-tabindex + arrow-key navigation. For the
-// contained / underlined styles a single shared indicator (the raised surface /
-// the bottom line) slides to the selected tab. See Figma "TabGroup".
-export default function TabGroup({ variant = "default", size: sizeProp, orientation = "horizontal", value, defaultValue, onChange, children, isFullWidth = false, className, ...rest }: TabGroupProps) {
+// clicks to onChange, and adds roving-tabindex + arrow-key navigation. The
+// underlined style slides one shared line to the selected tab; the pill style
+// paints its own shape. See Figma "TabGroup" (set 28713-136630).
+export default function TabGroup({ variant = "pill", size: sizeProp, value, defaultValue, onChange, children, isFullWidth = false, className, ...rest }: TabGroupProps) {
   // An explicit size wins; else a container's default (TopBarNav provides
   // "lg" for its bars); else "md".
   const contextSize = useContext(TabGroupDefaultSizeContext);
@@ -37,9 +37,9 @@ export default function TabGroup({ variant = "default", size: sizeProp, orientat
   const listRef = useRef<HTMLDivElement>(null);
   const itemVariant = VARIANT_TO_ITEM[variant];
 
-  // contained / underlined slide one shared indicator to the selected tab;
-  // default keeps its per-tab soft fill.
-  const animated = variant === "contained" || variant === "underlined";
+  // The underlined style slides one shared line to the selected tab; the pill
+  // keeps its per-tab shape.
+  const animated = variant === "underlined";
   const [indicator, setIndicator] = useState<IndicatorRect | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -96,7 +96,7 @@ export default function TabGroup({ variant = "default", size: sizeProp, orientat
       cancelled = true;
       ro.disconnect();
     };
-  }, [animated, selectedValue, size, orientation, isFullWidth, valuesKey]);
+  }, [animated, selectedValue, size, isFullWidth, valuesKey]);
 
   // The first placement is instant; enable the slide only afterwards.
   useEffect(() => {
@@ -130,7 +130,6 @@ export default function TabGroup({ variant = "default", size: sizeProp, orientat
     return cloneElement(child, {
       variant: itemVariant,
       size,
-      orientation,
       selected: isSelected,
       // The group owns the moving surface / line for the animated variants.
       selectedSurface: animated ? false : undefined,
@@ -144,18 +143,17 @@ export default function TabGroup({ variant = "default", size: sizeProp, orientat
   });
 
   const indicatorStyle: CSSProperties =
-    indicator == null
-      ? {}
-      : variant === "underlined"
-        ? { transform: `translateX(${indicator.x}px)`, width: indicator.w }
-        : { transform: `translate(${indicator.x}px, ${indicator.y}px)`, width: indicator.w, height: indicator.h };
+    indicator == null ? {} : { transform: `translateX(${indicator.x}px)`, width: indicator.w };
+  // A warning tab holds its colour in every state, the selected line included
+  // — and the line belongs to the GROUP, so the group is what has to colour it.
+  const selectedIsWarning = items.some((it) => it.props.value === selectedValue && it.props.warning === true);
 
   return (
     <div ref={listRef} role="tablist" className={clsx(styles.group, styles[variant], isFullWidth && styles.fullWidth, className)} onKeyDown={onKeyDown} {...rest}>
       {animated && indicator && (
         <span
           aria-hidden="true"
-          className={clsx(styles.indicator, variant === "underlined" ? styles.indicatorUnderlined : styles.indicatorContained, ready && styles.indicatorReady)}
+          className={clsx(styles.indicator, ready && styles.indicatorReady, selectedIsWarning && styles.indicatorWarning)}
           style={indicatorStyle}
         />
       )}

@@ -1,0 +1,9 @@
+// The labels picked in the form, under their field — a wrapping row of
+// dismissible badges, 8px apart both ways (the "Labels" Select List doc).
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+  align-items: flex-start;
+  margin-top: var(--size-2); // 8px below the field
+}

@@ -36,12 +36,17 @@ interface StartJobFormProps {
    * Starts (or resumes) the job. `checkIn` = the Check in card's state;
    * `status` = the chosen check-in status ("" when not checking in).
    */
-  onStart: (reason: string, checkIn: boolean, status: string) => void;
+  onStart: (reason: string, checkIn: boolean, status: string, subStatus?: string) => void;
   mobile?: boolean;
   /** Dialog title. Default "Start job". */
   title?: string;
-  /** Primary button copy. Default "Start job". */
+  /** Primary button copy. Default "Start" (Figma 24042-17549). */
   submitLabel?: string;
+  /**
+   * Primary button's left icon. Default "circle-play" (Figma 24042-14995) —
+   * it fits Start and the Resume reuse alike. Pass "" for none.
+   */
+  submitIcon?: string;
   /** The optional reason TextArea's label. Default "Start reason". */
   reasonLabel?: string;
   /** Success toast title. Default '"JOB-ID" started'. */
@@ -52,6 +57,17 @@ interface StartJobFormProps {
    * (Figma 24567-140277); plain Start / Resume have no banner.
    */
   banner?: string;
+  /**
+   * The company's ACTIVE sub-statuses. Sub-statuses are a per-company switch
+   * (`CompanySettings.subStatuses`): where active ones are configured, the job
+   * REQUIRES one to start or resume, and this adds the "Active status" select
+   * above the reason (Figma 24042-18897, error 24422-26522, list 24044-14180).
+   *
+   * The demo company has the active half OFF — the tech's check-in status
+   * stands in for it — so the page passes nothing and the field never renders.
+   * See the "Active sub-statuses" story for what it looks like when it is on.
+   */
+  activeSubStatuses?: string[];
 }
 
 // The "Start job" form (Figma 24048-13283, 2026-07-27 update): Job sub-status
@@ -66,10 +82,12 @@ export default function StartJobForm({
   onStart,
   mobile = false,
   title = "Start job",
-  submitLabel = "Start job",
+  submitLabel = "Start",
+  submitIcon = "circle-play",
   reasonLabel = "Start reason",
   toastTitle,
   banner,
+  activeSubStatuses = [],
 }: StartJobFormProps) {
   const jobId = useCurrentJobId();
   // The default needs the job id, and a default argument cannot call a hook.
@@ -79,6 +97,10 @@ export default function StartJobForm({
   const [status, setStatus] = useState("");
   const [showError, setShowError] = useState(false);
   const [bannerShown, setBannerShown] = useState(true);
+  // The "Active status" select exists only where the company configured one.
+  const asksSubStatus = activeSubStatuses.length > 0;
+  const [subStatus, setSubStatus] = useState("");
+  const subStatusPop = useSelectPopover(mobile);
 
   // A fresh open resets the draft; closing also forces the nested selects shut.
   useEffect(() => {
@@ -88,18 +110,20 @@ export default function StartJobForm({
     setStatus("");
     setShowError(false);
     setBannerShown(true);
+    setSubStatus("");
+    subStatusPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const dirty = reason !== "" || !checkIn || status !== "";
+  const dirty = reason !== "" || !checkIn || status !== "" || subStatus !== "";
 
-  // Sub-status is required; with check-in on, a status is required too.
+  // An offered sub-status is required; with check-in on, a status is too.
   const start = () => {
-    if (checkIn && status === "") {
+    if ((asksSubStatus && subStatus === "") || (checkIn && status === "")) {
       setShowError(true);
       return;
     }
-    onStart(reason, checkIn, status);
+    onStart(reason, checkIn, status, subStatus);
     toast({ type: "success", title: title_ });
     onClose();
   };
@@ -119,7 +143,7 @@ export default function StartJobForm({
             </Button>
           }
         >
-          <Button size="lg" variant="solid" onClick={start}>
+          <Button size="lg" variant="solid" leftIcon={submitIcon === "" ? undefined : submitIcon} onClick={start}>
             {submitLabel}
           </Button>
         </PopoverFooter>
@@ -130,6 +154,20 @@ export default function StartJobForm({
           <AlertBanner orientation="vertical" status="info" onDismiss={() => setBannerShown(false)}>
             {banner}
           </AlertBanner>
+        )}
+
+        {/* "Active status" — only for companies that configure active
+            sub-statuses (Figma 24042-18897). */}
+        {asksSubStatus && (
+          <Input label="Active status">
+            <SelectField
+              value={subStatus || undefined}
+              isValid={!(showError && subStatus === "")}
+              errorMessage="Choose Active status"
+              open={subStatusPop.open}
+              onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
+            />
+          </Input>
         )}
 
         <Input label={reasonLabel} labelCondition="optional">
@@ -173,7 +211,25 @@ export default function StartJobForm({
         />
       </div>
 
-
+      {/* The Active-status picker — desktop card / mobile drawer. */}
+      {asksSubStatus && (
+        <SelectPopoverList pop={subStatusPop} mobile={mobile} title="Active status" searchable searchPlaceholder="Status...">
+          <SelectListItemGroup>
+            {activeSubStatuses.map((name) => (
+              <SelectListItem
+                key={name}
+                label={name}
+                selected={name === subStatus}
+                onClick={() => {
+                  setSubStatus(name);
+                  setShowError(false);
+                  subStatusPop.close();
+                }}
+              />
+            ))}
+          </SelectListItemGroup>
+        </SelectPopoverList>
+      )}
     </Dialog>
   );
 }

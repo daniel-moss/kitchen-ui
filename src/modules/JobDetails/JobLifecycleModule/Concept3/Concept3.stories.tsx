@@ -6,7 +6,7 @@ import { FULL_ROWS } from "../lifecycleData";
 
 // CONCEPT 3 — one ItemGroup ACCORDION per status: a primary GroupLabel header with the status glyph, the name and the total after a bullet dot, and a Divider between groups.
 const meta: Meta = {
-  title: 'Modules/Job Details/"Job Lifecycle" Module/Concept 3',
+  title: 'Modules/Job/Job Details/"Job Lifecycle" Module/Concept 3',
   ...conceptMeta,
 };
 

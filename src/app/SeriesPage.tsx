@@ -5,6 +5,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -68,8 +69,8 @@ interface SeriesBranch {
 // The Views section (14759-74109): All Open "All open series are listed" ·
 // All Closed "All closed series are listed". Nothing locks anything.
 const BRANCHES: SeriesBranch[] = [
-  { id: "open", label: "Open", tabs: [{ id: "all", label: "All" }] },
-  { id: "closed", label: "Closed", tabs: [{ id: "closedAll", label: "All" }] },
+  { id: "open", label: "Open", tabs: [{ id: "all", label: "All open" }] },
+  { id: "closed", label: "Closed", tabs: [{ id: "closedAll", label: "All closed" }] },
 ];
 
 type SeriesPhase = SeriesBranch["id"];
@@ -81,30 +82,31 @@ const branchViews = (branch: SeriesPhase) =>
 
 // ---- the list top bar ------------------------------------------------------
 
-// The Jobs page's TopBar family: the title carries the Jobs sidebar stack's
-// sub-pages — Requests / Jobs / Series — and picking Jobs NAVIGATES there
-// (the Invoices ↔ Credit notes pattern). Requests has no page and stays a
-// label.
+// The Jobs page's TopBar family. The title is a label only — Requests / Jobs /
+// Series are reached from the sidebar and the mobile menu page, not from the
+// title (TopBarNav rebuild, 2026-10-01).
 const SeriesTopBar = ({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
 }: {
   mobile?: boolean;
   branch: SeriesPhase;
   onBranchChange: (next: SeriesPhase) => void;
-  onNavigate: (next: Page) => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as SeriesPhase)}
         aria-label="Open or closed series"
@@ -118,18 +120,7 @@ const SeriesTopBar = ({
     }
   >
     <TopBarNavLeftElements>
-      <TopBarNavTitle
-        title="Series"
-        subPages={[
-          { id: "requests", label: "Requests" },
-          { id: "jobs", label: "Jobs" },
-          { id: "series", label: "Series" },
-        ]}
-        subPage="series"
-        onSubPageChange={(id) => {
-          if (id === "jobs") onNavigate("jobs");
-        }}
-      />
+      <TopBarNavTitle title="Series" />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -369,7 +360,7 @@ const DesktopShell = ({
   onNavigate,
 }: ShellProps) => (
   <div className={styles.workArea}>
-    <SeriesTopBar branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+    <SeriesTopBar branch={branch} onBranchChange={onBranchChange} />
     <DesktopViewBar
       branch={branch}
       tab={tab}
@@ -436,7 +427,7 @@ const MobileShell = ({
   const tableRef = useSingleAxisScroll(true);
   return (
     <div className={styles.mobile}>
-      <SeriesTopBar mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <SeriesTopBar mobile branch={branch} onBranchChange={onBranchChange} />
       <MobileViewBar
         branch={branch}
         tab={tab}

@@ -47,10 +47,12 @@ function NoPreviewTile({ fileType, name }: { fileType: FileType; name: string })
   );
 }
 
-// The loading tile: the colored file-type placeholder with the file name
-// replaced by two skeleton lines (the icon stays top-left). See Figma "Loading".
-function LoadingTile({ fileType }: { fileType: FileType }) {
-  const meta = FILE_TYPE_META[fileType];
+// The loading tile: the neutral placeholder with the file name replaced by two
+// skeleton lines (the icon stays top-left). It is always the `generic` tile and
+// never the file type's own color — while the file loads the type is not known
+// yet. See Figma "Loading".
+function LoadingTile() {
+  const meta = FILE_TYPE_META.generic;
   return (
     <div className={clsx(styles.noPreview, styles[meta.color], styles.loadingTile)}>
       <Icon icon={meta.icon} pack={meta.pack} size={14} className={styles.noPreviewIcon} />
@@ -64,21 +66,21 @@ function LoadingTile({ fileType }: { fileType: FileType }) {
 
 // The square preview tile: a real thumbnail (image / video), a loading skeleton,
 // or the colored file-type placeholder when there is no preview.
-function FileTale({
+function FileTile({
   fileType,
   previewSrc,
   name,
-  loading,
+  isLoading,
 }: {
   fileType: FileType;
   previewSrc?: string;
   name: string;
-  loading?: boolean;
+  isLoading?: boolean;
 }) {
   return (
-    <div className={styles.tale}>
-      {loading ? (
-        <LoadingTile fileType={fileType} />
+    <div className={styles.tile}>
+      {isLoading ? (
+        <LoadingTile />
       ) : previewSrc ? (
         <div className={styles.preview}>
           <img className={styles.previewImg} src={previewSrc} alt="" />
@@ -103,7 +105,7 @@ function Footer({
   onMenuClick,
   menuOpen,
   disabled,
-  loading,
+  isLoading,
   actionIcon,
   actionLabel,
   actionDanger,
@@ -112,16 +114,18 @@ function Footer({
   onMenuClick?: (event: MouseEvent<HTMLButtonElement>) => void;
   menuOpen?: boolean;
   disabled?: boolean;
-  loading?: boolean;
+  isLoading?: boolean;
   actionIcon?: string;
   actionLabel?: string;
   actionDanger?: boolean;
 }) {
   return (
     <div className={styles.footer}>
-      <Divider />
-      <div className={clsx(styles.footerRow, loading && styles.footerRowLoading)}>
-        {loading ? (
+      {/* Medium, not the Divider default — the card's own contrast (Figma). */}
+      <Divider contrast="medium" />
+      {/* No button — unset, or dropped while loading — means 16px on both sides. */}
+      <div className={clsx(styles.footerRow, (isLoading || !onMenuClick) && styles.footerRowNoAction)}>
+        {isLoading ? (
           <SkeletonTypography variant="captionMD" />
         ) : (
           <>
@@ -176,9 +180,10 @@ const CardFile = forwardRef<HTMLDivElement, CardFileProps>(function CardFile(
     actionLabel,
     actionDanger,
     disabled = false,
-    loading = false,
+    isLoading = false,
     dragging = false,
     className,
+    bodyClassName,
   },
   ref,
 ) {
@@ -188,17 +193,18 @@ const CardFile = forwardRef<HTMLDivElement, CardFileProps>(function CardFile(
       padding={0}
       onClick={onClick}
       disabled={disabled}
-      loading={loading}
+      loading={isLoading}
       dragging={dragging}
       className={className}
+      bodyClassName={bodyClassName}
     >
-      <FileTale fileType={fileType} previewSrc={previewSrc} name={name} loading={loading} />
+      <FileTile fileType={fileType} previewSrc={previewSrc} name={name} isLoading={isLoading} />
       <Footer
         name={name}
         onMenuClick={onMenuClick}
         menuOpen={menuOpen}
         disabled={disabled}
-        loading={loading}
+        isLoading={isLoading}
         actionIcon={actionIcon}
         actionLabel={actionLabel}
         actionDanger={actionDanger}

@@ -10,7 +10,7 @@ import NewWarrantyForm from "./NewWarrantyForm";
 // side panel's Warranties tab opens it from "Add warranty"). The demo
 // equipment is the db's walk-in cooler.
 const meta: Meta = {
-  title: 'Modules/"New Warranty" Form',
+  title: 'Modules/Warranty/"New Warranty" Form',
   parameters: { controls: { disable: true } },
 };
 

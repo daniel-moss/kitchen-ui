@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
+import { AvatarEquipmentStatus } from "../../components/Avatar/AvatarEquipment.types";
 import Prompt from "../../components/Prompt/Prompt";
 import SidePanel from "../../components/SidePanel/SidePanel";
 import SidePanelNavigation from "../../components/SidePanel/SidePanelNavigation";
@@ -13,8 +14,11 @@ import { ModuleFile } from "../FilesModule/FilesModule.types";
 import NewWarrantyForm from "../NewWarrantyForm/NewWarrantyForm";
 import { NewWarranty } from "../NewWarrantyForm/NewWarrantyForm.types";
 // The Notes module and its edit dialog are SHARED with the Warranty side panel
-// (promoted 2026-09-28) — both panels draw the same module.
+// (promoted 2026-09-28) — both panels draw the same module. The Labels module
+// followed on 2026-10-05, when the Tax rate panel became its third caller; its
+// badges are lg now, the size Daniel settled on.
 import EditNotesDialog from "../shared/EditNotesDialog";
+import LabelsModule from "../shared/LabelsModule";
 import LabelsSelectList from "../shared/LabelsSelectList";
 import NotesModule from "../shared/NotesModule";
 // The Warranties tab swaps THIS panel's content for the warranty view — it
@@ -25,7 +29,6 @@ import { WarrantyRow, equipmentPanelData, warrantyRow } from "./equipmentData";
 import EditGeneralDetailsDialog from "./forms/EditGeneralDetailsDialog";
 import GeneralDetailsModule, { hasMissingKeyDetails } from "./modules/GeneralDetailsModule";
 import HistoryModule from "./modules/HistoryModule";
-import LabelsModule from "./modules/LabelsModule";
 import LocationModule from "./modules/LocationModule";
 import WarrantiesModule from "./modules/WarrantiesModule";
 import { EquipmentPanelProps, EquipmentPanelTab } from "./EquipmentPanel.types";
@@ -105,6 +108,13 @@ export default function EquipmentPanel({
   const tabCounter = (count: number) => (countsKnown && count > 0 ? count : undefined);
   const warningState = !isLoading && hasMissingKeyDetails(record);
 
+  // The header avatar's warranty-coverage status follows the SAME rule: it is
+  // derived from the warranties, which the Details tab is what loads — so the
+  // Details Loading frame draws `status=none` (node 22012-19762) while the
+  // Warranties / Files / History Loading frames draw the real status.
+  const avatarStatus: AvatarEquipmentStatus =
+    !countsKnown || coverage === "none" ? "none" : coverage === "partial" ? "partiallyCovered" : coverage;
+
   // The tab's warranties — the RECORDS, so opening one can hand the whole
   // warranty to its view. Seeded from the equipment and kept here so the "New
   // warranty" form has somewhere to put what it creates — the same working-copy
@@ -127,10 +137,9 @@ export default function EquipmentPanel({
     toast({ type: "neutral", icon: now === "public" ? "globe" : "lock", title: `"${file.name}" is now ${now}` });
   };
 
-  const deleteFile = (file: ModuleFile) => {
-    setFiles((prev) => prev.filter((row) => row.id !== file.id));
-    toast({ type: "neutral", icon: "trash-can", title: `"${file.name}" deleted` });
-  };
+  // NO confirm and NO toast here: the shared Files module asks first and
+  // reports afterwards, so this only has to remove the row (2026-10-06).
+  const deleteFile = (file: ModuleFile) => setFiles((prev) => prev.filter((row) => row.id !== file.id));
 
   const reorderFiles = (visibility: ModuleFile["visibility"], from: number, to: number) =>
     setFiles((prev) => {
@@ -208,10 +217,9 @@ export default function EquipmentPanel({
       <TabItem
         value="details"
         // "SidePanel also corresponds the warning state" — the Details tab
-        // turns amber while a key detail is missing (node 21958-9105).
+        // turns amber while a key detail is missing (node 21958-9105). The tab
+        // draws the warning icon itself now, so there is none to pass.
         warning={warningState}
-        icon={warningState ? "triangle-exclamation" : undefined}
-        iconPack="solid"
       >
         Details
       </TabItem>
@@ -241,7 +249,7 @@ export default function EquipmentPanel({
         // other absent value (node 21976-10317, whose annotation pins `fills`).
         caption={openWarranty != null ? undefined : (record.manufacturer ?? "No Manufacturer")}
         captionClassName={record.manufacturer == null ? styles.placeholderCaption : undefined}
-        avatar={openWarranty != null ? warrantyView.avatar : <AvatarEquipment size="xl" />}
+        avatar={openWarranty != null ? warrantyView.avatar : <AvatarEquipment size="xl" status={avatarStatus} />}
         headerActions={openWarranty != null ? warrantyView.headerActions : undefined}
         nav={openWarranty != null ? undefined : nav}
         state={state}
@@ -287,6 +295,8 @@ export default function EquipmentPanel({
           <FilesModule
             files={files}
             mobile={mobile}
+            isLoading={isLoading}
+            loadingCount={fileCount}
             // No list/cards toggle in a 400px panel (node 21979-7536).
             onReorder={reorderFiles}
             onToggleVisibility={toggleFileVisibility}

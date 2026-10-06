@@ -125,32 +125,26 @@
 }
 
 // ---- the date filter's "Custom..." dialog ----------------------------------
-// Figma nodes 13962-8889 (desktop) / 13962-8893 (mobile). Only the two blocks'
-// spacing and the calendar's layout are local — the Dialog, the Chips, the
-// ChipGroups, the Divider, the Input + DateField, the
-// DateButtons and the Apply footer are all DS components.
+// Figma "Custom" section 14073-22059 (rebuilt 2026-10-02): Day single
+// 14095-7347, Day range 14096-10083, Month 14098-25008, Year 14098-28104. Only
+// the containers' spacing and the calendar's layout are local — the Dialog, the
+// SegmentedControl, the Chips, the ChipGroup, the Divider, the Input +
+// DateField and the Apply footer are all DS components.
 
-// TIMEFRAME — the Day / Month / Year chips, in a 16px row of their own. The
-// Range toggle that used to sit hard right is gone (Daniel, 2026-08-24); the
-// row holds only the ChipGroup now.
-.dateCustomTimeframe {
+// CONTROLS — ONE container (16px padding, 16px between its parts) holding the
+// timeframe SegmentedControl and, on DAY only, the condition ChipGroup and the
+// date field(s). The node measures 198px tall on Day (16 + 36 + 16 + 36 + 16 +
+// 62 + 16) and 68 on Month / Year, where the SegmentedControl is alone.
+.dateCustomControls {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
   padding: var(--size-4); // 16px
 }
 
-// CONDITION — the measure chips (on / before / after / within) in a container
-// of their own, between the full-bleed Divider and the Selection block (Figma
-// frame 13973-32462). ALWAYS shown, `within` included.
-.dateCustomCondition {
-  padding: var(--size-4); // 16px
-}
-
-// SELECTION — what belongs to the chosen timeframe: the date field(s) and the
-// calendar. 16px on ALL sides since 2026-09-09: the new Divider closes the
-// Condition block now, so the Selection carries its own top padding again
-// (the Day nodes' Selection frames put the field at y=16 — 14073-18714 and
-// twins). It was 0 on top while the Condition's 16 did the separating.
+// CONTENT — the calendar, under the dialog's one full-bleed Divider. The date
+// fields moved up into the controls on 2026-10-02, so this block holds the
+// calendar alone.
 .dateCustomSelection {
   display: flex;
   flex-direction: column;
@@ -158,7 +152,7 @@
   padding: var(--size-4); // 16px
 }
 
-// "Date from" and "Date to" share the row, 16px apart — 280px each of the
+// "From" and "To" share the row, 16px apart — 280px each of the
 // desktop card's 576, 163.5 each of the phone's 343.
 .dateCustomFields {
   display: flex;
@@ -171,34 +165,39 @@
   }
 }
 
-// ---- the duration filter's Custom dialog -----------------------------------
+// ---- the amount filters' Custom dialog -------------------------------------
 // The documented Form section 14100-38325 (nodes 13923-24049 desktop /
-// 13923-24742 mobile, and 13923-24617 / 13923-24921 for `within`): the
-// condition chips in a 16px row, a full-bleed Divider (in the tsx — NEW with
-// the documented section, the old node drew none), then the fields.
-
-// CONDITION — the four measures (over / under / is / within) in a 16px row.
-.amountCustomCondition {
-  padding: var(--size-4); // 16px
-}
-
-// CONTENT — one "N hr / NN min" field row, or two 16px apart in `within`.
-// 16px all round: the Divider above separates it from the Condition block.
-.amountCustomContent {
+// 13923-24742 mobile, and 13923-24617 / 13923-24921 for the range), rebuilt
+// 2026-10-03: ONE body block holds the condition chips and the fields, and the
+// full-bleed Divider that used to split them into two blocks is GONE. Every
+// amount node draws the same body slot — VERTICAL, gap 16, padding 16, zero
+// dividers (Est. duration 14758-68026, Total 14299-49210, Items 14854-31217,
+// Tax rate 15368-50101 …).
+//
+// `bodyPadded={false}` stays on the Dialog: the DS padded body is 16px all
+// round but 24px BETWEEN items, and the nodes want 16.
+.amountCustomBody {
   display: flex;
   flex-direction: column;
   gap: var(--size-4); // 16px
   padding: var(--size-4); // 16px
 }
 
-// The MONEY dialog's fields (node 14299-49210). The same 16px frame as the
-// duration's, but a ROW: its range puts "From" and "To" side by side on BOTH
-// breakpoints (280px each in the 608px card, 163.5px each in the drawer), where
-// a duration's two hr/min rows stack.
-.moneyCustomContent {
+// A DURATION range — the two ends STACK, 24px apart, in their own `Inputs`
+// frame. The hr/min pair needs the full width, so it cannot share a row the way
+// money's From / To do.
+.amountCustomStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+}
+
+// A MONEY / PERCENT / COUNT range — "From" and "To" SIDE BY SIDE on both
+// breakpoints, 16px apart (280px each in the 608px card, 164px each in the
+// drawer), each taking half.
+.amountCustomRow {
   display: flex;
   gap: var(--size-4); // 16px
-  padding: var(--size-4); // 16px
 
   > * {
     flex: 1 1 0;
@@ -208,22 +207,23 @@
 
 // ---- the FREEFORM dialog ----------------------------------------------------
 // The documented section 14100-36446 (nodes 14100-36447 desktop /
-// 14100-36463 mobile): the condition chips in a 16px row of their own, a
-// full-bleed Divider (in the tsx), then the fields.
-
-// CONDITION — "contains" / "does not contain" as lg Chips (node 14100-36449).
-.freeformCustomCondition {
+// 14100-36463 mobile), rebuilt 2026-10-03 like the amount dialogs: ONE body
+// block, the condition chips and the fields 16px apart inside it, no Divider.
+.freeformCustomBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
   padding: var(--size-4); // 16px
 }
 
-// The dialog's field body: 16px all round, 24px between the fields. Bigger
-// than the duration dialog's 16 because every field here carries a label
-// above it.
-.freeformCustomContent {
+// The FIELDS keep their own 24px rhythm (the address nodes' `Inputs` frame):
+// every field carries a label above it, so they need more room between them
+// than the 16px that separates them from the chips. A one-field filter skips
+// this frame — see FreeformCustom.
+.freeformCustomFields {
   display: flex;
   flex-direction: column;
   gap: var(--size-6); // 24px
-  padding: var(--size-4); // 16px
 }
 
 // DESKTOP only — State / Province beside Postal code, 16px apart, each taking
@@ -247,17 +247,23 @@
 // DS DateChip — nothing local is drawn on them any more; the old Chip restyle
 // (the dark pill, the bands, the full radius) is gone.
 //
-// The list is the dialog's own scrolling Content block: 16px padding, under a
-// second full-bleed Divider (in the tsx). The nodes fix the block at 479px on
-// desktop; the DS Dialog's body scrolls the drawer on mobile, so the same
-// height holds there too.
+// The list is the dialog's own scrolling Content block: 16px padding, under the
+// full-bleed Divider (in the tsx). The DS Dialog's body scrolls the drawer on
+// mobile, so the same height holds there too.
+//
+// 482px, NOT the node's 479 (Daniel, 2026-10-02: the dialog must not change
+// height when the timeframe changes — a 3px step reads as a glitch). The Day
+// timeframe is 198 (controls) + 1 (divider) + 352 (16 + the 320 calendar + 16)
+// = 551; Month and Year are 68 + 1 + this block, so the block is 482. The
+// Figma frames carry the same 3px step (Day body 551 vs Month/Year 548) —
+// FLAGGED to Daniel.
 .monthYears {
   position: relative; // the scroll maths reads each year's offsetTop from here
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: var(--size-4); // 16px between years
-  height: 479px;
+  height: 482px;
   padding: var(--size-4); // 16px
   overflow-y: auto;
   width: 100%;

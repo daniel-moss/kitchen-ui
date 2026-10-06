@@ -232,7 +232,7 @@ export default function BillingForm({ open, onClose, initial, onSave, mobile = f
         mobile={mobile}
         title="Default billing client"
         searchable
-        searchPlaceholder="Search by client name..."
+        searchPlaceholder="Client..."
         footer={
           <SelectListFooter variant="menuItem">
             <MenuItem

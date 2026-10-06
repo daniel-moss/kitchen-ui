@@ -61,7 +61,7 @@ const between = (d: Date, start: Date, end: Date) => {
 // (weekday captions, then always 6 rows of 7 cells). Cells outside the month
 // are empty placeholders — they just fill the space. The band is uniform:
 // every place it stops — a range end, a row break, or the hover preview's
-// end — gets the same 6px cap, so a banded chip's band value is purely its
+// end — gets the same 8px cap, so a banded chip's band value is purely its
 // position in the row's banded run (first / middle / last / alone).
 export default function Month({
   month,

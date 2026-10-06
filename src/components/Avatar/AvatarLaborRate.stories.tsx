@@ -2,20 +2,21 @@ import { Fragment } from "react";
 
 import type { Meta, StoryObj } from "@storybook/react";
 
-import AvatarLabor from "./AvatarLabor";
-import { AvatarLaborStatus } from "./AvatarLabor.types";
+import AvatarLaborRate from "./AvatarLaborRate";
+import { AvatarLaborRateStatus } from "./AvatarLaborRate.types";
 import { AvatarSize } from "./Avatar.types";
 
 const SIZES: AvatarSize[] = ["xxs", "xs", "sm", "md", "lg", "xl"];
-const STATUSES: AvatarLaborStatus[] = ["none", "active", "review", "inactive"];
+const STATUSES: AvatarLaborRateStatus[] = ["none", "active", "review", "inactive"];
 
 /**
- * AvatarLabor — an Avatar template: object/icon avatar with the `labor` semantic
- * icon, and a `status` shown as the corner statusDot. xxs supports `none` only.
+ * AvatarLaborRate — an Avatar template: object/icon avatar with the `labor-rate`
+ * semantic icon, and a `status` shown as the corner statusDot. xxs supports
+ * `none` only.
  */
-const meta: Meta<typeof AvatarLabor> = {
-  title: "Components/Avatar/AvatarLabor",
-  component: AvatarLabor,
+const meta: Meta<typeof AvatarLaborRate> = {
+  title: "Components/Avatar/AvatarLaborRate",
+  component: AvatarLaborRate,
   parameters: { layout: "centered" },
   args: { size: "md", status: "active" },
   argTypes: {
@@ -26,7 +27,7 @@ const meta: Meta<typeof AvatarLabor> = {
 
 export default meta;
 
-type Story = StoryObj<typeof AvatarLabor>;
+type Story = StoryObj<typeof AvatarLaborRate>;
 
 const labelStyle: React.CSSProperties = {
   font: "var(--font-caption-medium-500)",
@@ -59,7 +60,7 @@ export const Matrix: Story = {
           <span style={{ ...labelStyle, justifySelf: "start" }}>{status}</span>
           {SIZES.map((size) => (
             <div key={size}>
-              {size === "xxs" && status !== "none" ? null : <AvatarLabor size={size} status={status} />}
+              {size === "xxs" && status !== "none" ? null : <AvatarLaborRate size={size} status={status} />}
             </div>
           ))}
         </Fragment>

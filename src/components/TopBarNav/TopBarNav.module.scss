@@ -1,8 +1,7 @@
-// TopBarNav — values from Figma "TopBarNav" (node 22250-61596): 60px inner
-// row + bottom Divider, 16px side padding, 16px gaps between the clusters
-// (left elements ↔ tabs ↔ right elements). The bar itself is transparent —
-// the app background shows through. The mobile details tabs get their own
-// 60px bar row.
+// TopBarNav — values from Figma "TopBarNav" (node 23681-71465): one 60px row
+// + bottom Divider, 16px side padding, 16px between the title cluster and the
+// actions. The bar itself is transparent — the app background shows through.
+// The height never changes, so the bar lines up with the bars beside it.
 
 .bar {
   display: flex;
@@ -20,13 +19,18 @@
   width: 100%;
 }
 
-// The navigation cluster: [left elements] 16px [tabs, filling].
+// The navigation cluster: [left elements] 16px [tabs or live users]. It takes
+// the free width so the actions stay at the right end.
 .navigation {
   display: flex;
   flex: 1 1 0;
   gap: var(--size-4); // 16px
   align-items: center;
   min-width: 0;
+  // Full row height, so the tabs scroller inside can reach the row's bottom
+  // edge (an underlined group draws its line there). The children stay
+  // centred — only the box grows.
+  align-self: stretch;
 }
 
 .leftElements {
@@ -36,14 +40,23 @@
   min-width: 0;
 }
 
-// Tabs scroll horizontally, scrollbar hidden; the fade masks mark where the
-// tabs continue behind the container — 40px (Figma "TabGroup Mask").
+// Tabs hug the title and scroll horizontally when the row runs out of room,
+// scrollbar hidden; the fade masks mark where the tabs continue behind the
+// container — 40px (Figma "TabGroup Mask"). `flex: 0 1 auto` keeps them
+// beside the title instead of filling the row, so live users land there too.
 .tabsScroller {
-  flex: 1 1 0;
+  flex: 0 1 auto;
   min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: none;
+
+  // The scroller spans the row's full height and centres the group inside it,
+  // so a group that asks to stretch (underlined) can reach the row's bottom
+  // edge while the others stay centred as before.
+  display: flex;
+  align-items: center;
+  align-self: stretch;
 
   &::-webkit-scrollbar {
     display: none;
@@ -62,47 +75,11 @@
   mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
 }
 
-// Mobile details: the tabs get their own 60px bar row (px 16), scrolling
-// horizontally WITHOUT a fade (the doc).
-.tabsBar {
-  box-sizing: border-box;
+// The actions at the right end: one to three buttons of any kind, 8px apart.
+.actions {
   display: flex;
+  flex: none;
+  gap: var(--size-2); // 8px
   align-items: center;
-  height: 60px;
-  padding: 0 var(--size-4);
-  width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-// Mobile details hide-on-scroll (always on — the doc's YouTube-like rule):
-// the bar sticks to the top of its scroll container; the TOP ROW always
-// stays, the TABS ROW collapses while scrolling down and returns on
-// scrolling up. The sticky bar needs its own surface, or content shows
-// through.
-.sticky {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: var(--surface-level-first);
-}
-
-// The collapsible tabs row: bottom-anchored inside a height-animated clip,
-// so shrinking the height looks like the row sliding up behind the top row.
-.tabsCollapse {
-  display: flex;
-  flex-direction: column;
   justify-content: flex-end;
-  height: 61px; // the 60px row + its divider
-  overflow: hidden;
-  transition: height 200ms ease;
-}
-
-.tabsCollapsed {
-  height: 0;
 }

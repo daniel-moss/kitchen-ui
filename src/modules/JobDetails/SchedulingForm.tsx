@@ -55,22 +55,29 @@ export const DURATION_PRESETS: { label: string; hours: string; minutes: string }
   { label: "2 hr 30 min", hours: "2", minutes: "30" },
 ];
 // "Mon, Jan 1" (+ ", YYYY" only when the year is not the current one — the
-// app-wide year rule).
+// app-wide year rule). The COMPACT date: the edit field on mobile, where the
+// full one cannot fit beside the time.
 const SHORT_DATE = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
 const SHORT_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
 const shortDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? SHORT_DATE : SHORT_DATE_YEAR).format(d);
 export const formatEditDate = shortDate;
 
-// "Monday, January 1" — the Schedule-job toast's caption format (Figma
-// 24049-13916), with the year added only when it is not the current one (the
-// app-wide date rule).
-const LONG_DATE = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" });
+/** "Monday, January 1, 2027" — the FULL date, year always (Daniel, 2026-10-04). */
 const LONG_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-const longDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? LONG_DATE : LONG_DATE_YEAR).format(d);
+export const formatFullDate = (d: Date) => LONG_DATE_YEAR.format(d);
+// The Schedule-job toast's caption (Figma 24049-13916) uses the same full date.
+const longDate = formatFullDate;
 
-/** "Mon, Jan 1 at 12:00 PM" — the value shown in the Details panel's Scheduling module. */
+/**
+ * "Monday, January 1, 2027 at 12:00 PM" — the value in the Details panel's
+ * Scheduling module (Daniel, 2026-10-04: the full date here, not the compact
+ * one). An UNSCHEDULED job has no value at all: returning the bare `time`
+ * showed a lone "9:00 AM" against a form that opened on "Unschedule"
+ * (Daniel's JOB-1063 report) — empty lets ValueDisplay draw its
+ * "No Scheduled for" placeholder instead.
+ */
 export const scheduledForLabel = (s: Scheduling) =>
-  s.date != null ? `${shortDate(s.date)} at ${s.time}` : s.time;
+  s.date != null ? `${formatFullDate(s.date)} at ${s.time}` : "";
 
 /** Combine the scheduling date + "h:mm AM/PM" time into a single Date (null if unset). */
 export function schedulingDateTime(s: Scheduling): Date | null {
@@ -168,7 +175,11 @@ export default function SchedulingForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const timePop = useSelectPopover(mobile);
+  // The time field HUGS its value now, so a "below" list would inherit that
+  // ~112px width and truncate "12:00 AM". `belowEnd` keeps the list under the
+  // trigger with their right edges aligned and lets it take its natural width
+  // (Daniel, 2026-10-04).
+  const timePop = useSelectPopover(mobile, "belowEnd");
   const minutePop = useSelectPopover(mobile);
 
   // When the form itself closes, force every nested select popover shut — else a
@@ -191,6 +202,9 @@ export default function SchedulingForm({
   // 88893): Unschedule, or Schedule / Reschedule depending on whether the job
   // already had a slot.
   const submitLabel = unscheduling ? "Unschedule" : initial.date != null ? "Reschedule" : "Schedule";
+  // Each primary carries its action's calendar icon (Figma 24522-84503):
+  // unscheduling clears the slot, the other two set one.
+  const submitIcon = unscheduling ? "calendar-xmark" : "calendar-lines-pen";
 
   // Scheduling requires the whole slot AND a duration; unscheduling requires
   // nothing (the duration stays as it is).
@@ -237,7 +251,7 @@ export default function SchedulingForm({
             </Button>
           }
         >
-          <Button size="lg" variant="solid" onClick={save}>
+          <Button size="lg" variant="solid" leftIcon={submitIcon} onClick={save}>
             {submitLabel}
           </Button>
         </PopoverFooter>
@@ -252,21 +266,29 @@ export default function SchedulingForm({
             <RadioItem
               value="schedule"
               variant="card"
-              icon="calendar-check"
+              icon="calendar-lines-pen"
               iconPack="regular"
               label="Schedule"
               error={showErrors && dateTimeBad}
               content={
-                <Input label="Date & time">
-                  <InputGroup isValid={!(showErrors && dateTimeBad)}>
-                    <DateField value={date} onDateChange={setDate} formatValue={formatEditDate} breakpoint={mobile ? "mobile" : "desktop"} />
-                    <SelectField
-                      value={time}
-                      open={timePop.open}
-                      onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
-                    />
-                  </InputGroup>
-                </Input>
+                // No label of its own (Figma 24522-88085): the choice above
+                // already says "Date & time". The DATE fills the row and the
+                // TIME hugs its value, so the full "Monday, January 1, 2027"
+                // has the space it needs — compact on mobile, where it does not.
+                <InputGroup isValid={!(showErrors && dateTimeBad)}>
+                  <DateField
+                    value={date}
+                    onDateChange={setDate}
+                    formatValue={mobile ? formatEditDate : formatFullDate}
+                    breakpoint={mobile ? "mobile" : "desktop"}
+                  />
+                  <SelectField
+                    value={time}
+                    fitContent
+                    open={timePop.open}
+                    onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
+                  />
+                </InputGroup>
               }
             />
           </RadioGroup>
@@ -295,7 +317,7 @@ export default function SchedulingForm({
               {DURATION_PRESETS.map((p) => (
                 <Chip
                   key={p.label}
-                  size="md"
+                  size="lg"
                   isSelected={activePreset(p)}
                   onClick={() => {
                     setHours(p.hours);
@@ -310,7 +332,7 @@ export default function SchedulingForm({
       </div>
 
       {/* Time picker */}
-      <SelectPopoverList pop={timePop} mobile={mobile} title="Time" searchable searchPlaceholder="Search time...">
+      <SelectPopoverList pop={timePop} mobile={mobile} title="Time" searchable searchPlaceholder="Time...">
         <SelectListItemGroup>
           {TIME_OPTIONS.map((t) => (
             <SelectListItem

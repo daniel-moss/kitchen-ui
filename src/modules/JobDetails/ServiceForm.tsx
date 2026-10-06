@@ -69,7 +69,7 @@ const PriorityValue = ({ priority }: { priority: Priority }) => (
 const INITIAL_SERVICES: { name: string; defaultPriority: string }[] = [
   { name: "Cooler maintenance", defaultPriority: "Low" },
   { name: JOB_SERVICE, defaultPriority: "Medium" }, // "Walk-in cooler repair"
-  { name: "Standard labor", defaultPriority: "No priority" },
+  { name: "Standard labor rate", defaultPriority: "No priority" },
 ];
 
 // Finalized jobs for the Recall-to list (doc: only Finalized jobs of the
@@ -238,7 +238,10 @@ export const defaultServiceValues = (job?: {
   return {
     reason: dbJob == null ? JOB_REASON_FOR_CALL : reasonForCall(dbJob),
     type: job?.type ?? "new",
-    recallTo: null,
+    // From the database: every recall row names the job it recalls to
+    // (Daniel, 2026-10-04 — they used to come up empty, so a job could read
+    // "Recall" with nothing to recall to).
+    recallTo: dbJob?.recallToId ?? null,
     service: job?.serviceName ?? JOB_SERVICE,
     priority: job == null || job.priority == null ? "Medium" : PRIORITY_NAME[job.priority],
     tech: dbJob == null ? JOB_TECH_INSTRUCTIONS : techInstructions(dbJob),
@@ -449,13 +452,16 @@ export default function ServiceForm({ open, onClose, initial, onSave, mobile = f
         </Input>
       </div>
 
-      {/* Recall-to: Finalized jobs, searchable by ID or service name. */}
+      {/* Recall-to: Finalized jobs, searchable by ID or service name. The
+          placeholder names the two things you can type, nothing else
+          (Daniel, 2026-10-06) — the same copy the New job form's Recall-to
+          list uses, so the one list reads the same in both places. */}
       <SelectPopoverList
         pop={recallPop}
         mobile={mobile}
         title="Recall to"
         searchable
-        searchPlaceholder="Search by ID or service name..."
+        searchPlaceholder="ID or service..."
       >
         <SelectListItemGroup>
           {recallJobs.map((j) => (

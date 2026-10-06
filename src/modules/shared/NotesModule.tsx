@@ -15,15 +15,47 @@ import styles from "./NotesModule.module.scss";
 // 17192-115394 in the Equipment panel) — same title, same two header buttons,
 // same "No notes here yet" empty state, same four skeleton lines while
 // loading. One build, so the two panels cannot drift.
+//
+// The title and its empty copy became PROPS on 2026-10-05, when the Tax rate
+// panel drew the same module TWICE with different names — "Summary template"
+// and "Internal notes" (Figma 1-7357 and 1-7382). The defaults are the
+// Equipment / Warranty wording, so neither panel changed.
 
 interface NotesModuleProps {
   notes?: string;
   onEdit: () => void;
   isLoading?: boolean;
+  /** The module title. Default "Notes". */
+  title?: string;
+  /**
+   * The empty-state caption. Default "No notes here yet" — follow the same
+   * shape when overriding it ("No summary template here yet").
+   */
+  emptyCaption?: string;
+  /**
+   * What the copy toast and the two aria-labels call this text. Defaults to
+   * `title`, which is what both panels want.
+   */
+  copyLabel?: string;
+  /**
+   * False HIDES the edit button, keeping Copy — the record is read-only (the
+   * Tax rate panel's inactive state: "Reactivate to edit details"), or the user
+   * lacks the permission. Reading is not editing. Default true.
+   */
+  canEdit?: boolean;
 }
 
-export default function NotesModule({ notes, onEdit, isLoading = false }: NotesModuleProps) {
+export default function NotesModule({
+  notes,
+  onEdit,
+  isLoading = false,
+  title = "Notes",
+  emptyCaption = "No notes here yet",
+  copyLabel,
+  canEdit = true,
+}: NotesModuleProps) {
   const hasNotes = notes != null && notes.trim() !== "";
+  const label = copyLabel ?? title;
 
   const content = isLoading ? (
     <>
@@ -34,12 +66,12 @@ export default function NotesModule({ notes, onEdit, isLoading = false }: NotesM
   ) : hasNotes ? (
     <p className={styles.notes}>{notes}</p>
   ) : (
-    <EmptyState caption="No notes here yet" />
+    <EmptyState caption={emptyCaption} />
   );
 
   return (
     <DisplayModule
-      title="Notes"
+      title={title}
       slotRight={
         isLoading ? undefined : (
           <>
@@ -48,9 +80,17 @@ export default function NotesModule({ notes, onEdit, isLoading = false }: NotesM
                 exist here. The Warranty panel's Empty node agrees — its header
                 right slot holds ONE button (qty=1, the pen). */}
             {hasNotes && (
-              <IconButton icon="copy" variant="ghost" size="md" aria-label="Copy notes" onClick={() => copyText(notes!, "Notes")} />
+              <IconButton
+                icon="copy"
+                variant="ghost"
+                size="md"
+                aria-label={`Copy ${label.toLowerCase()}`}
+                onClick={() => copyText(notes!, label)}
+              />
             )}
-            <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit notes" onClick={onEdit} />
+            {canEdit && (
+              <IconButton icon="pen" variant="ghost" size="md" aria-label={`Edit ${label.toLowerCase()}`} onClick={onEdit} />
+            )}
           </>
         )
       }

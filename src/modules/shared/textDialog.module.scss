@@ -1,4 +1,7 @@
-// The Text-Area form's two height rules (its Figma doc):
+// The "text dialog" — a Dialog whose body is ONE TextArea. Shared by
+// EditNotesDialog and the Job Details "Cancel job" form (Figma 24047-12610),
+// which is the same shape. The Text-Area form's two height rules (its Figma
+// doc):
 //
 //   Desktop — "Minimum text area height on desktop is 12 rows." The DS
 //             TextArea's own minimum is 4 rows.
@@ -21,6 +24,15 @@
 .fillField {
   flex: 1 1 auto;
   min-height: 0;
+
+  // The carrier is a flex COLUMN, so its child can take the height it was
+  // just given. `Input` already is one (label over field) — this only matters
+  // for the bare `<div>` carriers, which the Work summary and Notes-to-
+  // dispatcher dialogs use because their body has no label to hang an Input
+  // on: the dialog title IS the label (Daniel, 2026-10-06). Without it the
+  // carrier stretched and the field inside stayed at its 4-row default.
+  display: flex;
+  flex-direction: column;
 
   // Every wrapper between the Input and the textarea stretches. Written as a
   // path rather than a child chain so it does not depend on how many wrappers

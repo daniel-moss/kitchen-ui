@@ -4,8 +4,8 @@ import Button from "../../components/Button/Button";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import IconButton from "../../components/IconButton/IconButton";
-import TabGroup from "../../components/Tabs/TabGroup";
-import TabItem from "../../components/Tabs/TabItem";
+import Segment from "../../components/SegmentedControl/Segment";
+import SegmentedControl from "../../components/SegmentedControl/SegmentedControl";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
 import ChargesTab from "./ChargesTab";
@@ -143,7 +143,7 @@ export default function SummaryPanel({
           isProcessing={inlineGen.phase === "thinking"}
           onClick={generateInline}
         >
-          Generate
+          Generate summary
         </Button>
         <p className={styles.generateCaption}>Roopairs will write summary based on completed forms</p>
       </div>
@@ -154,11 +154,13 @@ export default function SummaryPanel({
 
   return (
     <div className={styles.panel}>
-      <TabGroup variant="contained" size="lg" isFullWidth value={sub} onChange={setSub}>
-        <TabItem value="tech-work">Tech work</TabItem>
-        <TabItem value="charges">Charges</TabItem>
-        <TabItem value="signature">Signature</TabItem>
-      </TabGroup>
+      {/* SegmentedControl, not tabs (Daniel, 2026-10-04): these three switch
+          between views of the Summary itself. */}
+      <SegmentedControl size="lg" isFullWidth value={sub} onChange={setSub}>
+        <Segment value="tech-work">Tech work</Segment>
+        <Segment value="charges">Charges</Segment>
+        <Segment value="signature">Signature</Segment>
+      </SegmentedControl>
 
       {sub === "charges" ? (
         <ChargesTab mobile={mobile} groups={charges} subtotal={chargesTotal} />

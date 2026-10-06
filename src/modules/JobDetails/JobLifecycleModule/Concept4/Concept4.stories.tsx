@@ -6,7 +6,7 @@ import { FULL_ROWS } from "../lifecycleData";
 
 // CONCEPT 4 — one ItemGroup of ACCORDION ListItems: a caret, the status glyph on a tinted 36px avatar, the name, and the total on the right. Seven statuses read as one list.
 const meta: Meta = {
-  title: 'Modules/Job Details/"Job Lifecycle" Module/Concept 4',
+  title: 'Modules/Job/Job Details/"Job Lifecycle" Module/Concept 4',
   ...conceptMeta,
 };
 

@@ -18,8 +18,10 @@ import MenuItemGroup from "../../components/Menu/MenuItemGroup";
 import DrawerHeader from "../../components/Popover/DrawerHeader";
 import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent";
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
-import TabGroup from "../../components/Tabs/TabGroup";
-import TabItem from "../../components/Tabs/TabItem";
+import Prompt from "../../components/Prompt/Prompt";
+import Segment from "../../components/SegmentedControl/Segment";
+import SegmentedControl from "../../components/SegmentedControl/SegmentedControl";
+import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import AddFilesForm from "../AddFilesForm/AddFilesForm";
 import { ManagedFile, formatSize } from "../AddFilesForm/files";
@@ -259,6 +261,8 @@ export default function FilesModule({
   maxFiles = COMPANY.maxFileUploads,
   showViewToggle = false,
   defaultView = "list",
+  isLoading = false,
+  loadingCount = 5,
   mobile = false,
   className,
 }: FilesModuleProps) {
@@ -266,10 +270,27 @@ export default function FilesModule({
     showViewToggle ? defaultView : "list",
   );
   const [adding, setAdding] = useState(false);
+  // The file the Delete menu item asked about. Deleting a file ALWAYS confirms
+  // first and reports afterwards (Figma 21807-1721 / 21807-1733), and the
+  // module owns both halves so every object that holds files behaves the same
+  // way without its consumer wiring anything (Daniel, 2026-10-06: "it's a
+  // standard behaviour"). `onDelete` is called only after the confirmation.
+  const [deleting, setDeleting] = useState<ModuleFile | null>(null);
+
+  const confirmDelete = () => {
+    if (deleting == null) return;
+    onDelete?.(deleting);
+    setDeleting(null);
+    // The DETAILED toast: the deed in the title, the file it happened to in the
+    // caption — so a long file name never crowds the message.
+    toast({ type: "success", variant: "detailed", title: "File deleted", caption: deleting.name });
+  };
 
   const publicFiles = files.filter((file) => file.visibility === "public");
   const privateFiles = files.filter((file) => file.visibility === "private");
   const count = files.length;
+  /** What the title's counter shows — the loading count stands in for it. */
+  const countShown = isLoading ? loadingCount : count;
 
   // Uniform card width across the whole module: size every group's cards to the
   // fullest group, so a 4-card group and a 2-card group match (Daniel).
@@ -314,7 +335,8 @@ export default function FilesModule({
             view={view}
             mobile={mobile}
             onToggleVisibility={onToggleVisibility}
-            onDelete={onDelete}
+            // The row's Delete ASKS; `onDelete` runs from the Prompt below.
+            onDelete={onDelete == null ? undefined : setDeleting}
             onPreview={onPreview}
           />
         ))
@@ -324,29 +346,44 @@ export default function FilesModule({
     </ItemGroup>
   );
 
-  const content =
-    count === 0 ? (
-      <EmptyState caption="No files here yet" />
-    ) : (
-      <div className={styles.listBody}>
-        {group(
-          publicFiles,
-          "public",
-          "globe",
-          "Public",
-          "No public files here yet",
-          true,
-        )}
-        {group(
-          privateFiles,
-          "private",
-          "lock",
-          "Private",
-          "No private files here yet",
-          false,
-        )}
-      </div>
-    );
+  // Loading: ONE flat group of skeleton rows — no Public / Private labels, no
+  // dividers, no row actions. The avatar stays the real generic AvatarFile
+  // (node 22012-20559): a file row can only ever hold a file, so its avatar is
+  // known before the name is.
+  const loadingContent = (
+    <div className={styles.listBody}>
+      <ItemGroup>
+        {Array.from({ length: loadingCount }, (unused, index) => (
+          <ListItem key={index} variant="titleCaption" title="" caption="" avatar={<AvatarFile size="xl" />} isLoading />
+        ))}
+      </ItemGroup>
+    </div>
+  );
+
+  const content = isLoading ? (
+    loadingContent
+  ) : count === 0 ? (
+    <EmptyState caption="No files here yet" />
+  ) : (
+    <div className={styles.listBody}>
+      {group(
+        publicFiles,
+        "public",
+        "globe",
+        "Public",
+        "No public files here yet",
+        true,
+      )}
+      {group(
+        privateFiles,
+        "private",
+        "lock",
+        "Private",
+        "No private files here yet",
+        false,
+      )}
+    </div>
+  );
 
   const addButton = full ? (
     <HoverHint
@@ -386,10 +423,14 @@ export default function FilesModule({
         // No counter at zero — the empty module has nothing to count. (The
         // Figma Files file still draws a stale 3 on its empty frame; the
         // Equipment panel's own Empty State node is the deliberate one.)
-        titleSlotRight={count === 0 ? undefined : <Counter value={count} />}
-        status={full ? "warning" : approaching ? "info" : "none"}
+        // While loading the counter shows the count that is already known.
+        titleSlotRight={countShown === 0 ? undefined : <Counter value={countShown} />}
+        // The limit banner needs the real files, so it waits for them.
+        status={isLoading ? "none" : full ? "warning" : approaching ? "info" : "none"}
         banner={
-          full
+          isLoading
+            ? undefined
+            : full
             ? {
                 children: `You've used ${count} of ${maxFiles} files (100%). Delete files to continue uploading.`,
               }
@@ -399,21 +440,28 @@ export default function FilesModule({
                 }
               : undefined
         }
+        // Every header action waits for the files (the Loading node draws a
+        // bare title + counter), like every other module in the panel.
         slotRight={
-          showViewToggle ? (
+          isLoading ? undefined : showViewToggle ? (
             <>
-              <TabGroup
-                size="md"
-                value={view}
-                onChange={(value) => setView(value as FileView)}
-              >
-                <TabItem value="list" icon="list" iconOnly>
-                  List view
-                </TabItem>
-                <TabItem value="cards" icon="grid-2" iconOnly>
-                  Cards view
-                </TabItem>
-              </TabGroup>
+              {/* Same files, another format — a switcher, not navigation, so
+                  this is a SegmentedControl (Daniel, 2026-09-30).
+                  The SELECTED segment's icon is SOLID (Daniel, 2026-10-06) —
+                  the same "selected = solid glyph" rule the sidebar's active
+                  item and the status menu items follow. */}
+              <SegmentedControl size="md" value={view} onChange={(value) => setView(value as FileView)}>
+                <Segment
+                  value="list"
+                  slotLeft={<Icon icon="list" size={14} pack={view === "list" ? "solid" : "regular"} />}
+                  aria-label="List view"
+                />
+                <Segment
+                  value="cards"
+                  slotLeft={<Icon icon="grid-2" size={14} pack={view === "cards" ? "solid" : "regular"} />}
+                  aria-label="Cards view"
+                />
+              </SegmentedControl>
               {addButton}
             </>
           ) : (
@@ -433,6 +481,25 @@ export default function FilesModule({
             uploaded.map((file) => toModuleFile(file, currentUserId)),
           )
         }
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+
+      {/* "Delete file?" (Figma 21807-1721). The file NAME is the one strong
+          word in the sentence, so it is a span rather than interpolated text. */}
+      <Prompt
+        open={deleting != null}
+        title="Delete file?"
+        body={
+          <>
+            File <span className={styles.promptName}>{deleting?.name ?? ""}</span> will be permanently deleted. This
+            action can not be undone.
+          </>
+        }
+        actionLabel="Delete"
+        actionVariant="danger"
+        actionIcon="trash-can"
+        onAction={confirmDelete}
+        onCancel={() => setDeleting(null)}
         breakpoint={mobile ? "mobile" : "desktop"}
       />
     </>

@@ -15,6 +15,13 @@
 // (below) owns its own state steps, and the guards keep specificity flat
 // instead of stacking overrides.
 .chip {
+  // Corner radius is per SIZE (2026-10-01): `sm` keeps `--border-radius-1_5`
+  // (6px), `md` and `lg` are `--border-radius-2` (8px). The focus ring's inner
+  // box is always the outer radius minus the 2px stroke and the 2px gap —
+  // `--border-radius-0_5` (2px) on sm, `--border-radius-1` (4px) on md/lg.
+  --chip-radius: var(--border-radius-1_5);
+  --chip-radius-inner: var(--border-radius-0_5);
+
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
@@ -25,7 +32,7 @@
   max-width: 100%;
 
   color: var(--text-subtle);
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--chip-radius);
   background: var(--gray-a2);
   box-shadow: inset 0 0 0 1px var(--gray-a7);
 
@@ -111,6 +118,9 @@
 }
 
 .md {
+  --chip-radius: var(--border-radius-2); // 8px
+  --chip-radius-inner: var(--border-radius-1); // 4px
+
   height: var(--size-8); // 32px
   padding: 0 var(--size-2_5); // 10px
   gap: var(--size-2); // 8px
@@ -119,6 +129,9 @@
 }
 
 .lg {
+  --chip-radius: var(--border-radius-2); // 8px
+  --chip-radius-inner: var(--border-radius-1); // 4px
+
   height: var(--size-9); // 36px
   padding: 0 var(--size-3); // 12px
   gap: var(--size-2); // 8px
@@ -131,7 +144,12 @@
 // whatever `size` set, including the font — and the chip HUGS instead of
 // holding a fixed height (64px with any slot). Declared with .chip so it wins
 // over the size classes whatever the source order.
+// The radius is pinned here too: `vertical` overrides whatever `size` set, so
+// it must not inherit a size's corner either — it takes the bigger one.
 .chip.vertical {
+  --chip-radius: var(--border-radius-2); // 8px
+  --chip-radius-inner: var(--border-radius-1); // 4px
+
   flex-direction: column;
   justify-content: center;
   height: auto;
@@ -159,8 +177,8 @@
 // ---- focus (keyboard only) ----
 // The INSET ring (Figma 2026-09-24, replacing the earlier offset outline): a
 // 2px `--gray-12` stroke AT the chip's bounds, a 2px TRANSPARENT gap, then the
-// chip's fill and border redrawn on a ::before inset 4px with
-// `--border-radius-0_5` (2px) corners. The chip's footprint never changes and
+// chip's fill and border redrawn on a ::before inset 4px with the size's inner
+// corner (`--chip-radius-inner`). The chip's footprint never changes and
 // nothing inside it moves — and unlike an outline with an offset, the ring
 // cannot be clipped by a scrolling menu, which is why the DS moved to it.
 // (Figma draws a 2px stroke over 4px of padding: the stroke overlays the
@@ -175,7 +193,7 @@
   color: var(--text-strong);
   background: transparent;
 
-  @include row-focus-ring-inset(var(--gray-a2), var(--border-radius-0_5));
+  @include row-focus-ring-inset(var(--gray-a2), var(--chip-radius-inner));
 
   &::before {
     box-shadow: inset 0 0 0 1px var(--gray-a8);
@@ -192,7 +210,7 @@
 .chip.invalid:focus-visible:not(:disabled) {
   background: transparent;
 
-  @include row-focus-ring-inset(var(--tomato-a3), var(--border-radius-0_5));
+  @include row-focus-ring-inset(var(--tomato-a3), var(--chip-radius-inner));
 
   box-shadow: inset 0 0 0 2px var(--tomato-9);
 

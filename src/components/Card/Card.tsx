@@ -16,9 +16,9 @@ const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     children,
     onClick,
     status = "info",
-    ring = false,
+    alertRing = false,
     banner,
-    padding = 16,
+    padding = 4,
     disabled = false,
     loading = false,
     dragging = false,
@@ -34,7 +34,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
   // Not interactive while disabled, loading, dragging, or showing the error state.
   const interactive = !disabled && !loading && !error && !dragging;
   // A banner always carries its matching ring.
-  const showRing = ring || !!banner;
+  const showRing = alertRing || !!banner;
 
   const bodyStyle: CSSProperties = {
     padding: typeof padding === "number" ? `${padding}px` : padding,
@@ -90,6 +90,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(function Card(
     >
       {banner && (
         <AlertBanner
+          className={styles.alertBanner}
           type="banner"
           status={status}
           orientation={banner.ctaLabel ? "horizontal" : "vertical"}

@@ -25,7 +25,7 @@
   max-width: 100%;
   padding: var(--size-1) var(--size-2) var(--size-1) var(--size-1); // 4 / 8 / 4 / 4
   border: none;
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2); // 8px — as SidebarNavItem
   background: none;
   text-align: left;
   touch-action: manipulation;
@@ -68,10 +68,13 @@
 }
 
 // Focus: the newer inset spec — ring at the bounds, 2px gap, inner a3 fill
-// with --border-radius-0_5 corners (this button's own inner radius). The
-// angles icon strengthens like on hover.
+// with --border-radius-1 corners: the button's 8px radius minus the 2px stroke
+// and the 2px gap, the DS inner-radius formula. (It was --border-radius-0_5
+// while the button was 6px — the mixin's default is this same --border-radius-1,
+// so the argument is now only here to say the value is deliberate.) The angles
+// icon strengthens like on hover.
 .interactive:focus-visible {
-  @include row-focus-ring-inset($radius: var(--border-radius-0_5));
+  @include row-focus-ring-inset($radius: var(--border-radius-1));
 
   .angles {
     color: var(--gray-12);

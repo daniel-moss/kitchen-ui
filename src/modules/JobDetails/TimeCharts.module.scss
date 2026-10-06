@@ -62,19 +62,11 @@
 }
 
 // ---- tooltips ---------------------------------------------------------------
-
-// The floating body: `left`/`top` are the anchor point, the body centers on it
-// and sits 8px above (4px gap + the ~4px tongue).
-.tipOverlay {
-  position: fixed;
-  transform: translate(-50%, calc(-100% - 8px));
-  width: max-content;
-  pointer-events: none;
-  z-index: var(--z-tooltip);
-}
+// The floating body's placement lives with the shared `useAnchoredTooltip`
+// hook; only the trigger wrapper is styled here.
 
 // The legend row's rounded-time trigger. It sits inside ListItem's right block,
 // which hugs its content, so the wrapper must not add a box of its own.
-.cursorWrap {
+.valueWrap {
   display: block;
 }

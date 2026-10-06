@@ -34,6 +34,12 @@
   overflow-y: hidden;
   scrollbar-width: none;
 
+  // Same as TopBarNav: full row height, group centred, so an underlined group
+  // can stretch to the row's bottom edge.
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+
   &::-webkit-scrollbar {
     display: none;
   }

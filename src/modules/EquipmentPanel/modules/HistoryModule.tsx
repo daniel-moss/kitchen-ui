@@ -1,5 +1,6 @@
 import { MouseEvent, useState } from "react";
 
+import Avatar from "../../../components/Avatar/Avatar";
 import AvatarEstimate from "../../../components/Avatar/AvatarEstimate";
 import { AvatarEstimateStatus } from "../../../components/Avatar/AvatarEstimate.types";
 import AvatarInvoice from "../../../components/Avatar/AvatarInvoice";
@@ -96,7 +97,11 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
     <div className={styles.listBody}>
       <ItemGroup>
         {Array.from({ length: LOADING_ROWS }, (unused, index) => (
-          <ListItem key={index} variant="titleCaption" title="" caption="" avatar={<AvatarJob size="xl" />} isLoading />
+          // The row's object type is not known yet, so the avatar is the plain
+          // LOADING avatar, not a typed one (node 22012-21028 draws
+          // `content=skeleton`) — unlike Warranties and Files, whose rows can
+          // only ever hold one kind of object.
+          <ListItem key={index} variant="titleCaption" title="" caption="" avatar={<Avatar shape="square" size="xl" isLoading />} isLoading />
         ))}
       </ItemGroup>
     </div>

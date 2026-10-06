@@ -3,6 +3,7 @@ import { ReactNode, useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
 import { docsFrame } from "../../stories/helpers";
+import Segment from "../SegmentedControl/Segment";
 import TabItem from "../Tabs/TabItem";
 import SidePanelNavigation from "./SidePanelNavigation";
 
@@ -74,8 +75,8 @@ export const MultiLevel: Story = {
         onTopLevelChange={setSection}
         topLevel={
           <>
-            <TabItem value="location">Location</TabItem>
-            <TabItem value="client">Client</TabItem>
+            <Segment value="location">Location</Segment>
+            <Segment value="client">Client</Segment>
           </>
         }
       >

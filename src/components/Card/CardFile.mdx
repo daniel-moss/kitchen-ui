@@ -1,13 +1,19 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as CardFileStories from "./CardFile.stories";
+import { DocCaption } from "../../stories/DocCaption";
 import { FigmaLinks } from "../../stories/FigmaLinks";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 <Meta of={CardFileStories} />
 
 # CardFile
 
-We use **CardFile** for providing a preview to the uploaded files.
+**CardFile** shows one uploaded file as a card — a square tile above a footer with
+the file name. It belongs in a grid of files, where people find a file by looking
+at it. A file named inside a list or a row uses
+<a href="/?path=/story/components-avatar-avatarfile--playground" target="_top">AvatarFile</a>
+instead.
 
 <FigmaLinks
   component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28606-67964"
@@ -27,82 +33,231 @@ We use **CardFile** for providing a preview to the uploaded files.
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)
+↳&nbsp;&nbsp;[When to use](#when-to-use)<br />
+↳&nbsp;&nbsp;[Preview tile](#preview-tile)<br />
+↳&nbsp;&nbsp;[File types](#file-types)<br />
+↳&nbsp;&nbsp;[Footer](#footer)<br />
+↳&nbsp;&nbsp;[Responsiveness](#responsiveness)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Accessibility](#accessibility)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
 CardFile is built on
 <a href="/?path=/docs/components-card-card--docs" target="_top">Card</a>
-(with `padding` 0). It contains the **preview tile** and the **footer** with the
-file name and the action button. The preview tile ratio is fixed to **1:1**. The
-footer fills the width and its height is fixed to `--size-11` (44px). A
+with `padding` 0, so the surface, the corners, the shadow and the interactive
+states all come from Card. Inside it a square tile sits above a footer, with a
 <a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
-sits between the tile and the footer. The title is the file name
-(`caption-medium-500`, Medium 13/20). The footer padding is `--size-4` (16px)
-left, `--size-2` (8px) right, with a `--size-3` (12px) gap; the action button is
-an
+(`contrast="medium"`) between them.
+
+<DocCaption>{`previewSrc set${TEXT_SEPARATOR}onMenuClick set`}</DocCaption>
+
+<Canvas of={CardFileStories.Anatomy} />
+
+The tile is always square (`aspect-ratio: 1 / 1`), so the height of the card
+follows its width. The footer's height is fixed at `--size-11` (44px) and never
+changes — it has no vertical padding, so nothing inside it can make the row
+taller or shorter.
+
+## When to use
+
+Use CardFile when people recognise a file by looking at it — a photo from a site
+visit, a scan, a drawing. When the names matter more than the pictures, use rows
+with AvatarFile instead. Cards cost a lot of space, which is why a files module
+offers both views.
+
+<DocCaption>A files module in its cards view, where the same files can also be shown as rows.</DocCaption>
+
+<Canvas of={CardFileStories.WhenToUse} />
+
+## Preview tile
+
+When `previewSrc` is set the preview fills the whole tile and is cropped to the
+square (`object-fit: cover`). It is never letterboxed, so a grid keeps one rhythm
+whatever shape the files are.
+
+<DocCaption>previewSrc set</DocCaption>
+
+<Canvas of={CardFileStories.PreviewImage} />
+
+A `fileType="video"` preview adds a dark overlay (`--pure-black-a4`) and a
+centered play icon, so a still frame is not taken for a photo. The glyph is
+always `--pure-white-a12` — the overlay is always dark, so it must not follow the
+theme.
+
+<DocCaption>{`previewSrc set${TEXT_SEPARATOR}fileType = "video"`}</DocCaption>
+
+<Canvas of={CardFileStories.PreviewVideo} />
+
+With no `previewSrc` the tile shows a placeholder instead — a 14px file-type icon
+above the file name, `--size-4` (16px) padding and gap.
+
+<DocCaption>{`fileType = "generic"${TEXT_SEPARATOR}previewSrc unset`}</DocCaption>
+
+<Canvas of={CardFileStories.PreviewPlaceholder} />
+
+The name in the placeholder wraps over as many lines as fit and then truncates.
+The line count is measured from the space left under the icon, because the tile
+size changes with the card's width — a fixed clamp would not match.
+
+<DocCaption>A long file name wraps down the tile and truncates at the bottom.</DocCaption>
+
+<Canvas of={CardFileStories.PreviewWrapping} />
+
+`name` fills the tile and the footer, so the two can never show different names.
+
+## File types
+
+Every file type has its own icon and its own quiet colour, so a grid of files can
+be read at a glance. The tile is `<color>-a2` and the icon and name
+`<color>-a11`, both Radix alpha scales, so the pairs adapt to the dark theme on
+their own. `FILE_TYPE_META` in `CardFile.types.ts` is the whole map. Image and
+video appear here only when a preview could not be made, and `generic` covers
+anything the system does not recognise.
+
+<DocCaption>fileType = "generic"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeGeneric} />
+
+<DocCaption>fileType = "word"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeWord} />
+
+<DocCaption>fileType = "pdf"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypePdf} />
+
+<DocCaption>fileType = "spreadsheet"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeSpreadsheet} />
+
+<DocCaption>fileType = "presentation"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypePresentation} />
+
+<DocCaption>fileType = "image"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeImage} />
+
+<DocCaption>fileType = "audio"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeAudio} />
+
+<DocCaption>fileType = "video"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeVideo} />
+
+<DocCaption>fileType = "vector"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeVector} />
+
+<DocCaption>fileType = "gif"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeGif} />
+
+<DocCaption>fileType = "markdown"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeMarkdown} />
+
+<DocCaption>fileType = "archive"</DocCaption>
+
+<Canvas of={CardFileStories.FileTypeArchive} />
+
+All the formats are described in detail on the
+<a href="/?path=/story/components-avatar-avatarfile--playground" target="_top">AvatarFile</a>
+page.
+
+## Footer
+
+The footer holds the file name — `caption-medium-500` (Medium 13/20),
+`--text-strong`, one line — and, when `onMenuClick` is set, one
 <a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButton</a>
-`sm` (28px), `ghost`.
+`sm` (28px), `ghost`. With the button the padding is `--size-4` (16px) left and
+`--size-2` (8px) right, with a `--size-3` (12px) gap — the smaller right side
+balances the button's own box. The name truncates, and hovering it shows the
+whole name in a tooltip.
 
-<Canvas of={CardFileStories.Hero} />
+<DocCaption>onMenuClick set</DocCaption>
 
-Preview tiles of video files include a dark overlay and a center-aligned play
-icon.
+<Canvas of={CardFileStories.FooterAction} />
 
-<Canvas of={CardFileStories.AnatomyVideo} />
+A card with nothing to act on hides the button, and the name then uses the full
+width — the padding becomes `--size-4` (16px) on both sides. Keep the button for
+actions on the file —
+a menu, deleting it — not for a second way to open it, which the card already
+does.
 
-Preview tiles of the files where the preview is unsupported show the file name
-and a file-type icon (see [Unsupported preview](#unsupported-preview)).
+<DocCaption>onMenuClick unset</DocCaption>
 
-<Canvas of={CardFileStories.AnatomyNoPreview} />
+<Canvas of={CardFileStories.FooterNoAction} />
 
-## Behavior
+Set the button's icon with `actionIcon`, its accessible name with `actionLabel`
+(default `"File actions"`), and `menuOpen` to hold it pressed while its menu is
+open. `actionDanger` paints it red for a destructive action — the DS has no
+danger `IconButton` variant (a destructive action with a label uses
+<a href="/?path=/story/components-button--playground" target="_top">Button</a>),
+so this recolors the ghost button's own variables inside CardFile.
 
-### Responsiveness
+<DocCaption>{`actionDanger unset${TEXT_SEPARATOR}actionDanger set`}</DocCaption>
 
-CardFile fills its container, so it supports a **min and max width** — `106px`
-to `184px` (default 150px). The preview tile keeps its 1:1 ratio, an image or
-video preview fills the tile, and the file name truncates. When the file name is
-truncated, hovering the title shows a **tooltip** with the full name.
+<Canvas of={CardFileStories.FooterDanger} />
+
+The button's click calls `stopPropagation`, so it never also fires the card's
+`onClick`.
+
+## Responsiveness
+
+CardFile fills its container and stretches to its column — it carries no width of
+its own. The grid is the consumer's: the files value in
+<a href="/?path=/docs/components-valuedisplay-valuedisplay--docs" target="_top">ValueDisplay</a>
+flexes every column between 106px and 184px. The tile stays square at every
+width, so the whole card grows together.
+
+<DocCaption>The same card at its smallest and at its largest width.</DocCaption>
 
 <Canvas of={CardFileStories.Responsiveness} />
 
-### Actions
+## Loading
 
-Clicking the card opens the file preview side panel (wire `onClick`). The footer
-action button (`onMenuClick`) can run different actions — a context menu, a
-delete, etc. Set its icon with `actionIcon`, its label with `actionLabel`, and
-`actionDanger` for the red delete style. When `onMenuClick` is unset, the button
-is hidden.
+While `isLoading` is set the card does nothing. The action button goes away and
+skeletons stand in for the picture and the name — two `SkeletonTypography`
+`captionMD` lines in the tile and one in the footer. The tile is always the
+neutral `generic` placeholder, because the file type is not known yet, and its
+icon steps back to `--gray-a8` — quieter than a real placeholder's a11.
 
-<Canvas of={CardFileStories.Actions} />
-
-The DS has no danger `IconButton` variant (destructive actions with a label use
-<a href="/?path=/story/components-button--playground" target="_top">Button</a>);
-the delete button here is a `ghost` IconButton recolored red inside CardFile.
-
-### Unsupported preview
-
-When the preview is not supported, we show a placeholder — the file name and a
-file-type icon. The file name wraps until it fills the tile, then truncates.
-
-<Canvas of={CardFileStories.Wrapping} />
-
-Each file type has its own placeholder — icon + color (the tile is `<color>-a2`,
-the icon and name `<color>-a11`).
-
-<Canvas of={CardFileStories.FileTypes} />
-
-All formats are described in detail in the
-<a href="/?path=/story/components-avatar-avatarfile--playground" target="_top">AvatarFile</a>
-documentation.
-
-### Loading
-
-The card is non-interactive while it loads. There is no action button, and
-skeletons replace the text — two lines in the tile and one in the footer.
+<DocCaption>isLoading</DocCaption>
 
 <Canvas of={CardFileStories.Loading} />
+
+## States
+
+The whole card is one target, so its states come from Card — hover, press, focus,
+`disabled` and `dragging`. The icon button keeps its own states and never
+triggers the card under it.
+
+<DocCaption>Hover, press, focus, disabled and dragging, from left to right.</DocCaption>
+
+<Canvas of={CardFileStories.States} />
+
+## Accessibility
+
+With `onClick` set the card takes `role="button"` and a tab stop, and Enter or
+Space opens the file. The action button is its own stop, so Tab reaches it
+straight after the card. The card announces itself with the file name, so use the
+real name, and give the icon-only action button a label of its own through
+`actionLabel`.
+
+## Usage
+
+| Where | What it shows |
+| --- | --- |
+| Files module, cards view | The files on a job, a piece of equipment or a warranty, when the view is switched from rows to cards |
+| Media field | The files a person has just added to a form |
+| Files value in a display module | A wrapping grid of file cards inside a record's details |
+| Item group, cards view | Any group of files laid out as cards instead of rows |
 
 ## Props
 

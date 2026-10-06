@@ -65,7 +65,7 @@ interface HorizontalBase extends ValueDisplayBase {
   slotRight?: ReactNode;
 }
 
-/** Horizontal text value. Plain text wraps; with `slotLeft` it truncates to one line (tooltip shows the full text). */
+/** Horizontal text value. It wraps when it does not fit one line, with or without a `slotLeft` (which stays on the first line). */
 export type ValueDisplayHorizontalTextProps = HorizontalBase &
   Only<"value" | "valueColor" | "slotLeft" | "isWarning"> & {
     kind?: "text";

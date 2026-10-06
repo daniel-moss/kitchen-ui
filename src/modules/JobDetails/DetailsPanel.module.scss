@@ -18,10 +18,12 @@
   margin: calc(-1 * (var(--size-4) - var(--size-1)));
 }
 
-// The "Open in maps" row inside the Location module: 16px side/bottom
-// margins in Figma (4px from .listBody + 12px here).
+// The "Open in maps" row inside the Location module. Figma 21834-92726 (read
+// 2026-10-04) gives its container 8px sides and bottom and NO top padding, so
+// the button sits 4px under the location row: .listBody already contributes
+// 4px on every side, and this adds the remaining 4px.
 .mapButton {
-  padding: var(--size-1) var(--size-3) var(--size-3);
+  padding: 0 var(--size-1) var(--size-1);
 }
 
 // A module whose body is ONLY an EmptyState: the design gives that body no

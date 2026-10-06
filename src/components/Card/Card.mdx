@@ -2,15 +2,22 @@ import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as CardStories from "./Card.stories";
 import { FigmaLinks } from "../../stories/FigmaLinks";
+import { DocCaption } from "../../stories/DocCaption";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 <Meta of={CardStories} />
 
 # Card
 
-We use **Card** as an interactive container for any type of data.
+`Card` is an interactive container. The card draws the surface, the corner and the
+interaction states; everything inside it is a slot, so any content can go there. An
+optional alert ring and alert banner mark a status on the whole card. For a section
+that needs its own title, caption and actions in a header, use
+<a href="/?path=/story/components-displaymodule--playground" target="_top">DisplayModule</a>
+— a card has none.
 
 <FigmaLinks
-  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28219-9641"
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=28611-96027"
   doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=26618-51799"
 />
 
@@ -18,84 +25,209 @@ We use **Card** as an interactive container for any type of data.
 
 ```tsx
 <Card onClick={openDetails}>
-  <YourContent />
+  <ListItem
+    variant="titleCaption"
+    title={name}
+    caption={type}
+    slotRight={<ListItemSlotIcon icon="angle-right" />}
+    isClickable={false}
+  />
 </Card>
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)
+↳&nbsp;&nbsp;[When to use](#when-to-use)<br />
+↳&nbsp;&nbsp;[Holding a ListItem](#holding-a-listitem)<br />
+↳&nbsp;&nbsp;[Alert ring](#alert-ring)<br />
+↳&nbsp;&nbsp;[Alert banner](#alert-banner)<br />
+↳&nbsp;&nbsp;[Loading and errors](#loading-and-errors)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Accessibility](#accessibility)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-The card works as a container for any type of data. The only parameters defined
-on the component level are **corner radius** (`--border-radius-1_5` (6px)),
-**shadow** (a resting `0 1px 3px` drop shadow) and **background**
-(`--surface-interactive-default`). Everything else is a slot — pass any content
-as the card's children.
+A card is a surface with one slot in it. The slot is the body — everything the card
+shows lives there, and it is also the part that answers the pointer. The card's own
+surface is `--surface-level-second` and its corner is `--border-radius-2_5` (10px),
+over a resting `0 1px 3px` drop shadow in `--box-shadow-shadow-default`. It clips its
+content, so the banner and the body follow the corner without setting one of their own.
 
-<Canvas of={CardStories.Hero} />
+An alert ring is drawn at the card's edge, over everything. An alert banner sits above
+the body, flush to the top edge, and takes the card's top corners.
 
-The card supports an **alert ring** — a 1px status-colored inset border — in 4
-statuses: info (`--blue-9`), success (`--jade-9`), warning (`--amber-9`) and
-error (`--tomato-9`). Set `ring` and pick the color with `status`.
+<DocCaption>{`banner set${TEXT_SEPARATOR}status = "info"`}</DocCaption>
 
-<Canvas of={CardStories.AnatomyRing} />
+<Canvas of={CardStories.Anatomy} />
 
-It also supports an **alert banner** — an
+The body holds a small, even inset on all four sides — `padding` defaults to 4px,
+because a card most often carries a single
+<a href="/?path=/docs/components-listitem-listitem--docs" target="_top">ListItem</a>
+and the inset is the seat for it. Pass a number for px, or any CSS length or token.
+
+The inset belongs to the body, so the interaction fill covers it too and reaches the
+card's corners. Without that, a thin untinted frame would show around the content on
+every hover. The card keeps its own surface in every state, and the body carries the
+fill on top of it through the `--card-body-fill` custom property.
+
+<DocCaption>hovered</DocCaption>
+
+<Canvas of={CardStories.AnatomyHovered} />
+
+## When to use
+
+Use a card when the whole container is one target — the person taps it to open or pick
+the thing it shows. Do not use a card for a block that only holds content and has
+nothing to tap. A plain container is enough there, and a card's shadow and hover
+promise an action that never happens.
+
+<Canvas of={CardStories.WhenToUse} />
+
+Do not use a card when the section needs a title, a caption or actions along the top.
+DisplayModule is built for that, and it carries the same alert ring and banner.
+
+## Holding a ListItem
+
+A card most often holds one ListItem, and the body's inset is sized for exactly that.
+Set the row to not clickable with `isClickable={false}`. The card is the target, so a
+clickable row inside it would be a second target over the same area.
+
+In code the two do not merely compete — the row wins. The card excludes slot hover
+with `:not(:has(.body :is(button, a, [role="button"], …):hover))`, so a clickable row
+takes the pointer and the card stops tinting over its own area.
+
+<Canvas of={CardStories.HoldingListItem} />
+
+The row's right slot is the exception. An open marker there is a plain chevron and not
+a button — `ListItemSlotIcon` renders a non-interactive span, so it tells the person
+that the card opens something and adds no target of its own. An action in that slot, a
+menu button for example, is a real target: it does its own job, and the slot exclusion
+above keeps it from opening the card.
+
+<DocCaption>The right slot — the open marker, and an action.</DocCaption>
+
+<Canvas of={CardStories.RightSlot} />
+
+## Alert ring
+
+An alert ring marks the whole card with a status. It is a 1px inset `box-shadow` drawn
+at the card's edge, over the body and the banner, so it reads as a property of the card
+and not of its content. Drawing it as an inset shadow rather than a border keeps the
+card's size unchanged when it appears.
+
+There are four statuses, set with `status`: info (`--blue-9`), success (`--jade-9`),
+warning (`--amber-9`) and error (`--tomato-9`).
+
+<DocCaption>{`alertRing${TEXT_SEPARATOR}status = "info", "success", "warning", "error"`}</DocCaption>
+
+<Canvas of={CardStories.AlertRing} />
+
+A ring can be used on its own with `alertRing`. A banner cannot — passing `banner`
+always draws a matching ring.
+
+## Alert banner
+
+An alert banner carries a message about the card. It is an
 <a href="/?path=/story/components-alertbanner--playground" target="_top">AlertBanner</a>
-pinned at the top. The alert ring must be used with the alert banner, so passing
-`banner` always draws a matching ring. The banner's color and icon come from the
-card's `status`.
+in its `banner` type, and it takes its colour from the same `status` as the ring, so the
+two always agree — you pass only its content and actions.
 
-<Canvas of={CardStories.AnatomyBanner} />
+The banner is not part of the card's target. It is rendered as a sibling of the body,
+not a child, and it stops its own clicks, so tapping it does nothing to the card. The
+card's fill stops below it, which is why the banner holds one colour in every state.
+Its own link and dismiss button are separate targets.
 
-## Behavior
+<DocCaption>{`banner set${TEXT_SEPARATOR}status = "warning"${TEXT_SEPARATOR}hovered`}</DocCaption>
 
-If the card content couldn't be loaded for some reason, the card displays an
-**error state** — it replaces the body with an
+<Canvas of={CardStories.AlertBannerPreview} />
+
+## Loading and errors
+
+The card has no loading look of its own. The body is a slot, so the card cannot know
+what is loading inside it — `loading` only makes the card non-interactive and shows the
+native progress cursor. Draw the loading content in the slot yourself, with skeletons
+that match the real content.
+
+When the content cannot be loaded at all, `error` replaces the body with the
 <a href="/?path=/story/components-emptystate--playground" target="_top">EmptyState</a>
-and a Reload button (wire `onRetry`). The card is non-interactive in this state.
+that Dialog and DisplayModule use, and the card stops being interactive. Wire `onRetry`
+to the Reload button.
+
+<DocCaption>The error empty state in the body slot.</DocCaption>
 
 <Canvas of={CardStories.ErrorState} />
 
-### States
+## States
 
-The card is interactive by default — the whole body is a button, and the states
-apply to every variant (with or without a ring or banner). Interactive elements
-inside the body (a link, a menu button) keep their own states, so hovering or
-pressing them does not tint the whole card.
+Six states. The surface and the corner never change; what moves is the body's fill, the
+shadow and the edge. Default and disabled keep the resting shadow. Hovered, pressed and
+focused drop it, so the card sits flat while it is engaged.
 
-**Default** — the `--surface-interactive-default` fill and the resting
-`0 1px 3px` shadow.
+Hover is wrapped in `@media (hover: hover)`, so a touch device never leaves a sticky
+hover behind after a tap.
+
+| State | Body fill | Shadow | Edge |
+| --- | --- | --- | --- |
+| default | `--surface-interactive-default` | `0 1px 3px` | — |
+| hovered | `--surface-interactive-hover` | none | — |
+| pressed | `--surface-interactive-press` | none | — |
+| focused | `--surface-interactive-hover` | none | 2px `--gray-12` |
+| dragging | `--surface-interactive-default` | `0 8px 16px` | 1px `--gray-12` |
+| disabled | `--surface-interactive-default` | `0 1px 3px` | —, at 30% opacity |
+
+<DocCaption>default</DocCaption>
 
 <Canvas of={CardStories.StateDefault} />
 
-**Focused** — a 2px `--gray-12` border over the hover fill (keyboard focus).
-
-<Canvas of={CardStories.StateFocused} />
-
-**Hovered** — the `--surface-interactive-hover` fill; the resting shadow flattens.
+<DocCaption>hovered</DocCaption>
 
 <Canvas of={CardStories.StateHovered} />
 
-**Pressed** — the `--surface-interactive-press` fill; the shadow flattens.
+<DocCaption>pressed</DocCaption>
 
 <Canvas of={CardStories.StatePressed} />
 
-**Dragging** — a 1px `--gray-12` border + a large lift shadow (`0 8px 16px`); the
-card is non-interactive.
+Focused and dragging draw their own edge, and it replaces the alert ring for as long as
+it shows — both set the card's whole `box-shadow`, so the ring's inset shadow is not
+drawn underneath. Dragging also lifts the card with a much stronger shadow, and the card
+stops answering the pointer while it is dragged.
+
+<DocCaption>focused</DocCaption>
+
+<Canvas of={CardStories.StateFocused} />
+
+<DocCaption>dragging</DocCaption>
 
 <Canvas of={CardStories.StateDragging} />
 
-**Disabled** — 30% opacity; the card is non-interactive.
+A disabled card is dimmed as a whole, banner and ring included, and nothing inside it
+can be reached.
+
+<DocCaption>disabled</DocCaption>
 
 <Canvas of={CardStories.StateDisabled} />
 
-**Loading** — the card is non-interactive while it's loading and shows the native
-busy cursor. The loading content is specified by the consumer — supply your own
-skeletons that match the card's real content.
+## Accessibility
 
-<Canvas of={CardStories.StateLoading} />
+The card is one stop in the tab order, and Enter and Space activate it. The body takes
+`role="button"` and `tabIndex={0}` only when the card is interactive and an `onClick` is
+passed — a card without a handler is a plain container and stays out of the tab order.
+
+It announces itself as a button. Anything interactive inside it is its own stop after
+the card — an action in the row's right slot, and the banner's link and dismiss button.
+
+When the content does not already name the card — a thumbnail with no text, for
+example — give the card an accessible name that says what it opens, with `aria-label`
+on the card.
+
+## Usage
+
+| Where | What the card holds |
+| --- | --- |
+| CardFile | A file's preview, name and type. The whole card opens the file. |
+| Object card | Object-related ListItem. |
+| Object card on the "Cards" view | Object details. |
 
 ## Props
 

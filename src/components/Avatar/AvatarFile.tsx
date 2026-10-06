@@ -12,7 +12,10 @@ const VARIANT: Record<
   Exclude<AvatarFileType, "image">,
   { icon: string; iconColor: string; bg: string; pack?: IconPack }
 > = {
-  generic: { icon: "file", iconColor: "var(--blue-1)", bg: "var(--blue-9)" },
+  // GRAY since 2026-10-03 (Daniel) — it was blue, which read as a file type of
+  // its own next to Word's blue. A generic file is the one with no type to
+  // colour for, so it takes the neutral scale.
+  generic: { icon: "file", iconColor: "var(--gray-1)", bg: "var(--gray-9)" },
   imagePlaceholder: { icon: "image", iconColor: "var(--jade-1)", bg: "var(--jade-9)" },
   gif: { icon: "gif", iconColor: "var(--cyan-1)", bg: "var(--cyan-9)" },
   audio: { icon: "headphones", iconColor: "var(--amber-1)", bg: "var(--amber-9)" },

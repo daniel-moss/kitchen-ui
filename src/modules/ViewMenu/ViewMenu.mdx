@@ -13,10 +13,13 @@ drag reorder within a group. This is the DEFAULT version, available for
 **every object type**.
 
 The switcher is a full-width
+<a href="/?path=/docs/components-segmentedcontrol--docs" target="_top">SegmentedControl</a>
+of vertical Segments, so it behaves as a radio group. The Cards view's
+attributes stay a
 <a href="/?path=/docs/components-chip-chipgroup--docs" target="_top">ChipGroup</a>
-of vertical
-<a href="/?path=/docs/components-chip-chip--docs" target="_top">Chips</a>
-in `selectionMode="single"`, so it behaves as a radio group. The settings
+of
+<a href="/?path=/docs/components-chip-chip--docs" target="_top">Chips</a> —
+they are a multi-select, not a pick-one. The settings
 rows and the column rows are compact
 <a href="/?path=/docs/components-listitem-listitem--docs" target="_top">ListItems</a>,
 and each column group is an
@@ -41,23 +44,28 @@ When nothing matches, the list shows one centred line, "No matches" — the
 
 ## Columns
 
-With something pinned the section is two groups: **Pinned** (a `thumbtack`
-before the label) above **Not pinned** (`thumbtack-slash`), a divider between
-them. With nothing pinned there is one group, headed plainly **Columns** with
-no icon.
+The **Not pinned** group (a `thumbtack-slash` before the label) is always
+there. With something pinned, a **Pinned** group (`thumbtack`) sits above it
+and carries the divider between them; with nothing pinned, **Not pinned** is
+the only group and keeps its own label — it does not fall back to a plain
+"Columns" header.
 
-A row drags only inside its own group, so reordering can never pin or unpin a
-column — the pin button does that.
+On DESKTOP a row drags only inside its own group, so reordering never pins or
+unpins a column — the pin button does that.
 
 ## Mobile
 
-On mobile the menu is a drawer. There is no pinning, so the columns always sit
+On mobile the menu is a drawer. There is no pin button, so every column sits
 under the one plain **Columns** header; the sort column opens a second drawer
 with a search, and the min-one-column warning arrives as a Hint drawer.
 
-The pinned set still exists underneath — a phone just cannot change it — so
-the two regions stay separate groups behind that single header, and a drag
-still stays inside its own region.
+It is **one group**, and a drag may cross the whole list. The pinned set still
+exists underneath, and the drag is what sets it: the table always draws
+`[...pinned, ...unpinned]`, so "pinned" only ever means "the leading columns"
+— saying which column leads is the same as saying which is pinned. The COUNT
+is kept, so the first N rows become the new pinned set and a phone can never
+push past the limit of 3. A hidden column cannot be pinned, so a hidden row
+dragged into the leading block settles directly below it.
 
 <Canvas of={ViewMenuStories.Mobile} />
 
@@ -77,6 +85,6 @@ schedule:
 
 ## Views a consumer has not built
 
-`disabledViews` draws a view's chip but makes it unclickable — for a consumer
+`disabledViews` draws a view's segment but makes it unclickable — for a consumer
 that has not designed that view yet, where switching would change nothing.
 The Filters prototype disables Cards and Timeline this way.

@@ -5,7 +5,7 @@
 
 // ---- the square tile (preview area) ------------------------------------
 // Always 1:1 and full width, so the card height follows its width.
-.tale {
+.tile {
   position: relative;
   aspect-ratio: 1 / 1;
   width: 100%;
@@ -81,9 +81,13 @@
 }
 
 // ---- loading: skeletons replace the name --------------------------------
-// The tile keeps the file-type placeholder (colored bg + icon); the name is
-// replaced by two skeleton lines pinned to the bottom (icon top, lines bottom).
-.loadingTile {
+// The neutral `generic` tile; the name is replaced by two skeleton lines pinned
+// to the bottom (icon top, lines bottom). The icon steps back to --gray-a8 —
+// quieter than a real placeholder's a11, because nothing here is known yet.
+// Doubled class so it beats the file-type color class's --tile-fg.
+.loadingTile.loadingTile {
+  --tile-fg: var(--gray-a8);
+
   justify-content: space-between;
   gap: 0;
 }
@@ -111,15 +115,20 @@
   flex-direction: column;
   width: 100%;
 }
+// The height is FIXED, not padding-driven — the footer is the same 44px with or
+// without the action button (Figma). Hence no vertical padding, and the sides
+// are the only padding: 16 left always, 8 right to balance the 28px button.
 .footerRow {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   gap: var(--size-3); // 12
-  padding: var(--size-2) var(--size-2) var(--size-2) var(--size-4); // 8 / 8 / 8 / 16
+  height: var(--size-11); // 44
+  padding: 0 var(--size-2) 0 var(--size-4); // 0 / 8 / 0 / 16
   overflow: hidden;
 }
-// No action button while loading — symmetric horizontal padding.
-.footerRowLoading {
+// No action button (unset, or while loading) — 16px on both sides.
+.footerRowNoAction {
   padding-right: var(--size-4); // 16
 }
 // The name fills the row (pushing the action button to the right edge).

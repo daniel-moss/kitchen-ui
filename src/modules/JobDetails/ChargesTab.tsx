@@ -135,7 +135,7 @@ export default function ChargesTab({ mobile = false, groups, subtotal }: { mobil
   const margin = total === 0 ? 0 : Math.round((profit / total) * 100);
   return (
     <>
-      {/* Charges list — line items grouped by Labor / Products / Other. */}
+      {/* Charges list — line items grouped by Labor rates / Products / Other. */}
       <DisplayModule
         title="Charges"
         titleSlotRight={<Counter value={groups.reduce((n, g) => n + g.items.length, 0)} />}

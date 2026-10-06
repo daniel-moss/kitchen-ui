@@ -6,7 +6,7 @@ import { FULL_CHRONO_ROWS } from "../lifecycleData";
 
 // CONCEPT 5 — the CHRONOLOGICAL break-down — the one concept that does not aggregate. Every stretch in the order the job moved through them, so a status entered twice appears twice. Truncated behind "Show N more".
 const meta: Meta = {
-  title: 'Modules/Job Details/"Job Lifecycle" Module/Concept 5',
+  title: 'Modules/Job/Job Details/"Job Lifecycle" Module/Concept 5',
   ...conceptMeta,
 };
 

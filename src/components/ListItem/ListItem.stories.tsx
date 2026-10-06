@@ -10,7 +10,7 @@ import ValueDisplayGroup from "../ValueDisplay/ValueDisplayGroup";
 import Avatar from "../Avatar/Avatar";
 import AvatarClient from "../Avatar/AvatarClient";
 import AvatarGroup from "../Avatar/AvatarGroup";
-import AvatarLabor from "../Avatar/AvatarLabor";
+import AvatarLaborRate from "../Avatar/AvatarLaborRate";
 import AvatarUser from "../Avatar/AvatarUser";
 import Button from "../Button/Button";
 import DateField from "../Fields/DateField/DateField";
@@ -135,7 +135,7 @@ type Story = StoryObj<typeof ListItem>;
 // ---- shared example pieces -------------------------------------------------
 
 const objectAvatar = <Avatar shape="square" content="icon" size="xl" />;
-const laborAvatar = <AvatarLabor size="xl" />;
+const laborRateAvatar = <AvatarLaborRate size="xl" />;
 const chevron = <ListItemSlotIcon icon="angle-right" />;
 
 // Every Figma Documentation preview stacks its rows 80px apart.
@@ -243,23 +243,23 @@ export const MultiLine: Story = {
     <Stack>
       <ListItem
         variant="titleCaption"
-        title="Labor name"
+        title="Labor rate name"
         titleLines="wrap"
         caption={BLENDER}
         captionLines={2}
-        avatar={laborAvatar}
+        avatar={laborRateAvatar}
         isDraggable
       />
-      <ListItem variant="titleCaption" title="Labor name" titleLines="wrap" caption={BLENDER} captionLines={2} avatar={laborAvatar} isAccordion>
+      <ListItem variant="titleCaption" title="Labor rate name" titleLines="wrap" caption={BLENDER} captionLines={2} avatar={laborRateAvatar} isAccordion>
         {collapsibleBody}
       </ListItem>
       <ListItem
         variant="titleCaption"
-        title="Labor name"
+        title="Labor rate name"
         titleLines="wrap"
         caption={BLENDER}
         captionLines={2}
-        avatar={laborAvatar}
+        avatar={laborRateAvatar}
         right={<ItemTextBlock align="right" variant="titleCaption" title="$100.00" caption="Caption" />}
         isAccordion
       >
@@ -276,7 +276,7 @@ export const MultiLine: Story = {
 const slotButton = (n: number) => <IconButton key={n} aria-label={`Action ${n}`} variant="ghost" size="md" onClick={noop} />;
 
 const slotTabGroup = (
-  <TabGroup variant="contained" size="lg" defaultValue="a">
+  <TabGroup variant="pill" size="lg" defaultValue="a">
     <TabItem value="a">Tab</TabItem>
     <TabItem value="b">Tab</TabItem>
   </TabGroup>
@@ -426,7 +426,7 @@ const bottomButton = (
 );
 
 const bottomTabGroup = (
-  <TabGroup variant="contained" size="lg" isFullWidth defaultValue="a">
+  <TabGroup variant="pill" size="lg" isFullWidth defaultValue="a">
     <TabItem value="a">Tab</TabItem>
     <TabItem value="b">Tab</TabItem>
   </TabGroup>

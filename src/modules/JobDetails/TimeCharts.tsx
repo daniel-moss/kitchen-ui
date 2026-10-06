@@ -1,5 +1,4 @@
 import { ReactNode, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 
 import AvatarDay from "../../components/Avatar/AvatarDay";
 import AvatarLive from "../../components/Avatar/AvatarLive";
@@ -12,8 +11,9 @@ import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import ListItem from "../../components/ListItem/ListItem";
 import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import ProgressBar from "../../components/Progress/ProgressBar";
-import Tooltip from "../../components/Tooltip/Tooltip";
+import useAnchoredTooltip from "../../components/Tooltip/useAnchoredTooltip";
 
+import { shortWeekdayDate, weekdayDate } from "../shared/dates";
 import { ChartColor, colorAt, DAY_COLORS, liveVar, TECH_COLORS } from "./chartColors";
 
 import styles from "./TimeCharts.module.scss";
@@ -34,13 +34,16 @@ import styles from "./TimeCharts.module.scss";
 // "Shown in decimal number to save space. Max 2 digits after the dot."
 export const formatHours = (sec: number) => `${parseFloat((sec / 3600).toFixed(2))} hr`;
 
-// The legend rows and every tooltip: minutes only under an hour ("15 min"),
-// otherwise "H hr M min" — the minutes stay even at zero ("3 hr 0 min").
+// The legend rows and every tooltip. A part that is ZERO is left out
+// (Daniel, 2026-10-06): "15 min", "3 hr", "3 hr 20 min" — never "3 hr 0 min"
+// or "0 hr 15 min". Nothing at all becomes "0 min", so the row still has a
+// value to show.
 export const formatDuration = (sec: number) => {
   const totalMin = Math.round(sec / 60);
   const h = Math.floor(totalMin / 60);
   const m = totalMin % 60;
-  return h === 0 ? `${m} min` : `${h} hr ${m} min`;
+  if (h === 0) return `${m} min`;
+  return m === 0 ? `${h} hr` : `${h} hr ${m} min`;
 };
 
 // ---- tooltips ---------------------------------------------------------------
@@ -48,40 +51,26 @@ export const formatDuration = (sec: number) => {
 // A tooltip is a hover affordance — on touch devices it does not exist.
 const canHover = () => typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
-// The floating body, 8px above `y`. `x` is the anchor point the body centers on.
-const TipBody = ({ text, x, y }: { text: string; x: number; y: number }) =>
-  createPortal(
-    <span className={styles.tipOverlay} style={{ left: x, top: y }}>
-      <Tooltip placement="top" text={text} />
-    </span>,
-    document.body,
-  );
-
-// The rounded-time tooltip on a legend row's value. The DS `HoverTooltip`
-// anchors to the trigger's CENTER, but this one has to "align with the cursor"
-// (Figma 24620-83390), so it reproduces the ValueDisplay / TruncatingText
-// behavior instead: a body portal at the cursor's x, above the trigger's top.
-function CursorTooltip({ text, children }: { text: string; children: ReactNode }) {
+// The rounded-time tooltip on a legend row's value. Figma 24620-83390 asks for
+// it to "align with the cursor", which is NOT buildable: production's tooltip
+// is Radix, positioned from the trigger's box with no cursor anchor (Daniel,
+// 2026-10-04). So it anchors on the trigger like every other DS tooltip —
+// the Figma note needs updating.
+export function ValueTooltip({ text, children }: { text: string; children: ReactNode }) {
   const ref = useRef<HTMLSpanElement>(null);
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const tip = useAnchoredTooltip({ text });
 
   if (!canHover()) return <>{children}</>;
-
-  const track = (clientX: number) => {
-    const el = ref.current;
-    if (el) setPos({ x: clientX, y: el.getBoundingClientRect().top });
-  };
 
   return (
     <span
       ref={ref}
-      className={styles.cursorWrap}
-      onMouseEnter={(e) => track(e.clientX)}
-      onMouseMove={(e) => track(e.clientX)}
-      onMouseLeave={() => setPos(null)}
+      className={styles.valueWrap}
+      onMouseEnter={() => tip.show(ref.current)}
+      onMouseLeave={tip.hide}
     >
       {children}
-      {pos != null && <TipBody text={text} x={pos.x} y={pos.y} />}
+      {tip.node}
     </span>
   );
 }
@@ -122,7 +111,7 @@ function Segment({ entry }: { entry: ChartEntry }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const sizerRef = useRef<HTMLSpanElement>(null);
   const [fits, setFits] = useState(true);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
+  const tip = useAnchoredTooltip({ text: formatDuration(entry.exactSec) });
   const label = formatHours(entry.sec);
 
   useLayoutEffect(() => {
@@ -152,13 +141,6 @@ function Segment({ entry }: { entry: ChartEntry }) {
     };
   }, [label]);
 
-  const show = () => {
-    const el = wrapRef.current;
-    if (el == null) return;
-    const r = el.getBoundingClientRect();
-    setTip({ x: r.left + r.width / 2, y: r.top });
-  };
-
   const hoverable = canHover();
 
   return (
@@ -166,8 +148,8 @@ function Segment({ entry }: { entry: ChartEntry }) {
       ref={wrapRef}
       className={styles.segment}
       style={{ flexGrow: entry.sec }}
-      onMouseEnter={hoverable ? show : undefined}
-      onMouseLeave={hoverable ? () => setTip(null) : undefined}
+      onMouseEnter={hoverable ? () => tip.show(wrapRef.current) : undefined}
+      onMouseLeave={hoverable ? tip.hide : undefined}
     >
       {entry.avatar}
       <ProgressBar value={100} color={liveVar(entry.color)} isDecorative className={styles.bar} />
@@ -175,7 +157,7 @@ function Segment({ entry }: { entry: ChartEntry }) {
       <span ref={sizerRef} aria-hidden className={styles.segmentSizer}>
         {label}
       </span>
-      {tip != null && <TipBody text={formatDuration(entry.exactSec)} x={tip.x} y={tip.y} />}
+      {tip.node}
     </div>
   );
 }
@@ -241,7 +223,7 @@ function ChartModule({
                     // Only a rounded time hides something, so only then is
                     // there an exact value worth revealing (Figma 24620-83390).
                     right={
-                      rounded ? <CursorTooltip text={formatDuration(entry.exactSec)}>{value}</CursorTooltip> : value
+                      rounded ? <ValueTooltip text={formatDuration(entry.exactSec)}>{value}</ValueTooltip> : value
                     }
                   />
                 );
@@ -336,10 +318,15 @@ export function WorkTimelineModule({
       sec: d.sec,
       exactSec: d.exactSec,
       color,
-      name: d.label,
+      // Desktop "Monday, January 1, 2027", MOBILE "Mon, Jan 1, 2027" — the
+      // weekday and the year on both, the same pair the Timesheet's own
+      // session rows use (Daniel, 2026-10-06). Derived from `key`, the day's
+      // full date label, rather than from `label`, which carried the weekday
+      // without the year.
+      name: mobile ? shortWeekdayDate(d.key) : weekdayDate(d.key),
       // The day's chart color is a live-collaboration name, which is also an
       // AvatarDay color scheme — the tile and its bar always match.
-      avatar: <AvatarDay colorScheme={color} month={d.month} day={d.day} ariaLabel={d.label} />,
+      avatar: <AvatarDay colorScheme={color} month={d.month} day={d.day} ariaLabel={weekdayDate(d.key)} />,
     };
   });
 

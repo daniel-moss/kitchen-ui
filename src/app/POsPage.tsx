@@ -6,6 +6,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -97,7 +98,7 @@ const BRANCHES: POBranch[] = [
     id: "open",
     label: "Open",
     tabs: [
-      { id: "all", label: "All", statuses: [] },
+      { id: "all", label: "All open", statuses: [] },
       { id: "pending", label: "Pending", statuses: ["draft", "unsent"] },
       { id: "open", label: "Open", statuses: ["sent", "acknowledged"] },
       { id: "inTransit", label: "In transit", statuses: ["inTransit"] },
@@ -111,7 +112,7 @@ const BRANCHES: POBranch[] = [
     id: "closed",
     label: "Closed",
     tabs: [
-      { id: "closedAll", label: "All", statuses: [] },
+      { id: "closedAll", label: "All closed", statuses: [] },
       { id: "paid", label: "Paid", statuses: ["paid"] },
       { id: "cancelled", label: "Cancelled", statuses: ["cancelled"] },
     ],
@@ -152,13 +153,17 @@ const POsTopBar = ({
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as POsPhase)}
         aria-label="Open or closed POs"

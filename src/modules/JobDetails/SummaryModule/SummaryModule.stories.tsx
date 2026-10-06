@@ -11,7 +11,7 @@ import styles from "./SummaryModule.stories.module.scss";
 // Timesheet tab now shows the separate "Time distribution" and "Work timeline"
 // modules instead (Figma 24616-81424 / 24616-81593).
 const meta: Meta = {
-  title: 'Modules/Job Details/"Summary" Module',
+  title: 'Modules/Job/Job Details/"Summary" Module',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

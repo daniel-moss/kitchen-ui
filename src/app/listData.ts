@@ -110,20 +110,20 @@ export const CLIENT_NOUN: ObjectNoun = {
   createLabel: "Create client",
 };
 
-// "Labor" is the page's name; one row of it is an ITEM (production
-// `PriceBookItem`), which is what every count reads best as — "3 labor
-// items", never "3 labors".
+// RENAMED "Labor" → "Labor rate" on 2026-10-06. The new name counts on its
+// own ("3 labor rates"), so the noun no longer needs the "item" suffix the old
+// name required ("3 labor items", because "3 labors" says nothing). One row is
+// still production's `PriceBookItem`.
 export const LABOR_NOUN: ObjectNoun = {
-  one: "labor item",
-  many: "labor items",
-  icon: semanticIcons.labor,
-  createLabel: "Create labor item",
+  one: "labor rate",
+  many: "labor rates",
+  icon: semanticIcons.laborRate,
+  createLabel: "Create labor rate",
 };
 
 // "Product" is the design's own word for a part (production calls the type
 // "Parts & Materials"; the sidebar item, the page title and the Create menu
-// all say Product / Products), and one row IS one product — so unlike Labor
-// this noun needs no "item" suffix to count right.
+// all say Product / Products), and one row IS one product.
 export const PRODUCT_NOUN: ObjectNoun = {
   one: "product",
   many: "products",
@@ -134,7 +134,7 @@ export const PRODUCT_NOUN: ObjectNoun = {
 // "Other" is the page's NAME, not a noun you can count — "3 others" says
 // nothing. One row is an other CHARGE, which is what production calls the
 // type ("Other Charge", and "Miscellaneous Charge" in its form's picker), so
-// the counts read "3 other charges". The Labor arrangement.
+// the counts read "3 other charges".
 export const OTHER_NOUN: ObjectNoun = {
   one: "other charge",
   many: "other charges",

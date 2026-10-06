@@ -28,17 +28,19 @@ but it shares the avatar box, so it is used in the same places.
 Exists in one size only. Contains two text layers — one for month data
 (`month`) and another for day data (`day`).
 
-The tile is `--size-9` (36px) square with `--border-radius-1_5` (6px) corners
+The tile is `--size-9` (36px) square with `--border-radius-2` (8px) corners
 and a `<scheme>-a3` background. The **top part** is a fixed 14px strip with
 `--size-1` (4px) side padding, holding the month in Semibold 8/10 with 0.5px
 letter-spacing, always uppercase. The **bottom part** takes the rest of the
 height and keeps `--size-0_5` (2px) around the **day container**, which is
-filled with `--surface-level-second`, rounds its two bottom corners by 5px and
-holds the day in Semibold 12/12. Both text layers use the scheme's `-a11`
+filled with `--surface-level-second`, rounds its two bottom corners by
+`--border-radius-1_5` (6px) — square on top, where it meets the month strip —
+and holds the day in Semibold 12/12. Both text layers use the scheme's `-a11`
 color.
 
-The two text styles and the 5px corner are raw values — the design system has
-no typography token this small, and 5px is not on the radius scale.
+The day container's 6px is the tile's 8px minus the 2px the bottom padding
+insets it by, so the two curves stay concentric. The two text styles are raw
+values — the design system has no typography token this small.
 
 <Canvas of={AvatarDayStories.Default} />
 

@@ -12,7 +12,7 @@
   box-sizing: border-box;
   position: relative;
   z-index: 1; // above the tongue
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2); // 8px
   background: var(--surface-level-third);
 }
 

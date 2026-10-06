@@ -1,4 +1,4 @@
-import { CSSProperties, MouseEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { CSSProperties, MouseEvent, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import clsx from "clsx";
 
@@ -94,6 +94,20 @@ export default function Dialog(props: DialogProps) {
   const [confirming, setConfirming] = useState(false);
   const layerRef = useRef<HTMLDivElement>(null);
 
+  // Where the dialog renders. Normally <body>: it must cover the whole screen
+  // and stack above everything. Inside a mock container that provides a drawer
+  // root — a Storybook device frame — it renders in that container instead and
+  // its layer switches from `fixed` to `absolute`, so the dialog stays inside
+  // the mock phone (Daniel, 2026-10-05). SidePanel already did this; the two
+  // now behave the same way in a frame.
+  //
+  // Nothing changes for a real app: with no provider above, the root IS body,
+  // `contained` is false, and the layer stays fixed.
+  const ctxRoot = useContext(DrawerRootContext);
+  const body = typeof document === "undefined" ? null : document.body;
+  const root = ctxRoot ?? body;
+  const contained = root != null && root !== body;
+
   // ---- focus steps: scrolling ----
   const focusStep = props.type === "focus" ? props.currentStep : -1;
   const gateNext = props.type === "focus" && !!props.requireScrollToEnd;
@@ -151,7 +165,9 @@ export default function Dialog(props: DialogProps) {
   useRestoreFocus(open, layerRef);
   useFocusTrap(layerRef, open && !confirming);
 
-  if (!mounted) return null;
+  // `root` is only null while rendering on the server, where there is nothing
+  // to portal into.
+  if (!mounted || root == null) return null;
 
   // The title's info icon. With content it opens a HoverHint (375px info
   // bubble) — the same pattern FormModule and Label use; bare, it is just the
@@ -280,14 +296,14 @@ export default function Dialog(props: DialogProps) {
     dialogPortal = createPortal(
       <div
         ref={layerRef}
-        className={clsx(styles.scrim, visible && styles.scrimOpen, isDesktop && styles.scrimFocus, className)}
+        className={clsx(styles.scrim, contained && styles.containedLayer, visible && styles.scrimOpen, isDesktop && styles.scrimFocus, className)}
         onClick={onScrimClick}
       >
         <Popover open={visible} header={header} footer={footer} style={cardStyle}>
           {isStateView ? stateView : <div ref={focusBodyRef} className={clsx(styles.focusBody, bodyPadded && styles.body)}>{children}</div>}
         </Popover>
       </div>,
-      document.body,
+      root,
     );
   } else {
     // ---- default: 608px card (desktop) / drawer (mobile) ----
@@ -321,7 +337,7 @@ export default function Dialog(props: DialogProps) {
         </>
       );
       dialogPortal = createPortal(
-        <div ref={layerRef} className={clsx(styles.fixedLayer, className)}>
+        <div ref={layerRef} className={clsx(styles.fixedLayer, contained && styles.containedLayer, className)}>
           <Popover
             drawer
             fillHeight={fillHeight}
@@ -334,7 +350,7 @@ export default function Dialog(props: DialogProps) {
             {body}
           </Popover>
         </div>,
-        document.body,
+        root,
       );
     } else {
       const header = (
@@ -352,23 +368,24 @@ export default function Dialog(props: DialogProps) {
         ...cardStyleOverride,
       };
       dialogPortal = createPortal(
-        <div ref={layerRef} className={clsx(styles.scrim, visible && styles.scrimOpen, className)} onClick={onScrimClick}>
+        <div ref={layerRef} className={clsx(styles.scrim, contained && styles.containedLayer, visible && styles.scrimOpen, className)} onClick={onScrimClick}>
           <Popover open={visible} header={header} footer={footerRegion} style={cardStyle}>
             {body}
           </Popover>
         </div>,
-        document.body,
+        root,
       );
     }
   }
 
-  // Everything the Dialog renders portals to <body> and must stack above the app
-  // and any device frame. Override the drawer root to body so this Dialog's own
-  // drawer AND any drawer opened from inside it (a SelectList search, etc.)
-  // portal there — synchronously, which is what lets their focus open the iOS
-  // keyboard inside the tap.
+  // Everything the Dialog renders portals to the resolved root — <body> in a
+  // real app — and must stack above the app. Pin the drawer root to it so this
+  // Dialog's own drawer AND any drawer opened from inside it (a SelectList
+  // search, etc.) portal to the SAME place — synchronously, which is what lets
+  // their focus open the iOS keyboard inside the tap. Inside a device frame
+  // that root is the frame, so the whole stack stays in the mock phone.
   return (
-    <DrawerRootContext.Provider value={typeof document !== "undefined" ? document.body : null}>
+    <DrawerRootContext.Provider value={root}>
       {dialogPortal}
       {dismissPromptNode}
     </DrawerRootContext.Provider>

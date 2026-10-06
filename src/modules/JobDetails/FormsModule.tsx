@@ -860,7 +860,7 @@ export default function FormsModule({
         onClose={() => setAddTarget(null)}
         multiSelect
         searchable
-        searchPlaceholder="Search by form name..."
+        searchPlaceholder="Form..."
         footer={
           <SelectListFooter
             variant="actionBar"

@@ -1,0 +1,156 @@
+{
+  "_about": "Rebuild spec for the 'Job Details Page - Next Update' file (N0cgcrhj7KhBovYXySJpqZ). Measured 2026-10-03, re-measured 2026-10-04 after Daniel detached the Explorations page. Unlike rules.json (the 2026-10 View-file RESTORE), most of this is a REBUILD: the old ListItem/ItemGroup wrapper chain is deleted by the update, so rows are re-created inside the new bodyList slot and their values written as nested-instance property overrides. Every value below was read off nodes, not assumed.",
+
+  "_feasibility": {
+    "appendIntoItemGroupBodyListSlot": "VERIFIED 2026-10-03 — SlotNode.appendChild works inside an instance; limitViolations empty after adding a ListItem.",
+    "setVariantPropsOnNewListItem": "VERIFIED — setProperties on the created instance.",
+    "note": "SLOT-typed component PROPERTIES still cannot be set (cannotSetSlotProperty). Content goes in by appendChild on the SLOT node itself."
+  },
+
+  "_iconFontWorkaround": {
+    "problem": "Font Awesome 7 Pro is installed on Daniel's Mac (~/Library/Fonts, macOS reports Valid: Yes, family 'Font Awesome 7 Pro') but Figma's plugin environment does not list it — 8927 families, only Font Awesome 5 and 6 Free. Quitting and reopening Figma did NOT change this. So every TEXT write on the Icon component fails with 'Unable to update this text property because the component uses a font that isn't available'. Verified failing: the literal name, AND the variable alias passed through setProperties.",
+    "solution": "Write the icon name on the Icon's inner TEXT node with setBoundVariable('characters', variable) — variable binding does NOT go through the font check.",
+    "forLiterals": "Create one scratch local STRING variable, set its value to the icon name, bind, then UNBIND with setBoundVariable('characters', null). The resolved literal SURVIVES the unbind (verified: diamonds-4 -> bind 'van' -> unbind -> still 'van', not bound). Delete the scratch collection at the end — nothing is left behind.",
+    "forTokens": "Where the original was variable-bound (the 78 right-slot context-menu icons), import the DS variable by key and LEAVE it bound.",
+    "caveat": "This is a sub-layer override on the text node, not a binding on the `iconName#2002:0` component property as the original had. The glyph and the variable link are right, but a later edit of the component property would win over it. Property-level binding is impossible from here — setProperties hits the font check.",
+    "renderingNote": "Screenshots taken from this environment still draw FA glyphs as a notdef box, because the renderer lacks the font. The stored characters are correct — verify by reading `characters`, never from a screenshot.",
+    "variantsAreFree": "style / size / pack on the Icon are VARIANT properties and write normally; only the name is text."
+  },
+
+  "scope": {
+    "oldListItemMain": "24753:151433 (5 variants) — 126 rows",
+    "oldItemGroupMain": "24753:151529 (2 variants) — 42 groups",
+    "oldGroupLabelMain": "24731:27140 (2 variants)",
+    "oldChipMain": "24753:157212 (60 variants) — 78 broken overrides",
+    "newListItem": "cf991cac0139ddf5075933229014e5d92458d906 (53 variants)",
+    "newItemGroup": "6e2a7e317ec0905fd4e8e8fb43ca97dd72102fc9 (32 variants)",
+    "perPage": {
+      "Timesheet Tab": { "groups": 18, "rows": 56 },
+      "Summary Tab": { "groups": 10, "rows": 30 },
+      "Complete Job Form": { "groups": 6, "rows": 26 },
+      "Check In / Out": { "groups": 4, "rows": 8 },
+      "Job Statuses": { "groups": 4, "rows": 6 }
+    },
+    "outOfScope": "The Explorations page was DETACHED by Daniel on 2026-10-04 — 0 instances remain, so the update cannot touch it. It is excluded from every count here. Its 349 breaks, 25 groups, 56 rows and the two tall accordion rows are all gone from scope."
+  },
+
+  "rowShapes": {
+    "_note": "8 shapes, every row 60px tall, no row over 100px.",
+    "title+caption+rTitle+rCaption+rightSlot, static": 40,
+    "title+rTitle+rCaption, static": 26,
+    "title+caption+rightSlot, clickable+draggable": 20,
+    "title+caption+rightSlot, clickable": 15,
+    "title+caption+rTitle+rCaption+rightSlot, clickable": 12,
+    "title+caption+rTitle+rCaption+rightSlot, clickable+draggable": 10,
+    "title+caption+rTitle+rCaption, static": 2,
+    "title+caption+rightSlot, static": 1
+  },
+
+  "listItem": {
+    "copyStraightAcross": ["isClickable", "isDraggable", "isAccordion"],
+    "assert": {
+      "size": "default",
+      "state": "default",
+      "open": "false",
+      "slotBottom": "false",
+      "isLoading": "false"
+    },
+    "_sizeJustification": "All 126 rows measure 60px. The new set offers default|compact and compact is 40px, so default is the only match.",
+    "body": {
+      "component": "#️⃣ ListItemBody",
+      "slotLeft": "true  (all 126 rows carry a left avatar)",
+      "slotRight": "true for the 98 rows with a visible #️⃣ Slot Right Instance, else false"
+    }
+  },
+
+  "avatar": {
+    "_path": "Body / Slot Left / AvatarPicker",
+    "size": "xl",
+    "variantMap": {
+      "genericObject": "generic",
+      "user": "user",
+      "live": "live",
+      "day": "day",
+      "other": "other",
+      "labor": "labor",
+      "product": "product",
+      "warning": "warning",
+      "equipment": "equipment"
+    },
+    "_counts": { "genericObject": 63, "live": 13, "day": 13, "other": 10, "labor": 8, "product": 8, "warning": 6, "user": 4, "equipment": 1 },
+    "_carryInner": "The inner Avatar's own props travel too — content (image|letters|icon|counter|none), shape, and the Icon's iconName — because the 63 generic rows each draw a different icon.",
+    "_flag": "genericObject -> generic is the only rename. AvatarPicker has no genericObject option."
+  },
+
+  "text": {
+    "_path": "Body / ItemText",
+    "textRight": "true for the 90 rows with a visible #️⃣ Content Text Right, else false",
+    "blocks": {
+      "Text Left": { "variant": "titleCaption for the 100 rows with a caption, else title", "align": "left" },
+      "Text Right": { "variant": "titleCaption (all 90 right blocks carry both lines)", "align": "right" }
+    },
+    "lines": {
+      "Title": { "label": "<old title text>", "textStyle": "bodyMedium", "color": "strong" },
+      "Caption": { "label": "<old caption text>", "textStyle": "caption", "color": "subtle" }
+    },
+    "colorExceptions": {
+      "_source": "Measured per node: textStyleId + bound fill variable.",
+      "right Title bound to alias/text/text-error": { "count": 4, "color": "error" },
+      "right Title bound to alias/text/text-warning": { "count": 1, "color": "warning" },
+      "left Caption bound to alias/text/text-warning": { "count": 3, "color": "warning" }
+    },
+    "_measured": "LEFT Title 126 and RIGHT Title 85 = body/500 compact + text-strong. LEFT Caption 97 and RIGHT Caption 90 = caption/md 400 + text-subtle. Right-hand alignment comes from the block's align=right, not from the line.",
+    "_oldPropertyKeys": { "title": "↳ title#23300:1", "caption": "↳ caption#25818:0", "newLine": "↳ label#30726:1" }
+  },
+
+  "slotRight": {
+    "_path": "Body / Slot Right",
+    "slots": "1  (every old row had exactly one)",
+    "instanceMap": {
+      "iconButton": "iconButton",
+      "iconOpen": "open",
+      "iconButtonContextMenu": "iconButton",
+      "liveUserAvatar": "avatar"
+    },
+    "_counts": { "iconButton": 60, "iconOpen": 19, "iconButtonContextMenu": 18, "liveUserAvatar": 1 },
+    "_approved": "Daniel confirmed 2026-10-04. The new instance list has no contextMenu option, so those 18 rows become iconButton and keep the distinction through the inner IconButton's icon name, which the rebuild carries. iconButtonRemove left scope with the Explorations page.",
+    "iconName": {
+      "_measured": "All 78 right-slot IconButtons (60 iconButton + 18 iconButtonContextMenu) ALREADY bind iconName to the `context-menu` STRING variable, whose value is \"ellipsis\". The 19 iconOpen rows carry a literal \"angle-right\", which the new `open` variant draws by itself — nothing to carry there.",
+      "carryAs": "variable KEY, not id — a library update changes variable ids. Re-resolve with figma.variables.importVariableByKeyAsync, then pass the alias through setProperties on the Icon's `iconName#2002:0` property.",
+      "contextMenuVariable": {
+        "name": "context-menu",
+        "key": "2a26be01d8dd87c040a7af72aaf6933ccf61b220",
+        "type": "STRING",
+        "value": "ellipsis",
+        "usesInFile": 140
+      },
+      "_removeRule": "Daniel's rule for a remove button is an IconButton with the X icon. NOT APPLICABLE in this file — iconButtonRemove rows existed only on the detached Explorations page. Also note the name: no `x-mark` variable is used anywhere in this file and kitchen-ui's icons-semantic.css has no such token; Font Awesome's glyph is `xmark` (`g-xmark`), and the nearest existing token is `--delete: \"trash-can\"`. If a remove button is needed later, confirm the variable exists in the Figma Icons collection first and add the matching CSS token."
+    }
+  },
+
+  "itemGroup": {
+    "copyStraightAcross": ["header"],
+    "_headerCounts": { "true": 28, "false": 14 },
+    "divider": "from the old #️⃣ Divider part's own `divider` property (true 14 / false 14). 14 of the 42 groups have no readable divider part — record per group and default to false where absent.",
+    "assert": { "view": "list", "isAccordion": "false", "open": "false", "isTruncated": "false", "isExpanded": "false" },
+    "_truncationFinding": "VERIFIED 2026-10-04: truncation is used ONLY on the Details tab — 2 ItemGroups inside 'Assignees' Module / '4+ Assignees' (one isTruncated=true isExpanded=false, one isTruncated=true isExpanded=true). Zero old ItemGroups on any page show a show-more / footer / expand signal, so asserting false on all 42 loses nothing."
+  },
+
+  "groupLabel": {
+    "renames": { "#️⃣ Primary": "Content", "#️⃣ Secondary": "Body / Content", "#️⃣ GroupLabelContentPrimaryLabel": "Label" }
+  },
+
+  "restoreByRule": {
+    "_about": "Not a rebuild — ordinary value restores once the layer is found under its new name.",
+    "Chip": { "oldPath": "#️⃣ Content / #️⃣ Label", "newProperty": "↳ label#31300:0", "count": 78, "propDefaults": { "slotLeft": "false" }, "_note": "Same trap as the 2026-10 View-file run: the update sets slotLeft=true on every chip that had a custom label. Justify the false with a file-wide count before asserting it." },
+    "#️⃣ ActionBar": { "rename": { "Button": "Primary" }, "count": 24, "_flag": "Primary vs Secondary to be settled in the dry run." },
+    "#️⃣ Body Bar": { "rename": { "#️⃣ Content Placeholder": "#️⃣ Content Value" }, "count": 24 },
+    "#️⃣ Value Content": { "rename": { "BadgeJobStatus": "Badge" }, "count": 16 },
+    "#️⃣ GroupLabelContentPrimary": { "rename": { "#️⃣ GroupLabelContentPrimaryLabel": "Label" }, "count": 2 }
+  },
+
+  "notRecoverable": {
+    "_InputBackground": { "count": 8, "what": "a fill variable binding on a component that is gone from the library" },
+    "Card #️⃣ Content Slot": { "count": 11, "what": "old structural part; the new Card uses a body SLOT" }
+  }
+}

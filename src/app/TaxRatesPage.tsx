@@ -1,4 +1,8 @@
+import { useCallback } from "react";
+
 import { Page } from "./shell/appShell";
+import { useNewTaxRate, useOpenTaxRate } from "./shell/taxRates";
+import { useTaxRates } from "./store/AppStore";
 import { TAX_RATE_NOUN } from "./listData";
 import { PricebookListConfig, PricebookPage } from "./pricebookList";
 import { TAX_RATE_FILTERS } from "./taxRateFilters";
@@ -49,8 +53,29 @@ export interface TaxRatesPageProps {
   onNavigate: (next: Page) => void;
 }
 
-const TaxRatesPage = ({ breakpoint = "auto", onNavigate }: TaxRatesPageProps) => (
-  <PricebookPage config={TAX_RATES_LIST} breakpoint={breakpoint} onNavigate={onNavigate} />
-);
+// The first pricebook list that is WIRED (2026-10-05): its rows come from the
+// app store rather than the frozen seed, "New" opens the "New tax rate" form,
+// and a row opens the "Tax rate" side panel. Both overlays live at app level
+// (shell/taxRates.tsx) because the Create menu can reach the form from any
+// page, and the create toast's "Preview" opens the panel from there too.
+const TaxRatesPage = ({ breakpoint = "auto", onNavigate }: TaxRatesPageProps) => {
+  const rows = useTaxRates();
+  const openNewTaxRate = useNewTaxRate();
+  const openTaxRate = useOpenTaxRate();
+
+  // Stable — the table is memoised on its props (listTable.tsx).
+  const onRowClick = useCallback((row: TaxRateRow) => openTaxRate(row.id), [openTaxRate]);
+
+  return (
+    <PricebookPage
+      config={TAX_RATES_LIST}
+      rows={rows}
+      breakpoint={breakpoint}
+      onNavigate={onNavigate}
+      onCreate={openNewTaxRate}
+      onRowClick={onRowClick}
+    />
+  );
+};
 
 export default TaxRatesPage;

@@ -32,6 +32,7 @@ import {
   LocationContact,
   POLabel,
   PurchaseOrder,
+  QuickbooksVendor,
   ShippingOption,
   Service,
   Vendor,
@@ -1052,6 +1053,7 @@ const JOBS_AT_ANCHOR: Job[] = [
     equipmentIds: ["eq-wd-walkin"],
     labelIds: ["refrigeration"],
     type: "recall",
+    recallToId: "JOB-1201",
     branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-09-01T11:30:00",
@@ -1072,7 +1074,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     assigneeIds: [7],
     equipmentIds: ["eq-wd-walkin"],
     labelIds: ["refrigeration", "warranty"],
-    type: "recall",
+    // NOT a recall (Daniel, 2026-10-05). It briefly pointed at JOB-1211, which
+    // made a CHAIN — 1212 → 1211 → 1201 — so the middle job showed both a
+    // "Recall to" and a "Recall" row. One recall per job keeps the pair clean:
+    // JOB-1211 recalls JOB-1201, and nothing recalls JOB-1211.
+    type: "new",
     branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-30T14:00:00",
@@ -1130,32 +1136,32 @@ const JOBS_AT_ANCHOR: Job[] = [
   // Sep 4, so every date shifted +18 days while ids, statuses and relative
   // offsets stayed identical). Regenerate with a new anchor via
   // scripts/regenerate-db-rows.mjs if the clock ever moves again.
-  { id: "JOB-1070", locationId: "northpoint-banquet", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "finalized", priority: 3, scheduledFor: "2026-07-14T13:15:00", durationMinutes: 105, assigneeIds: [7, 6], equipmentIds: ["eq-nb-ice"], labelIds: ["priority-client", "quarterly", "warranty"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6028", receivedAt: "2026-07-09T07:00:00", statusChangedAt: "2026-07-17T15:12:00", lastModifiedAt: "2026-07-18T06:12:00" },
+  { id: "JOB-1070", locationId: "northpoint-banquet", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "finalized", priority: 3, scheduledFor: "2026-07-14T13:15:00", durationMinutes: 105, assigneeIds: [7, 6], equipmentIds: ["eq-nb-ice"], labelIds: ["priority-client", "quarterly", "warranty"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6028", receivedAt: "2026-07-09T07:00:00", statusChangedAt: "2026-07-17T15:12:00", lastModifiedAt: "2026-07-18T06:12:00" },
   { id: "JOB-1105", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "completed", scheduledFor: "2026-08-10T14:00:00", durationMinutes: 210, assigneeIds: [5, 1], equipmentIds: ["eq-wd-range"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-8590", receivedAt: "2026-07-20T15:00:00", statusChangedAt: "2026-08-10T18:06:00", lastModifiedAt: "2026-08-11T09:06:00" },
-  { id: "JOB-1068", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "cancelled", priority: 3, scheduledFor: "2026-08-09T10:00:00", durationMinutes: 90, assigneeIds: [2], equipmentIds: ["eq-wa-hood"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-7339", receivedAt: "2026-08-07T14:45:00", statusChangedAt: "2026-08-09T12:29:00", lastModifiedAt: "2026-08-10T08:29:00" },
+  { id: "JOB-1068", locationId: "wildwood-airport", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "cancelled", priority: 3, scheduledFor: "2026-08-09T10:00:00", durationMinutes: 90, assigneeIds: [2], equipmentIds: ["eq-wa-hood"], labelIds: [], type: "recall", recallToId: "JOB-1087", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-7339", receivedAt: "2026-08-07T14:45:00", statusChangedAt: "2026-08-09T12:29:00", lastModifiedAt: "2026-08-10T08:29:00" },
   { id: "JOB-1073", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "finalized", priority: 3, scheduledFor: "2026-07-28T10:15:00", durationMinutes: 300, assigneeIds: [8, 4], equipmentIds: ["eq-nb-oven"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-12T14:00:00", statusChangedAt: "2026-08-01T15:52:00", lastModifiedAt: "2026-08-02T18:52:00" },
   { id: "JOB-1069", locationId: "wildwood-downtown", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "cancelled", scheduledFor: "2026-07-11T13:45:00", durationMinutes: 150, assigneeIds: [5, 6, 4], equipmentIds: ["eq-wd-reachin"], labelIds: ["recurring", "ventilation"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-06-20T10:15:00", statusChangedAt: "2026-07-11T17:11:00", lastModifiedAt: "2026-07-13T03:11:00" },
   { id: "JOB-1106", locationId: "wildwood-airport", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "active", priority: 3, scheduledFor: "2026-09-04T10:30:00", durationMinutes: 240, assigneeIds: [2, 3, 4], equipmentIds: ["eq-wa-walkin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-26T07:00:00", statusChangedAt: "2026-09-04T10:30:00", lastModifiedAt: "2026-09-04T17:00:00" },
   { id: "JOB-1074", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "active", scheduledFor: "2026-09-04T11:45:00", durationMinutes: 240, assigneeIds: [2], equipmentIds: ["eq-fm-reachin"], labelIds: ["cooking", "recurring", "warranty"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-18T07:15:00", statusChangedAt: "2026-09-04T11:55:00", lastModifiedAt: "2026-09-04T17:00:00" },
-  { id: "JOB-1066", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "completed", priority: 4, scheduledFor: "2026-07-07T07:30:00", durationMinutes: 60, assigneeIds: [8, 9], equipmentIds: ["eq-np-steamtable"], labelIds: ["quarterly", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5749", receivedAt: "2026-07-01T07:15:00", statusChangedAt: "2026-07-07T09:53:00", lastModifiedAt: "2026-07-08T21:53:00" },
+  { id: "JOB-1066", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "completed", priority: 4, scheduledFor: "2026-07-07T07:30:00", durationMinutes: 60, assigneeIds: [8, 9], equipmentIds: ["eq-np-steamtable"], labelIds: ["quarterly", "recurring"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5749", receivedAt: "2026-07-01T07:15:00", statusChangedAt: "2026-07-07T09:53:00", lastModifiedAt: "2026-07-08T21:53:00" },
   { id: "JOB-1100", locationId: "harbour-pier", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", priority: 4, scheduledFor: "2026-07-02T13:45:00", durationMinutes: 90, assigneeIds: [9], equipmentIds: ["eq-hp-prepfridge"], labelIds: ["contract"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-6468", receivedAt: "2026-06-15T14:30:00", statusChangedAt: "2026-07-03T16:04:00", lastModifiedAt: "2026-07-03T19:04:00" },
-  { id: "JOB-1064", locationId: "harbour-marina", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "completed", priority: 4, scheduledFor: "2026-08-25T15:45:00", durationMinutes: 150, assigneeIds: [6, 8], equipmentIds: ["eq-hm-fryer"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5085", receivedAt: "2026-08-11T13:45:00", statusChangedAt: "2026-08-25T18:25:00", lastModifiedAt: "2026-08-26T02:25:00" },
-  { id: "JOB-1067", locationId: "sunset-judah", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 1, scheduledFor: "2026-06-24T12:30:00", durationMinutes: 30, assigneeIds: [3], equipmentIds: ["eq-sj-hood"], labelIds: ["warranty", "contract"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-06-11T10:15:00", statusChangedAt: "2026-06-24T13:41:00", lastModifiedAt: "2026-06-25T05:41:00" },
-  { id: "JOB-1065", locationId: "wildwood-airport", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", priority: 2, scheduledFor: "2026-07-04T07:00:00", durationMinutes: 120, assigneeIds: [5, 4], equipmentIds: ["eq-wa-prepfridge"], labelIds: ["ventilation", "warranty", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-8711", receivedAt: "2026-07-02T15:15:00", statusChangedAt: "2026-07-07T10:29:00", lastModifiedAt: "2026-07-07T14:29:00" },
+  { id: "JOB-1064", locationId: "harbour-marina", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "completed", priority: 4, scheduledFor: "2026-08-25T15:45:00", durationMinutes: 150, assigneeIds: [6, 8], equipmentIds: ["eq-hm-fryer"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-5085", receivedAt: "2026-08-11T13:45:00", statusChangedAt: "2026-08-25T18:25:00", lastModifiedAt: "2026-08-26T02:25:00" },
+  { id: "JOB-1067", locationId: "sunset-judah", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 1, scheduledFor: "2026-06-24T12:30:00", durationMinutes: 30, assigneeIds: [3], equipmentIds: ["eq-sj-hood"], labelIds: ["warranty", "contract"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-06-11T10:15:00", statusChangedAt: "2026-06-24T13:41:00", lastModifiedAt: "2026-06-25T05:41:00" },
+  { id: "JOB-1065", locationId: "wildwood-airport", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "finalized", priority: 2, scheduledFor: "2026-07-04T07:00:00", durationMinutes: 120, assigneeIds: [5, 4], equipmentIds: ["eq-wa-prepfridge"], labelIds: ["ventilation", "warranty", "recurring"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-8711", receivedAt: "2026-07-02T15:15:00", statusChangedAt: "2026-07-07T10:29:00", lastModifiedAt: "2026-07-07T14:29:00" },
   { id: "JOB-1103", locationId: "harbour-pier", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "upcoming", priority: 1, scheduledFor: "2026-09-28T08:00:00", durationMinutes: 120, assigneeIds: [4], equipmentIds: ["eq-hp-reachin"], labelIds: ["cooking", "priority-client", "warranty"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-31T14:30:00", statusChangedAt: "2026-09-01T21:30:00", lastModifiedAt: "2026-09-02T15:30:00" },
   { id: "JOB-1104", locationId: "northpoint-hotel", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "completed", priority: 3, scheduledFor: "2026-08-31T11:30:00", durationMinutes: 240, assigneeIds: [6, 9, 8], equipmentIds: ["eq-np-prepfridge"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-7077", receivedAt: "2026-08-10T12:00:00", statusChangedAt: "2026-08-31T15:54:00", lastModifiedAt: "2026-08-31T17:54:00" },
-  { id: "JOB-1102", locationId: "harbour-marina", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-20T07:45:00", durationMinutes: 180, assigneeIds: [6, 7], equipmentIds: ["eq-hm-dish"], labelIds: ["priority-client", "contract", "ventilation"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-26T15:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-26T23:15:00" },
+  { id: "JOB-1102", locationId: "harbour-marina", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-20T07:45:00", durationMinutes: 180, assigneeIds: [6, 7], equipmentIds: ["eq-hm-dish"], labelIds: ["priority-client", "contract", "ventilation"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-26T15:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-26T23:15:00" },
   { id: "JOB-1101", locationId: "sunset-judah", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", priority: 2, scheduledFor: "2026-08-27T10:30:00", durationMinutes: 105, assigneeIds: [7, 8], equipmentIds: ["eq-sj-reachin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3836", receivedAt: "2026-08-12T09:15:00", statusChangedAt: "2026-08-27T13:02:00", lastModifiedAt: "2026-08-27T18:02:00" },
-  { id: "JOB-1077", locationId: "wildwood-downtown", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 2, scheduledFor: "2026-08-13T12:45:00", durationMinutes: 60, assigneeIds: [9], equipmentIds: ["eq-wd-oven"], labelIds: ["plumbing", "warranty", "recurring"], type: "recall", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3044", receivedAt: "2026-08-06T09:45:00", statusChangedAt: "2026-08-13T15:08:00", lastModifiedAt: "2026-08-13T16:08:00" },
-  { id: "JOB-1059", locationId: "northpoint-hotel", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 4, scheduledFor: "2026-09-01T14:15:00", durationMinutes: 60, assigneeIds: [5, 7], equipmentIds: ["eq-np-oven"], labelIds: ["warranty", "compliance"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-12T15:00:00", statusChangedAt: "2026-09-01T15:59:00", lastModifiedAt: "2026-09-02T17:59:00" },
+  { id: "JOB-1077", locationId: "wildwood-downtown", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 2, scheduledFor: "2026-08-13T12:45:00", durationMinutes: 60, assigneeIds: [9], equipmentIds: ["eq-wd-oven"], labelIds: ["plumbing", "warranty", "recurring"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3044", receivedAt: "2026-08-06T09:45:00", statusChangedAt: "2026-08-13T15:08:00", lastModifiedAt: "2026-08-13T16:08:00" },
+  { id: "JOB-1059", locationId: "northpoint-hotel", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", priority: 4, scheduledFor: "2026-09-01T14:15:00", durationMinutes: 60, assigneeIds: [5, 7], equipmentIds: ["eq-np-oven"], labelIds: ["warranty", "compliance"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-12T15:00:00", statusChangedAt: "2026-09-01T15:59:00", lastModifiedAt: "2026-09-02T17:59:00" },
   { id: "JOB-1072", locationId: "harbour-marina", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "completed", priority: 2, scheduledFor: "2026-07-12T10:30:00", durationMinutes: 105, assigneeIds: [1, 8, 5], equipmentIds: ["eq-hm-steamtable"], labelIds: ["cooking", "refrigeration", "contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3829", receivedAt: "2026-07-07T14:15:00", statusChangedAt: "2026-07-12T13:38:00", lastModifiedAt: "2026-07-12T18:38:00" },
   { id: "JOB-1060", locationId: "harbour-pier", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "unscheduled", priority: 2, durationMinutes: 180, assigneeIds: [7, 9, 5], equipmentIds: ["eq-hp-dish"], labelIds: ["recurring", "priority-client", "compliance"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-3507", receivedAt: "2026-08-22T13:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-24T09:00:00" },
-  { id: "JOB-1099", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "quickPaused", subStatusId: "sub-another-call", priority: 3, scheduledFor: "2026-09-02T11:15:00", durationMinutes: 45, assigneeIds: [6, 1], equipmentIds: ["eq-nb-oven"], labelIds: ["refrigeration"], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-2345", receivedAt: "2026-08-21T12:45:00", statusChangedAt: "2026-09-02T11:49:00", lastModifiedAt: "2026-09-02T11:49:00" },
-  { id: "JOB-1096", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 2, scheduledFor: "2026-09-05T13:45:00", durationMinutes: 240, assigneeIds: [6], equipmentIds: ["eq-m24-steamtable"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-3419", receivedAt: "2026-08-30T09:30:00", statusChangedAt: "2026-09-02T07:15:00", lastModifiedAt: "2026-09-02T22:15:00" },
-  { id: "JOB-1063", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "unscheduled", priority: 3, durationMinutes: 30, assigneeIds: [4], equipmentIds: ["eq-wd-range"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6834", receivedAt: "2026-08-24T08:00:00", statusChangedAt: "2026-09-02T08:30:00", lastModifiedAt: "2026-09-03T14:30:00" },
+  { id: "JOB-1099", locationId: "northpoint-banquet", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "quickPaused", subStatusId: "sub-another-call", priority: 3, scheduledFor: "2026-09-02T11:15:00", durationMinutes: 45, assigneeIds: [6, 1], equipmentIds: ["eq-nb-oven"], labelIds: ["refrigeration"], type: "recall", recallToId: "JOB-1073", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-2345", receivedAt: "2026-08-21T12:45:00", statusChangedAt: "2026-09-02T11:49:00", lastModifiedAt: "2026-09-02T11:49:00" },
+  { id: "JOB-1096", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 2, scheduledFor: "2026-09-05T13:45:00", durationMinutes: 240, assigneeIds: [6], equipmentIds: ["eq-m24-steamtable"], labelIds: [], type: "recall", recallToId: "JOB-1083", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-3419", receivedAt: "2026-08-30T09:30:00", statusChangedAt: "2026-09-02T07:15:00", lastModifiedAt: "2026-09-02T22:15:00" },
+  { id: "JOB-1063", locationId: "wildwood-downtown", serviceId: "range-burner", serviceName: "Range burner repair", status: "unscheduled", priority: 3, durationMinutes: 30, assigneeIds: [4], equipmentIds: ["eq-wd-range"], labelIds: [], type: "recall", recallToId: "JOB-1105", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-6834", receivedAt: "2026-08-24T08:00:00", statusChangedAt: "2026-09-02T08:30:00", lastModifiedAt: "2026-09-03T14:30:00" },
   { id: "JOB-1062", locationId: "sunset-judah", serviceId: "grease-trap", serviceName: "Grease trap service", status: "upcoming", scheduledFor: "2026-09-17T12:00:00", durationMinutes: 75, assigneeIds: [4], equipmentIds: ["eq-sj-greasetrap"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-1100", receivedAt: "2026-09-03T11:45:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T19:45:00" },
-  { id: "JOB-1071", locationId: "presidio-canteen", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 4, scheduledFor: "2026-09-26T13:00:00", durationMinutes: 210, assigneeIds: [5, 2], equipmentIds: ["eq-pc-steamtable"], labelIds: [], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-27T11:00:00", statusChangedAt: "2026-09-03T14:30:00", lastModifiedAt: "2026-09-03T20:30:00" },
-  { id: "JOB-1095", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "unscheduled", priority: 4, durationMinutes: 90, assigneeIds: [8], equipmentIds: ["eq-hm-greasetrap"], labelIds: ["plumbing"], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-4814", receivedAt: "2026-08-13T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-14T07:15:00" },
+  { id: "JOB-1071", locationId: "presidio-canteen", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", priority: 4, scheduledFor: "2026-09-26T13:00:00", durationMinutes: 210, assigneeIds: [5, 2], equipmentIds: ["eq-pc-steamtable"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-27T11:00:00", statusChangedAt: "2026-09-03T14:30:00", lastModifiedAt: "2026-09-03T20:30:00" },
+  { id: "JOB-1095", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "unscheduled", priority: 4, durationMinutes: 90, assigneeIds: [8], equipmentIds: ["eq-hm-greasetrap"], labelIds: ["plumbing"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-4814", receivedAt: "2026-08-13T09:15:00", statusChangedAt: null, lastModifiedAt: "2026-08-14T07:15:00" },
   { id: "JOB-1097", locationId: "ferry-main", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "unscheduled", priority: 3, durationMinutes: 120, assigneeIds: [1, 4], equipmentIds: ["eq-fm-reachin"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-2523", receivedAt: "2026-08-25T11:15:00", statusChangedAt: "2026-08-29T13:45:00", lastModifiedAt: "2026-08-30T01:45:00" },
   { id: "JOB-1098", locationId: "mission-24th", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "completed", scheduledFor: "2026-07-29T14:45:00", durationMinutes: 45, assigneeIds: [6, 4], equipmentIds: ["eq-m24-reachin"], labelIds: ["priority-client", "quarterly"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-16T15:45:00", statusChangedAt: "2026-07-29T16:31:00", lastModifiedAt: "2026-07-31T02:31:00" },
   { id: "JOB-1061", locationId: "presidio-canteen", serviceId: "freezer-seal", serviceName: "Freezer door seal replacement", status: "pastDue", priority: 3, scheduledFor: "2026-08-31T11:30:00", durationMinutes: 120, assigneeIds: [3], equipmentIds: ["eq-pc-reachin"], labelIds: ["plumbing", "quarterly", "contract"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-1780", receivedAt: "2026-08-26T09:30:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T17:30:00" },
@@ -1172,7 +1178,7 @@ const JOBS_AT_ANCHOR: Job[] = [
   { id: "JOB-1076", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", priority: 4, scheduledFor: "2026-09-25T07:45:00", durationMinutes: 30, assigneeIds: [7], equipmentIds: ["eq-nb-dish"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-1280", receivedAt: "2026-08-18T13:15:00", statusChangedAt: "2026-09-04T10:15:00", lastModifiedAt: "2026-09-04T17:00:00" },
   { id: "JOB-1086", locationId: "presidio-canteen", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "upcoming", scheduledFor: "2026-09-06T09:45:00", durationMinutes: 210, assigneeIds: [7, 2, 8], equipmentIds: ["eq-pc-dish"], labelIds: ["priority-client", "quarterly", "refrigeration"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-7509", receivedAt: "2026-08-17T09:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-18T00:00:00" },
   { id: "JOB-1080", locationId: "bayside-commissary", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "completed", priority: 3, scheduledFor: "2026-08-02T15:45:00", durationMinutes: 210, assigneeIds: [5, 3], equipmentIds: ["eq-bc-fryer"], labelIds: ["plumbing", "cooking"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-3638", receivedAt: "2026-07-25T13:00:00", statusChangedAt: "2026-08-02T19:33:00", lastModifiedAt: "2026-08-03T08:33:00" },
-  { id: "JOB-1083", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "pastDue", priority: 4, scheduledFor: "2026-08-30T13:30:00", durationMinutes: 45, assigneeIds: [7], equipmentIds: ["eq-m24-steamtable"], labelIds: ["contract", "refrigeration"], type: "recall", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-13T12:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T14:30:00" },
+  { id: "JOB-1083", locationId: "mission-24th", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "pastDue", priority: 4, scheduledFor: "2026-08-30T13:30:00", durationMinutes: 45, assigneeIds: [7], equipmentIds: ["eq-m24-steamtable"], labelIds: ["contract", "refrigeration"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-13T12:00:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T14:30:00" },
   { id: "JOB-1049", locationId: "bayside-commissary", serviceId: "ice-machine", serviceName: "Ice machine descale", status: "onHoldInternal", subStatusId: "sub-tech", priority: 3, scheduledFor: "2026-09-02T10:15:00", durationMinutes: 210, assigneeIds: [9, 7], equipmentIds: ["eq-bc-ice"], labelIds: ["compliance"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-2977", receivedAt: "2026-08-15T07:15:00", statusChangedAt: "2026-09-02T10:42:00", lastModifiedAt: "2026-09-02T10:42:00" },
   { id: "JOB-1048", locationId: "presidio-canteen", serviceId: "hood-cleaning", serviceName: "Grill hood cleaning", status: "completed", priority: 2, scheduledFor: "2026-07-30T12:30:00", durationMinutes: 180, assigneeIds: [5, 9, 8], equipmentIds: ["eq-pc-hood"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-07-17T14:15:00", statusChangedAt: "2026-07-30T16:23:00", lastModifiedAt: "2026-07-31T00:23:00" },
   { id: "JOB-1045", locationId: "northpoint-hotel", serviceId: "steam-table", serviceName: "Steam table thermostat swap", status: "upcoming", scheduledFor: "2026-09-20T09:15:00", durationMinutes: 210, assigneeIds: [6], equipmentIds: ["eq-np-steamtable"], labelIds: [], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-5488", receivedAt: "2026-09-01T09:15:00", statusChangedAt: "2026-09-01T15:15:00", lastModifiedAt: "2026-09-01T21:15:00" },
@@ -1187,7 +1193,7 @@ const JOBS_AT_ANCHOR: Job[] = [
   { id: "JOB-1057", locationId: "harbour-marina", serviceId: "grease-trap", serviceName: "Grease trap service", status: "pastDue", scheduledFor: "2026-08-30T09:00:00", durationMinutes: 75, assigneeIds: [5], equipmentIds: ["eq-hm-greasetrap"], labelIds: ["quarterly"], type: "new", branchId: "san-francisco", sourceId: "corrigo", sourceRef: "COR-7407", receivedAt: "2026-08-14T08:45:00", statusChangedAt: null, lastModifiedAt: "2026-08-30T03:00:00" },
   { id: "JOB-1058", locationId: "northpoint-banquet", serviceId: "dishwasher", serviceName: "Dishwasher inspection", status: "active", scheduledFor: "2026-09-04T10:15:00", priority: 3, durationMinutes: 45, assigneeIds: [8], equipmentIds: ["eq-nb-dish"], labelIds: ["compliance", "ventilation", "plumbing"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-1695", receivedAt: "2026-08-26T07:30:00", statusChangedAt: "2026-09-04T10:29:00", lastModifiedAt: "2026-09-04T17:00:00" },
   { id: "JOB-1075", locationId: "harbour-pier", serviceId: "combi-oven", serviceName: "Combi oven quarterly maintenance", status: "completed", scheduledFor: "2026-08-14T13:00:00", priority: 3, durationMinutes: 60, assigneeIds: [4], equipmentIds: ["eq-hp-oven"], labelIds: ["refrigeration", "contract"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-8659", receivedAt: "2026-08-07T13:30:00", statusChangedAt: "2026-08-14T14:42:00", lastModifiedAt: "2026-08-14T18:42:00" },
-  { id: "JOB-1088", locationId: "sunset-judah", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "pastDue", scheduledFor: "2026-08-29T13:15:00", priority: 4, durationMinutes: 120, assigneeIds: [4], equipmentIds: ["eq-sj-walkin"], labelIds: ["priority-client", "contract"], type: "recall", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-7022", receivedAt: "2026-08-18T11:30:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T03:15:00" },
+  { id: "JOB-1088", locationId: "sunset-judah", serviceId: "walk-in-cooler", serviceName: "Walk-in cooler repair", status: "pastDue", scheduledFor: "2026-08-29T13:15:00", priority: 4, durationMinutes: 120, assigneeIds: [4], equipmentIds: ["eq-sj-walkin"], labelIds: ["priority-client", "contract"], type: "new", branchId: "san-francisco", sourceId: "ecotrak", sourceRef: "ECO-7022", receivedAt: "2026-08-18T11:30:00", statusChangedAt: null, lastModifiedAt: "2026-08-29T03:15:00" },
   { id: "JOB-1089", locationId: "presidio-canteen", serviceId: "prep-fridge", serviceName: "Prep fridge compressor service", status: "cancelled", scheduledFor: "2026-08-20T15:00:00", priority: 2, durationMinutes: 240, assigneeIds: [5], equipmentIds: ["eq-pc-prepfridge"], labelIds: ["warranty", "priority-client"], type: "new", branchId: "san-francisco", sourceId: "direct", receivedAt: "2026-08-03T07:15:00", statusChangedAt: "2026-08-20T19:34:00", lastModifiedAt: "2026-08-22T06:34:00" },
   { id: "JOB-1090", locationId: "harbour-pier", serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "onHoldExternal", subStatusId: "sub-parts", scheduledFor: "2026-09-04T10:15:00", priority: 4, durationMinutes: 180, assigneeIds: [6], equipmentIds: ["eq-hp-fryer"], labelIds: ["refrigeration"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-9771", receivedAt: "2026-08-18T09:15:00", statusChangedAt: "2026-09-04T10:15:00", lastModifiedAt: "2026-09-04T17:00:00" },
   { id: "JOB-1091", locationId: "presidio-canteen", serviceId: "espresso", serviceName: "Espresso machine descale", status: "completed", scheduledFor: "2026-08-20T08:30:00", priority: 1, durationMinutes: 60, assigneeIds: [5], equipmentIds: ["eq-pc-espresso"], labelIds: ["ventilation", "warranty"], type: "new", branchId: "san-francisco", sourceId: "service-channel", sourceRef: "SC-3785", receivedAt: "2026-08-01T14:30:00", statusChangedAt: "2026-08-20T09:42:00", lastModifiedAt: "2026-08-20T17:42:00" },
@@ -1391,20 +1397,20 @@ const LABOR_ITEMS_AT_ANCHOR: LaborItem[] = [
     ...SERVICE_LABOR_FIELDS[service.id]!,
   })),
   // The rest of the confirmed catalog.
-  { id: "diagnostic-labor", name: "Diagnostic labor", status: "active", isActive: true, subtypeId: "diagnostics", summary: "First-hour diagnostic on any kitchen equipment; applied toward the repair if approved.", cost: 40, rate: 125, unitType: "hourly", taxable: false, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-08-18T09:30:00" },
-  { id: "standard-labor", name: "Standard labor", status: "active", isActive: true, subtypeId: null, summary: "", cost: 45, rate: 135, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:00:00" },
-  { id: "helper-labor", name: "Helper labor", status: "active", isActive: true, subtypeId: null, summary: "Second tech on site, billed alongside the lead's labor.", cost: 28, rate: 85, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:05:00" },
-  { id: "after-hours-labor", name: "After-hours labor", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor outside business hours (7pm-7am).", cost: 62, rate: 195, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours"], lastModifiedAt: "2026-07-08T18:20:00" },
+  { id: "diagnostic-labor", name: "Diagnostic labor rate", status: "active", isActive: true, subtypeId: "diagnostics", summary: "First-hour diagnostic on any kitchen equipment; applied toward the repair if approved.", cost: 40, rate: 125, unitType: "hourly", taxable: false, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-08-18T09:30:00" },
+  { id: "standard-labor", name: "Standard labor rate", status: "active", isActive: true, subtypeId: null, summary: "", cost: 45, rate: 135, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:00:00" },
+  { id: "helper-labor", name: "Helper labor rate", status: "active", isActive: true, subtypeId: null, summary: "Second tech on site, billed alongside the lead's labor.", cost: 28, rate: 85, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:05:00" },
+  { id: "after-hours-labor", name: "After-hours labor rate", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor outside business hours (7pm-7am).", cost: 62, rate: 195, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours"], lastModifiedAt: "2026-07-08T18:20:00" },
   { id: "emergency-call-out", name: "Emergency call-out", status: "active", isActive: true, subtypeId: "emergency", summary: "Same-day dispatch fee; covers travel and the first 30 minutes on site.", cost: 70, rate: 250, unitType: "flatRate", taxable: true, estDurationMinutes: 60, labelIds: ["after-hours", "flat-fee"], lastModifiedAt: "2026-08-25T20:10:00" },
-  { id: "holiday-labor", name: "Holiday labor", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor on observed holidays, 2x list rate.", cost: 75, rate: 240, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours", "seasonal"], lastModifiedAt: "2026-07-01T09:00:00" },
-  { id: "installation-labor", name: "Installation labor", status: "active", isActive: true, subtypeId: "installation", summary: "Set-in-place, connect and level new kitchen equipment.", cost: 50, rate: 150, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-11T11:00:00" },
+  { id: "holiday-labor", name: "Holiday labor rate", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor on observed holidays, 2x list rate.", cost: 75, rate: 240, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours", "seasonal"], lastModifiedAt: "2026-07-01T09:00:00" },
+  { id: "installation-labor", name: "Installation labor rate", status: "active", isActive: true, subtypeId: "installation", summary: "Set-in-place, connect and level new kitchen equipment.", cost: 50, rate: 150, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-11T11:00:00" },
   { id: "equipment-startup", name: "New equipment startup", status: "active", isActive: true, subtypeId: "installation", summary: "Commission a newly installed unit: startup checks, controls setup, owner walkthrough.", cost: 95, rate: 380, unitType: "flatRate", taxable: true, estDurationMinutes: 240, labelIds: ["flat-fee"], lastModifiedAt: "2026-08-13T16:30:00" },
   { id: "refrigerant-recovery", name: "Refrigerant recovery", status: "active", isActive: true, subtypeId: "repair", summary: "Recover and log refrigerant per EPA 608 before a sealed-system repair.", cost: 80, rate: 220, unitType: "flatRate", taxable: true, estDurationMinutes: 90, labelIds: [], lastModifiedAt: "2026-09-02T10:20:00" },
   { id: "compressor-replacement", name: "Compressor replacement", status: "active", isActive: true, subtypeId: "repair", summary: "Replace a failed compressor: recover, swap, braze, evacuate and recharge.", cost: 320, rate: 850, unitType: "flatRate", taxable: true, estDurationMinutes: 240, labelIds: [], lastModifiedAt: "2026-08-29T15:00:00" },
   { id: "pm-visit", name: "Preventive maintenance visit", status: "active", isActive: true, subtypeId: "preventive", summary: "Scheduled PM visit per the service agreement's checklist.", cost: 90, rate: 310, unitType: "flatRate", taxable: true, estDurationMinutes: 120, labelIds: ["contract"], lastModifiedAt: "2026-07-25T08:00:00" },
   { id: "filter-swap", name: "Hood filter exchange", status: "active", isActive: true, subtypeId: "cleaning", summary: "Swap the hood baffle filters for cleaned spares.", cost: 22, rate: 95, unitType: "flatRate", taxable: true, estDurationMinutes: 30, labelIds: ["contract"], lastModifiedAt: "2026-08-06T07:40:00" },
   { id: "water-treatment", name: "Water filtration service", status: "active", isActive: true, subtypeId: "preventive", summary: "Replace water filtration cartridges and test hardness.", cost: 38, rate: 165, unitType: "flatRate", taxable: true, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-08-02T13:15:00" },
-  { id: "warranty-labor", name: "Warranty repair labor", status: "active", isActive: true, subtypeId: "repair", summary: "Labor on manufacturer-warranty repairs; billed to the manufacturer, not the client.", cost: 55, rate: 0, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["warranty-work"], lastModifiedAt: "2026-07-17T10:45:00" },
+  { id: "warranty-labor", name: "Warranty repair labor rate", status: "active", isActive: true, subtypeId: "repair", summary: "Labor on manufacturer-warranty repairs; billed to the manufacturer, not the client.", cost: 55, rate: 0, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["warranty-work"], lastModifiedAt: "2026-07-17T10:45:00" },
   { id: "recall-visit", name: "Recall visit", status: "active", isActive: true, subtypeId: "diagnostics", summary: "Return visit on a recent repair; no charge inside the workmanship window.", cost: 40, rate: 0, unitType: "flatRate", taxable: false, estDurationMinutes: 60, labelIds: ["warranty-work"], lastModifiedAt: "2026-09-03T09:10:00" },
   // The REVIEW inbox — system-minted from free-text line items.
   { id: "rev-compressor-swap", name: "Compressor swap - after hours", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 210, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-09-03T21:40:00" },
@@ -1599,6 +1605,26 @@ export const TAX_RATE_LABELS: PricebookLabel[] = [
 ];
 
 /**
+ * The QuickBooks Desktop vendors a tax rate can name as its collection agency
+ * (production `QuickBooksDesktopVendor`, pulled from QuickBooks and sorted by
+ * name). INVENTED — there was nothing to copy — but the set is what a
+ * California service company would actually see: the state administrator plus
+ * the county and city collectors it remits to.
+ *
+ * These exist because `COMPANY.accountingIntegration` is "quickbooksDesktop":
+ * production makes the agency REQUIRED for a tax item on that integration.
+ * Read that field, never this list, to decide whether to SHOW accounting
+ * anywhere — a company on "none" has no agencies and no sync state.
+ */
+export const QUICKBOOKS_VENDORS: QuickbooksVendor[] = [
+  { id: "qb-alameda", name: "Alameda County Tax Collector" },
+  { id: "qb-cdtfa", name: "CA Dept of Tax and Fee Administration" },
+  { id: "qb-marin", name: "Marin County Tax Collector" },
+  { id: "qb-san-mateo", name: "San Mateo County Tax Collector" },
+  { id: "qb-sf-treasurer", name: "SF Office of the Treasurer" },
+];
+
+/**
  * The OTHER pricebook — production `PriceBookItem` rows of the "other charge"
  * type ("MISC"). The charges a service company bills that are neither labor
  * nor a part: travel, permits, rentals, disposal, subcontractors.
@@ -1677,20 +1703,77 @@ const DISCOUNT_ITEMS_AT_ANCHOR: ChargeItem[] = [
  * them, and production only offers CONFIRMED tax items as a default
  * (`pricebook_item_tax_limiter`).
  */
-const TAX_RATE_PRICEBOOK_FIELDS: Record<string, Pick<TaxRateItem, "summary" | "labelIds" | "lastModifiedAt">> = {
-  "sf-sales": { summary: "San Francisco combined sales tax.", labelIds: ["state", "county", "city"], lastModifiedAt: "2026-08-21T14:30:00" },
-  "oakland-sales": { summary: "Oakland combined sales tax.", labelIds: ["state", "county", "city"], lastModifiedAt: "2026-08-04T09:00:00" },
-  "ca-sales": { summary: "California statewide base rate.", labelIds: ["state"], lastModifiedAt: "2026-07-12T08:30:00" },
-  "tax-exempt": { summary: "Applied to exempt clients; a real 0% rate, not a missing one.", labelIds: [], lastModifiedAt: "2026-06-19T16:45:00" },
+type TaxRatePricebookFields = Pick<
+  TaxRateItem,
+  "summary" | "notes" | "labelIds" | "createdAt" | "createdById" | "lastModifiedAt" | "quickbooksVendorId" | "quickbooksId" | "needsSyncing" | "syncedAt"
+>;
+
+const TAX_RATE_PRICEBOOK_FIELDS: Record<string, TaxRatePricebookFields> = {
+  "sf-sales": {
+    summary: "San Francisco combined sales tax.",
+    notes: "Covers the state, county and city portions. Review every January — the city portion moved in 2024.",
+    labelIds: ["state", "county", "city"],
+    createdAt: "2023-02-14T10:20:00",
+    createdById: 1,
+    lastModifiedAt: "2026-08-21T14:30:00",
+    quickbooksVendorId: "qb-sf-treasurer",
+    quickbooksId: "qbd-80000041",
+    needsSyncing: false,
+    syncedAt: "2026-08-21T14:31:00",
+  },
+  "oakland-sales": {
+    summary: "Oakland combined sales tax.",
+    notes: "",
+    labelIds: ["state", "county", "city"],
+    createdAt: "2023-02-14T10:24:00",
+    createdById: 2,
+    lastModifiedAt: "2026-08-04T09:00:00",
+    quickbooksVendorId: "qb-alameda",
+    quickbooksId: "qbd-80000042",
+    needsSyncing: false,
+    syncedAt: "2026-08-04T09:02:00",
+  },
+  "ca-sales": {
+    summary: "California statewide base rate.",
+    notes: "The floor every other California rate is built on. Do not deactivate.",
+    labelIds: ["state"],
+    createdAt: "2023-02-14T10:18:00",
+    createdById: 1,
+    lastModifiedAt: "2026-07-12T08:30:00",
+    quickbooksVendorId: "qb-cdtfa",
+    quickbooksId: "qbd-80000043",
+    needsSyncing: false,
+    syncedAt: "2026-07-12T08:31:00",
+  },
+  "tax-exempt": {
+    summary: "Applied to exempt clients; a real 0% rate, not a missing one.",
+    notes: "Ask the office for the client's exemption certificate before using this on an invoice.",
+    labelIds: [],
+    createdAt: "2023-03-02T11:05:00",
+    createdById: 3,
+    lastModifiedAt: "2026-06-19T16:45:00",
+    quickbooksVendorId: "qb-cdtfa",
+    quickbooksId: "qbd-80000044",
+    needsSyncing: false,
+    syncedAt: "2026-06-19T16:46:00",
+  },
 };
 
 /**
  * The TAX RATES pricebook — production `PriceBookItem` rows of the tax type.
  * The four `TAX_RATES` rows derived by id above, plus the rest of a real
- * jurisdiction set, 3 REVIEW rows and 3 inactive ones. 14 in all.
+ * jurisdiction set, 3 REVIEW rows and 3 inactive ones. 15 in all.
  *
  * Every rate is a PERCENT and none exceeds 100 (production validates that in
  * three places). NO subtype, NO cost and NO taxability exist for this type.
+ *
+ * Extended 2026-10-05 for the "Tax rate" side panel, which shows the rest of
+ * the production record: `notes`, `createdAt` / `createdById`, and the
+ * QuickBooks Desktop trio (`quickbooksVendorId` / `quickbooksId` /
+ * `needsSyncing` + `syncedAt`). The rows deliberately cover every state the
+ * panel can draw — all three "Created by" cases (a user, an import, unknown),
+ * both sync states, and rates with no summary or no notes for the two empty
+ * states.
  */
 const TAX_RATE_ITEMS_AT_ANCHOR: TaxRateItem[] = [
   ...TAX_RATES.map((rate) => ({
@@ -1702,21 +1785,90 @@ const TAX_RATE_ITEMS_AT_ANCHOR: TaxRateItem[] = [
     ...TAX_RATE_PRICEBOOK_FIELDS[rate.id]!,
   })),
   // The rest of the confirmed catalog.
-  { id: "tax-san-mateo", name: "San Mateo County sales tax", status: "active", isActive: true, rate: 9.63, summary: "San Mateo County combined rate.", labelIds: ["state", "county"], lastModifiedAt: "2026-08-09T09:45:00" },
-  { id: "tax-marin", name: "Marin County sales tax", status: "active", isActive: true, rate: 8.25, summary: "", labelIds: ["state", "county"], lastModifiedAt: "2026-07-30T10:15:00" },
-  { id: "tax-berkeley", name: "Berkeley sales tax", status: "active", isActive: true, rate: 10.25, summary: "Berkeley combined rate.", labelIds: ["state", "county", "city"], lastModifiedAt: "2026-08-27T11:20:00" },
-  { id: "tax-labor-exempt", name: "Labor (non-taxable)", status: "active", isActive: true, rate: 0, summary: "Labor is not taxable in California; applied to service lines.", labelIds: [], lastModifiedAt: "2026-06-05T14:00:00" },
-  { id: "tax-sf-district", name: "SF special district tax", status: "active", isActive: true, rate: 1.38, summary: "The district portion of the San Francisco rate.", labelIds: ["special"], lastModifiedAt: "2026-08-30T12:10:00" },
-  // The REVIEW inbox — a tax item the system minted from a line item, or one
-  // imported from the accounting system before anyone vetted it.
-  { id: "tax-rev-sales", name: "sales tax", status: "review", isActive: true, rate: 8.5, summary: "", labelIds: [], lastModifiedAt: "2026-09-03T21:40:00" },
-  { id: "tax-rev-city", name: "City tax 1.5", status: "review", isActive: true, rate: 1.5, summary: "", labelIds: [], lastModifiedAt: "2026-09-01T08:05:00" },
-  { id: "tax-rev-out-of-state", name: "Out of state - no tax", status: "review", isActive: true, rate: 0, summary: "", labelIds: [], lastModifiedAt: "2026-08-26T12:00:00" },
+  {
+    id: "tax-san-mateo", name: "San Mateo County sales tax", status: "active", isActive: true, rate: 9.63,
+    summary: "San Mateo County combined rate.", notes: "", labelIds: ["state", "county"],
+    createdAt: "2023-06-08T13:40:00", createdById: 5, lastModifiedAt: "2026-08-09T09:45:00",
+    quickbooksVendorId: "qb-san-mateo", quickbooksId: "qbd-80000051", needsSyncing: false, syncedAt: "2026-08-09T09:46:00",
+  },
+  // EDITED but not yet pushed — the one confirmed rate that reads "Not synced".
+  // Production sets needs_syncing on every update, so this is what a rate looks
+  // like between an edit and the next sync run.
+  {
+    id: "tax-marin", name: "Marin County sales tax", status: "active", isActive: true, rate: 8.25,
+    summary: "", notes: "", labelIds: ["state", "county"],
+    createdAt: "2023-06-08T13:44:00", createdById: 2, lastModifiedAt: "2026-07-30T10:15:00",
+    quickbooksVendorId: "qb-marin", quickbooksId: "qbd-80000052", needsSyncing: true, syncedAt: "2026-07-02T10:05:00",
+  },
+  {
+    id: "tax-berkeley", name: "Berkeley sales tax", status: "active", isActive: true, rate: 10.25,
+    summary: "Berkeley combined rate.", notes: "Berkeley adds its own city portion on top of the Alameda County rate.",
+    labelIds: ["state", "county", "city"],
+    createdAt: "2024-01-19T09:10:00", createdById: 1, lastModifiedAt: "2026-08-27T11:20:00",
+    quickbooksVendorId: "qb-alameda", quickbooksId: "qbd-80000053", needsSyncing: false, syncedAt: "2026-08-27T11:22:00",
+  },
+  // Loaded during onboarding, so production's `created_by` is NULL and there is
+  // no QuickBooks key either — the "Unknown" creator case, and never synced.
+  {
+    id: "tax-labor-exempt", name: "Labor (non-taxable)", status: "active", isActive: true, rate: 0,
+    summary: "Labor is not taxable in California; applied to service lines.",
+    notes: "Use on service lines only. Parts on the same invoice still take the local rate.",
+    labelIds: [],
+    createdAt: "2023-02-10T08:00:00", lastModifiedAt: "2026-06-05T14:00:00",
+    quickbooksVendorId: "qb-cdtfa", needsSyncing: true,
+  },
+  {
+    id: "tax-sf-district", name: "SF special district tax", status: "active", isActive: true, rate: 1.38,
+    summary: "The district portion of the San Francisco rate.", notes: "", labelIds: ["special"],
+    createdAt: "2024-04-02T15:30:00", createdById: 7, lastModifiedAt: "2026-08-30T12:10:00",
+    quickbooksVendorId: "qb-sf-treasurer", quickbooksId: "qbd-80000054", needsSyncing: false, syncedAt: "2026-08-30T12:12:00",
+  },
+  // The REVIEW inbox — rates IMPORTED from QuickBooks before anyone vetted
+  // them. No creator plus a QuickBooks key is what makes the panel say
+  // "Imported from QuickBooks". They keep `needsSyncing` true even though the
+  // import stamped `syncedAt`: production's import never clears the flag, and
+  // an unconfirmed rate is never pushed back (which is why the Review state
+  // hides the sync row).
+  {
+    id: "tax-rev-sales", name: "sales tax", status: "review", isActive: true, rate: 8.5,
+    summary: "", notes: "", labelIds: [],
+    createdAt: "2026-09-03T21:40:00", lastModifiedAt: "2026-09-03T21:40:00",
+    quickbooksVendorId: "qb-cdtfa", quickbooksId: "qbd-80000071", needsSyncing: true, syncedAt: "2026-09-03T21:40:00",
+  },
+  {
+    id: "tax-rev-city", name: "City tax 1.5", status: "review", isActive: true, rate: 1.5,
+    summary: "", notes: "", labelIds: [],
+    createdAt: "2026-09-01T08:05:00", lastModifiedAt: "2026-09-01T08:05:00",
+    quickbooksVendorId: "qb-sf-treasurer", quickbooksId: "qbd-80000072", needsSyncing: true, syncedAt: "2026-09-01T08:05:00",
+  },
+  {
+    id: "tax-rev-out-of-state", name: "Out of state - no tax", status: "review", isActive: true, rate: 0,
+    summary: "", notes: "", labelIds: [],
+    createdAt: "2026-08-26T12:00:00", lastModifiedAt: "2026-08-26T12:00:00",
+    quickbooksVendorId: "qb-cdtfa", quickbooksId: "qbd-80000073", needsSyncing: true, syncedAt: "2026-08-26T12:00:00",
+  },
   // The INACTIVE shelf — rates that were superseded when a jurisdiction
   // changed its percentage.
-  { id: "tax-sf-old", name: "SF sales tax (2024 rate)", status: "active", isActive: false, rate: 8.5, summary: "Superseded when the city rate rose.", labelIds: ["state", "county", "city"], lastModifiedAt: "2026-06-10T10:00:00" },
-  { id: "tax-oakland-old", name: "Oakland sales tax (2023 rate)", status: "active", isActive: false, rate: 9.25, summary: "", labelIds: ["state", "county", "city"], lastModifiedAt: "2026-06-02T11:30:00" },
-  { id: "tax-legacy-county", name: "County surcharge (retired)", status: "active", isActive: false, rate: 0.25, summary: "", labelIds: ["county"], lastModifiedAt: "2026-06-01T09:00:00" },
+  {
+    id: "tax-sf-old", name: "SF sales tax (2024 rate)", status: "active", isActive: false, rate: 8.5,
+    summary: "Superseded when the city rate rose.",
+    notes: "Kept for the invoices that already use it. Do not reactivate.",
+    labelIds: ["state", "county", "city"],
+    createdAt: "2023-02-14T10:30:00", createdById: 1, lastModifiedAt: "2026-06-10T10:00:00",
+    quickbooksVendorId: "qb-sf-treasurer", quickbooksId: "qbd-80000081", needsSyncing: false, syncedAt: "2026-06-10T10:02:00",
+  },
+  {
+    id: "tax-oakland-old", name: "Oakland sales tax (2023 rate)", status: "active", isActive: false, rate: 9.25,
+    summary: "", notes: "", labelIds: ["state", "county", "city"],
+    createdAt: "2023-02-14T10:34:00", createdById: 2, lastModifiedAt: "2026-06-02T11:30:00",
+    quickbooksVendorId: "qb-alameda", quickbooksId: "qbd-80000082", needsSyncing: false, syncedAt: "2026-06-02T11:32:00",
+  },
+  {
+    id: "tax-legacy-county", name: "County surcharge (retired)", status: "active", isActive: false, rate: 0.25,
+    summary: "", notes: "", labelIds: ["county"],
+    createdAt: "2023-05-21T09:00:00", createdById: 5, lastModifiedAt: "2026-06-01T09:00:00",
+    quickbooksVendorId: "qb-alameda", quickbooksId: "qbd-80000083", needsSyncing: false, syncedAt: "2026-06-01T09:01:00",
+  },
 ];
 
 /**
@@ -1860,6 +2012,21 @@ export const COMPANY: CompanySettings = {
   maxFileUploads: 25,
   maxFileUploadSizeMb: 100,
   jobCustomIdGenerationMode: "manual",
+  // Sub-statuses are a per-company switch thrown on the backend. This company
+  // asks for one when a job is paused or on hold, and NOT when it is active —
+  // the tech's check-in status stands in for that (Daniel, 2026-10-04). The
+  // active half of the feature is still built; it is simply off here.
+  subStatuses: { active: false, quickPaused: true, onHold: true },
+  // This company rounds logged time UP to the next 5 minutes (Daniel,
+  // 2026-10-06 — he asked for the Timesheet's exact-time tooltips, and the
+  // design only shows them for a company that rounds). Every duration on the
+  // Timesheet tab is the rounded one; hovering it reveals the exact value.
+  roundsTimeUp: true,
+  // This company books through QuickBooks Desktop (Daniel, 2026-10-05: "it's
+  // good to show accounting integration in the Demo"). That one value is what
+  // gives the tax rates their collection agency and their sync state, and what
+  // makes the "Accounting" module and the form's agency field appear at all.
+  accountingIntegration: "quickbooksDesktop",
 };
 
 // EXTENDED for the Invoices list, 2026-09-14: the badge-status model (see

@@ -26,8 +26,14 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
   /** Left slot — an Avatar (object / user / template), md (28px) size. */
   slotLeft?: ReactNode;
   /**
-   * Right slot — up to 2 elements: IconButton, Button (ghost), or a live
-   * Avatar.
+   * Right slot — up to 2 elements: IconButton, Button (ghost), a live Avatar,
+   * or a `md` SegmentedControl.
+   *
+   * The SegmentedControl is the slot's **view switcher** (Daniel, 2026-10-01 —
+   * it replaces the TabGroup that used to sit here; `contained` tabs became
+   * SegmentedControl). Always `size="md"`: that is 32px, the exact height the
+   * 52px header's 10px padding leaves, so the row does not grow. FilesModule's
+   * list / cards toggle is the reference use.
    *
    * A `copy` or `pen` IconButton here gets its **"Copy" / "Edit" tooltip
    * automatically** (Daniel, 2026-09-28): those two are always the same

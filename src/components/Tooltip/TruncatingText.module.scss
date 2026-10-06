@@ -22,17 +22,6 @@
   overflow: hidden;
 }
 
-// Overlay tooltip: rendered in a body-level portal, so `left`/`top` are viewport
-// coordinates (the cursor X and the text's top edge). Positioned above the text,
-// centered on the cursor, with an 8px gap (4px visual + 4px tongue).
-.overlay {
-  position: fixed;
-  transform: translate(-50%, calc(-100% - 8px));
-
-  // Intrinsic width so the tooltip keeps a constant size regardless of the
-  // cursor's X (otherwise shrink-to-fit squeezes it as it moves right).
-  width: max-content;
-
-  pointer-events: none;
-  z-index: var(--z-tooltip);
-}
+// The overlay tooltip has no styles here any more: placement (body portal,
+// fixed position, intrinsic width, z-index) belongs to the shared
+// `useAnchoredTooltip` hook and its own module.

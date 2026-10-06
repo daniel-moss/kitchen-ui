@@ -5,7 +5,8 @@ import { IconPack } from "../Icon/Icon.types";
 /**
  * The file kinds a CardFile can represent. Each maps to a file-type icon +
  * color for the no-preview tile (see FILE_TYPE_META). `generic` is the
- * fallback for anything unrecognised.
+ * fallback for anything unrecognised, and is also the tile shown while a file
+ * loads — it is neutral, because the type is not known yet.
  */
 export type FileType =
   | "generic"
@@ -21,7 +22,7 @@ export type FileType =
   | "vector"
   | "archive";
 
-/** Icon + color per file type — read from Figma "No Preview Tale Template". */
+/** Icon + color per file type — read from Figma "#️⃣ CardFileTilePlaceholder". */
 export interface FileTypeMeta {
   /** Icon glyph name. */
   icon: string;
@@ -35,7 +36,7 @@ export interface FileTypeMeta {
 }
 
 export const FILE_TYPE_META: Record<FileType, FileTypeMeta> = {
-  generic: { icon: "file", pack: "regular", color: "blue" },
+  generic: { icon: "file", pack: "regular", color: "gray" },
   word: { icon: "file-word", pack: "regular", color: "blue" },
   image: { icon: "image", pack: "regular", color: "jade" },
   spreadsheet: { icon: "table", pack: "regular", color: "jade" },
@@ -79,9 +80,15 @@ export interface CardFileProps {
   /** Non-interactive and dimmed (Card's disabled). */
   disabled?: boolean;
   /** Non-interactive; the tile and footer show skeletons and the action button is hidden while the file loads. */
-  loading?: boolean;
+  isLoading?: boolean;
   /** Lifted "dragging" look (Card's dragging) — used by ItemGroup's cards reorder. */
   dragging?: boolean;
 
   className?: string;
+  /**
+   * Extra class on Card's inner body (the interactive content region) — the
+   * element that carries the hover / press / focus fill. Card exposes the same
+   * prop; it is what a docs preview uses to force one of those states.
+   */
+  bodyClassName?: string;
 }

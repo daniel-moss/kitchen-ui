@@ -49,9 +49,11 @@ export const Desktop: Story = {
 };
 
 /**
- * Mobile, the DEFAULT version — the same menu as a drawer. No pinning on
- * mobile; the sort column opens a second drawer with search; the
- * min-one-column warning opens as a Hint drawer.
+ * Mobile, the DEFAULT version — the same menu as a drawer. No pin button on
+ * mobile: the columns are ONE list and a drag may cross all of it, which is
+ * what sets the pinned columns (the leading ones). The sort column opens a
+ * second drawer with search; the min-one-column warning opens as a Hint
+ * drawer.
  */
 export const Mobile: Story = {
   render: () => (

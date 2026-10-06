@@ -22,9 +22,11 @@ export interface JobDetailsRouteProps {
   breakpoint?: Breakpoint;
   /** Back to a list — used when the id names nothing. */
   onNavigate: (next: Page) => void;
+  /** Opens ANOTHER job in the same tab — the "Recall to" link uses it. */
+  onOpenJob: (id: string) => void;
 }
 
-export default function JobDetailsRoute({ id, breakpoint = "auto", onNavigate }: JobDetailsRouteProps) {
+export default function JobDetailsRoute({ id, breakpoint = "auto", onNavigate, onOpenJob }: JobDetailsRouteProps) {
   // From the STORE, so an edit made here is the one the list shows.
   const record = useJob(id);
 
@@ -41,5 +43,5 @@ export default function JobDetailsRoute({ id, breakpoint = "auto", onNavigate }:
     );
   }
 
-  return <JobDetails record={record} breakpoint={breakpoint} onBack={() => onNavigate("jobs")} />;
+  return <JobDetails record={record} breakpoint={breakpoint} onBack={() => onNavigate("jobs")} onOpenJob={onOpenJob} />;
 }

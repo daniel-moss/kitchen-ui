@@ -103,7 +103,20 @@ export default function DisplayModule({
         />
       </div>
       {slotRight != null && (
-        <div className={styles.slotRight} onClick={(e: MouseEvent) => e.stopPropagation()}>
+        <div
+          className={styles.slotRight}
+          onClick={(e: MouseEvent) => e.stopPropagation()}
+          // The accordion header is a role="button" that toggles on Enter and
+          // Space, and a keydown inside the slot bubbles up to it. Without this
+          // guard, choosing a Segment with the keyboard (or pressing Enter on a
+          // slot button) would ALSO open or close the module — and the header's
+          // preventDefault would swallow the slot control's own activation.
+          // Only those two keys are stopped, so Escape still reaches the
+          // document listener that closes an enclosing overlay.
+          onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
+            if (e.key === "Enter" || e.key === " ") e.stopPropagation();
+          }}
+        >
           {withHeaderTooltips(slotRight)}
         </div>
       )}
@@ -166,7 +179,7 @@ export default function DisplayModule({
         </div>
         <div className={clsx(styles.collapse, isOpen && styles.collapseOpen)}>
           <div className={styles.collapseInner}>
-            <Divider />
+            <Divider contrast="medium" />
             <div className={bodyClass}>{bodyContent}</div>
           </div>
         </div>
@@ -176,7 +189,7 @@ export default function DisplayModule({
     body = (
       <>
         <div className={styles.headerRow}>{header}</div>
-        <Divider />
+        <Divider contrast="medium" />
         <div className={bodyClass}>{bodyContent}</div>
       </>
     );

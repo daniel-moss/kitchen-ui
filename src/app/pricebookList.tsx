@@ -5,6 +5,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -41,8 +42,8 @@ import styles from "./App.module.scss";
 //                 status is named "Active" where the tab stays "Confirmed"
 //                 (Daniel, 2026-09-16) — so the Confirmed view's fixed chip
 //                 reads "Status is Active" on all five lists.
-//   TITLE         the five pricebook types as sub-pages; picking one
-//                 navigates (the Invoices ↔ Credit notes rule).
+//   TITLE         names the list only. The five pricebook types are reached
+//                 from the sidebar (TopBarNav rebuild, 2026-10-01).
 //   PINNING       production pins the description column alone, everywhere.
 //   SORT          the Active "All" tab leads with the Review items
 //                 (production's `confirmed,description`), every other tab
@@ -83,7 +84,7 @@ const BRANCHES: PricebookBranch[] = [
     id: "active",
     label: "Active",
     tabs: [
-      { id: "all", label: "All", statuses: [] },
+      { id: "all", label: "All active", statuses: [] },
       { id: "review", label: "Review", statuses: ["review"] },
       { id: "confirmed", label: "Confirmed", statuses: ["active"] },
     ],
@@ -91,7 +92,7 @@ const BRANCHES: PricebookBranch[] = [
   {
     id: "inactive",
     label: "Inactive",
-    tabs: [{ id: "inactiveAll", label: "All", statuses: [] }],
+    tabs: [{ id: "inactiveAll", label: "All inactive", statuses: [] }],
   },
 ];
 
@@ -165,7 +166,7 @@ export function pricebookSorter<TRow>(
 export interface PricebookListConfig<TRow> {
   /** The sidebar / bottom-bar page id — also which sub-page reads as current. */
   page: Page;
-  /** The top bar's title ("Labor", "Products", "Tax rates"). */
+  /** The top bar's title ("Labor rates", "Products", "Tax rates"). */
   title: string;
   noun: ObjectNoun;
   /** Every row of this type, in the neutral base order (name A-Z). */
@@ -189,7 +190,7 @@ export interface PricebookListConfig<TRow> {
 // The Pricebook stack's five types, in the sidebar's order. All five have a
 // page since 2026-09-16, so picking any of them navigates.
 const SUB_PAGES: { id: string; label: string; page: Page }[] = [
-  { id: "labor", label: "Labor", page: "labor" },
+  { id: "labor", label: "Labor rates", page: "labor" },
   { id: "products", label: "Products", page: "products" },
   { id: "other", label: "Other", page: "other" },
   { id: "discounts", label: "Discounts", page: "discounts" },
@@ -203,23 +204,27 @@ const PricebookTopBar = <TRow,>({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
+  onCreate = noop,
 }: {
   config: PricebookListConfig<TRow>;
   mobile?: boolean;
   branch: PricebookPhase;
   onBranchChange: (next: PricebookPhase) => void;
-  onNavigate: (next: Page) => void;
+  onCreate?: () => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={onCreate}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as PricebookPhase)}
         aria-label={`Active or inactive ${config.noun.many}`}
@@ -233,15 +238,7 @@ const PricebookTopBar = <TRow,>({
     }
   >
     <TopBarNavLeftElements>
-      <TopBarNavTitle
-        title={config.title}
-        subPages={SUB_PAGES.map(({ id, label }) => ({ id, label }))}
-        subPage={SUB_PAGES.find((entry) => entry.page === config.page)?.id ?? SUB_PAGES[0]!.id}
-        onSubPageChange={(next) => {
-          const target = SUB_PAGES.find((entry) => entry.id === next);
-          if (target != null && target.page !== config.page) onNavigate(target.page);
-        }}
-      />
+      <TopBarNavTitle title={config.title} />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -278,12 +275,32 @@ export interface PricebookPageProps<TRow> {
   breakpoint?: Breakpoint;
   /** The sidebar / bottom bar navigation — the page owner switches. */
   onNavigate: (next: Page) => void;
+  /**
+   * The rows to show. Defaults to the config's frozen seed; a list whose
+   * records can be edited or created passes the app store's array instead
+   * (Tax rates is the first).
+   */
+  rows?: TRow[];
+  /** The top bar's "New" button. Without one the button does nothing. */
+  onCreate?: () => void;
+  /**
+   * A row click — opens the object. Keep the reference STABLE (`useCallback`):
+   * the table is memoised, and a new lambda each render defeats it.
+   */
+  onRowClick?: (row: TRow) => void;
 }
 
 /** One shared empty list, so an untouched view keeps the same reference. */
 const EMPTY_SELECTION: FilterSelection = [];
 
-export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }: PricebookPageProps<TRow>) {
+export function PricebookPage<TRow>({
+  config,
+  breakpoint = "auto",
+  onNavigate,
+  rows = config.rows,
+  onCreate,
+  onRowClick,
+}: PricebookPageProps<TRow>) {
   const isDesktop = useIsDesktop(breakpoint);
   const [branch, setBranch] = useState<PricebookPhase>("active");
   const [tabs, setTabs] = useState<Record<PricebookPhase, string>>({ active: "all", inactive: "inactiveAll" });
@@ -346,7 +363,7 @@ export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }:
   // the locked layer reads it directly. Only the FILTERS layer is counted (a
   // locked chip hides nothing that counts, the standing rule).
   const { items, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchItems = config.rows.filter((row) => config.isActive(row) === (branch === "active"));
+    const branchItems = rows.filter((row) => config.isActive(row) === (branch === "active"));
     const locked = tabById(branch, tab).statuses;
     const afterLocked =
       locked.length > 0 ? branchItems.filter((row) => locked.includes(config.statusOf(row))) : branchItems;
@@ -366,7 +383,7 @@ export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }:
       hidden: { filters: afterLocked.length - filtered.length } satisfies HiddenCounts,
       searchHidden,
     };
-  }, [config, viewFilters, branch, tab, deferredSearch, sort, selection]);
+  }, [config, rows, viewFilters, branch, tab, deferredSearch, sort, selection]);
 
   const lockedStatuses = tabById(branch, tab).statuses;
   const defs = viewFilters[tab]!;
@@ -379,6 +396,7 @@ export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }:
       columnsState={settings.columns}
       sort={sort}
       onSortChange={changeSort}
+      onRowClick={onRowClick}
       mobile={mobile}
     />
   );
@@ -458,6 +476,7 @@ export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }:
       body={body}
       hiddenBar={hiddenBar}
       onNavigate={onNavigate}
+      onCreate={onCreate}
     />
   ) : (
     <MobileShell
@@ -477,6 +496,7 @@ export function PricebookPage<TRow>({ config, breakpoint = "auto", onNavigate }:
       body={body}
       hiddenBar={hiddenBar}
       onNavigate={onNavigate}
+      onCreate={onCreate}
     />
   );
 }
@@ -500,6 +520,8 @@ interface ShellProps<TRow> {
   body: JSX.Element | null;
   hiddenBar: (mobile: boolean) => JSX.Element | null;
   onNavigate: (next: Page) => void;
+  /** The top bar's "New" button. */
+  onCreate?: () => void;
 }
 
 function DesktopShell<TRow>({
@@ -519,12 +541,13 @@ function DesktopShell<TRow>({
   body,
   hiddenBar,
   onNavigate,
+  onCreate,
 }: ShellProps<TRow>) {
   const viewCard = useAnchoredCard("right", "[data-floating-list]");
   const filtersCard = useAnchoredCard("right", "[data-concept-filters-sub]");
   return (
     <div className={styles.workArea}>
-      <PricebookTopBar config={config} branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <PricebookTopBar config={config} branch={branch} onBranchChange={onBranchChange} onCreate={onCreate} />
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
@@ -588,6 +611,7 @@ function MobileShell<TRow>({
   body,
   hiddenBar,
   onNavigate,
+  onCreate,
 }: ShellProps<TRow>) {
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -597,7 +621,7 @@ function MobileShell<TRow>({
   const activeCount = activeFilterCount(selection) + (lockedStatuses.length > 0 ? 1 : 0);
   return (
     <div className={styles.mobile}>
-      <PricebookTopBar config={config} mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <PricebookTopBar config={config} mobile branch={branch} onBranchChange={onBranchChange} onCreate={onCreate} />
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"

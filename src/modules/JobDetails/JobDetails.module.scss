@@ -34,6 +34,81 @@
   width: 100%;
 }
 
+// The content area: the section-tabs bar above its own scrolling column. The
+// bar lives in HERE and not in the TopBarNav, so it stops at the sidebar's
+// divider instead of running across it (Daniel, 2026-10-04).
+.mainColumn {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+// The section-navigation bar. 60px, the same height as the TopBarNav above it,
+// transparent like every app surface. It draws its OWN bottom stroke as an
+// inner shadow rather than being followed by a Divider (Daniel, 2026-10-04) —
+// a border would add a pixel to the fixed height.
+.sectionTabs {
+  display: flex;
+  flex: none;
+  height: 60px;
+  box-shadow: inset 0 -1px 0 0 var(--gray-a4);
+}
+
+// MOBILE: the bar sticks under the (fixed) top bar and HIDES while scrolling
+// down — the YouTube-like rule the old TopBarNav tabs row had (Daniel,
+// 2026-10-05). The bar is bottom-anchored inside a height-animated clip, so
+// closing it reads as the row sliding up behind the top bar.
+//
+// A sticky bar needs an opaque fill of its own or the content scrolls through
+// it; `--surface-level-first` is the APP background, so it stays invisible as
+// a surface — it is the same ground the bar sits on.
+.sectionTabsCollapse {
+  position: sticky;
+  top: 0;
+  z-index: 10; // over the scrolled content, far below the modals (1000)
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 60px; // the bar's own height — its bottom stroke is INSET, so no +1
+  overflow: hidden;
+  background: var(--surface-level-first);
+  transition: height 200ms ease;
+}
+
+.sectionTabsCollapsed {
+  height: 0;
+}
+
+// A plain horizontal scroller — no edge fades (Daniel, 2026-10-04: the bar
+// holds nothing but the tabs, so marking "more content" is redundant). It
+// fills the bar and stretches, so the underlined tabs reach the bottom edge.
+.sectionTabsScroller {
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+// Side padding only, and it lives INSIDE the scroller so it scrolls with the
+// tabs. NO vertical padding: the tabs are UNDERLINED, so they stretch the full
+// 60px and their line lands on the bar's bottom edge, right on the stroke.
+.sectionTabsInner {
+  display: flex;
+  align-self: stretch;
+  padding: 0 var(--size-4);
+}
+
 // The flexible middle: a ScrollArea that centers the content column.
 .mainArea {
   flex: 1 1 0;
@@ -104,9 +179,11 @@
   padding-bottom: var(--shell-safe-bottom);
 }
 
-// The scroll container the TopBarNav sticks to (hideOnScroll).
+// The page scroller. The TopBarNav is NOT inside it — it sits above as its own
+// flex item and stays fixed; only the tabs bar and the content scroll.
 .mobileScroll {
   flex: 1 1 0;
+  min-height: 0;
 }
 
 .mobileScrollInner {
@@ -173,77 +250,27 @@
   }
 }
 
-// The check-in Timer Bar — the mobile second bottom bar (above the action bar),
-// shown only while checked in. Prototype-local; no DS timer bar yet. Divider on
-// top, running clock left, "Check out" right. (Ported from Time Tracker.)
+// The "Time tracker" bar, pinned at the top of the right sidebar (Figma
+// 24358-37522). Avatar + ItemText + the Check in button / ellipsis.
 .timerBar {
   display: flex;
   flex-direction: column;
   width: 100%;
   background: var(--surface-level-first);
+
+  // The bar draws its OWN bottom stroke instead of being followed by a Divider
+  // (Daniel, 2026-10-04). An INNER shadow, not a border: the bar is pinned and
+  // auto-sized, and a real border would add a pixel to its height and push the
+  // content under it (the DS ring technique).
+  box-shadow: inset 0 -1px 0 0 var(--gray-a4);
 }
 .timerRow {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--size-3);
+  gap: var(--size-3); // 12px — avatar ↔ text ↔ action
   width: 100%;
-  padding: var(--size-2_5) var(--size-4); // 10px / 16px (Figma 24058-15482)
-}
-.timerInfo {
-  display: flex;
-  align-items: center;
-  gap: var(--size-3); // 12px — avatar ↔ text
-  min-width: 0;
-}
-// The active-session avatar: a 36px solid-tomato box with a light stopwatch
-// (Figma 24178-58250). No animation (Daniel removed the earlier pulse).
-.timerAvatar {
-  flex: none;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-9); // 36px
-  height: var(--size-9);
-  border-radius: var(--border-radius-1_5);
-  background: var(--tomato-9);
-  color: var(--tomato-1);
-}
-// Idle on an ACTIVE job (Figma 24178-58693): amber warning box.
-.timerAvatarIdle {
-  background: var(--amber-10);
-  color: var(--amber-1);
-}
-// Idle on any OTHER status (Figma 24358-37516): neutral gray box, the
-// regular stopwatch in gray-a8.
-.timerAvatarNeutral {
-  background: var(--gray-a3);
-  color: var(--gray-a8);
-}
-.timerText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-// Running clock: red while tracking (Figma 24178-58252); idle "00:00" dims to
-// the placeholder color (24178-58695).
-.timerClock {
-  font: var(--font-body-500-compact); // Inter Medium 14/20
-  font-variant-numeric: tabular-nums;
-  color: var(--text-error);
-}
-.timerClockIdle {
-  color: var(--text-placeholder);
-}
-// Caption: "Tracked" subtle; idle "You're not tracking time" goes amber warning.
-.timerLabel {
-  font: var(--font-caption-medium-400); // Inter Regular 13/20
-  color: var(--text-subtle);
-}
-.timerLabelIdle {
-  color: var(--text-warning);
+  padding: var(--size-2_5) var(--size-4); // 10px / 16px (Figma 24358-37522)
 }
 
 // ===== mobile session pill + drawer (Figma 24178-58264 / 58551 / 58902) =====
@@ -258,8 +285,10 @@
   height: 0;
 }
 
-// The pill: 40px tall, full radius, 16px side padding, 10px icon↔text gap,
-// lg/down shadow. Left-aligned 16px from the screen edge (Figma).
+// The pill: 40px tall, 8px corners, 12px side padding, 10px icon↔text gap,
+// lg/down shadow. Left-aligned 16px from the screen edge. It was a FULL-radius
+// pill with 16px sides until 2026-10-05 (Figma 24358-37536 / 24596-41067 /
+// 24357-35073 — all three states changed together).
 .pill {
   position: absolute;
   bottom: var(--size-3); // 12px above the action bar
@@ -269,9 +298,9 @@
   gap: var(--size-2_5); // 10px
   align-items: center;
   height: var(--size-10); // 40px
-  padding: 0 var(--size-4); // 16px
+  padding: 0 var(--size-3); // 12px
   border: none;
-  border-radius: var(--border-radius-full);
+  border-radius: var(--border-radius-2); // 8px
   box-shadow: var(--box-shadow-lg-down);
   cursor: pointer;
 }
@@ -282,10 +311,26 @@
   color: var(--tomato-1);
 }
 
-// No session on an ACTIVE job (Figma 24181-59180): amber warning pill.
+// No session on an ACTIVE job (Figma 24596-41067): an OUTLINED warning button
+// — a 1px amber-11 ring and amber content. It used to be a solid amber-10
+// pill with light content.
+//
+// TWO stacked surfaces (Daniel, 2026-10-05; the node draws them as two fills):
+// the opaque app surface, then translucent `--amber-a3` ON TOP of it. The
+// alpha token needs that base or it would tint whatever happens to be behind
+// the floating button. A second background LAYER is the way to stack them —
+// `background-color` holds only one color.
+//
+// Same inset-ring technique as .pillNeutral: a border would grow the
+// auto-sized button, and the box-shadow REPLACES .pill's, so the drop shadow
+// is restated.
 .pillIdle {
-  background: var(--amber-10);
-  color: var(--amber-1);
+  background-color: var(--surface-level-first);
+  background-image: linear-gradient(var(--amber-a3), var(--amber-a3));
+  color: var(--text-warning);
+  box-shadow:
+    inset 0 0 0 1px var(--amber-11),
+    var(--box-shadow-lg-down);
 }
 
 // No session on any OTHER status (Figma 24358-37529): neutral white pill,

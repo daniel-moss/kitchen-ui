@@ -32,6 +32,14 @@
   z-index: var(--z-modal);
 }
 
+// Inside a mock container (a Storybook device frame) the dialog portals into
+// that container, so its layer is positioned against it instead of the
+// viewport — otherwise `fixed` would ignore the frame and fill the screen.
+// Applied to both the scrim and the drawer layer.
+.containedLayer {
+  position: absolute;
+}
+
 // The content slot — the fields / form modules sit here. Content-slot defaults
 // (Figma; Daniel, 2026-07-25): 16px sides, 24px between items; top/bottom is
 // 16px for the default dialog and 24px for the focus dialog (see .focusBody).

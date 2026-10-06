@@ -13,7 +13,7 @@ import { PricebookListConfig, PricebookPage } from "./pricebookList";
 //
 // FOLDED onto the shared `PricebookPage` later the same day, when Other,
 // Discounts and Tax rates arrived: the phases, the views, the locked Status
-// chips, the title's sub-page selector, the View menu and the whole search /
+// chips, the View menu and the whole search /
 // filter / sort pipeline are the same on all five pricebook lists, so they
 // live there and this file is what genuinely differs. See pricebookList.tsx.
 //
@@ -46,7 +46,7 @@ const searchHaystack = (item: LaborRow) =>
 // the props it hands down.
 const LABOR_LIST: PricebookListConfig<LaborRow> = {
   page: "labor",
-  title: "Labor",
+  title: "Labor rates",
   noun: LABOR_NOUN,
   rows: LABOR_ROWS,
   isActive: (item) => item.isActive,

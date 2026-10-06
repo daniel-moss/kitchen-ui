@@ -5,6 +5,7 @@ import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
@@ -41,8 +42,8 @@ import styles from "./Filters.module.scss";
 //                 status is named "Active" where the tab stays "Confirmed"
 //                 (Daniel, 2026-09-16) — so the Confirmed view's fixed chip
 //                 reads "Status is Active" on all five lists.
-//   TITLE         the five pricebook types as sub-pages; picking one
-//                 navigates (the Invoices ↔ Credit notes rule).
+//   TITLE         names the list only. The five pricebook types are reached
+//                 from the sidebar (TopBarNav rebuild, 2026-10-01).
 //   PINNING       production pins the description column alone, everywhere.
 //   SORT          the Active "All" tab leads with the Review items
 //                 (production's `confirmed,description`), every other tab
@@ -203,23 +204,25 @@ const PricebookTopBar = <TRow,>({
   mobile = false,
   branch,
   onBranchChange,
-  onNavigate,
 }: {
   config: PricebookListConfig<TRow>;
   mobile?: boolean;
   branch: PricebookPhase;
   onBranchChange: (next: PricebookPhase) => void;
-  onNavigate: (next: Page) => void;
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as PricebookPhase)}
         aria-label={`Active or inactive ${config.noun.many}`}
@@ -233,15 +236,7 @@ const PricebookTopBar = <TRow,>({
     }
   >
     <TopBarNavLeftElements>
-      <TopBarNavTitle
-        title={config.title}
-        subPages={SUB_PAGES.map(({ id, label }) => ({ id, label }))}
-        subPage={SUB_PAGES.find((entry) => entry.page === config.page)?.id ?? SUB_PAGES[0]!.id}
-        onSubPageChange={(next) => {
-          const target = SUB_PAGES.find((entry) => entry.id === next);
-          if (target != null && target.page !== config.page) onNavigate(target.page);
-        }}
-      />
+      <TopBarNavTitle title={config.title} />
     </TopBarNavLeftElements>
   </TopBarNav>
 );
@@ -524,7 +519,7 @@ function DesktopShell<TRow>({
   const filtersCard = useAnchoredCard("right", "[data-concept-filters-sub]");
   return (
     <div className={styles.workArea}>
-      <PricebookTopBar config={config} branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <PricebookTopBar config={config} branch={branch} onBranchChange={onBranchChange} />
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
@@ -597,7 +592,7 @@ function MobileShell<TRow>({
   const activeCount = activeFilterCount(selection) + (lockedStatuses.length > 0 ? 1 : 0);
   return (
     <div className={styles.mobile}>
-      <PricebookTopBar config={config} mobile branch={branch} onBranchChange={onBranchChange} onNavigate={onNavigate} />
+      <PricebookTopBar config={config} mobile branch={branch} onBranchChange={onBranchChange} />
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"

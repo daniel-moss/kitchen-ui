@@ -10,8 +10,10 @@ import { missingValueMessage } from "../missingValueMessage";
 import styles from "./TextField.module.scss";
 import { TextFieldProps, TextFieldKeyboard } from "./TextField.types";
 
-// keyboard → native type/inputMode (docs "Mobile keyboard"). "numeric" keeps
-// type=text (no number-input spinners/validation) with the numeric pad.
+// keyboard → native type/inputMode (docs "Mobile keyboard"). "numeric" and
+// "decimal" keep type=text (no number-input spinners/validation) with the
+// matching pad — "decimal" is the one that carries a separator key, which a
+// digits-only pad does not (added 2026-10-05 for the tax rate's percentage).
 const KEYBOARD_ATTRS: Record<
   TextFieldKeyboard,
   { type: string; inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"] }
@@ -21,6 +23,7 @@ const KEYBOARD_ATTRS: Record<
   url: { type: "url", inputMode: "url" },
   tel: { type: "tel", inputMode: "tel" },
   numeric: { type: "text", inputMode: "numeric" },
+  decimal: { type: "text", inputMode: "decimal" },
 };
 
 // TextField — the single-line text field (Figma "TextField"): a real <input>

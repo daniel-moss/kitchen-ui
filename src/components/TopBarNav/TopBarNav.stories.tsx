@@ -1,18 +1,18 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { cap, DeviceFrame, DocsFrame, noop } from "../../stories/helpers";
-import AvatarClient from "../Avatar/AvatarClient";
+import { DocsFrame, noop } from "../../stories/helpers";
+import { Do, DoDont, Dont } from "../../stories/DoDont";
+import Avatar from "../Avatar/Avatar";
+import AvatarGroup from "../Avatar/AvatarGroup";
 import { AvatarGroupItem } from "../Avatar/AvatarGroup.types";
-import AvatarJob from "../Avatar/AvatarJob";
-import AvatarUser from "../Avatar/AvatarUser";
-import { Icon } from "../Icon/Icon";
-import MenuItem from "../Menu/MenuItem";
-import MenuItemGroup from "../Menu/MenuItemGroup";
+import Button from "../Button/Button";
+import IconButton from "../IconButton/IconButton";
 import TabGroup from "../Tabs/TabGroup";
 import TabItem from "../Tabs/TabItem";
 import TopBarNav from "./TopBarNav";
 import TopBarNavLeftElements from "./TopBarNavLeftElements";
+import TopBarNavRightElements from "./TopBarNavRightElements";
 import TopBarNavTitle from "./TopBarNavTitle";
 
 const LIVE: AvatarGroupItem[] = [
@@ -27,71 +27,43 @@ const LIVE_MANY: AvatarGroupItem[] = [
   { kind: "live", name: "Camalla Robinson" },
 ];
 
-const SUB_PAGES = [
-  { id: "requests", label: "Requests" },
-  { id: "jobs", label: "Jobs" },
-  { id: "series", label: "Series" },
-];
-
+/**
+ * TopBarNav — the page's top navigation bar: an optional back button, the title
+ * with its two slots, and an optional group of actions at the right end, over a
+ * Divider. One 60px row, always the same height.
+ */
 const meta: Meta<typeof TopBarNav> = {
   title: "Components/TopBarNav",
   component: TopBarNav,
-  // fullscreen — the stories' own DocsFrame provides the (only) padding.
+  // fullscreen — the docs stories' DocsFrame provides the (only) padding.
   parameters: { layout: "fullscreen" },
-  // TopBarNavProps is a union — react-docgen can't read JSDoc off it, so the
-  // table is declared by hand (the ListItem pattern). Keep it in step with
-  // TopBarNav.types.ts.
-  argTypes: {
-    children: {
-      control: false,
-      description: "The left side — a `TopBarNavLeftElements` assembly.",
-      table: { type: { summary: "ReactNode" } },
-    },
-    variant: {
-      control: false,
-      description:
-        "`list` for object lists (title + phase tabs; search + create on the right), `details` for object details pages (navigation tabs + live users), `inner` for inner pages (back + title only).",
-      table: { type: { summary: '"list" | "details" | "inner"' }, defaultValue: { summary: '"list"' } },
-    },
-    tabs: {
-      control: false,
-      description:
-        "A `TabGroup` element (`default` / `lg` — the bar defaults the size via context). List: inline, both breakpoints. Details: inline on desktop; a second 60px bar row on mobile that hides while scrolling down.",
-      table: { type: { summary: "ReactNode" } },
-    },
-    onSearch: {
-      control: false,
-      description: 'List, DESKTOP only: the "Object search" IconButton. Shown when set.',
-      table: { type: { summary: "() => void" } },
-    },
-    onCreate: {
-      control: false,
-      description: 'List: the create button — "New" Button on desktop, solid plus IconButton on mobile.',
-      table: { type: { summary: "() => void" } },
-    },
-    createLabel: {
-      description: "List: the create button's label (and the mobile tooltip).",
-      table: { type: { summary: "string" }, defaultValue: { summary: '"New"' } },
-    },
-    liveUsers: {
-      control: false,
-      description:
-        "Details: the live-users stack — up to 3 avatars on desktop / 2 on mobile; hover tooltip (desktop) / tap drawer (mobile). 1 user renders an AvatarLive, 2+ an AvatarGroup (xl).",
-      table: { type: { summary: "AvatarGroupItem[]" } },
-    },
-    breakpoint: {
-      options: ["auto", "desktop", "mobile"],
-      control: { type: "inline-radio" },
-      description: 'Desktop / mobile format. "auto" (default) follows the viewport.',
-      table: { type: { summary: '"auto" | "desktop" | "mobile"' }, defaultValue: { summary: '"auto"' } },
-    },
-    className: { control: false, table: { type: { summary: "string" } } },
-  },
 };
 export default meta;
 
 type Story = StoryObj<typeof TopBarNav>;
 
+// ---- placeholder content, the way the Figma previews draw it ---------------
+
+/** The generic avatar: square, the diamonds-4 placeholder glyph, md (28px). */
+const AVATAR = <Avatar size="md" />;
+
+/** The placeholder action — an icon button with the diamonds-4 glyph. */
+const action = (key: string) => (
+  <IconButton key={key} icon="diamonds-4" variant="ghost" size="lg" aria-label="Action" onClick={noop} />
+);
+
+/** A preview's placeholder tabs — two tabs reading "Label". */
+const PlaceholderTabs = () => {
+  const [tab, setTab] = useState("one");
+  return (
+    <TabGroup value={tab} onChange={setTab}>
+      <TabItem value="one">Label</TabItem>
+      <TabItem value="two">Label</TabItem>
+    </TabGroup>
+  );
+};
+
+/** The phase tabs of a real list — what belongs beside the title. */
 const PhaseTabs = () => {
   const [tab, setTab] = useState("open");
   return (
@@ -102,356 +74,302 @@ const PhaseTabs = () => {
   );
 };
 
-const DetailsTabs = ({ withDetails = false }: { withDetails?: boolean }) => {
-  const [tab, setTab] = useState(withDetails ? "details" : "service");
+/** The section navigation of a details page — what does NOT belong in the bar. */
+const SectionTabs = () => {
+  const [tab, setTab] = useState("service");
   return (
     <TabGroup value={tab} onChange={setTab}>
-      {withDetails && <TabItem value="details">Details</TabItem>}
       <TabItem value="service">Service</TabItem>
       <TabItem value="timesheet">Timesheet</TabItem>
       <TabItem value="summary">Summary</TabItem>
-      <TabItem value="requests">Product requests</TabItem>
       <TabItem value="activity">Activity</TabItem>
     </TabGroup>
   );
 };
 
-const CONTEXT_MENU = (
-  <MenuItemGroup>
-    <MenuItem slotLeft={<Icon icon="pen" container="square" size={14} />} label="Edit" onClick={noop} />
-    <MenuItem slotLeft={<Icon icon="copy" container="square" size={14} />} label="Duplicate" onClick={noop} />
-    <MenuItem slotLeft={<Icon icon="box-archive" container="square" size={14} />} label="Archive" onClick={noop} />
-  </MenuItemGroup>
-);
+// ---- stories ---------------------------------------------------------------
 
-/** The list bar (doc hero): title + phase tabs + search + New. */
+/** Every slot filled: back, avatar, title, live users, two actions. */
 export const Playground: Story = {
+  parameters: { layout: "centered" },
   args: { breakpoint: "desktop" },
-  render: ({ breakpoint }) => (
-    <DocsFrame>
-      <TopBarNav breakpoint={breakpoint} tabs={<PhaseTabs />} onSearch={noop} onCreate={noop}>
-        <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-    </DocsFrame>
+  render: (args) => (
+    <TopBarNav {...args} liveUsers={LIVE} actions={[action("a"), action("b")]}>
+      <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+        <TopBarNavTitle title="Title" slotLeft={AVATAR} />
+      </TopBarNavLeftElements>
+    </TopBarNav>
   ),
 };
 
-/** The hero: the list bar with everything on. */
+/** The hero: the fullest bar. */
 export const Hero: Story = {
   render: () => (
     <DocsFrame>
-      <TopBarNav breakpoint="desktop" tabs={<PhaseTabs />} onSearch={noop} onCreate={noop}>
-        <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" />
+      <TopBarNav breakpoint="desktop" liveUsers={LIVE} actions={[action("a"), action("b")]}>
+        <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+          <TopBarNavTitle title="Title" slotLeft={AVATAR} />
         </TopBarNavLeftElements>
       </TopBarNav>
     </DocsFrame>
   ),
 };
 
-/** The TabGroup is optional — with and without. */
-export const TabsOptional: Story = {
+/** Anatomy: every part the section names, in one bar. */
+export const Anatomy: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarNav breakpoint="desktop" tabs={<PhaseTabs />} onSearch={noop} onCreate={noop}>
+      <TopBarNav breakpoint="desktop" liveUsers={LIVE} actions={action("a")}>
+        <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+          <TopBarNavTitle title="Title" slotLeft={AVATAR} />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** Phase tabs beside the title, against a section row crammed into the bar. */
+export const TabsDoDont: Story = {
+  render: () => (
+    <DoDont>
+      <Do caption="Phase tabs beside the title — two short tabs that switch what the list shows">
+        <TopBarNav breakpoint="desktop" tabs={<PhaseTabs />}>
           <TopBarNavLeftElements>
             <TopBarNavTitle title="Jobs" />
           </TopBarNavLeftElements>
         </TopBarNav>
-        <TopBarNav breakpoint="desktop" onSearch={noop} onCreate={noop}>
-          <TopBarNavLeftElements>
-            <TopBarNavTitle title="Jobs" />
+      </Do>
+      <Dont caption="Section navigation inside the bar — a details page's sections belong to their own bar below it">
+        <TopBarNav breakpoint="desktop" tabs={<SectionTabs />}>
+          <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+            <TopBarNavTitle title="JOB-10001" />
           </TopBarNavLeftElements>
         </TopBarNav>
-      </div>
-    </DocsFrame>
+      </Dont>
+    </DoDont>
   ),
 };
 
-/** Optional "Back" and "Context menu" buttons around the title. */
-export const BackAndContextMenu: Story = {
+/** Live users beside the title, against live users among the actions. */
+export const LiveUsersDoDont: Story = {
   render: () => (
-    <DocsFrame>
-      <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-        <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-          <TopBarNavTitle title="JOB-101" />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-    </DocsFrame>
+    <DoDont>
+      <Do caption="Live users beside the title, where the page says who is on it">
+        <TopBarNav breakpoint="desktop" liveUsers={LIVE}>
+          <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+            <TopBarNavTitle title="JOB-10001" />
+          </TopBarNavLeftElements>
+        </TopBarNav>
+      </Do>
+      <Dont caption="Live users among the actions at the right end — that end is for things the user presses">
+        <TopBarNav breakpoint="desktop" actions={<AvatarGroup variation="inline" size="xl" items={LIVE} />}>
+          <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+            <TopBarNavTitle title="JOB-10001" />
+          </TopBarNavLeftElements>
+        </TopBarNav>
+      </Dont>
+    </DoDont>
   ),
 };
 
-/** The title as a SelectList trigger (sub-pages) — click it. */
-export const TitleDropdown: Story = {
+/** A page reached from the sidebar — no step back. */
+export const BackButtonOff: Story = {
   render: () => (
     <DocsFrame>
-      <TopBarNav breakpoint="desktop" tabs={<PhaseTabs />} onSearch={noop} onCreate={noop}>
+      <TopBarNav breakpoint="desktop">
         <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" subPages={SUB_PAGES} defaultSubPage="jobs" />
+          <TopBarNavTitle title="Title" />
         </TopBarNavLeftElements>
       </TopBarNav>
-      {/* Room for the sub-page list in the docs canvas. */}
-      <div style={{ height: 160 }} />
     </DocsFrame>
   ),
 };
 
-/**
- * The interactive title's states are opacity-based: 75% on hover, 50% while
- * pressed (held while its list is open), 30% disabled; keyboard focus draws
- * a 2px ring 4px outside the title. Hover / press / tab to this live one.
- */
-export const TitleStates: Story = {
+/** A page opened from another one — the back button leads to it. */
+export const BackButtonOn: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--size-10) 0" }}>
-        <TopBarNavTitle title="Title" subPages={SUB_PAGES} />
-      </div>
-      <div style={{ height: 160 }} />
+      <TopBarNav breakpoint="desktop">
+        <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
     </DocsFrame>
   ),
 };
 
-/** The title's avatar slot — fixed 36px (xl); any avatar type. */
-export const TitleAvatar: Story = {
+/** The title alone. */
+export const Title: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-          <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-            <TopBarNavTitle title="JOB-101" slotLeft={<AvatarJob size="xl" />} />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-        <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-          <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-            <TopBarNavTitle title="Space Age Kitchens" slotLeft={<AvatarClient size="xl" />} />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-        <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-          <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-            <TopBarNavTitle title="Amy Lowery" slotLeft={<AvatarUser size="xl" characters="AL" />} />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-      </div>
-    </DocsFrame>
-  ),
-};
-
-/** The right elements are optional. */
-export const RightElementsOptional: Story = {
-  render: () => (
-    <DocsFrame>
-      <TopBarNav breakpoint="desktop" tabs={<PhaseTabs />}>
+      <TopBarNav breakpoint="desktop">
         <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" />
+          <TopBarNavTitle title="Title" />
         </TopBarNavLeftElements>
       </TopBarNav>
     </DocsFrame>
   ),
 };
 
-/** Mobile list: the "New" Button becomes an IconButton; no search. */
-export const ListMobile: Story = {
+/** The avatar slot — any avatar type, always md. */
+export const AvatarSlot: Story = {
   render: () => (
     <DocsFrame>
-      <TopBarNav breakpoint="mobile" tabs={<PhaseTabs />} onSearch={noop} onCreate={noop}>
+      <TopBarNav breakpoint="desktop">
         <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" />
+          <TopBarNavTitle title="Title" slotLeft={AVATAR} />
         </TopBarNavLeftElements>
       </TopBarNav>
     </DocsFrame>
   ),
 };
 
-/** Tabs scroll with the 40px edge fade when there is not enough room. */
-export const ListTabsScroll: Story = {
+/** The tabs, beside the title. */
+export const Tabs: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <TopBarNav breakpoint="desktop" tabs={<DetailsTabs />} onSearch={noop} onCreate={noop}>
-          <TopBarNavLeftElements>
-            <TopBarNavTitle title="Jobs" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-      </div>
-    </DocsFrame>
-  ),
-};
-
-/** Mobile sub-pages: the SelectList opens inline here too. */
-export const SubPagesMobile: Story = {
-  render: () => (
-    <DocsFrame>
-      <TopBarNav breakpoint="mobile" onCreate={noop}>
+      <TopBarNav breakpoint="desktop" tabs={<PlaceholderTabs />}>
         <TopBarNavLeftElements>
-          <TopBarNavTitle title="Jobs" subPages={SUB_PAGES} defaultSubPage="jobs" />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-      <div style={{ height: 160 }} />
-    </DocsFrame>
-  ),
-};
-
-/** The details bar: back + avatar + title + context menu, tabs, live users. */
-export const DetailsDesktop: Story = {
-  render: () => (
-    <DocsFrame>
-      <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-        <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-          <TopBarNavTitle title="JOB-101" slotLeft={<AvatarJob size="xl" />} />
+          <TopBarNavTitle title="Title" />
         </TopBarNavLeftElements>
       </TopBarNav>
     </DocsFrame>
   ),
 };
 
-/** The "Back" button is optional — with and without. */
-export const BackOptional: Story = {
-  render: () => (
-    <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-          <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-            <TopBarNavTitle title="JOB-101" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-        <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-          <TopBarNavLeftElements contextMenu={CONTEXT_MENU} breakpoint="desktop">
-            <TopBarNavTitle title="JOB-101" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-      </div>
-    </DocsFrame>
-  ),
-};
-
-/** The context menu (owned by the bar) — click the ellipsis. */
-export const ContextMenu: Story = {
-  render: () => (
-    <DocsFrame>
-      <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-        <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="desktop">
-          <TopBarNavTitle title="JOB-101" slotLeft={<AvatarJob size="xl" />} />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-      {/* Room for the open menu card in the docs canvas. */}
-      <div style={{ height: 180 }} />
-    </DocsFrame>
-  ),
-};
-
-/** Mobile: the context menu opens as a drawer titled like the page. */
-export const ContextMenuMobile: Story = {
-  render: () => (
-    <DeviceFrame>
-      <TopBarNav variant="details" breakpoint="mobile" tabs={<DetailsTabs withDetails />} liveUsers={LIVE}>
-        <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="mobile">
-          <TopBarNavTitle title="JOB-101" slotLeft={<AvatarJob size="xl" />} />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-    </DeviceFrame>
-  ),
-};
-
-/** Mobile details: the tabs move to their own 60px bar row (no fade). */
-export const DetailsMobile: Story = {
-  render: () => (
-    <DocsFrame>
-      <TopBarNav variant="details" breakpoint="mobile" tabs={<DetailsTabs withDetails />} liveUsers={LIVE}>
-        <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="mobile">
-          <TopBarNavTitle title="JOB-101" />
-        </TopBarNavLeftElements>
-      </TopBarNav>
-    </DocsFrame>
-  ),
-};
-
-/** Mobile: the tabs row hides scrolling down, returns scrolling up. Scroll the content. */
-export const HideOnScroll: Story = {
-  render: () => (
-    <DeviceFrame pageText="">
-      <div style={{ position: "absolute", inset: 0, overflowY: "auto", borderRadius: 24 }}>
-        <TopBarNav variant="details" breakpoint="mobile" tabs={<DetailsTabs withDetails />} liveUsers={LIVE}>
-          <TopBarNavLeftElements onBack={noop} contextMenu={CONTEXT_MENU} breakpoint="mobile">
-            <TopBarNavTitle title="JOB-101" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-        <div style={{ padding: 16, font: "var(--font-body-400-spacious)", color: "var(--text-subtle)" }}>
-          {Array.from({ length: 40 }, (_, i) => (
-            <p key={i}>Scrollable app content line {i + 1}.</p>
-          ))}
-        </div>
-      </div>
-    </DeviceFrame>
-  ),
-};
-
-/** Live users: 1 = AvatarLive; 2+ = AvatarGroup; more than 3 truncate to 2 + counter. */
+/** The live users, in the same place. */
 export const LiveUsers: Story = {
   render: () => (
     <DocsFrame>
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <div>
-          <span style={cap}>1 user</span>
-          <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={[LIVE[0]]}>
-            <TopBarNavLeftElements onBack={noop}>
-              <TopBarNavTitle title="JOB-101" />
-            </TopBarNavLeftElements>
-          </TopBarNav>
-        </div>
-        <div>
-          <span style={cap}>2 users</span>
-          <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE}>
-            <TopBarNavLeftElements onBack={noop}>
-              <TopBarNavTitle title="JOB-101" />
-            </TopBarNavLeftElements>
-          </TopBarNav>
-        </div>
-        <div>
-          <span style={cap}>5 users — 2 + counter (hover for everyone)</span>
-          <TopBarNav variant="details" breakpoint="desktop" tabs={<DetailsTabs />} liveUsers={LIVE_MANY}>
-            <TopBarNavLeftElements onBack={noop}>
-              <TopBarNavTitle title="JOB-101" />
-            </TopBarNavLeftElements>
-          </TopBarNav>
-        </div>
+        <TopBarNav breakpoint="desktop" liveUsers={[LIVE[0]!]}>
+          <TopBarNavLeftElements>
+            <TopBarNavTitle title="Title" />
+          </TopBarNavLeftElements>
+        </TopBarNav>
+        <TopBarNav breakpoint="desktop" liveUsers={LIVE_MANY}>
+          <TopBarNavLeftElements>
+            <TopBarNavTitle title="Title" />
+          </TopBarNavLeftElements>
+        </TopBarNav>
       </div>
     </DocsFrame>
   ),
 };
 
-/** Mobile: up to 2 live-user slots; a tap opens the drawer with everyone. */
-export const LiveUsersMobile: Story = {
+/** One action at the right end. */
+export const ActionsOne: Story = {
   render: () => (
-    <DeviceFrame>
-      <TopBarNav variant="details" breakpoint="mobile" tabs={<DetailsTabs withDetails />} liveUsers={LIVE_MANY}>
-        <TopBarNavLeftElements onBack={noop} breakpoint="mobile">
-          <TopBarNavTitle title="JOB-101" />
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" actions={action("a")}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
         </TopBarNavLeftElements>
       </TopBarNav>
-    </DeviceFrame>
+    </DocsFrame>
   ),
 };
 
-/** The inner bar: back + title only. Some inner pages have no back button. */
-export const Inner: Story = {
+/** Three, the most the row takes. */
+export const ActionsThree: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarNav variant="inner" breakpoint="desktop">
-          <TopBarNavLeftElements onBack={noop}>
-            <TopBarNavTitle title="Settings" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-        <TopBarNav variant="inner" breakpoint="desktop">
-          <TopBarNavLeftElements>
-            <TopBarNavTitle title="Settings" />
-          </TopBarNavLeftElements>
-        </TopBarNav>
-      </div>
+      <TopBarNav breakpoint="desktop" actions={[action("a"), action("b"), action("c")]}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** A button with a label. */
+export const ActionsButton: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav
+        breakpoint="desktop"
+        actions={
+          <Button variant="solid" size="lg" onClick={noop}>
+            Button
+          </Button>
+        }
+      >
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** An icon-only button. */
+export const ActionsIconButton: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" actions={action("a")}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** The list helper on desktop: search, then the labelled create button. */
+export const ActionsList: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav
+        breakpoint="desktop"
+        actions={<TopBarNavRightElements onSearch={noop} onCreate={noop} breakpoint="desktop" />}
+      >
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Jobs" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** The same helper on mobile: no search, and create becomes an icon button. */
+export const ActionsListMobile: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav
+        breakpoint="mobile"
+        actions={<TopBarNavRightElements onSearch={noop} onCreate={noop} breakpoint="mobile" />}
+      >
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Jobs" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** Loading, on a page with no step back. */
+export const Loading: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" isLoading tabs={<PlaceholderTabs />} actions={action("a")}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** Loading, with the back button — it is navigation, not data. */
+export const LoadingWithBack: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" isLoading liveUsers={LIVE} actions={action("a")}>
+        <TopBarNavLeftElements onBack={noop} breakpoint="desktop">
+          <TopBarNavTitle title="Title" slotLeft={AVATAR} />
+        </TopBarNavLeftElements>
+      </TopBarNav>
     </DocsFrame>
   ),
 };

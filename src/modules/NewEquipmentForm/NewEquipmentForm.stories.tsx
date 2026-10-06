@@ -10,7 +10,7 @@ import NewEquipmentForm from "./NewEquipmentForm";
 // Equipment list's "Add equipment"). The demo location is "HQ" (the header
 // caption).
 const meta: Meta = {
-  title: 'Modules/"New Equipment" Form',
+  title: 'Modules/Equipment/"New Equipment" Form',
   parameters: { controls: { disable: true } },
 };
 

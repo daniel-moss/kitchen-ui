@@ -21,7 +21,7 @@
   max-height: min(1000px, calc(100dvh - var(--size-4)));
 
   background: var(--surface-level-third);
-  border-radius: var(--border-radius-2_5); // 10px
+  border-radius: var(--border-radius-3); // 12px — the Popover card's radius
   // The 1px border is drawn inset so it never adds to the fit-content size,
   // layered under the sm/down shadow.
   box-shadow:

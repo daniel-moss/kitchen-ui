@@ -36,6 +36,25 @@
   width: auto;
   min-width: 0;
 }
+// …unless `fitContent` asks it to hug: it then takes its content's width and
+// never shrinks, leaving the rest of the row to the other segments.
+.groupedRoot.groupedFitContent {
+  flex: 0 0 auto;
+  width: max-content;
+
+  // Hugging means the value is never squeezed, so every box inside sizes to
+  // the text instead of sharing a flexible row — otherwise they keep
+  // `flex-basis: 0` and a sub-pixel rounding ellipsises the last character
+  // ("12:30 PM" → "12:30 …"). The body and its value come from
+  // SelectFieldBody's own CSS module, so they are reached structurally.
+  .content,
+  .content > *,
+  .content > * > * {
+    flex: 0 0 auto;
+    width: max-content;
+    min-width: auto;
+  }
+}
 
 .content {
   flex: 1 1 0;

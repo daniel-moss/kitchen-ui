@@ -1,8 +1,9 @@
 // Toaster — sonner's animation model (v1.5.0, what production uses), on our
 // tokens. Toasts are absolutely positioned AT the screen edge; measured
 // offsets are CSS vars; transform/opacity/height move via 400ms ease
-// transitions. Desktop: TOP-right, 24px (--size-6) from the edges, lift
-// direction DOWN (moved from bottom-right — Daniel, 2026-09-08). Mobile: on
+// transitions. Desktop: TOP-CENTER, 24px (--size-6) from the top edge, lift
+// direction DOWN (bottom-right → top-right 2026-09-08 → top-center
+// 2026-09-29, both Daniel). Mobile: on
 // top, 8px below the status bar, full width with 8px edge gaps, lift
 // direction DOWN. Collapsed stack by default (peek +
 // scale), hover expands (desktop only). Keep 400ms in sync with
@@ -19,10 +20,15 @@
   position: fixed;
 }
 
+// Centered horizontally WITHOUT a transform on the stack: left + right + a
+// fixed width with auto side margins splits the leftover space evenly. A
+// `translateX(-50%)` here would fight the per-toast translateY transforms.
 .desktop {
   top: var(--size-6);
-  right: var(--size-6);
+  right: 0;
+  left: 0;
   width: var(--size-96);
+  margin-inline: auto;
 }
 
 .mobile {

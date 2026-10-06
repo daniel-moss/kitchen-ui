@@ -45,6 +45,13 @@
   padding: var(--size-2) var(--size-3);
 }
 
+// A text value with a left slot: the slot belongs to the FIRST line, so the row
+// top-aligns instead of centering. Identical to `center` while the value is one
+// line (both children are a 20px line box), and correct once it wraps.
+.contentTop {
+  align-items: flex-start;
+}
+
 // One-line rows (LinkButton, loading): fixed 36px, no vertical padding.
 .contentOneLine {
   height: var(--size-9);
@@ -138,14 +145,8 @@
   border-radius: var(--border-radius-1_5);
 }
 
-// The cursor-following tooltip overlay (same pattern as TruncatingText).
-.tooltipOverlay {
-  position: fixed;
-  transform: translate(-50%, calc(-100% - 8px));
-  width: max-content;
-  pointer-events: none;
-  z-index: var(--z-tooltip);
-}
+// (The truncation tooltip's own placement styles live with the shared
+// `useAnchoredTooltip` hook.)
 
 // ---- vertical: label above, 4px gap ----------------------------------------
 .vertical {

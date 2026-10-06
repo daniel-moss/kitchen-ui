@@ -9,7 +9,7 @@ import AddFilesForm from "./AddFilesForm";
 // The Add-Files form — the source of the shared file-list functionality the
 // New Job form's Files module inherits (Dropzone + grouped list + menus).
 const meta: Meta = {
-  title: 'Modules/"Add Files" Form',
+  title: 'Modules/File/"Add Files" Form',
   parameters: { controls: { disable: true } },
 };
 

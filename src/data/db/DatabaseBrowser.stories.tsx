@@ -291,9 +291,9 @@ function DatabasePage() {
     { name: "Purchase orders", rows: PURCHASE_ORDERS },
     { name: "Bills", rows: BILLS },
     { name: "Services", rows: SERVICES },
-    { name: "Labor items", rows: LABOR_ITEMS },
-    { name: "Labor subtypes", rows: LABOR_SUBTYPES },
-    { name: "Labor labels", rows: LABOR_LABELS },
+    { name: "Labor rates", rows: LABOR_ITEMS },
+    { name: "Labor rate subtypes", rows: LABOR_SUBTYPES },
+    { name: "Labor rate labels", rows: LABOR_LABELS },
     { name: "Products", rows: PRODUCT_ITEMS },
     { name: "Product subtypes", rows: PRODUCT_SUBTYPES },
     { name: "Product labels", rows: PRODUCT_LABELS },
@@ -340,7 +340,7 @@ function DatabasePage() {
         ])}
       />
 
-      <h2 className={styles.sectionTitle}>The pricebook (labor)</h2>
+      <h2 className={styles.sectionTitle}>The pricebook (labor rates)</h2>
       {/* The labor catalog — production PriceBookItem, type service. The 12
           SERVICES rows are the same records seen from the job side (same
           ids); the review rows are what the system mints from free-text line

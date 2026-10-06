@@ -12,10 +12,17 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
+import { subStatusesFor } from "../../data/db";
+
 import styles from "./jobForm.module.scss";
 
 // The active sub-statuses a technician can be in (placeholder demo values).
-const SUB_STATUSES = ["Travelling", "Working"];
+// The company's ACTIVE sub-statuses, from the database — they used to be
+// hardcoded as ["Travelling", "Working"], which are the tech's CHECK-IN
+// statuses, not job sub-statuses (Daniel, 2026-10-05). This company configures
+// none, and the menu item that opens this dialog is hidden with them
+// (`COMPANY.subStatuses.active`), so the list is empty here by design.
+const SUB_STATUSES = subStatusesFor("active").map((sub) => sub.name);
 
 interface SubStatusFormProps {
   open: boolean;
@@ -109,10 +116,14 @@ export default function SubStatusForm({
       <div className={styles.form}>
         {banner != null && <AlertBanner orientation="vertical">{banner}</AlertBanner>}
 
-        <Input label="Job sub-status">
+        {/* "Active status" — the sub-status an ACTIVE job carries, for the
+            companies that enable them (Figma 24042-18897, error 24422-26522).
+            It was "Job sub-status". */}
+        <Input label="Active status">
           <SelectField
             value={subStatus || undefined}
             isValid={!showError}
+            errorMessage="Choose Active status"
             open={subStatusPop.open}
             onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
           />
@@ -123,7 +134,7 @@ export default function SubStatusForm({
         </Input>
       </div>
 
-      <SelectPopoverList pop={subStatusPop} mobile={mobile} title="Job sub-status" searchable searchPlaceholder="Search by status name...">
+      <SelectPopoverList pop={subStatusPop} mobile={mobile} title="Active status" searchable searchPlaceholder="Status...">
         <SelectListItemGroup>
           {SUB_STATUSES.map((s) => (
             <SelectListItem

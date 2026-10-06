@@ -125,17 +125,21 @@
   height: var(--size-9);
 }
 
-// ---- square radius: --border-radius-1 (xxs–xs), --border-radius-1_5 (sm–xl) ----
+// ---- square radius: --border-radius-1 (xxs–xs), --border-radius-1_5 (sm–md),
+// --border-radius-2 (lg–xl, 2026-10-01) ----
 .squareShape.xxsSize .surface,
 .squareShape.xsSize .surface {
   border-radius: var(--border-radius-1);
 }
 
 .squareShape.smSize .surface,
-.squareShape.mdSize .surface,
+.squareShape.mdSize .surface {
+  border-radius: var(--border-radius-1_5);
+}
+
 .squareShape.lgSize .surface,
 .squareShape.xlSize .surface {
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2);
 }
 
 // ---- circle radius: full circle at every size ----

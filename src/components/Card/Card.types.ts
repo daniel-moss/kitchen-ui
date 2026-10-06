@@ -26,11 +26,15 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, "onClick
   /** Colors the ring and the banner. Defaults to "info" when a ring/banner shows. */
   status?: CardStatus;
   /** Draw a 1px status-colored ring around the card. */
-  ring?: boolean;
+  alertRing?: boolean;
   /** Show an alert banner pinned at the top of the card. Implies a matching ring. */
   banner?: CardBanner;
 
-  /** Body inner padding. Number → px, or any CSS length/token. Default 16. */
+  /**
+   * Body inner padding. Number → px, or any CSS length/token. Default 4 — a
+   * card most often holds a single ListItem, and `--size-1` (4px) is the seat
+   * for it (Daniel, 2026-10-01; it was 16).
+   */
   padding?: number | string;
 
   /** Non-interactive and dimmed. */

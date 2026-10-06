@@ -77,18 +77,23 @@ at the bottom. It is fixed at the bottom while scrolling.
 <Canvas of={SidePanelStories.WithFooter} />
 
 Supports optional navigation controls. Navigation is fixed on top while
-scrolling. Each navigation row is `--size-13` (52px) tall with `--size-4` (16px)
+scrolling. The object row is `--size-14` (56px) tall with `--size-4` (16px)
 sides and a divider along its bottom edge. The object tabs are a
 <a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
-`variant="default" size="md"`; they scroll sideways when they do not fit, with
-no edge fade.
+`variant="underlined"`; they stretch the row's full height so their line lands
+on the divider, and they scroll sideways when they do not fit, with no edge
+fade.
 
 <Canvas of={SidePanelStories.WithNavigation} />
 
 In rare cases, SidePanel supports 2 levels of navigation. Each top section has
 its own set of sub-sections. We currently use this pattern in "Location" side
-panel. The top level is a TabGroup `variant="contained" size="lg"` that fills
-the row width.
+panel. The top level is a
+<a href="/?path=/docs/components-segmentedcontrol-segmentedcontrol--docs" target="_top">SegmentedControl</a>
+`size="lg"` that fills the row width — it switches which OBJECT the panel
+shows rather than navigating inside one, so it takes `Segment` children, not
+tabs. That row sits in `--size-1_5` (6px) of vertical padding and carries no
+divider of its own: the object row's line closes the whole block.
 
 <Canvas of={SidePanelStories.MultilevelNavigation} />
 

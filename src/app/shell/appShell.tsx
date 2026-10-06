@@ -16,6 +16,7 @@ import { semanticIcons } from "../../styles/semanticIcons";
 import { noop } from "../../stories/helpers";
 
 import { useNewJob } from "./newJob";
+import { useNewTaxRate } from "./taxRates";
 
 import styles from "../App.module.scss";
 
@@ -96,8 +97,8 @@ export const profileMenu = (
 // The Create menu's items. A FUNCTION since 2026-09-28, because "Job" now opens
 // the "New job" form — the same menu is used by the sidebar's Create button
 // (desktop card) and by the bottom bar's Create (mobile drawer), so both get
-// the handler from one place.
-export const createMenu = (onCreateJob: () => void) => (
+// their handlers from one place. "Tax rate" joined it on 2026-10-05.
+export const createMenu = ({ onCreateJob, onCreateTaxRate }: { onCreateJob: () => void; onCreateTaxRate: () => void }) => (
   <MenuItemGroup>
     <MenuItem label="Estimate" slotLeft={slot(semanticIcons.estimate)} />
     <MenuItem
@@ -134,11 +135,11 @@ export const createMenu = (onCreateJob: () => void) => (
       slotLeft={slot(semanticIcons.pricebook)}
       subMenu={
         <MenuItemGroup>
-          <MenuItem label="Labor" slotLeft={slot(semanticIcons.labor)} />
+          <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
           <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
-          <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} />
+          <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} onClick={onCreateTaxRate} />
         </MenuItemGroup>
       }
       subMenuTitle="Create pricebook item"
@@ -223,7 +224,7 @@ export const navContent = (
     <SidebarNavItem icon={semanticIcons.clientGeneric} active={page === "clients"} onClick={() => onNavigate("clients")}>
       Clients
     </SidebarNavItem>
-    {/* ALL FIVE pricebook types navigate since 2026-09-16 — Labor and
+    {/* ALL FIVE pricebook types navigate since 2026-09-16 — Labor rates and
         Products first, then Other, Discounts and Tax rates later the same
         day. The stack is the first in the sidebar with no display-only
         children left, and it follows the page like the Jobs and Invoices
@@ -235,7 +236,7 @@ export const navContent = (
       onOpenChange={pricebookStack.onOpenChange}
     >
       <SidebarNavItem type="stackItem" active={page === "labor"} onClick={() => onNavigate("labor")}>
-        Labor
+        Labor rates
       </SidebarNavItem>
       <SidebarNavItem type="stackItem" active={page === "products"} onClick={() => onNavigate("products")}>
         Products
@@ -340,6 +341,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   }, [pageInPricebookStack]);
 
   const openNewJob = useNewJob();
+  const openNewTaxRate = useNewTaxRate();
 
   return (
     <SidebarNav
@@ -350,7 +352,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
       profileAvatarSrc={PROFILE.avatarSrc}
       profileMenu={profileMenu}
       onSearchClick={noop}
-      createMenu={createMenu(openNewJob)}
+      createMenu={createMenu({ onCreateJob: openNewJob, onCreateTaxRate: openNewTaxRate })}
       bottomItems={bottomItems}
     >
       {navContent(
@@ -382,6 +384,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
 export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (next: Page) => void }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const openNewJob = useNewJob();
+  const openNewTaxRate = useNewTaxRate();
 
   return (
     <>
@@ -407,9 +410,15 @@ export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (ne
       </BottomBarNav>
 
       <Menu open={createOpen} onClose={() => setCreateOpen(false)} title="Create" breakpoint="mobile">
-        {createMenu(() => {
-          setCreateOpen(false);
-          openNewJob();
+        {createMenu({
+          onCreateJob: () => {
+            setCreateOpen(false);
+            openNewJob();
+          },
+          onCreateTaxRate: () => {
+            setCreateOpen(false);
+            openNewTaxRate();
+          },
         })}
       </Menu>
     </>

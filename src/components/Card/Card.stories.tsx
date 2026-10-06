@@ -1,7 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { docsFrame, noop } from "../../stories/helpers";
-import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
+import { docsFrame, noop, PSEUDO_ALL, PSEUDO_SELF } from "../../stories/helpers";
+import { Do, DoDont, Dont } from "../../stories/DoDont";
+import { joinWithSeparator } from "../../utils/textSeparator";
+import AvatarClient from "../Avatar/AvatarClient";
+import IconButton from "../IconButton/IconButton";
+import ListItem from "../ListItem/ListItem";
+import ListItemSlotIcon from "../ListItem/ListItemSlotIcon";
+import ValueDisplay from "../ValueDisplay/ValueDisplay";
 import Card from "./Card";
 import { CardBanner, CardStatus } from "./Card.types";
 
@@ -13,7 +19,7 @@ type CardStateOption = "default" | "hover" | "press" | "focus" | "drag" | "disab
 type PlaygroundArgs = {
   state: CardStateOption;
   status: CardStatus;
-  ring: boolean;
+  alertRing: boolean;
   banner: boolean;
   padding: number;
 };
@@ -27,14 +33,14 @@ const STATUS_LABELS: Record<CardStatus, string> = {
   error: "Error",
 };
 
-// Pseudo-state classes forced on the card BODY only (via bodyClassName), so a
-// banner's own CTA / dismiss keep their resting state. The Card tints the whole
-// card via :has(.body:hover) — the addon rewrites that to also match
-// .body.pseudo-hover — so the banner area tints with the state too.
+// Pseudo-state classes forced on the card BODY only (via bodyClassName), so the
+// banner's own CTA / dismiss keep their resting state. The body is also the
+// element that carries the interaction fill, so marking it is enough — the card
+// reaches it through :has(.body:hover) for the shadow.
 const PSEUDO_CLASS: Partial<Record<CardStateOption, string>> = {
-  hover: "pseudo-hover",
-  press: "pseudo-active",
-  focus: "pseudo-focus-visible",
+  hover: PSEUDO_SELF.hover,
+  press: PSEUDO_SELF.press,
+  focus: PSEUDO_SELF.focus,
 };
 
 const demoBanner: CardBanner = {
@@ -53,26 +59,36 @@ const frameCol: React.CSSProperties = {
   gap: "var(--size-20)",
 };
 
-// Representative card content — a title line + one body line.
-function Demo({ title = "Card title", lines = 1 }: { title?: React.ReactNode; lines?: number }) {
+// The card's canonical content — the Figma previews' `ListItem Template` at
+// `variant = client`: an xl AvatarClient, title + caption, the open marker, and
+// the row itself NOT clickable. The caption joins its two unrelated pieces with
+// TEXT_SEPARATOR, never a hand-typed dot.
+function Row({
+  title = "Client name",
+  caption = joinWithSeparator("Type", "Industry"),
+}: {
+  title?: string;
+  caption?: string;
+}) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2)" }}>
-      <span style={{ font: "var(--font-body-500-compact)", color: "var(--text-strong)" }}>{title}</span>
-      {Array.from({ length: lines }).map((_, i) => (
-        <span key={i} style={{ font: "var(--font-body-400-spacious)", color: "var(--text-subtle)" }}>
-          Some content that lives inside the card body.
-        </span>
-      ))}
-    </div>
+    <ListItem
+      variant="titleCaption"
+      title={title}
+      caption={caption}
+      avatar={<AvatarClient size="xl" type="business" content="icon" />}
+      slotRight={<ListItemSlotIcon icon="angle-right" />}
+      isClickable={false}
+    />
   );
 }
 
 // The three variants a state applies across: no alert, alert ring, ring + banner.
-const VARIANTS: { key: string; title: string; ring?: boolean; banner?: CardBanner }[] = [
+const VARIANTS: { key: string; title: string; alertRing?: boolean; banner?: CardBanner }[] = [
   { key: "plain", title: "No alert" },
-  { key: "ring", title: "With alert ring", ring: true },
+  { key: "ring", title: "With alert ring" },
   { key: "banner", title: "With ring + banner", banner: demoBanner },
 ];
+VARIANTS[1].alertRing = true;
 
 // Renders the three variants, all forced into one state — the States gallery.
 function StateGallery({ state }: { state: CardStateOption }) {
@@ -82,14 +98,14 @@ function StateGallery({ state }: { state: CardStateOption }) {
         <Card
           key={v.key}
           status="info"
-          ring={v.ring}
+          alertRing={v.alertRing}
           banner={v.banner}
           onClick={noop}
           bodyClassName={PSEUDO_CLASS[state]}
           dragging={state === "drag"}
           disabled={state === "disabled"}
         >
-          <Demo title={v.title} />
+          <Row title={v.title} />
         </Card>
       ))}
     </div>
@@ -97,10 +113,9 @@ function StateGallery({ state }: { state: CardStateOption }) {
 }
 
 /**
- * Card — an interactive container for any type of data. Corner radius, shadow
- * and background are the only component-level params; the body is a slot.
- * Optional alert ring (1px status border) and alert banner. Supports error and
- * loading states.
+ * Card — an interactive container. The card draws the surface, the corner and
+ * the interaction states; the body is a slot. An optional alert ring and alert
+ * banner mark a status on the whole card.
  */
 const meta: Meta<PlaygroundArgs> = {
   title: "Components/Card/Card",
@@ -118,19 +133,19 @@ export const Playground: Story = {
   // The synthetic playground args/argTypes live on THIS story (not the meta) so
   // the docs-page ArgTypes table stays pure docgen from Card.types.ts.
   parameters: { layout: "centered" },
-  args: { state: "default", status: "info", ring: false, banner: false, padding: 16 },
+  args: { state: "default", status: "info", alertRing: false, banner: false, padding: 4 },
   argTypes: {
     state: { options: STATE_OPTIONS, control: { type: "select" } },
     status: { options: STATUSES, control: { type: "inline-radio" } },
-    ring: { control: { type: "boolean" } },
+    alertRing: { control: { type: "boolean" } },
     banner: { control: { type: "boolean" } },
     padding: { control: { type: "number" } },
   },
-  render: ({ state, status, ring, banner, padding }) => (
+  render: ({ state, status, alertRing, banner, padding }) => (
     <div style={{ width: 360 }}>
       <Card
         status={status}
-        ring={ring}
+        alertRing={alertRing}
         banner={banner ? demoBanner : undefined}
         disabled={state === "disabled"}
         loading={state === "loading"}
@@ -141,53 +156,144 @@ export const Playground: Story = {
         bodyClassName={PSEUDO_CLASS[state]}
         onClick={noop}
       >
-        <Demo lines={1} />
+        <Row />
       </Card>
     </div>
   ),
 };
 
-/** A plain card — corner radius, shadow and background are the only component-level params. */
+/** A plain card holding one static ListItem. */
 export const Hero: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={docsFrame}>
       <Card onClick={noop}>
-        <Demo />
+        <Row />
       </Card>
     </div>
   ),
 };
 
-/** The alert ring in 4 statuses: info, success, warning, error. */
-export const AnatomyRing: Story = {
+/** The three parts — the card surface, the body slot, the banner and the ring. */
+export const Anatomy: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <Card status="info" banner={demoBanner} onClick={noop}>
+        <Row />
+      </Card>
+    </div>
+  ),
+};
+
+/** Hovered — the body's fill covers its padding and reaches the card's corners. */
+export const AnatomyHovered: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <Card onClick={noop} bodyClassName={PSEUDO_SELF.hover}>
+        <Row />
+      </Card>
+    </div>
+  ),
+};
+
+/** When a card fits, and when a plain container is the right thing instead. */
+export const WhenToUse: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <DoDont>
+      <Do caption="A file card — the whole tile opens the file, so there is one target and one set of states.">
+        <Card onClick={noop} style={{ width: "100%" }}>
+          <Row title="Invoice October.pdf" caption={joinWithSeparator("PDF", "248 KB")} />
+        </Card>
+      </Do>
+      <Dont caption="A read-only summary in a card — nothing to tap, so the shadow and the hover fill promise an action that is not there.">
+        <Card padding="var(--size-4)" style={{ width: "100%" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-1)" }}>
+            <ValueDisplay label="Client" value="Wildwood Kitchen" />
+            <ValueDisplay label="Service" value="Walk-in cooler repair" />
+            <ValueDisplay label="Status" value="Scheduled" />
+          </div>
+        </Card>
+      </Dont>
+    </DoDont>
+  ),
+};
+
+/** The row inside a card is never the target — the card is. */
+export const HoldingListItem: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <DoDont>
+      <Do caption="A row that is not clickable, with the open marker on the right — one target, and the card carries every state.">
+        <Card onClick={noop} bodyClassName={PSEUDO_SELF.hover} style={{ width: "100%" }}>
+          <Row />
+        </Card>
+      </Do>
+      <Dont caption="A clickable row inside the card — the row takes the hover, and the card stops responding over its own area.">
+        <div className={PSEUDO_ALL.hover} style={{ width: "100%" }}>
+          <Card onClick={noop}>
+            <ListItem
+              variant="titleCaption"
+              title="Client name"
+              caption={joinWithSeparator("Type", "Industry")}
+              avatar={<AvatarClient size="xl" type="business" content="icon" />}
+              slotRight={<ListItemSlotIcon icon="angle-right" />}
+              isClickable
+              onClick={noop}
+            />
+          </Card>
+        </div>
+      </Dont>
+    </DoDont>
+  ),
+};
+
+/** The open marker adds no target; an action in the same slot is a real one. */
+export const RightSlot: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={frameCol}>
+      <Card onClick={noop}>
+        <Row />
+      </Card>
+      <Card onClick={noop}>
+        <ListItem
+          variant="titleCaption"
+          title="Client name"
+          caption={joinWithSeparator("Type", "Industry")}
+          avatar={<AvatarClient size="xl" type="business" content="icon" />}
+          slotRight={<IconButton icon="ellipsis" variant="ghost" size="md" aria-label="More actions" onClick={noop} />}
+          isClickable={false}
+        />
+      </Card>
+    </div>
+  ),
+};
+
+/** The alert ring in four statuses: info, success, warning, error. */
+export const AlertRing: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
     <div style={frameCol}>
       {STATUSES.map((status) => (
-        <Card key={status} status={status} ring onClick={noop}>
-          <Demo title={STATUS_LABELS[status]} />
+        <Card key={status} status={status} alertRing onClick={noop}>
+          <Row title={STATUS_LABELS[status]} />
         </Card>
       ))}
     </div>
   ),
 };
 
-/** The alert banner in 4 statuses. The banner always carries a matching ring. */
-export const AnatomyBanner: Story = {
+/** Hovered with a warning banner — the banner keeps its colour, the body does not. */
+export const AlertBannerPreview: Story = {
   parameters: { controls: { disable: true } },
   render: () => (
-    <div style={frameCol}>
-      {STATUSES.map((status) => (
-        <Card
-          key={status}
-          status={status}
-          banner={{ children: "Insert your content here.", ctaLabel: "Action", ctaOnClick: noop, onDismiss: noop }}
-          onClick={noop}
-        >
-          <Demo title={STATUS_LABELS[status]} />
-        </Card>
-      ))}
+    <div style={docsFrame}>
+      <Card status="warning" banner={demoBanner} onClick={noop} bodyClassName={PSEUDO_SELF.hover}>
+        <Row />
+      </Card>
     </div>
   ),
 };
@@ -198,7 +304,7 @@ export const ErrorState: Story = {
   render: () => (
     <div style={docsFrame}>
       <Card error onRetry={noop} onClick={noop}>
-        <Demo />
+        <Row />
       </Card>
     </div>
   ),
@@ -210,47 +316,32 @@ export const StateDefault: Story = {
   render: () => <StateGallery state="default" />,
 };
 
-/** Focused — a 2px gray-12 border over the hover fill (keyboard focus). */
-export const StateFocused: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => <StateGallery state="focus" />,
-};
-
-/** Hovered — the surface-interactive-hover fill; the resting shadow flattens. */
+/** Hovered — the body steps to the hover fill; the resting shadow flattens. */
 export const StateHovered: Story = {
   parameters: { controls: { disable: true } },
   render: () => <StateGallery state="hover" />,
 };
 
-/** Pressed — the surface-interactive-press fill; the shadow flattens. */
+/** Pressed — the body steps to the press fill; the shadow flattens. */
 export const StatePressed: Story = {
   parameters: { controls: { disable: true } },
   render: () => <StateGallery state="press" />,
 };
 
-/** Dragging — a 1px gray-12 border + a large lift shadow; non-interactive. */
+/** Focused — a 2px gray-12 ring over the hover fill; it replaces the alert ring. */
+export const StateFocused: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => <StateGallery state="focus" />,
+};
+
+/** Dragging — a 1px gray-12 edge + a large lift shadow; non-interactive. */
 export const StateDragging: Story = {
   parameters: { controls: { disable: true } },
   render: () => <StateGallery state="drag" />,
 };
 
-/** Disabled — 30% opacity; non-interactive. */
+/** Disabled — 30% opacity across the whole card; non-interactive. */
 export const StateDisabled: Story = {
   parameters: { controls: { disable: true } },
   render: () => <StateGallery state="disabled" />,
-};
-
-/** Loading — non-interactive; the consumer supplies skeletons matching the content. */
-export const StateLoading: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div style={docsFrame}>
-      <Card loading>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2)" }}>
-          <SkeletonTypography variant="bodyCompact" width="40%" />
-          <SkeletonTypography variant="bodySpacious" width="100%" />
-        </div>
-      </Card>
-    </div>
-  ),
 };

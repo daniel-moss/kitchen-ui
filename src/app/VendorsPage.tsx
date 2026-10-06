@@ -5,6 +5,7 @@ import TabGroup from "../components/Tabs/TabGroup";
 import TabItem from "../components/Tabs/TabItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../components/TopBarView/TopBarView";
 import ViewMenuModule from "../modules/ViewMenu/ViewMenu";
@@ -70,8 +71,8 @@ interface VendorsBranch {
 // listed" · All Inactive "All inactive vendors are listed". Nothing locks
 // anything.
 const BRANCHES: VendorsBranch[] = [
-  { id: "active", label: "Active", tabs: [{ id: "all", label: "All" }] },
-  { id: "inactive", label: "Inactive", tabs: [{ id: "inactiveAll", label: "All" }] },
+  { id: "active", label: "Active", tabs: [{ id: "all", label: "All active" }] },
+  { id: "inactive", label: "Inactive", tabs: [{ id: "inactiveAll", label: "All inactive" }] },
 ];
 
 type VendorsPhase = VendorsBranch["id"];
@@ -98,13 +99,17 @@ const VendorsTopBar = ({
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as VendorsPhase)}
         aria-label="Active or inactive vendors"

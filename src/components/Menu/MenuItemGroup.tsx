@@ -16,6 +16,7 @@ export default function MenuItemGroup({ children, label, divider = false, classN
       <div className={styles.items}>{children}</div>
       {divider && (
         <div className={styles.dividerWrap}>
+          {/* LOW contrast — a group boundary inside a card (Daniel, 2026-10-04). */}
           <Divider />
         </div>
       )}

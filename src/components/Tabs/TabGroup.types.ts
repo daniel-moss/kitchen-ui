@@ -1,24 +1,24 @@
 import { HTMLAttributes, ReactNode } from "react";
 
-import { TabItemOrientation, TabItemSize } from "./TabItem.types";
+import { TabItemSize } from "./TabItem.types";
 
-/** Figma's style names; mapped internally to the TabItem variant. */
-export type TabGroupVariant = "default" | "contained" | "underlined";
+/**
+ * Figma's style names; mapped internally to the TabItem variant. The segmented
+ * look that used to be `contained` is its own component now — SegmentedControl.
+ */
+export type TabGroupVariant = "pill" | "underlined";
 
 export interface TabGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
   /**
-   * default / contained (segmented track) / underlined. Default "default".
-   * Note (Figma spec): underlined is defined for `sm`/`md` sizes only.
+   * **pill** (a soft filled shape marks the selection) or **underlined** (a
+   * line on the row's bottom edge). Default "pill".
    */
   variant?: TabGroupVariant;
-  /** Passed to every child TabItem. Default "md". */
-  size?: TabItemSize;
   /**
-   * Stack the icon over the label in each tab. Only the contained variant
-   * supports it (matches TabItem), and it is specced for `lg`. Default
-   * "horizontal".
+   * Passed to every child TabItem. Default "md". The underlined style ignores
+   * it — with no height and no horizontal padding, its sizes draw the same tab.
    */
-  orientation?: TabItemOrientation;
+  size?: TabItemSize;
 
   /** Selected tab value (controlled). */
   value?: string;

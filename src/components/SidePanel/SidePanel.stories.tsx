@@ -10,7 +10,8 @@ import { Icon } from "../Icon/Icon";
 import IconButton from "../IconButton/IconButton";
 import ListItem from "../ListItem/ListItem";
 import PopoverFooter from "../Popover/PopoverFooter";
-import TabGroup from "../Tabs/TabGroup";
+import Segment from "../SegmentedControl/Segment";
+import SegmentedControl from "../SegmentedControl/SegmentedControl";
 import TabItem from "../Tabs/TabItem";
 import SidePanel from "./SidePanel";
 import SidePanelNavigation from "./SidePanelNavigation";
@@ -210,8 +211,8 @@ export const MultilevelNavigation: Story = {
               onTopLevelChange={setSection}
               topLevel={
                 <>
-                  <TabItem value="one">Section 1</TabItem>
-                  <TabItem value="two">Section 2</TabItem>
+                  <Segment value="one">Section 1</Segment>
+                  <Segment value="two">Section 2</Segment>
                 </>
               }
             >
@@ -288,10 +289,10 @@ export const NavigationLevels: Story = {
 export const WarningTabs: Story = {
   render: () => (
     <div style={{ ...docsFrame, display: "flex", gap: "var(--size-20)", justifyContent: "center" }}>
-      <TabItem variant="default" size="md" warning icon="warning" iconPack="solid">
+      <TabItem variant="pill" size="md" warning>
         Details
       </TabItem>
-      <TabItem variant="default" size="md" warning selected icon="warning" iconPack="solid">
+      <TabItem variant="pill" size="md" warning selected>
         Details
       </TabItem>
     </div>
@@ -302,18 +303,18 @@ export const WarningTabs: Story = {
 export const WarningTabsTopLevel: Story = {
   render: () => (
     <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-      <TabGroup variant="contained" size="lg" isFullWidth defaultValue="client">
-        <TabItem value="location" warning icon="warning" iconPack="solid">
+      <SegmentedControl size="lg" isFullWidth defaultValue="client">
+        <Segment value="location" isWarning>
           Location
-        </TabItem>
-        <TabItem value="client">Client</TabItem>
-      </TabGroup>
-      <TabGroup variant="contained" size="lg" isFullWidth defaultValue="location">
-        <TabItem value="location" warning icon="warning" iconPack="solid">
+        </Segment>
+        <Segment value="client">Client</Segment>
+      </SegmentedControl>
+      <SegmentedControl size="lg" isFullWidth defaultValue="location">
+        <Segment value="location" isWarning>
           Location
-        </TabItem>
-        <TabItem value="client">Client</TabItem>
-      </TabGroup>
+        </Segment>
+        <Segment value="client">Client</Segment>
+      </SegmentedControl>
     </div>
   ),
 };
@@ -333,14 +334,14 @@ export const WarningInPanel: Story = {
             topLevelDefaultValue="location"
             topLevel={
               <>
-                <TabItem value="location" warning icon="warning" iconPack="solid">
+                <Segment value="location" isWarning>
                   Location
-                </TabItem>
-                <TabItem value="client">Client</TabItem>
+                </Segment>
+                <Segment value="client">Client</Segment>
               </>
             }
           >
-            <TabItem value="details" warning icon="warning" iconPack="solid">
+            <TabItem value="details" warning>
               Details
             </TabItem>
             <TabItem value="equipment">Equipment</TabItem>

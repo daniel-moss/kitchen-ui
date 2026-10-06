@@ -15,6 +15,7 @@ import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
+import { formatFullDate } from "./SchedulingForm";
 import { Session, TECH_STATUSES } from "./TimesheetPanel";
 
 import styles from "./SessionForm.module.scss";
@@ -34,10 +35,19 @@ export interface SessionDraft {
   endMeridiem: Meridiem;
 }
 
-// Date segment: "Mon, Jan 1", plus the year only when it is not the current one.
-const WD = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
-const WD_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
-const fmtDate = (d: Date) => (d.getFullYear() === new Date().getFullYear() ? WD : WD_YEAR).format(d);
+// The date segment of the Start/End field. Two formats, one per breakpoint
+// (Daniel, 2026-10-06; Figma 24105-15788 annotates the desktop one "Full
+// format with the weekday"):
+//
+//   desktop  "Monday, January 1, 2027"  — `formatFullDate`, shared with the
+//                                         Scheduling form's desktop field
+//   mobile   "Mon, Jan 1, 2027"         — the compact one; the full date
+//                                         cannot sit beside the time on a phone
+//
+// The YEAR is always shown, on both. This used to drop it in the current year
+// and use the compact form everywhere, which is the app-wide rule it broke.
+const SHORT_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const fmtDateMobile = (d: Date) => SHORT_DATE_YEAR.format(d);
 // A date + "HH:MM" + AM/PM → a full Date (12-hour → 24-hour), for ordering.
 const combine = (date: Date, clock: string, meridiem: Meridiem) => {
   const [h, m] = clock.split(":").map(Number);
@@ -158,11 +168,15 @@ const TimeGroup = ({
             onDateChange={onDate}
             breakpoint={mobile ? "mobile" : "desktop"}
             minDate={minDate}
-            formatValue={fmtDate}
+            formatValue={mobile ? fmtDateMobile : formatFullDate}
             pickerLabel="Date"
           />
           <TextField
             className={styles.time}
+            // The mask as a placeholder, so the shape is visible before a
+            // digit is typed (Figma 24105-15788 — the DS TextField keeps one
+            // for exactly this case).
+            placeholder="00:00"
             value={value.clock}
             onChange={(e) => onClock(maskClock(e.target.value, ((e.nativeEvent as InputEvent).inputType ?? "").startsWith("delete")))}
             onFocus={onFocusTime}

@@ -89,7 +89,7 @@ export default function TopBarView({
   search,
   defaultSearch,
   onSearchChange,
-  searchPlaceholder = "Keyword search...",
+  searchPlaceholder = "Search...",
   filtersCount = 0,
   onFiltersClick,
   filtersPressed = false,
@@ -138,7 +138,7 @@ export default function TopBarView({
     onBlur: onSearchBlur,
   };
 
-  // The mobile view-selector list (inline, like TopBarNavTitle's subpages).
+  // The mobile view-selector list — inline, so it opens over the bar itself.
   const [listOpenState, setListOpenState] = useState(false);
   const listOpen = listOpenState || _viewListOpen;
   const selectorWrapRef = useRef<HTMLDivElement>(null);
@@ -160,7 +160,12 @@ export default function TopBarView({
       <div className={clsx(styles.bar, className)}>
         <div className={styles.inner}>
           <TabsScroller>
-            <TabGroup variant="default" size="lg" value={selectedView} onChange={setSelectedView}>
+            {/* The views are UNDERLINED tabs (Daniel, 2026-10-02 — the DS rule:
+                phase tabs are pill, view tabs underline). The underlined style
+                has one size, so no `size` is passed: the tabs stretch to the
+                60px row and the line lands on its bottom edge, above the
+                Divider. */}
+            <TabGroup variant="underlined" value={selectedView} onChange={setSelectedView}>
               {views.map((v) => (
                 <TabItem key={v.value} value={v.value}>
                   {v.label}

@@ -8,7 +8,7 @@ import PopoverFooter from "../../components/Popover/PopoverFooter";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
 
-import styles from "./EditNotesDialog.module.scss";
+import styles from "./textDialog.module.scss";
 
 // The "Notes" edit form — the shared "Text Area" form pattern (its Figma doc
 // file pnpE6Jr6JG1Bm2iLWyy1vS): a default Dialog whose body is one TextArea.
@@ -44,6 +44,22 @@ interface EditNotesDialogProps {
    * panel names its object — "Warranty notes".
    */
   title?: string;
+  /**
+   * The FIELD's label. Default "Notes" — the Tax rate panel opens the same
+   * dialog for "Summary template" and "Internal notes" (Figma 1-7366 and
+   * 1-7391), whose fields name themselves.
+   */
+  fieldLabel?: string;
+  /**
+   * What the two toasts quote. Default `"Notes"`, which reads '"Notes"
+   * updated' / 'Could not update "Notes"'.
+   *
+   * It is the whole subject, pre-quoted, because the designs use two formats:
+   * the Equipment and Warranty panels say '"Notes" updated', while every Tax
+   * rate module adds the word module — '"Summary template" module updated'.
+   * Same reason `copyText` lets a caller override its title.
+   */
+  toastSubject?: string;
   /** Show "(optional)" next to the field label. Default false. */
   optional?: boolean;
   breakpoint?: "auto" | "desktop" | "mobile";
@@ -55,6 +71,8 @@ export default function EditNotesDialog({
   notes,
   onSave,
   title = "Notes",
+  fieldLabel = "Notes",
+  toastSubject = '"Notes"',
   optional = false,
   breakpoint = "auto",
 }: EditNotesDialogProps) {
@@ -68,10 +86,15 @@ export default function EditNotesDialog({
 
   const save = async () => {
     if ((await onSave(value.trim())) === false) {
-      toast({ type: "error", variant: "detailed", title: 'Could not update "Notes"', caption: "Something went wrong. Please try again." });
+      toast({
+        type: "error",
+        variant: "detailed",
+        title: `Could not update ${toastSubject}`,
+        caption: "Something went wrong. Please try again.",
+      });
       return;
     }
-    toast({ type: "success", title: '"Notes" updated' });
+    toast({ type: "success", title: `${toastSubject} updated` });
     onClose();
   };
 
@@ -101,7 +124,7 @@ export default function EditNotesDialog({
       }
     >
       <Input
-        label="Notes"
+        label={fieldLabel}
         labelCondition={optional ? "optional" : undefined}
         className={mobile ? styles.fillField : styles.tallField}
       >

@@ -11,7 +11,7 @@
   width: 100%;
   min-height: 60px; // no token — the --size scale jumps 56 → 64
   padding: var(--size-2_5) var(--size-3); // 10px 12px
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
   overflow: hidden;
 }
 
@@ -79,7 +79,8 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
 .clickable:active:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) {
   @include row-press-fill;
 }
-// Focus — the DS focus ring: 2px stroke, 2px gap, fill corner radius lands at 2px.
+// Focus — the DS focus ring: 2px stroke, 2px gap; the inner fill's corner is
+// the row radius minus those 4px, so it lands at `--border-radius-1` (4px).
 .clickable:focus-visible {
   @include row-focus-ring;
 }
@@ -175,12 +176,12 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
   width: 100%;
   min-height: 60px; // as .item — no token at 60
   padding: var(--size-2_5) var(--size-3); // 10px 12px
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
   cursor: pointer;
   transition: background-color 120ms ease;
 }
 .accordionOpen .accordionHeader {
-  border-radius: var(--border-radius-1_5) var(--border-radius-1_5) 0 0; // top only — the bottom meets the body
+  border-radius: var(--border-radius-2) var(--border-radius-2) 0 0; // top only — the bottom meets the body
 }
 
 @media (hover: hover) {

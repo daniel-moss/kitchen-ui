@@ -1,25 +1,32 @@
 import { Fragment, isValidElement, ReactNode } from "react";
 import clsx from "clsx";
 
+import SegmentedControl from "../SegmentedControl/SegmentedControl";
 import TabGroup from "../Tabs/TabGroup";
 
 import styles from "./SidePanelNavigation.module.scss";
 import { SidePanelNavigationProps } from "./SidePanelNavigation.types";
 
-// Both tab sets arrive as PROPS, so writing more than one tab needs a fragment
-// (`topLevel={<><TabItem/><TabItem/></>}`) — and TabGroup reads its children
-// with Children.toArray, which does NOT look inside a fragment: every tab would
-// silently lose its value, its selection and its click. Unwrap one level of
-// fragment before handing the tabs over.
+// Both sets arrive as PROPS, so writing more than one child needs a fragment
+// (`topLevel={<><Segment/><Segment/></>}`) — and TabGroup and SegmentedControl
+// both read their children with Children.toArray, which does NOT look inside a
+// fragment: every child would silently lose its value, its selection and its
+// click. Unwrap one level of fragment before handing them over.
 const unwrapFragment = (node: ReactNode): ReactNode =>
   isValidElement(node) && node.type === Fragment ? (node.props as { children?: ReactNode }).children : node;
 
 // The SidePanel's navigation block, pinned under the header while the body
-// scrolls. One row of object tabs (TabGroup default / md, scrolls sideways when
-// it overflows), plus — when `topLevel` is passed — a second row above it with
-// the top-level sections (TabGroup contained / lg, full width). Each row is
-// 52px tall with 16px sides and its own bottom divider. See Figma "SidePanel →
-// Parts → Navigation".
+// scrolls. Two levels, two different controls (Figma 28952-41216):
+//
+//   Object row  (always)  UNDERLINED tabs, scrolling sideways when they
+//                         overflow. 56px, 16px sides, a medium bottom divider.
+//   Top level   (opt-in)  a full-width SegmentedControl ABOVE it, which
+//                         switches WHICH OBJECT the panel shows — that row
+//                         reconfigures the panel rather than navigating inside
+//                         it (Daniel, 2026-09-30). 6px/16px padding and NO
+//                         divider: the object row's line closes the block.
+//
+// The object tabs were PILL tabs until 2026-10-04.
 export default function SidePanelNavigation({
   children,
   value,
@@ -34,9 +41,8 @@ export default function SidePanelNavigation({
   return (
     <div className={clsx(styles.nav, className)}>
       {topLevel != null && (
-        <div className={styles.row}>
-          <TabGroup
-            variant="contained"
+        <div className={styles.topRow}>
+          <SegmentedControl
             size="lg"
             isFullWidth
             value={topLevelValue}
@@ -45,7 +51,7 @@ export default function SidePanelNavigation({
             className={styles.topGroup}
           >
             {unwrapFragment(topLevel)}
-          </TabGroup>
+          </SegmentedControl>
         </div>
       )}
 
@@ -53,7 +59,7 @@ export default function SidePanelNavigation({
         {/* The object tabs scroll sideways when they overflow; the scrollbar is
             hidden and there is no edge fade (Daniel, 2026-08-05). */}
         <div className={styles.scroller}>
-          <TabGroup variant="default" size="md" value={value} defaultValue={defaultValue} onChange={onChange}>
+          <TabGroup variant="underlined" value={value} defaultValue={defaultValue} onChange={onChange}>
             {unwrapFragment(children)}
           </TabGroup>
         </div>

@@ -1,5 +1,4 @@
-import { CSSProperties, MouseEvent as ReactMouseEvent, useContext, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { CSSProperties, MouseEvent as ReactMouseEvent, useContext, useRef } from "react";
 
 import clsx from "clsx";
 
@@ -7,7 +6,7 @@ import { Divider } from "../Divider/Divider";
 import HoverHint from "../Hint/HoverHint";
 import { Icon } from "../Icon/Icon";
 import HoverTooltip from "../Tooltip/HoverTooltip";
-import Tooltip from "../Tooltip/Tooltip";
+import useAnchoredTooltip, { isTextClipped } from "../Tooltip/useAnchoredTooltip";
 
 import { FilterChipOrientationContext } from "./FilterChipOrientationContext";
 import styles from "./FilterChip.module.scss";
@@ -37,8 +36,9 @@ import { FilterChipBoxProps, FilterChipProps, FilterChipRemoveProps } from "./Fi
 // One content box. Text truncates with an ellipsis (a horizontal group caps
 // each box at 240px; in a vertical group the "value" box fills and truncates)
 // — when it actually truncates, hovering THE BOX shows a tooltip with the full
-// value. Same mechanics as TruncatingText (measure on enter, cursor-following
-// X, body portal), but the hover area is the whole box, not just the text span.
+// value. Same mechanics as TruncatingText (measure on enter, then the shared
+// `useAnchoredTooltip` places it in a body portal), except the hover area and
+// the anchor are the whole box — only the clipping test reads the text span.
 // Hover is the only trigger, and only on devices that have one — on touch a
 // tap would otherwise pin the tooltip open (and also click the box).
 export function FilterChipBox({
@@ -54,22 +54,16 @@ export function FilterChipBox({
   children,
 }: FilterChipBoxProps) {
   const textRef = useRef<HTMLSpanElement>(null);
-  const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
+  const tip = useAnchoredTooltip({ text: children, textAlign: "left" });
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
-  const track = (e: ReactMouseEvent) => {
-    setTip({ x: e.clientX, y: e.currentTarget.getBoundingClientRect().top });
+  // The box is the anchor (the text span sits inside its 36px height, so an
+  // 8px gap from the TEXT would land on the box's own edge), but the text span
+  // is what clips.
+  const handleEnter = (e: ReactMouseEvent<HTMLElement>) => {
+    if (isTextClipped(textRef.current)) tip.show(e.currentTarget);
   };
-  const handleEnter = (e: ReactMouseEvent) => {
-    const el = textRef.current;
-    if (el && el.scrollWidth > el.clientWidth) track(e);
-  };
-  const handleMove = (e: ReactMouseEvent) => {
-    if (tip) track(e);
-  };
-  const hoverHandlers = canHover
-    ? { onMouseEnter: handleEnter, onMouseMove: handleMove, onMouseLeave: () => setTip(null) }
-    : {};
+  const hoverHandlers = canHover ? { onMouseEnter: handleEnter, onMouseLeave: tip.hide } : {};
 
   const cls = clsx(
     styles.box,
@@ -96,13 +90,7 @@ export function FilterChipBox({
           <Icon icon="angle-down" pack="solid" size={10} />
         </span>
       )}
-      {tip != null &&
-        createPortal(
-          <span className={styles.tooltipOverlay} style={{ left: tip.x, top: tip.y }}>
-            <Tooltip placement="top" align="center" textAlign="left" text={children} />
-          </span>,
-          document.body,
-        )}
+      {tip.node}
     </>
   );
 

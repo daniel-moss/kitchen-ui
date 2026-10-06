@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import clsx from "clsx";
 
 import AvatarUser from "../../components/Avatar/AvatarUser";
+import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import GroupLabel from "../../components/GroupLabel/GroupLabel";
@@ -16,13 +17,14 @@ import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent"
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
 import MenuItem from "../../components/Menu/MenuItem";
 import MenuItemGroup from "../../components/Menu/MenuItemGroup";
+import { shortWeekdayDate, weekdayDate } from "../shared/dates";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import { users } from "../../data/users";
 import { noop, slot, useAnchoredMenu } from "./shared";
 import { StatWidget, StatWidgetRow } from "./StatWidget";
-import { DayTime, TechTime, TimeDistributionModule, WorkTimelineModule } from "./TimeCharts";
+import { DayTime, TechTime, TimeDistributionModule, ValueTooltip, WorkTimelineModule } from "./TimeCharts";
 
 import styles from "./TimesheetPanel.module.scss";
 
@@ -123,6 +125,12 @@ export interface Session {
   category?: string;
   /** Weekday start date for the ACTIVE row caption, e.g. "Monday, January 1". */
   weekdayLabel?: string;
+  /**
+   * Whose session it is — the Timesheet groups by person. Unset means the
+   * VIEWER's own: a session logged live by check-in never names anybody,
+   * because the person checking in is the person looking.
+   */
+  userId?: number;
 }
 
 // A session ≥ this long shows the warning state (amber avatar + amber duration).
@@ -358,16 +366,16 @@ export function StatusGlyph({ category }: { category?: string }) {
   );
 }
 
-// The ENDED-session avatar when the session is in a warning state (≥ 10 hours,
-// spread across two days, or overlapping another session): an amber box with a
-// warning triangle (Figma 21803-49361 / 49414, 24508-61972).
-function WarningGlyph() {
-  return (
-    <span className={styles.warnGlyph}>
-      <Icon icon="triangle-exclamation" pack="solid" size={16} />
-    </span>
-  );
-}
+// The ENDED-session avatar in ANY of its three warning states — ≥ 10 hours,
+// spread across two days, or overlapping another session (Figma 21803-49361 /
+// 49414, 24508-61972). All three draw the DS `AvatarWarning`.
+//
+// It used to be a hand-built amber box, which had drifted from the component:
+// the glyph colour was `--amber-10` where AvatarWarning uses `--amber-a11`,
+// and the corners were `--border-radius-1_5` where the DS xl square is 8px
+// since the radius rollout. Same mistake, and same fix, as the Equipment
+// module's row avatar (Daniel, 2026-10-06).
+const WarningGlyph = () => <AvatarWarning size="xl" />;
 
 // Active session (Figma 24196-75349 Travelling / 75378 Working): status avatar,
 // open-ended rounded range + weekday caption on the left, the live red timer +
@@ -481,7 +489,7 @@ const ActiveSessionRow = ({
 
 // Ended session (Figma 21803-49132): start → end, calendar avatar, total logged,
 // and a context-menu button (Edit / Delete) — desktop card / mobile drawer.
-const EndedSessionRow = ({ session, mobile, editable, overlap, round = exactSec, onEdit, onDelete }: { session: Session; mobile: boolean; editable: boolean; overlap?: SessionOverlap; round?: RoundSec; onEdit: () => void; onDelete: () => void }) => {
+const EndedSessionRow = ({ session, mobile, editable, overlap, round = exactSec, rounded = false, onEdit, onDelete }: { session: Session; mobile: boolean; editable: boolean; overlap?: SessionOverlap; round?: RoundSec; rounded?: boolean; onEdit: () => void; onDelete: () => void }) => {
   const menu = useAnchoredMenu(!mobile);
   // The range is always the ACTUAL recorded clock times. Only the DURATION can
   // be rounded, and only when the company rounds time up (`round`).
@@ -507,13 +515,14 @@ const EndedSessionRow = ({ session, mobile, editable, overlap, round = exactSec,
     rangeText
   );
   const warned = longSession || crossDay || overlapping;
-  // Caption = the WEEKDAY start date (node 21803-49132: "Monday, January 1");
-  // a cross-day session shows both WEEKDAY dates in amber instead (node
-  // 21803-49414: "Monday, January 1 → Tuesday, January 2" — year only when
-  // not the current one; the labels arrive pre-formatted that way).
+  // Caption = the start date. DESKTOP "Monday, January 1, 2027", MOBILE
+  // "Mon, Jan 1, 2027" (Daniel, 2026-10-06) — the weekday and the year on
+  // both, only the words shorten. A cross-day session shows BOTH dates in
+  // amber instead (node 21803-49414).
+  const dateOf = (full: string) => (mobile ? shortWeekdayDate(full) : weekdayDate(full));
   const caption = crossDay
-    ? `${session.weekdayLabel ?? session.dateLabel} → ${session.endWeekdayLabel ?? session.endDateLabel}`
-    : session.weekdayLabel ?? session.dateLabel;
+    ? `${dateOf(session.dateLabel)} → ${dateOf(session.endDateLabel ?? session.dateLabel)}`
+    : dateOf(session.dateLabel);
   const menuBody = (
     <>
       <MenuItemGroup>
@@ -550,7 +559,16 @@ const EndedSessionRow = ({ session, mobile, editable, overlap, round = exactSec,
         avatar={warned ? <WarningGlyph /> : <StatusGlyph category={session.category} />}
         right={
           <span className={styles.activeRight}>
-            <span className={clsx(styles.sessionValue, longSession && styles.warnText)}>{durLabel}</span>
+            {/* Hovering the total reveals the EXACT time (Figma 21816-30643).
+                Only a rounded total hides something, so only then is there
+                anything to reveal — the same rule the two charts follow. */}
+            {rounded ? (
+              <ValueTooltip text={formatHrMin(session.durationSec)}>
+                <span className={clsx(styles.sessionValue, longSession && styles.warnText)}>{durLabel}</span>
+              </ValueTooltip>
+            ) : (
+              <span className={clsx(styles.sessionValue, longSession && styles.warnText)}>{durLabel}</span>
+            )}
             {session.category != null && <span className={styles.activeRightCaption}>{session.category}</span>}
           </span>
         }
@@ -607,6 +625,7 @@ export const SessionRow = ({
   editable,
   overlap,
   round = exactSec,
+  rounded = false,
   onStop,
   onSwitchStatus,
   onEdit,
@@ -619,6 +638,8 @@ export const SessionRow = ({
   overlap?: SessionOverlap;
   /** Rounds an ENDED session's duration. Default: the exact seconds. */
   round?: RoundSec;
+  /** The company rounds time up — the row's total gets the exact-time tooltip. */
+  rounded?: boolean;
   onStop: () => void;
   onSwitchStatus?: (status: string) => void;
   onEdit: () => void;
@@ -628,13 +649,13 @@ export const SessionRow = ({
     // A running session shows a live stopwatch, which rounding never touches.
     <ActiveSessionRow session={session} mobile={mobile} onStop={onStop} onSwitchStatus={onSwitchStatus} />
   ) : (
-    <EndedSessionRow session={session} mobile={mobile} editable={editable} overlap={overlap} round={round} onEdit={onEdit} onDelete={onDelete} />
+    <EndedSessionRow session={session} mobile={mobile} editable={editable} overlap={overlap} round={round} rounded={rounded} onEdit={onEdit} onDelete={onDelete} />
   );
 
 // A tech's timesheet group: header (avatar + name + total + add), then either
 // the rows (log / session) or the "No time logged" empty state. STATIC — the
 // accordion was removed (Daniel 2026-07-27).
-const TechGroup = ({ user, total, rows, divider, canAdd, onAdd }: { user: User; total?: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: () => void }) => {
+const TechGroup = ({ user, total, rows, divider, canAdd, onAdd }: { user: User; total?: string; rows: ReactNode[]; divider: boolean; canAdd: boolean; onAdd: (userId: number) => void }) => {
   return (
   <ItemGroup
     isAccordion={false}
@@ -646,15 +667,15 @@ const TechGroup = ({ user, total, rows, divider, canAdd, onAdd }: { user: User; 
         label={user.name}
         // No sessions → no "• 0 hr" — just the name (Figma 21803-48357).
         caption={total}
-        // Only the viewing tech can add/edit their own time sessions.
+        // A tech can add to their OWN group; an admin to anybody's.
         slotRight={
           canAdd ? (
             <HoverTooltip text="Add time session">
-              {/* `() => onAdd()`, not `onAdd`: JobDetails' handler takes an
-                  optional start Date, and passing it straight to onClick fed it
-                  the MouseEvent — the session form then crashed formatting it
-                  as a date (pre-existing, found 2026-08-11). */}
-              <IconButton icon="plus" variant="ghost" size="md" aria-label={`Add time session for ${user.name}`} onClick={() => onAdd()} />
+              {/* `() => onAdd(user.id)`, not `onAdd`: passing the handler
+                  straight to onClick fed it the MouseEvent — the session form
+                  then crashed formatting it as a date (found 2026-08-11). The
+                  id is what files the new session under THIS tech. */}
+              <IconButton icon="plus" variant="ghost" size="md" aria-label={`Add time session for ${user.name}`} onClick={() => onAdd(user.id)} />
             </HoverTooltip>
           ) : undefined
         }
@@ -680,6 +701,7 @@ export function SessionGroup({
   onDelete,
   onAdd,
   round = exactSec,
+  rounded = false,
 }: {
   user: TimesheetUser;
   sessions: Session[];
@@ -692,9 +714,11 @@ export function SessionGroup({
   onSwitchStatus?: (status: string) => void;
   onEdit: (session: Session) => void;
   onDelete: (session: Session) => void;
-  onAdd: () => void;
+  onAdd: (userId: number) => void;
   /** Rounds every logged duration. Default: the exact seconds. */
   round?: RoundSec;
+  /** The company rounds time up — the rows get the exact-time tooltip. */
+  rounded?: boolean;
 }) {
   // The header total is the sum of the ROUNDED rows, so it always adds up to
   // what the rows show.
@@ -703,7 +727,7 @@ export function SessionGroup({
   // same time is normal.
   const overlaps = overlapFlags(sessions);
   const rows = sessions.map((s) => (
-    <SessionRow key={s.id} session={s} mobile={mobile} editable={editable} overlap={overlaps.get(s.id)} round={round} onStop={onStop} onSwitchStatus={onSwitchStatus} onEdit={() => onEdit(s)} onDelete={() => onDelete(s)} />
+    <SessionRow key={s.id} session={s} mobile={mobile} editable={editable} overlap={overlaps.get(s.id)} round={round} rounded={rounded} onStop={onStop} onSwitchStatus={onSwitchStatus} onEdit={() => onEdit(s)} onDelete={() => onDelete(s)} />
   ));
   return <TechGroup user={user} total={sessions.length > 0 ? formatHrMin(totalSec) : undefined} rows={rows} divider={false} canAdd={canAdd} onAdd={onAdd} />;
 }
@@ -716,6 +740,22 @@ interface TimesheetPanelProps {
   /** The viewing tech — only their group gets the "add time session" plus + the
    *  row edit/delete menus. Unset = all groups editable. */
   viewerId?: number;
+  /**
+   * The viewer may manage EVERY tech's time, not only their own — an admin
+   * (Daniel, 2026-10-06: the demo's signed-in user has admin permissions and
+   * "should be able to do everything within the app"). It overrides
+   * `viewerId`, so every group gets the plus button and every ended row its
+   * edit / delete menu. Default false — a plain tech keeps their own row only.
+   */
+  canEditOthers?: boolean;
+  /**
+   * The job is CLOSED (completed, finalized or cancelled), so its timesheet is
+   * a record rather than a working document: nobody adds, edits or deletes a
+   * session — not even a full-permission admin (Daniel, 2026-10-06). It wins
+   * over both `canAddSessions` and `canEditOthers`, so no group draws the plus
+   * and no ended row draws its context menu. Default false.
+   */
+  readOnly?: boolean;
   /** Logged sessions per assignee (userId → their sessions). Used by Time Tracker. */
   sessionsByUser?: Record<number, Session[]>;
   /** Ends the running session (the active session's "Stop session" button). */
@@ -726,8 +766,9 @@ interface TimesheetPanelProps {
   onEditSession?: (session: Session) => void;
   /** Deletes an ended session (opens the delete prompt). */
   onDeleteSession?: (session: Session) => void;
-  /** Opens the session form to add a new session (the group's plus button). */
-  onAddSession?: () => void;
+  /** Opens the session form to add a new session for ONE tech (their group's
+   *  plus button) — the id is what files the session under them. */
+  onAddSession?: (userId: number) => void;
   /** Gates the group's "add time session" plus — a tech can only log time once
    *  the job is started. Default true (the JobDetails demo). */
   canAddSessions?: boolean;
@@ -750,6 +791,8 @@ interface TimesheetPanelProps {
 export default function TimesheetPanel({
   assignees,
   viewerId,
+  canEditOthers = false,
+  readOnly = false,
   sessionsByUser,
   onStopSession,
   onSwitchStatus,
@@ -767,8 +810,9 @@ export default function TimesheetPanel({
     ? FILLED_LOGS.map((g) => ({ user: g.user, total: g.total, rows: g.logs.map((log, i) => <LogRow key={i} log={log} />) }))
     : assignees.map((user) => {
         const s = sessionsByUser?.[user.id] ?? [];
-        // Only the viewing tech can edit their own logged time.
-        const editable = viewerId == null || user.id === viewerId;
+        // A tech edits their own logged time; an admin edits anybody's — but a
+        // CLOSED job's timesheet is editable by nobody.
+        const editable = !readOnly && (canEditOthers || viewerId == null || user.id === viewerId);
         // The header total is the sum of the ROUNDED rows, so it adds up.
         const totalSec = s.reduce((acc, x) => acc + round(x.durationSec), 0);
         // Overlaps are checked inside ONE tech's sessions (Figma 24508-61972).
@@ -785,6 +829,7 @@ export default function TimesheetPanel({
               editable={editable}
               overlap={overlaps.get(sess.id)}
               round={round}
+              rounded={roundTo5min}
               onStop={onStopSession ?? noop}
               onSwitchStatus={onSwitchStatus}
               onEdit={() => onEditSession?.(sess)}
@@ -843,7 +888,13 @@ export default function TimesheetPanel({
                   total={g.total}
                   rows={g.rows}
                   divider={gi < groups.length - 1}
-                  canAdd={canAddSessions && (viewerId == null || g.user.id === viewerId)}
+                  // An admin's plus does NOT follow `canAddSessions`: that
+                  // gate is about the TECH's own live tracking (you cannot log
+                  // your own time on a job nobody has started, or on one you
+                  // are not assigned to). Correcting somebody's timesheet from
+                  // the office is a different action — but a CLOSED job takes
+                  // the plus away from everyone.
+                  canAdd={!readOnly && (canEditOthers || (canAddSessions && (viewerId == null || g.user.id === viewerId)))}
                   onAdd={onAddSession ?? noop}
                 />
               ))

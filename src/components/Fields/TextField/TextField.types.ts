@@ -5,9 +5,11 @@ import type { InputGroupChildContext } from "../InputGroup/InputGroup.types";
 /**
  * The mobile keyboard (docs "Mobile keyboard"): default "text"; email-format
  * data → "email"; URLs → "url"; phone numbers → "tel"; phone extensions and
- * other digit-only data → "numeric".
+ * other digit-only data → "numeric"; numbers that can carry a fractional part
+ * — a percentage, an amount — → "decimal", which is the same pad plus the
+ * separator key "numeric" does not offer.
  */
-export type TextFieldKeyboard = "text" | "email" | "url" | "tel" | "numeric";
+export type TextFieldKeyboard = "text" | "email" | "url" | "tel" | "numeric" | "decimal";
 
 interface TextFieldBaseProps
   extends Omit<

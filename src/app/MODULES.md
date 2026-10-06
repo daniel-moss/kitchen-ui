@@ -104,11 +104,12 @@ Both the Jobs list and the Job details page read through it, so an edit on one
 shows on the other. Verified: open a job from the list, change its duration,
 press Back, reopen it — the change is still there.
 
-**`forms/SchedulingForm.tsx`** is the first module moved over from the Job
-Details prototype. It was copied, not imported: the prototype's copy is
-hardwired to a single `JOB_ID`, and this one takes a `jobId` prop. The page
-converts between the database's ISO stamp + minute count and the form's
-date / time-string / typed-duration shape.
+`forms/SchedulingForm.tsx` **is gone** (deleted 2026-10-04). It was an early
+copy of the Job Details form, made when the page still lived in two places.
+The 2026-09-28 consolidation moved the page itself to
+`src/modules/JobDetails/`, which the app imports through
+`jobDetails/JobDetailsRoute.tsx` — so the copy was dead code nothing imported,
+and it had already missed every fix made to the real one.
 
 ### What is NOT done
 
@@ -385,6 +386,62 @@ call sites has to thread the text through.
 - **Location contacts** — SIX of the eleven locations had none at all, so
   anything naming the person on site had nobody to name. Eight contacts added;
   every location now has at least one.
+
+## Tax rates — the first WIRED list (2026-10-05)
+
+The Tax rates list is the first one whose objects can be opened, edited and
+created. Three entry points, all from the designs:
+
+| Action | Where |
+| --- | --- |
+| Open a rate | a row click on the list → the "Tax rate" side panel |
+| Create a rate | the list's "New" button, and the Create menu's Pricebook item → Tax rate (sidebar on desktop, bottom bar on mobile) |
+| Preview a new rate | the "Tax rate created" toast's link → the panel |
+
+**`shell/taxRates.tsx` holds ONE form and ONE panel for the whole app**, the
+same arrangement `shell/newJob.tsx` uses and for the same reason: both are
+overlays that portal to `<body>`, and their entry points sit far apart in the
+tree. `useNewTaxRate()` and `useOpenTaxRate(id)` reach them from anywhere.
+
+The panel is deliberately NOT a route. `#/tax-rates/<id>` does not parse (the
+`ObjectType` union has no tax rate) because the design is an overlay over the
+list, not a page. Adding a route later is additive, as it was for jobs.
+
+**The store grew with it.** `taxRates` / `taxRateById` / `updateTaxRate` /
+`createTaxRate` / `deleteTaxRate` sit next to the job ones. Two differences
+from jobs: a demo can CREATE a rate and DELETE one, so patches alone are not
+enough — the store keeps an added list and a removed set as well, and
+re-sorts by name so a created rate lands where it belongs. A created rate is
+seeded the way production would: confirmed (not in Review), active, created by
+the signed-in user, and NOT yet synced — which is exactly what the create
+form's QuickBooks notice warns about, and what the panel then shows.
+
+**`PricebookPage` gained three optional props** — `rows`, `onCreate`,
+`onRowClick` — so the other four pricebook lists are untouched and can be
+wired the same way one at a time. Keep `onRowClick` stable (`useCallback`):
+the table is memoised.
+
+**A Toaster was missing from the whole app.** Nothing outside the Job Details
+page mounted one, so every toast raised from a list, a form or a panel went
+nowhere — the "Job created" toast included, since 2026-09-28. `App.tsx` mounts
+one now, and steps aside while the Job Details page is on screen because that
+module still brings its own (two stacks would render every toast twice).
+
+## Coming BACK from a details page (2026-10-06)
+
+Opening a job unmounts the Jobs list, so everything the list held in state is
+gone when you press Back. Daniel: opening a job from **"Pending"** has to come
+back to "Pending".
+
+`App.tsx` now holds `jobsView` (`JobsViewState` — the phase, and the active
+view inside each phase) and hands it to `JobsPage` as a controlled prop. It
+sits next to `listPage` and for the same reason: **it is a memory of where you
+were, not a place**, so it stays out of the hash. `JobsPage` keeps the pair
+itself when the props are omitted, so its stories are unaffected.
+
+What still resets on that trip: the view's FILTERS, its sort, the search box
+and the View-menu settings. They can move up the same way, one `useState` each
+— it was left out because Daniel asked for the tab.
 
 ## The module map (inherited from the Filters prototype)
 

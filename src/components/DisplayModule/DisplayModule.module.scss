@@ -7,7 +7,7 @@
   display: flex;
   flex-direction: column;
   background: var(--surface-level-second);
-  border-radius: var(--border-radius-2_5); // 10px
+  border-radius: var(--border-radius-3); // 12px
   overflow: hidden; // clip the banner / accordion body to the radius
   box-shadow: 0 1px 3px 0 var(--box-shadow-shadow-default);
 }
@@ -53,15 +53,15 @@
   transition: background-color 120ms ease;
   // Round the header itself so the focus ring / bg corners are rounded (not
   // clipped square by the container). Closed = all corners; open below.
-  border-radius: var(--border-radius-2_5); // 10px
+  border-radius: var(--border-radius-3); // 12px
 }
 // Open: only the top corners round — the bottom meets the body, so it stays square.
 .accordion .headerRow.open {
-  border-radius: var(--border-radius-2_5) var(--border-radius-2_5) 0 0;
+  border-radius: var(--border-radius-3) var(--border-radius-3) 0 0;
 }
 // With a banner above, the header top meets the banner — never round the top.
 .accordion.hasBanner .headerRow {
-  border-radius: 0 0 var(--border-radius-2_5) var(--border-radius-2_5); // closed: bottom only
+  border-radius: 0 0 var(--border-radius-3) var(--border-radius-3); // closed: bottom only
 }
 .accordion.hasBanner .headerRow.open {
   border-radius: 0; // open: none (top meets banner, bottom meets body)

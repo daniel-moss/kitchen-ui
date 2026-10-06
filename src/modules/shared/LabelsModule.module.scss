@@ -1,0 +1,7 @@
+// The "Labels" module's wrapping badge row — 8px apart, both ways.
+.badgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+  align-items: flex-start;
+}

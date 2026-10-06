@@ -6,7 +6,7 @@ import { Job } from "../shared/jobRow";
 
 import { Equipment, equipmentPoolOf } from "./equipment";
 import { JobLocation, LOCATIONS } from "./jobData";
-import { JobState, JobStatus } from "./jobState";
+import { formatStatusTimestamp, JobState, JobStatus } from "./jobState";
 import { Scheduling } from "./SchedulingForm";
 import type { SignatureResult } from "./SignatureModule";
 
@@ -56,6 +56,13 @@ export function seedJobState(job: Job): JobState {
   const started = dbJob == null ? null : startedAt(dbJob);
   const finished = dbJob == null ? null : completedAt(dbJob);
   const changed = job.statusChangedAt;
+  // WHEN THE VISIT WAS BOOKED — the history's own move into "upcoming", which
+  // is a different moment per job (a job that waited in Unscheduled was booked
+  // minutes to hours after it arrived). It is NOT "Scheduled for": that is the
+  // visit itself, and the two rows are allowed to disagree (Daniel,
+  // 2026-10-06). Until now every one of the 78 jobs printed the same
+  // hardcoded "Jan 1, 2026 at 12:00 PM".
+  const booked = dbJob == null ? null : (historyOf(dbJob).transitions.find((t) => t.status === "upcoming")?.at ?? null);
 
   return {
     status: next,
@@ -63,6 +70,7 @@ export function seedJobState(job: Job): JobState {
     // The job's own reason, so a paused or held job opens NAMING why — the
     // page showed the generic status before (2026-09-28).
     subStatus: job.subStatusName ?? undefined,
+    scheduledAt: stamp(booked),
     startedAt: stamp(started),
     activeAt: next === "active" ? stamp(changed) : undefined,
     pausedAt: next === "quickPaused" || next === "onHold" ? stamp(changed) : undefined,
@@ -73,13 +81,11 @@ export function seedJobState(job: Job): JobState {
   };
 }
 
-/** "Mon, Jan 1 at 12:00 PM" — the Status module's stamp format. */
+/** "Jan 1, 2027 at 12:00 PM" — the Status module's stamp format. ONE source:
+ *  `formatStatusTimestamp`, so the seeded stamps and the live ones cannot
+ *  drift (no weekday, year always — Daniel, 2026-10-04). */
 function stamp(iso: string | null | undefined): string | undefined {
-  if (iso == null) return undefined;
-  const d = new Date(iso);
-  const date = d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\u202f/g, " ");
-  return `${date} at ${time}`;
+  return iso == null ? undefined : formatStatusTimestamp(new Date(iso));
 }
 
 /** The job's schedule, in the form's date + time-string + typed-duration shape. */
@@ -88,9 +94,13 @@ export function seedScheduling(job: Job): Scheduling {
   const total = job.durationMinutes ?? 0;
   return {
     date,
+    // An UNSCHEDULED job has no time either. It used to seed "9:00 AM", which
+    // the Scheduling module then showed on its own while the edit form opened
+    // on "Unschedule" — the job had a time but no date (Daniel's JOB-1063
+    // report, 2026-10-04). The save path has always written "" here.
     time:
       date == null
-        ? "9:00 AM"
+        ? ""
         : // A narrow no-break space is what Intl puts before AM/PM; the form's
           // options use a plain space, so it would never match.
           date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/ /g, " "),

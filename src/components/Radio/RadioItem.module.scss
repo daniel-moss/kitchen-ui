@@ -95,7 +95,7 @@
 // gray-a2, selected = surface-level-second) and does NOT darken on hover — only
 // the BORDER strengthens. Press is the one exception that shifts the fill.
 .card {
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
   background: var(--gray-a2);
   box-shadow: inset 0 0 0 1px var(--gray-a7);
   overflow: hidden;

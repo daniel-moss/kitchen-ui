@@ -1,7 +1,7 @@
 @use "../../styles/mixins/font" as *;
 
 // Toast — values from Figma "Toast" (Daniel's 2026-07-14 restyle): 384px chip
-// on surface-level-third, radius 6, sm/down shadow, 12px padding both
+// on surface-level-third, radius 8 (2026-10-01), sm/down shadow, 12px padding both
 // variants, 10px root gap, compact (14/20) copy.
 
 .toast {
@@ -12,7 +12,7 @@
   padding: var(--size-3);
   overflow: hidden;
   background: var(--surface-level-third);
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2); // 8px
   // A 1px per-type INNER stroke (inset shadow, so it never adds size) lifts the
   // toast off a low-contrast background; the color also signals the status.
   // Default covers neutral + processing; the colored types override below.

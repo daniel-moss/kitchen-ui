@@ -172,6 +172,7 @@ export default function ServicePanel({
   onCreateEquipment,
   locationName,
   serviceLocked = false,
+  onOpenJob,
 }: {
   mobile?: boolean;
   serviceValues: ServiceValues;
@@ -192,6 +193,8 @@ export default function ServicePanel({
   /** Hides the Service module's edit pencil (Concept 8 tech view — only the
    *  office edits). Equipment and Files stay editable. Default false. */
   serviceLocked?: boolean;
+  /** Opens the recalled job — the "Recall to" link navigates to it, same tab. */
+  onOpenJob?: (id: string) => void;
 }) {
   const [serviceOpen, setServiceOpen] = useState(false);
   const [equipmentOpen, setEquipmentOpen] = useState(false);
@@ -258,7 +261,7 @@ export default function ServicePanel({
                 label="Recall to"
                 kind="linkButton"
                 link={
-                  <LinkButton rightIcon="arrow-up-right" onClick={noop}>
+                  <LinkButton rightIcon="arrow-up-right" onClick={() => onOpenJob?.(service.recallTo as string)}>
                     {service.recallTo}
                   </LinkButton>
                 }

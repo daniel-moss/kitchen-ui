@@ -25,7 +25,7 @@ export interface TopBarViewProps {
   defaultSearch?: string;
   /** Called with the search value on every keystroke, and with "" on Clear. */
   onSearchChange?: (value: string) => void;
-  /** Hint text shown while the search input is empty. Default `"Keyword search..."`. */
+  /** Hint text shown while the search input is empty. Default `"Search..."`. */
   searchPlaceholder?: string;
 
   /**

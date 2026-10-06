@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   width: 100%;
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
 }
 
 .primary {
@@ -173,11 +173,15 @@
   @include row-press-fill;
 }
 
-// Focus (primary) — the DS focus ring: 2px stroke, 2px gap, gray-a3 fill.
+// Focus (primary) — the DS focus ring: 2px stroke, 2px gap, gray-a3 fill. The
+// inner fill's corner is the row radius minus those 4px, so it lands at
+// `--border-radius-1` (4px).
 .primary.accordion:focus-visible {
   @include row-focus-ring;
 }
 // Focus (secondary) — gray-a3 fill + a 2px gray-12 ring drawn OUTSIDE the row.
+// An outline follows the row's radius plus its offset, so the ring's corner is
+// 8 + 2 = 10px — `--border-radius-2_5`.
 .secondary.accordion:focus-visible {
   outline: 2px solid var(--gray-12);
   outline-offset: 2px;

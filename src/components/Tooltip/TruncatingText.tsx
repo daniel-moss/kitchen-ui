@@ -1,10 +1,9 @@
-import { CSSProperties, MouseEvent, ReactNode, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { CSSProperties, ReactNode, useRef } from "react";
 
 import clsx from "clsx";
 
-import Tooltip from "./Tooltip";
 import styles from "./TruncatingText.module.scss";
+import useAnchoredTooltip, { isTextClipped } from "./useAnchoredTooltip";
 
 interface TruncatingTextBaseProps {
   /** Max lines before the ellipsis. Default 1 (single line); 2/3 clamp. */
@@ -26,31 +25,21 @@ export type TruncatingTextProps = TruncatingTextBaseProps &
 
 // Text with an ellipsis after `lines` lines (default one). When it actually
 // overflows, hovering shows a Tooltip with the full text — placed on top,
-// left-aligned, and following the cursor's horizontal position. The tooltip
-// renders in a body-level portal so it is never clipped by an ancestor that
-// scrolls or hides overflow (e.g. StepItemGroup's horizontally scrolling stack).
+// left-aligned, and CENTERED ON THE TEXT BOX (not on the cursor: production's
+// Radix tooltip can only be positioned from its trigger's box, so a
+// cursor-following tooltip is not buildable there — Daniel, 2026-10-04).
+// Placement comes from the shared `useAnchoredTooltip`, which portals the
+// tooltip to <body> so it is never clipped by an ancestor that scrolls or
+// hides overflow (e.g. StepItemGroup's horizontally scrolling stack).
 export default function TruncatingText({ text, children, tooltipText, lines = 1, className }: TruncatingTextProps) {
   const full = tooltipText ?? text ?? "";
   const textRef = useRef<HTMLSpanElement>(null);
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const tip = useAnchoredTooltip({ text: full, textAlign: "left" });
 
-  const track = (clientX: number) => {
-    const el = textRef.current;
-    if (el) setPos({ x: clientX, y: el.getBoundingClientRect().top });
-  };
-
-  const handleEnter = (e: MouseEvent) => {
-    const el = textRef.current;
-    // Single-line overflows horizontally; a multi-line clamp vertically.
-    if (el && (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight)) {
-      track(e.clientX);
-      setOpen(true);
-    }
-  };
-
-  const handleMove = (e: MouseEvent) => {
-    if (open) track(e.clientX);
+  // Single-line overflows horizontally, a multi-line clamp vertically —
+  // `isTextClipped` tests both.
+  const handleEnter = () => {
+    if (isTextClipped(textRef.current)) tip.show(textRef.current);
   };
 
   const clampStyle: CSSProperties | undefined = lines > 1 ? { WebkitLineClamp: lines } : undefined;
@@ -62,19 +51,12 @@ export default function TruncatingText({ text, children, tooltipText, lines = 1,
         className={clsx(lines > 1 ? styles.clamp : styles.text, className)}
         style={clampStyle}
         onMouseEnter={handleEnter}
-        onMouseMove={handleMove}
-        onMouseLeave={() => setOpen(false)}
+        onMouseLeave={tip.hide}
       >
         {children ?? text}
       </span>
 
-      {open &&
-        createPortal(
-          <span className={styles.overlay} style={{ left: pos.x, top: pos.y }}>
-            <Tooltip placement="top" align="center" textAlign="left" text={full} />
-          </span>,
-          document.body,
-        )}
+      {tip.node}
     </span>
   );
 }

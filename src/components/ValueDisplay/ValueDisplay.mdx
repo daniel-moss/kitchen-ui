@@ -76,11 +76,10 @@ whose size is fixed at xs (20px). All avatar types are supported.
 
 <Canvas of={ValueDisplayStories.TextSlotLeft} />
 
-The text **with a left slot** truncates when it does not fit one line. Hovering
-the truncated text shows a tooltip with the full value. The trigger is the text
-itself, and the tooltip follows the cursor.
+The text **wraps** when it does not fit one line — with a left slot as well as
+without one. The slot stays on the first line.
 
-<Canvas of={ValueDisplayStories.TextTruncates} />
+<Canvas of={ValueDisplayStories.TextWraps} />
 
 The text supports any color — pass it as `valueColor`.
 

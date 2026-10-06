@@ -39,8 +39,9 @@ which owns the layout and the validation.
 
 ## Anatomy
 
-Contains an optional slot and a label in a padded box with
-`--border-radius-1_5` (6px) corners. Everything is centered and the chip keeps
+Contains an optional slot and a label in a padded box — corners are
+`--border-radius-1_5` (6px) on `sm` and `--border-radius-2` (8px) on `md` and
+`lg`. Everything is centered and the chip keeps
 to one line. The border is drawn as an inset `box-shadow`, so it never adds to
 the chip's size.
 
@@ -157,7 +158,8 @@ Hover strengthens the border from `--gray-a7` to `--gray-a8`. Press adds the
 
 Focus draws the ring: a 2px `--gray-12` stroke at the chip's bounds, a 2px
 transparent gap, then the chip's own fill and border with their corners
-tightened to `--border-radius-0_5` (2px). Nothing changes size and nothing
+tightened by those 4px — `--border-radius-0_5` (2px) on `sm`,
+`--border-radius-1` (4px) on `md` and `lg`. Nothing changes size and nothing
 inside moves, so a focused chip stays in line with its neighbours. On an
 invalid chip the ring is `--tomato-9`. It is drawn with inset shadows rather
 than an offset outline, so a scrolling menu cannot clip it.

@@ -1,4 +1,4 @@
-import { Children, isValidElement, ReactElement, useEffect, useRef, useState } from "react";
+import { Children, isValidElement, ReactElement, useContext, useEffect, useRef, useState } from "react";
 
 import clsx from "clsx";
 
@@ -9,6 +9,7 @@ import DrawerHeader from "../Popover/DrawerHeader";
 import PopoverHeaderContent from "../Popover/PopoverHeaderContent";
 import PopoverHeaderText from "../Popover/PopoverHeaderText";
 import HoverTooltip from "../Tooltip/HoverTooltip";
+import { TopBarNavLoadingContext } from "./TopBarNavLoadingContext";
 import TopBarNavTitle from "./TopBarNavTitle";
 
 import styles from "./TopBarNavLeftElements.module.scss";
@@ -32,10 +33,14 @@ export default function TopBarNavLeftElements({
   className,
 }: TopBarNavLeftElementsProps) {
   const isDesktop = useIsDesktop(breakpoint);
+  const isLoading = useContext(TopBarNavLoadingContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuWrapRef = useRef<HTMLDivElement>(null);
 
-  const ownsMenu = contextMenu != null;
+  // While the bar loads, the context menu is not drawn — its items depend on
+  // the object that has not arrived. The back button stays: it is navigation,
+  // not data.
+  const ownsMenu = contextMenu != null && !isLoading;
 
   // Desktop card: clicking outside the button + card closes the menu.
   // (The mobile drawer closes through its own scrim via onClose.)
@@ -104,7 +109,7 @@ export default function TopBarNavLeftElements({
           </span>
         </span>
       ) : (
-        onActions != null && <span className={styles.slotRight}>{contextButton}</span>
+        onActions != null && !isLoading && <span className={styles.slotRight}>{contextButton}</span>
       )}
     </div>
   );

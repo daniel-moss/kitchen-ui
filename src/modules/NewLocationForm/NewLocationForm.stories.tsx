@@ -8,7 +8,7 @@ import NewLocationForm from "./NewLocationForm";
 // components, shared by prototypes — see the folder's components for the
 // Figma sources. The demo client is "McDonald's" (the header caption).
 const meta: Meta = {
-  title: 'Modules/"New Location" Form',
+  title: 'Modules/Location/"New Location" Form',
   parameters: { controls: { disable: true } },
 };
 

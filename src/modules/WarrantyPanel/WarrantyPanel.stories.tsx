@@ -19,7 +19,7 @@ import WarrantyPanel from "./WarrantyPanel";
 //   w-wd-griddle       Extended parts + labor — UPCOMING (starts next).
 //   w-bc-oven          Rental full coverage — no end date, no notes.
 const meta: Meta = {
-  title: 'Modules/"Warranty" Side Panel',
+  title: 'Modules/Warranty/"Warranty" Side Panel',
   parameters: { controls: { disable: true } },
 };
 
@@ -121,7 +121,6 @@ export const ActionsFail: Story = {
   render: () => <Demo record={ACTIVE} breakpoint="desktop" fails />,
 };
 
-export const Error: Story = {
-  parameters: { layout: "centered" },
-  render: () => <Demo record={ACTIVE} breakpoint="desktop" state="error" />,
-};
+// The error / offline states are SidePanel's own behavior, documented and
+// demonstrated on that component's page — the panel only forwards `state` and
+// `onRetry`. No story here, so the two cannot drift (Daniel, 2026-09-29).

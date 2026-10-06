@@ -192,7 +192,7 @@ export default function TypeModule({
         mobile={mobile}
         title="Recall to"
         searchable={candidates.length > 0}
-        searchPlaceholder="Job..."
+        searchPlaceholder="ID or service..."
         noResultsCaption="Try a different search"
         state={candidates.length === 0 ? "empty" : "default"}
         emptyState={{

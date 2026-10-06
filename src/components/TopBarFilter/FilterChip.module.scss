@@ -3,8 +3,9 @@
 // FilterChip — one applied filter as "name | operator | value | ×" boxes
 // separated by vertical Dividers. Per Figma (component 29552-11955, parts
 // 29544-9456, rebuilt 2026-09-17): the chip is a `--gray-a2` body inside a 1px
-// `--gray-a6` ring — no card surface, no shadow — with a 6px radius; the boxes
-// are transparent and the chip's overflow clip rounds their corners.
+// `--gray-a6` ring — no card surface, no shadow — with an 8px radius
+// (2026-10-01, was 6px); the boxes are transparent and the chip's overflow clip
+// rounds their corners.
 //
 // ONE size since 2026-09-18 (the Figma component dropped its breakpoint):
 // 36px boxes with 12px side paddings everywhere. Only the LAYOUT differs, and
@@ -24,7 +25,7 @@
   overflow: hidden;
   height: var(--size-9); // 36px
 
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2); // 8px
   background: var(--gray-a2);
   box-shadow: inset 0 0 0 1px var(--gray-a6);
 }
@@ -55,8 +56,8 @@
 // The left end needs none: the "name" box is never interactive, so it has
 // neither a fill nor a ring of its own.
 .chip > *:last-child {
-  border-top-right-radius: var(--border-radius-1_5);
-  border-bottom-right-radius: var(--border-radius-1_5);
+  border-top-right-radius: var(--border-radius-2);
+  border-bottom-right-radius: var(--border-radius-2);
 }
 
 // ---- content box ("name" / "operator" / "value") ----
@@ -229,19 +230,8 @@
   @include font("body-400-compact");
 }
 
-// The truncation tooltip overlay: body-portaled, positioned at the cursor X /
-// the box's top edge (same pattern as TruncatingText's overlay).
-.tooltipOverlay {
-  position: fixed;
-  transform: translate(-50%, calc(-100% - 8px));
-
-  // Intrinsic width so the tooltip keeps a constant size regardless of the
-  // cursor's X (otherwise shrink-to-fit squeezes it as it moves right).
-  width: max-content;
-
-  pointer-events: none;
-  z-index: var(--z-tooltip);
-}
+// (The truncation tooltip's placement — body portal, fixed position above the
+// box, intrinsic width — lives with the shared `useAnchoredTooltip` hook.)
 
 // ---- "remove" box ----
 // A fixed 36px square, the 12px xmark centered. The icon is

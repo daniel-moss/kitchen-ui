@@ -1,12 +1,11 @@
-import { ReactNode, UIEvent, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { ReactNode, UIEvent, useLayoutEffect, useRef, useState } from "react";
 
 import clsx from "clsx";
 
-import useIsDesktop from "../../hooks/useIsDesktop";
 import { Divider } from "../Divider/Divider";
 import { TabGroupDefaultSizeContext } from "../Tabs/TabGroupDefaultSizeContext";
 import TopBarNavLiveUsers from "./TopBarNavLiveUsers";
-import TopBarNavRightElements from "./TopBarNavRightElements";
+import { TopBarNavLoadingContext } from "./TopBarNavLoadingContext";
 
 import styles from "./TopBarNav.module.scss";
 import { TopBarNavProps } from "./TopBarNav.types";
@@ -19,10 +18,9 @@ function SizedTabs({ children }: { children: ReactNode }) {
   return <TabGroupDefaultSizeContext.Provider value="lg">{children}</TabGroupDefaultSizeContext.Provider>;
 }
 
-// The tabs scroller: tabs scroll horizontally when space is tight, with a
-// 40px fade at the edge(s) where content continues behind the container
-// (the doc's fade-out effect — list bars and the desktop details bar; the
-// mobile details tabs row scrolls WITHOUT it).
+// The tabs scroller: the tabs hug the title, and scroll horizontally when the
+// row runs out of room, with a 40px fade at the edge(s) where content
+// continues behind the container (the doc's fade-out effect).
 function TabsScroller({ children }: { children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [fade, setFade] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
@@ -75,126 +73,48 @@ function TabsScroller({ children }: { children: ReactNode }) {
   );
 }
 
-// TopBarNav — the page's top navigation bar (the TopBar family). `list` for
-// object lists (title + phase tabs; search + create on the right), `details`
-// for object details pages (back + title + context menu + navigation tabs +
-// live users) and `inner` for inner pages (back + title only). On mobile the
-// details tabs move to a second 60px bar row that hides while scrolling
-// down. See Figma "TopBarNav" (node 22250-61596).
-export default function TopBarNav(props: TopBarNavProps) {
-  const { children, breakpoint = "auto", className } = props;
-  const variant = props.variant ?? "list";
-  const isDesktop = useIsDesktop(breakpoint);
+// TopBarNav — the page's top navigation bar (the TopBar family): an optional
+// back button, the title with its two slots, and an optional group of actions
+// at the right end, over a MEDIUM Divider (`--gray-a4` — it was the low
+// default until 2026-10-04, which read lighter than the bars stacked under
+// it). One 60px row, always the same height, so
+// the bar lines up with the bars beside it. The three page types — object
+// list, object details, inner page — are compositions of these slots, not
+// variants of the component. See Figma "TopBarNav" (node 23681-71465).
+export default function TopBarNav({
+  children,
+  tabs,
+  liveUsers,
+  actions,
+  isLoading = false,
+  breakpoint = "auto",
+  className,
+}: TopBarNavProps) {
+  // Loading suppresses everything that depends on the page's data. The back
+  // button is not data, so it stays — TopBarNavLeftElements keeps it.
+  const showTabs = !isLoading && tabs != null;
+  const showLiveUsers = !isLoading && liveUsers != null && liveUsers.length > 0;
+  const showActions = !isLoading && actions != null;
 
-  // Mobile details hide-on-scroll (always on — the doc's YouTube-like rule):
-  // scrolling down slides the tabs row away; scrolling up (or reaching the
-  // top) brings it back. Listens on the nearest scrollable ancestor.
-  const barRef = useRef<HTMLDivElement>(null);
-  const [barHidden, setBarHidden] = useState(false);
-  const tabs = variant === "inner" ? undefined : props.tabs;
-  const active = variant === "details" && !isDesktop && tabs != null;
-  useEffect(() => {
-    if (!active) {
-      setBarHidden(false);
-      return undefined;
-    }
-    const el = barRef.current;
-    if (el == null) return undefined;
-    let sc: HTMLElement | null = el.parentElement;
-    while (sc != null && !(sc.scrollHeight > sc.clientHeight && /(auto|scroll)/.test(getComputedStyle(sc).overflowY))) {
-      sc = sc.parentElement;
-    }
-    // Collapsing the tabs row changes layout — stop the browser's scroll
-    // anchoring from compensating (it reads as a scroll and feeds back).
-    const prevAnchor = sc?.style.overflowAnchor ?? "";
-    if (sc != null) sc.style.overflowAnchor = "none";
-    const read = () => (sc != null ? sc.scrollTop : window.scrollY);
-    let last = read();
-    let ignoreUntil = 0;
-    const onScroll = () => {
-      const y = read();
-      const dy = y - last;
-      last = y;
-      // Our own collapse can clamp scrollTop near the bottom — ignore the
-      // echoes while the height transition runs.
-      if (performance.now() < ignoreUntil) return;
-      if (y <= 0) setBarHidden(false);
-      else if (dy > 2) {
-        setBarHidden(true);
-        ignoreUntil = performance.now() + 250;
-      } else if (dy < -2) setBarHidden(false);
-    };
-    const target: HTMLElement | Window = sc ?? window;
-    target.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      target.removeEventListener("scroll", onScroll);
-      if (sc != null) sc.style.overflowAnchor = prevAnchor;
-    };
-  }, [active]);
-
-  const barClass = clsx(styles.bar, active && styles.sticky, className);
-
-  if (variant === "list") {
-    return (
-      <div ref={barRef} className={barClass}>
+  return (
+    <TopBarNavLoadingContext.Provider value={isLoading}>
+      <div className={clsx(styles.bar, className)}>
         <div className={styles.inner}>
+          {/* The navigation cluster: [left elements] 16px [tabs OR live users].
+              Both sit beside the title, at both breakpoints. */}
           <div className={styles.navigation}>
             <div className={styles.leftElements}>{children}</div>
-            {tabs != null && (
+            {showTabs && (
               <TabsScroller>
                 <SizedTabs>{tabs}</SizedTabs>
               </TabsScroller>
             )}
+            {showLiveUsers && <TopBarNavLiveUsers users={liveUsers} breakpoint={breakpoint} />}
           </div>
-          <TopBarNavRightElements
-            onSearch={props.onSearch}
-            onCreate={props.onCreate}
-            createLabel={props.createLabel}
-            breakpoint={breakpoint}
-          />
+          {showActions && <div className={styles.actions}>{actions}</div>}
         </div>
-        <Divider />
+        <Divider contrast="medium" />
       </div>
-    );
-  }
-
-  if (variant === "inner") {
-    return (
-      <div ref={barRef} className={barClass}>
-        <div className={styles.inner}>
-          <div className={styles.navigation}>
-            <div className={styles.leftElements}>{children}</div>
-          </div>
-        </div>
-        <Divider />
-      </div>
-    );
-  }
-
-  // details
-  const liveUsers = props.liveUsers ?? [];
-  return (
-    <div ref={barRef} className={barClass}>
-      <div className={styles.inner}>
-        <div className={styles.navigation}>
-          <div className={styles.leftElements}>{children}</div>
-          {isDesktop && tabs != null && (
-            <TabsScroller>
-              <SizedTabs>{tabs}</SizedTabs>
-            </TabsScroller>
-          )}
-        </div>
-        <TopBarNavLiveUsers users={liveUsers} breakpoint={breakpoint} />
-      </div>
-      <Divider />
-      {!isDesktop && tabs != null && (
-        <div className={clsx(styles.tabsCollapse, barHidden && styles.tabsCollapsed)}>
-          <div className={styles.tabsBar}>
-            <SizedTabs>{tabs}</SizedTabs>
-          </div>
-          <Divider />
-        </div>
-      )}
-    </div>
+    </TopBarNavLoadingContext.Provider>
   );
 }

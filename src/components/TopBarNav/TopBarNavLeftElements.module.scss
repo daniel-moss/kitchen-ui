@@ -1,6 +1,6 @@
-// TopBarNavLeftElements — values from Figma TopBarNav "#️⃣ Left Elements":
-// [back button?] 8px [title] 8px [context-menu button?], centered. Both
-// buttons are ghost lg (36px) IconButtons.
+// TopBarNavLeftElements — values from Figma "TopBarNav": [back button?] 12px
+// [title] 8px [context-menu button?], centered. Both buttons are ghost lg
+// (36px) IconButtons.
 
 .root {
   display: flex;
@@ -12,7 +12,7 @@
 .slotLeft {
   display: flex;
   flex: none;
-  padding-right: var(--size-2); // 8px
+  padding-right: var(--size-3); // 12px
 }
 
 .slotRight {

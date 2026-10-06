@@ -12,7 +12,7 @@ import styles from "./SendSummaryForm.module.scss";
 // Complete-job flow first. In the product it opens the moment a job is
 // completed (JobDetails wires it to CompleteJobForm's `onCompleted`).
 const meta: Meta = {
-  title: 'Modules/Job Details/"Send Summary" Form',
+  title: 'Modules/Job/Job Details/"Send Summary" Form',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

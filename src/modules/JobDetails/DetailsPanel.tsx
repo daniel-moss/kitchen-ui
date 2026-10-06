@@ -32,7 +32,10 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { JOB_LABELS, jobById, jobLabelsOf } from "../../data/db";
+import { JOB_LABELS, jobById, jobLabelsOf, recallOf } from "../../data/db";
+
+/** A related job's avatar status — its real one, read from the database. */
+const jobAvatarStatus = (id: string) => jobById(id)?.status ?? "none";
 import { User, users } from "../../data/users";
 import { toast } from "../../components/Toast/Toaster";
 import { useCurrentJobId } from "./currentJob";
@@ -86,6 +89,8 @@ interface DetailsPanelProps {
   locked?: boolean;
   /** The Service module's recall job — the Related "Recall to" row mirrors it. */
   recallTo?: string | null;
+  /** Opens the recalled job — the Related row navigates to it in the same tab. */
+  onOpenJob?: (id: string) => void;
   /** The job's service location (owned by the shell — it clears the equipment on change). */
   location: JobLocation;
   onLocationChange: (next: JobLocation) => void;
@@ -349,7 +354,7 @@ const LABEL_POOL: string[] = JOB_LABELS.map((label) => label.name);
 
 // ---- the panel ---------------------------------------------------------------
 
-export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, assignees, onAssigneesChange, assigneeStats, job, locked = false, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange }: DetailsPanelProps) {
+export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, assignees, onAssigneesChange, assigneeStats, job, locked = false, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
   // ---- job contacts ----
   const [reporter, setReporter] = useState<JobContact | null>(INITIAL_REPORTER);
   const [supervisor, setSupervisor] = useState<JobContact | null>(INITIAL_SUPERVISOR);
@@ -409,6 +414,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   // was never started AND has no parent objects. The demo job's only possible
   // parent is a "Recall to" pick in the Service module.
   const locationEditable = !locked && !job.everStarted && recallTo == null;
+
   const [locationOpen, setLocationOpen] = useState(false);
   // The "Service clients" list — opened by the Locations list's "Add location"
   // (pick whom the new location belongs to). Closing it ends the flow (no
@@ -440,6 +446,8 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   // Cancel + Save in an action-bar footer. Picks are a DRAFT until Save.
   // The job's OWN labels, read from the database row it opened on.
   const jobId = useCurrentJobId();
+  // The other end of the recall: the job that recalls THIS one.
+  const recalledBy = recallOf(jobId);
   const [labels, setLabels] = useState<string[]>(() => {
     const record = jobById(jobId);
     return record == null ? [] : jobLabelsOf(record).map((label) => label.name);
@@ -539,7 +547,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
             <div className={styles.mapButton}>
               <Button
                 size="lg"
-                variant="subtle"
+                variant="ghost"
                 isFullWidth
                 rightIcon="arrow-up-right"
                 onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(location.address)}`, "_blank")}
@@ -561,7 +569,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
         onClose={() => setLocationOpen(false)}
         title="Locations"
         searchable
-        searchPlaceholder="Search by location or client name..."
+        searchPlaceholder="Location or client..."
         noResultsCaption="Try a different search or add a new location"
         footer={
           <SelectListFooter variant="menuItem">
@@ -1001,7 +1009,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
         onClose={() => setPickerOpen(false)}
         title={pickerLabel}
         searchable
-        searchPlaceholder="Search by contact name, phone or email..."
+        searchPlaceholder="Contact..."
         noResultsCaption="Try a different search or add a new contact"
         emptyState={{
           icon: "user",
@@ -1057,7 +1065,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
           shownLabels.length > 0 ? (
             <div className={styles.chips}>
               {shownLabels.map((name) => (
-                <Badge key={name} size="md">
+                <Badge key={name} size="lg">
                   {name}
                 </Badge>
               ))}
@@ -1083,23 +1091,38 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
         breakpoint={mobile ? "mobile" : "desktop"}
       />
 
-      {/* Related — only the "Recall to" row (mirrors the Service module's
-          pick); with no related objects the module shows the caption-only
-          EmptyState (Figma 21136-58230). */}
+      {/* Related — the two ends of a recall, each shown only if it exists:
+          "Recall to" is the job THIS one recalls (it mirrors the Service
+          module's pick), "Recall" is the job that recalls THIS one (Figma
+          24735-109840). A middle job in a chain shows both. With neither, the
+          module is the caption-only EmptyState (Figma 21136-58230). */}
       <DisplayModule
         title="Related"
         content={
-          recallTo != null ? (
+          recallTo != null || recalledBy != null ? (
             <div className={styles.listBody}>
-              <ListItem
-                variant="titleCaptionReversed"
-                title={recallTo}
-                caption="Recall to"
-                avatar={<AvatarJob size="xl" status="finalized" />}
-                slotRight={<ListItemSlotIcon icon="angle-right" />}
-                isClickable
-                onClick={noop}
-              />
+              {recallTo != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={recallTo}
+                  caption="Recall to"
+                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recallTo)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={() => onOpenJob?.(recallTo)}
+                />
+              )}
+              {recalledBy != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={recalledBy.id}
+                  caption="Recall"
+                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recalledBy.id)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={() => onOpenJob?.(recalledBy.id)}
+                />
+              )}
             </div>
           ) : (
             <EmptyState caption="No related objects here yet" />

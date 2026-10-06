@@ -45,7 +45,7 @@ const GROUPS: { group: string; tokens: string[] }[] = [
       "home", "estimate", "request", "job", "job-new", "job-recall", "series",
       "invoice", "credit-note", "purchase-order", "bill", "vendor",
       "client-generic", "client-business", "client-individual",
-      "client-industry", "credit-limit", "pricebook", "labor", "product",
+      "client-industry", "credit-limit", "pricebook", "labor-rate", "product",
       "other", "discount", "tax-rate", "equipment", "location", "user",
       "reports", "warranty", "visit", "label",
     ],

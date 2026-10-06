@@ -6,10 +6,10 @@ import styles from "./DateChip.module.scss";
 import { DateChipProps } from "./DateChip.types";
 
 // DateChip — one date cell of the calendar (Figma "#️⃣ DateChip"): fixed 36px
-// height, 6px radius, fills the cell. A real <button> with an inner `.cell`
+// height, 8px radius, fills the cell. A real <button> with an inner `.cell`
 // span that carries the fills/typography (so a consumer can restyle it, and
 // the range band on the button stays behind it). The band is a ::before
-// layer: `--gray-a2`, square where it runs on, 6px caps where it stops.
+// layer: `--gray-a2`, square where it runs on, 8px caps where it stops.
 // States (hover/press/focus) are CSS-driven; selected keeps its 1px gray-12
 // stroke through every state.
 const DateChip = forwardRef<HTMLButtonElement, DateChipProps>(function DateChip(

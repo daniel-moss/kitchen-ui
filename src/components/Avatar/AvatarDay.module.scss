@@ -10,7 +10,7 @@
   height: var(--size-9);
 
   background: var(--avatar-day-bg);
-  border-radius: var(--border-radius-1_5);
+  border-radius: var(--border-radius-2); // 8px
 }
 
 // Month strip: fixed height, the day container takes the rest.
@@ -58,9 +58,11 @@
   padding: 0 var(--size-1);
 
   background: var(--surface-level-second);
-  // Figma draws 5px here — it is not on our 4 / 6 radius scale, so it stays a
-  // raw value rather than a token that would lie about the number.
-  border-radius: 0 0 5px 5px;
+  // Square on top (it meets the month strip), rounded at the bottom only. The
+  // 6px follows the tile's 8px corner minus the 2px the `.bottom` padding
+  // insets it by, so the two curves stay concentric (2026-10-01 — it was a raw
+  // 5px under the old 6px tile).
+  border-radius: 0 0 var(--border-radius-1_5) var(--border-radius-1_5); // 6px
 }
 
 // 12px/12px semibold: same size as heading-h6 but a tighter line, so it also

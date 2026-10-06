@@ -9,7 +9,15 @@ import { toast } from "../../components/Toast/Toaster";
 export const noop = () => {};
 
 /** MenuItem left icon (square 16px box). `pack` for kit custom icons. */
-export const slot = (icon: string, pack?: IconPack) => <Icon icon={icon} pack={pack} container="square" />;
+/**
+ * A MenuItem / row icon. `color` paints it — the glyph inherits `currentColor`,
+ * so an inline colour is all it takes. Used for the job-status actions, whose
+ * solid icons carry their status colour so the actions are easier to pick out
+ * (Daniel, 2026-10-05).
+ */
+export const slot = (icon: string, pack?: IconPack, color?: string) => (
+  <Icon icon={icon} pack={pack} container="square" style={color == null ? undefined : { color }} />
+);
 
 // Real copy — the clipboard API needs a secure context; the textarea fallback
 // covers plain-http LAN testing on the phone. Success/failure show the

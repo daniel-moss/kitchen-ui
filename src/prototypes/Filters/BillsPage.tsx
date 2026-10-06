@@ -6,6 +6,7 @@ import TabGroup from "../../components/Tabs/TabGroup";
 import TabItem from "../../components/Tabs/TabItem";
 import TopBarNav from "../../components/TopBarNav/TopBarNav";
 import TopBarNavLeftElements from "../../components/TopBarNav/TopBarNavLeftElements";
+import TopBarNavRightElements from "../../components/TopBarNav/TopBarNavRightElements";
 import TopBarNavTitle from "../../components/TopBarNav/TopBarNavTitle";
 import TopBarView from "../../components/TopBarView/TopBarView";
 import ViewMenuModule from "../../modules/ViewMenu/ViewMenu";
@@ -155,13 +156,17 @@ const BillsTopBar = ({
 }) => (
   <TopBarNav
     className={styles.topBar}
-    variant="list"
     breakpoint={mobile ? "mobile" : "desktop"}
-    onSearch={mobile ? undefined : noop}
-    onCreate={noop}
+    actions={
+      <TopBarNavRightElements
+        onSearch={mobile ? undefined : noop}
+        onCreate={noop}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    }
     tabs={
       <TabGroup
-        variant="default"
+        variant="pill"
         value={branch}
         onChange={(next) => onBranchChange(next as BillsPhase)}
         aria-label="Open or closed bills"

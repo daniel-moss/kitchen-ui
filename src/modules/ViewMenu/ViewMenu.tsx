@@ -22,6 +22,8 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import Chip from "../../components/Chip/Chip";
 import ChipGroup from "../../components/Chip/ChipGroup";
+import Segment from "../../components/SegmentedControl/Segment";
+import SegmentedControl from "../../components/SegmentedControl/SegmentedControl";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import switchStyles from "../../components/Toggle/ToggleSwitch.module.scss";
 import useMountTransition from "../../hooks/useMountTransition";
@@ -46,12 +48,12 @@ import styles from "./ViewMenu.module.scss";
 // outside-click close — and that closer must treat the [data-floating-list]
 // body portals as inside the menu.
 
-// The view switcher's chips. Chip leaves its slot icon entirely to the caller,
-// so the resting / selected pair lives here: Table and Cards keep one glyph and
-// step from the regular to the solid pack, while Timeline is a kit CUSTOM glyph
-// whose two styles are separate names. Read off Figma 14215-55178 / 14205-72167
-// / 14215-55121.
-const VIEW_CHIPS: {
+// The view switcher's segments. Segment leaves its slot icon entirely to the
+// caller, so the resting / selected pair lives here: Table and Cards keep one
+// glyph and step from the regular to the solid pack, while Timeline is a kit
+// CUSTOM glyph whose two styles are separate names. Read off Figma 14215-55178
+// / 14205-72167 / 14215-55121.
+const VIEW_SEGMENTS: {
   key: ViewMenuView;
   label: string;
   rest: { icon: string; pack: IconPack };
@@ -72,8 +74,8 @@ const VIEW_CHIPS: {
   },
 ];
 
-// The Timeline "Orientation" chips follow the same regular → solid rule.
-const ORIENTATION_CHIPS: { key: "horizontal" | "vertical"; label: string; icon: string }[] = [
+// The Timeline "Orientation" segments follow the same regular → solid rule.
+const ORIENTATION_SEGMENTS: { key: "horizontal" | "vertical"; label: string; icon: string }[] = [
   { key: "horizontal", label: "Horizontal", icon: "objects-align-left" },
   { key: "vertical", label: "Vertical", icon: "objects-align-top" },
 ];
@@ -484,37 +486,62 @@ export default function ViewMenu({
   // Desktop with something pinned: two labelled groups — "Pinned" (thumbtack)
   // above "Not pinned" (thumbtack-slash), the first carrying the divider
   // between them. With nothing pinned: ONE group headed plainly "Columns",
-  // no icon. Mobile always shows that plain "Columns" header, because a phone
-  // cannot pin — but it still renders the two regions as SEPARATE groups
-  // (the second headerless, so the two read as one list), because a drag must
-  // stay inside its own region: a phone can never change the desktop's pinned
-  // set.
+  // no icon.
+  //
+  // MOBILE is ONE group, always, and a drag may cross the whole list (Daniel,
+  // 2026-10-05). It used to render the two regions as separate groups so a
+  // phone could not change the desktop's pinned set — but a phone has no pin
+  // button and no frozen columns, so that left the leading columns locked in
+  // place with nothing on screen to explain it or undo it.
+  //
+  // Letting the drag decide the pinned set is not a compromise: the table
+  // renders `[...pinned, ...unpinned]`, so "pinned" only ever means "the
+  // leading columns". Saying which column leads IS saying which is pinned.
   const reorderPinned = reorder(pinned, (next) => onColumnsStateChange({ ...columnsState, pinned: next }));
   const reorderUnpinned = reorder(unpinned, (next) => onColumnsStateChange({ ...columnsState, unpinned: next }));
+  // The plain header — MOBILE only now: its one list holds every column, so
+  // neither "Pinned" nor "Not pinned" would be true of it.
   const columnsHeader = <GroupLabel label="Columns" />;
 
+  // The one mobile list, in the order the table draws.
+  const mobileOrder = [...pinned, ...unpinned];
+  const reorderMobile = reorder(mobileOrder, (next) => {
+    // The pinned COUNT is kept — the first N rows are the new pinned set. So
+    // the desktop view keeps the same shape, and a phone can never push the
+    // count past PIN_LIMIT.
+    //
+    // A hidden column can not be pinned (the `toggleVisible` invariant), so
+    // the count is filled from the first N VISIBLE keys; a hidden row dragged
+    // into the leading block settles directly below it instead.
+    const nextPinned: string[] = [];
+    const nextUnpinned: string[] = [];
+    for (const key of next) {
+      if (nextPinned.length < pinned.length && !hidden.includes(key)) nextPinned.push(key);
+      else nextUnpinned.push(key);
+    }
+    onColumnsStateChange({ ...columnsState, pinned: nextPinned, unpinned: nextUnpinned });
+  });
+
   const columnsSection = mobile ? (
-    pinned.length > 0 ? (
-      <>
-        <ItemGroup label={columnsHeader} onReorder={reorderPinned}>
+    <ItemGroup label={columnsHeader} onReorder={reorderMobile}>
+      {mobileOrder.map(columnRow)}
+    </ItemGroup>
+  ) : (
+    // DESKTOP. The "Not pinned" group is ALWAYS there — with nothing pinned it
+    // is the only one, and it keeps its label and `thumbtack-slash` instead of
+    // falling back to a plain "Columns" header (Daniel, 2026-10-05; Figma
+    // 14205-72072 "No Pinned Columns"). The "Pinned" group appears above it
+    // only when something is pinned, and carries the divider between them.
+    <>
+      {pinned.length > 0 && (
+        <ItemGroup
+          divider
+          label={<GroupLabel label="Pinned" slotLeft={<Icon icon="thumbtack" pack="regular" size={14} />} />}
+          onReorder={reorderPinned}
+        >
           {pinned.map(columnRow)}
         </ItemGroup>
-        <ItemGroup onReorder={reorderUnpinned}>{unpinned.map(columnRow)}</ItemGroup>
-      </>
-    ) : (
-      <ItemGroup label={columnsHeader} onReorder={reorderUnpinned}>
-        {unpinned.map(columnRow)}
-      </ItemGroup>
-    )
-  ) : pinned.length > 0 ? (
-    <>
-      <ItemGroup
-        divider
-        label={<GroupLabel label="Pinned" slotLeft={<Icon icon="thumbtack" pack="regular" size={14} />} />}
-        onReorder={reorderPinned}
-      >
-        {pinned.map(columnRow)}
-      </ItemGroup>
+      )}
       <ItemGroup
         label={<GroupLabel label="Not pinned" slotLeft={<Icon icon="thumbtack-slash" pack="regular" size={14} />} />}
         onReorder={reorderUnpinned}
@@ -522,36 +549,37 @@ export default function ViewMenu({
         {unpinned.map(columnRow)}
       </ItemGroup>
     </>
-  ) : (
-    <ItemGroup label={columnsHeader} onReorder={reorderUnpinned}>
-      {unpinned.map(columnRow)}
-    </ItemGroup>
   );
 
   // ---- the menu body (shared desktop / mobile) ----
   const body = (
     <div ref={bodyRef} className={styles.body}>
       <div className={styles.switcher}>
-        {/* Pick-one: `selectionMode="single"` gives the row radio semantics and
-            the arrow keys. The icon is the CONSUMER's — Chip does not swap
-            packs — so the switch to solid on selection happens here. */}
-        <ChipGroup isFullWidth selectionMode="single">
-          {VIEW_CHIPS.filter((v) => v.key !== "timeline" || timeline != null).map((v) => {
+        {/* SegmentedControl (Daniel, 2026-10-02 — it replaced the single-select
+            ChipGroup): it owns the value, the radio semantics and the arrow
+            keys, and slides one shared surface between the segments. The icon
+            is still the CONSUMER's — Segment does not swap packs — so the step
+            to solid on selection happens here. */}
+        <SegmentedControl
+          isFullWidth
+          orientation="vertical"
+          value={view}
+          onChange={(next) => onViewChange(next as ViewMenuView)}
+        >
+          {VIEW_SEGMENTS.filter((v) => v.key !== "timeline" || timeline != null).map((v) => {
             const art = view === v.key ? v.selected : v.rest;
             return (
-              <Chip
+              <Segment
                 key={v.key}
-                orientation="vertical"
+                value={v.key}
                 slotLeft={<Icon icon={art.icon} pack={art.pack} size={14} />}
-                isSelected={view === v.key}
                 isDisabled={disabledViews?.includes(v.key)}
-                onClick={() => onViewChange(v.key)}
               >
                 {v.label}
-              </Chip>
+              </Segment>
             );
           })}
-        </ChipGroup>
+        </SegmentedControl>
       </div>
       <Divider contrast="medium" padding="0 var(--size-4)" />
       {/* Schedule horizon FIRST, Sort by second — the design's order — in ONE
@@ -669,14 +697,21 @@ export default function ViewMenu({
           <div className={styles.timelineSettings}>
             <div className={styles.settingBlock}>
               <Label as="span">Orientation</Label>
-              {/* Vertical chips — the icon is a picture of the layout, and it
-                  goes solid on the selected one (the same rule as the view
+              {/* Vertical segments — the icon is a picture of the layout, and
+                  it goes solid on the selected one (the same rule as the view
                   switcher). */}
-              <ChipGroup isFullWidth selectionMode="single">
-                {ORIENTATION_CHIPS.map((o) => (
-                  <Chip
+              <SegmentedControl
+                isFullWidth
+                orientation="vertical"
+                value={timeline.value.orientation}
+                onChange={(next) =>
+                  timeline.onChange({ ...timeline.value, orientation: next as "horizontal" | "vertical" })
+                }
+              >
+                {ORIENTATION_SEGMENTS.map((o) => (
+                  <Segment
                     key={o.key}
-                    orientation="vertical"
+                    value={o.key}
                     slotLeft={
                       <Icon
                         icon={o.icon}
@@ -684,28 +719,25 @@ export default function ViewMenu({
                         size={14}
                       />
                     }
-                    isSelected={timeline.value.orientation === o.key}
-                    onClick={() => timeline.onChange({ ...timeline.value, orientation: o.key })}
                   >
                     {o.label}
-                  </Chip>
+                  </Segment>
                 ))}
-              </ChipGroup>
+              </SegmentedControl>
             </div>
             <div className={styles.settingBlock}>
               <Label as="span">Time frame</Label>
-              <ChipGroup isFullWidth selectionMode="single">
+              <SegmentedControl
+                isFullWidth
+                value={timeline.value.timeFrame}
+                onChange={(next) => timeline.onChange({ ...timeline.value, timeFrame: next })}
+              >
                 {TIME_FRAMES.map((f) => (
-                  <Chip
-                    key={f.key}
-                    size="lg"
-                    isSelected={timeline.value.timeFrame === f.key}
-                    onClick={() => timeline.onChange({ ...timeline.value, timeFrame: f.key })}
-                  >
+                  <Segment key={f.key} value={f.key}>
                     {f.label}
-                  </Chip>
+                  </Segment>
                 ))}
-              </ChipGroup>
+              </SegmentedControl>
             </div>
           </div>
           <Divider contrast="medium" padding="0 var(--size-4)" />

@@ -390,17 +390,19 @@ export interface DateValue {
 }
 
 /**
- * The Custom dialog's second ChipGroup — FOUR choices since 2026-08-24, and the
- * SAME four on every timeframe (Figma nodes 13962-8889 Day, 13965-24022 Month,
- * 13965-31488 Year). `within` REPLACED the "Range" toggle that used to sit next
- * to the timeframe chips — "it does the same thing as the Range toggle, just
- * structured differently" (Daniel) — so it is the one choice that reads BOTH
- * `from` and `to`, and `DateValue` no longer carries a `range` flag.
+ * The Custom dialog's condition ChipGroup — FOUR choices since 2026-08-24, and
+ * **DAY ONLY since 2026-10-02** (Daniel): a month or a year is already a range,
+ * so it is measured one way and the chips are not drawn at all (Figma
+ * 14098-25008 Month / 14098-28104 Year hold the timeframe control alone).
+ * `within` REPLACED the "Range" toggle that used to sit next to the timeframe
+ * chips — "it does the same thing as the Range toggle, just structured
+ * differently" (Daniel) — so it is the one choice that reads BOTH `from` and
+ * `to`, and `DateValue` no longer carries a `range` flag.
  *
  * `on` carries the single-period meaning: the day itself, or the whole month /
  * year its `from` falls in. It is STORED as `on` on every timeframe, but PRINTED
- * as "in" on a month or a year — see `dateCompareLabel`. A month used to be
- * measured `within`, which is now taken.
+ * as "in" on a month or a year — see `dateCompareLabel` — and on those two it is
+ * the ONLY measure a value can hold.
  */
 export type DateCompare = "on" | "within" | "before" | "after";
 
@@ -422,16 +424,25 @@ export type DateTimeframe = "day" | "month" | "year";
 export const DATE_CONDITIONS: DateCompare[] = ["after", "before", "on", "within"];
 
 /**
- * What a measure is CALLED on a given timeframe. Only `on` changes: a day is
- * "on Jan 1", but a month or a year is "in January 2027" / "in 2027" — the nodes
- * print "in" on both (Month 13994-16162's row, Year 13994-16160). Everything
- * else reads the same on every timeframe.
+ * What a measure is CALLED. Two of the four are not printed as they are stored:
  *
- * The stored value is always `on`; this is copy only, so a value keeps working
- * when the timeframe changes under it.
+ * - `within` reads **"range"** (Daniel, 2026-10-02). "within" takes a period or
+ *   a duration in English ("within 3 days"), not two endpoints; "between" is
+ *   the correct word but does not fit the mobile chip — the four chips share a
+ *   343px row, which leaves 55.75px of text, and "between" measures 56.7.
+ *   "range" measures 37.9. The AMOUNT filters keep "within": a quantity does
+ *   fall *within* a span ("Est. duration within 1 h — 2 h").
+ * - `on` reads **"in"** on a month or a year: a day is "on Jan 1", but a period
+ *   is "in January 2027" / "in 2027" — the nodes print "in" on both (Month
+ *   13994-16162's row, Year 13994-16160).
+ *
+ * The stored values stay `within` and `on`; this is copy only, so a value keeps
+ * working when the timeframe changes under it.
  */
-export const dateCompareLabel = (compare: DateCompare, timeframe: DateTimeframe = "day"): string =>
-  compare === "on" && timeframe !== "day" ? "in" : compare;
+export const dateCompareLabel = (compare: DateCompare, timeframe: DateTimeframe = "day"): string => {
+  if (compare === "within") return "range";
+  return compare === "on" && timeframe !== "day" ? "in" : compare;
+};
 
 /** Is this value a RANGE? `within` is what says so — there is no separate flag. */
 export const isDateRange = (date: DateValue) => date.compare === "within";
@@ -530,7 +541,7 @@ export type AmountCompare = "at least" | "at most" | "is" | "within";
  * can collect one.
  *
  * A value that already holds `within` therefore has NO choices at all — see
- * `conditionChoices`, which returns the single "within" that makes the chip's
+ * `conditionChoices`, which returns the single "range" that makes the chip's
  * condition segment inert. The documented chip states it in words now
  * (14100-37994's annotation: "The 'Condition' box is not clickable when the
  * condition is set to 'within'"). The same rule a date RANGE follows.
@@ -539,6 +550,25 @@ export const AMOUNT_CONDITIONS: AmountCompare[] = ["at least", "at most", "is"];
 
 /** The Custom dialog's ChipGroup — the same three plus `within` (node 13923-24049). */
 export const AMOUNT_DIALOG_CONDITIONS: AmountCompare[] = [...AMOUNT_CONDITIONS, "within"];
+
+/**
+ * What an amount measure is CALLED. Only `within` differs from its stored
+ * value: it reads **"range"** (Daniel, 2026-10-03), which is what the rebuilt
+ * nodes draw — the fourth chip on every amount filter's Custom dialog (Cost
+ * 15056-60855, Total 14299-49210, Est. duration 14758-68026, Tax rate
+ * 15368-50101 and the rest) and the chip's own inert operator box.
+ *
+ * This finishes the rename the TIMEFRAME filter started on 2026-10-02, where
+ * `dateCompareLabel` began printing "range" for the same stored value. The
+ * amount filters were deliberately left on "within" then, on the grounds that a
+ * quantity does fall *within* a span; Daniel reversed it, because one operation
+ * should not carry two words — a user reading "range" on a date filter and
+ * "within" on an amount filter has to work out that they do the same thing.
+ *
+ * The stored value stays `within`, so this is copy only and no value in flight
+ * has to change.
+ */
+export const amountCompareLabel = (compare: AmountCompare): string => (compare === "within" ? "range" : compare);
 
 /**
  * An amount preset — one row of a duration, money or count list. `amount` is
@@ -1206,21 +1236,27 @@ export const conditionChoices = (value: FilterValue): ConditionChoice[] => {
   // 2026-08-24). Leaving `within` is the Custom dialog's job, not the chip's.
   const duration = value.amount;
   if (duration != null) {
-    if (duration.compare === "within") return [{ label: "within", negated: false, compare: "within" }];
-    return AMOUNT_CONDITIONS.map((compare) => ({ label: compare, negated: false, compare }));
+    if (duration.compare === "within") {
+      return [{ label: amountCompareLabel("within"), negated: false, compare: "within" }];
+    }
+    return AMOUNT_CONDITIONS.map((compare) => ({ label: amountCompareLabel(compare), negated: false, compare }));
   }
   const date = value.date;
   if (date != null) {
-    // RANGE first: a `within` value has no choices, which is what makes the
-    // chip's condition segment inert (Daniel, 2026-08-23 for the date, restated
-    // 2026-08-24 for the duration — the node draws the DEFAULT cursor over that
-    // segment). Leaving `within` is the Custom dialog's job: only it can collect
-    // the second date the other three would throw away.
-    if (isDateRange(date)) return [{ label: "within", negated: false, compare: "within" }];
+    // MONTH and YEAR have NO conditions at all (Daniel, 2026-10-02): a month or
+    // a year already IS a range, so the measure is fixed at `on` — printed "in"
+    // — and this list of one is what makes the chip's operator box inert
+    // (node 14098-35851: "is not clickable. The operator is automatically set
+    // to 'in'"). The Custom dialog hides its condition chips on both.
+    const timeframe = date.timeframe ?? "day";
+    if (timeframe !== "day") return [{ label: "in", negated: false, compare: "on" }];
+    // RANGE next: a `within` value has no choices either, which is what makes
+    // the chip's condition segment inert (Daniel, 2026-08-23 for the date,
+    // restated 2026-08-24 for the duration — the node draws the DEFAULT cursor
+    // over that segment). Leaving `within` is the Custom dialog's job: only it
+    // can collect the second date the other three would throw away.
+    if (isDateRange(date)) return [{ label: dateCompareLabel("within"), negated: false, compare: "within" }];
     if (date.compare != null) {
-      // "on" a day, "in" a month or a year — the chip and its list say what the
-      // dialog says (`dateCompareLabel`).
-      const timeframe = date.timeframe ?? "day";
       return DATE_CHIP_CONDITIONS.map((compare) => ({
         label: dateCompareLabel(compare, timeframe),
         negated: false,

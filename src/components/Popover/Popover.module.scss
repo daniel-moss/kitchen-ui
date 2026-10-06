@@ -12,7 +12,7 @@
 .card {
   max-height: 80vh;
   background: var(--surface-level-third);
-  border-radius: var(--border-radius-2_5); // 10px, all corners
+  border-radius: var(--border-radius-3); // 12px, all corners
   box-shadow: 0 4px 10px 0 var(--box-shadow-shadow-default);
 
   opacity: 0;
@@ -41,7 +41,7 @@
   right: 0;
   max-height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
   background: var(--surface-level-first);
-  border-radius: var(--border-radius-2_5) var(--border-radius-2_5) 0 0; // top only
+  border-radius: var(--border-radius-3) var(--border-radius-3) 0 0; // 12px, top only
   box-shadow: 0 -4px 8px 0 var(--box-shadow-shadow-default);
   // On touch devices the browser must not turn the swipe-down into a native
   // scroll/rubber-band — the sheet handles the gesture itself (drag-to-dismiss).

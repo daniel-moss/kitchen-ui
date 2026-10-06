@@ -72,20 +72,9 @@
   color: var(--gray-a8);
 }
 
-// Warning-session avatar: an amber box with a warning triangle (≥ 10 h,
-// cross-day, or overlapping session). Figma 21803-49361 / 49414, 24508-61972.
-.warnGlyph {
-  box-sizing: border-box;
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-9); // 36px
-  height: var(--size-9);
-  border-radius: var(--border-radius-1_5);
-  background: var(--amber-a3);
-  color: var(--amber-10);
-}
+// (The warning-session avatar has no local box any more — it is the DS
+// AvatarWarning, see WarningGlyph in TimesheetPanel.tsx.)
+
 // Warning copy — the amber caption (cross-day) / duration (long session).
 // Doubled selector so it out-specifies `.sessionValue` / `.caption` (which are
 // declared later at equal specificity and would otherwise win the color).

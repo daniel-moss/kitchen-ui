@@ -79,6 +79,10 @@
 }
 
 .lg {
+  // The only size with the bigger corner (2026-10-01) — sm and md keep
+  // `--border-radius-1_5` (6px) from `.badge`.
+  border-radius: var(--border-radius-2); // 8px
+
   height: var(--size-8); // 32px
   padding: 0 var(--size-2_5);
   gap: var(--size-1); // 4px before the dismiss button

@@ -179,7 +179,7 @@ export function chargesOf(job: Job): ChargeGroup[] {
   const sum = (items: Charge[]) => money(items.reduce((acc, item) => acc + Number(item.total.slice(1)), 0));
 
   const groups: ChargeGroup[] = [
-    { key: "labor", label: "Labor", icon: "tag", subtotal: sum(labor), items: labor },
+    { key: "labor", label: "Labor rates", icon: "tag", subtotal: sum(labor), items: labor },
   ];
   // A job that needed no parts shows no Products group, rather than an empty one.
   if (products.length > 0) groups.push({ key: "products", label: "Products", icon: "box-taped", subtotal: sum(products), items: products });

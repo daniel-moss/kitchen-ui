@@ -11,33 +11,65 @@ $interactive: 'button, a, input, select, textarea, [role="button"], [role="switc
   position: relative;
   // Resting drop shadow, kept in a var so interaction states can drop it.
   --card-shadow: 0 1px 3px 0 var(--box-shadow-shadow-default);
-  border-radius: var(--border-radius-1_5); // 6px
-  background: var(--surface-interactive-default);
+  // The BODY's fill, declared here because the card's state decides it (the
+  // state rules below set this var, and `.body` paints it). The card's own
+  // surface never changes — that is what keeps an alert banner at one colour.
+  --card-body-fill: var(--surface-interactive-default);
+  border-radius: var(--border-radius-2_5); // 10px
+  background: var(--surface-level-second);
   box-shadow: var(--card-shadow);
-  // The interaction tint lives on the card itself (see below), so an alert
-  // banner's area changes with it too.
-  transition: background-color 120ms ease;
   // Clip the banner + body to the radius so their corners round automatically.
   overflow: hidden;
 }
 
-// Alert ring — drawn as an inset 1px box-shadow (like Figma's inside stroke) so
-// it never changes the card's size. Layered over the (droppable) drop shadow.
+// ---- the card's EDGE: alert ring, focus ring, drag edge ----
+// All three paint at the card's bounds and never show at once, so they share one
+// overlay driven by `--card-edge`.
+//
+// It has to be an ::after, not an inset shadow on `.card` itself: an element's
+// inset box-shadow paints ABOVE its own background but BELOW its children, and
+// the body now carries a fill — an opaque one in light mode — so a ring on the
+// card would be hidden behind it (Daniel caught this; it showed in dark mode
+// only because the light-mode fill is `--pure-white` while the dark one is an
+// alpha). The overlay sits above the body and the banner, which is also exactly
+// how Figma builds it: one stretched rectangle over the card.
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: var(--card-edge, none);
+}
 .ring {
-  box-shadow:
-    var(--card-shadow),
-    inset 0 0 0 1px var(--card-ring);
+  --card-edge: inset 0 0 0 1px var(--card-ring);
+}
+
+// The alert banner's left/right padding inside a card is --size-4 (16px), wider
+// than the banner's own --size-3 default, so its text lines up with the content
+// below rather than sitting 4px further out (Daniel, 2026-10-02). AlertBanner
+// exposes --al-pad-x for exactly this; Dialog's error slot does the same.
+.alertBanner {
+  --al-pad-x: var(--size-4); // 16px
 }
 
 // ---- body: the interactive region (everything below an optional banner) ----
+// The body carries the interaction fill, NOT the card. The card's surface stays
+// constant, so an alert banner — whose own fill is a translucent status tint —
+// composites over one unchanging colour and never shifts with the pointer. The
+// body's padding is part of the fill's area, so the tint reaches the card's
+// corners instead of leaving a thin untinted frame around the content.
 .body {
   position: relative;
-  border-radius: var(--border-radius-1_5); // 6px
+  border-radius: var(--border-radius-2_5); // 10px
+  background: var(--card-body-fill);
+  transition: background-color 120ms ease;
 }
 // With a banner on top, only the bottom corners are rounded — the top edge meets
 // the banner square.
 .bodyUnderBanner {
-  border-radius: 0 0 var(--border-radius-1_5) var(--border-radius-1_5);
+  border-radius: 0 0 var(--border-radius-2_5) var(--border-radius-2_5);
 }
 
 // ---- interactive states ----
@@ -48,35 +80,35 @@ $interactive: 'button, a, input, select, textarea, [role="button"], [role="switc
   outline: none;
 }
 
-// Hover / press / focus tint the WHOLE card and flatten the resting drop shadow.
-// The body is the interactive / focusable region, but the tint (and the focus
-// border) are applied to the card via :has() so the alert banner's area — which
-// sits over the card background — changes with the state too. The banner's own
-// fill is a translucent status color, so the tint shows through behind it.
+// Hover / press / focus flatten the resting drop shadow and step the BODY's
+// fill. Both are set on the card via :has(), because the state belongs to the
+// card as a whole — the shadow is the card's, and the fill reaches the body
+// through `--card-body-fill`. The banner sits outside the body, so it keeps its
+// colour in every state (Daniel, 2026-10-01 — the tint used to be on the card
+// and showed through the banner's translucent fill).
 @media (hover: hover) {
 .interactive:has(.body:hover):not(:has(.body :is(#{$interactive}):hover)) {
-  background: var(--surface-interactive-hover);
+  --card-body-fill: var(--surface-interactive-hover);
   --card-shadow: 0 0 0 0 transparent;
 }
 }
 .interactive:has(.body:active):not(:has(.body :is(#{$interactive}):active)) {
-  background: var(--surface-interactive-press);
+  --card-body-fill: var(--surface-interactive-press);
   --card-shadow: 0 0 0 0 transparent;
 }
 // Keyboard focus — a solid 2px gray-12 border (inset shadow, so the card's
 // overflow clip does not cut it) wrapping the whole card, over the hover fill.
+// It replaces the alert ring while it shows, as in Figma.
 .interactive:has(.body:focus-visible) {
-  background: var(--surface-interactive-hover);
+  --card-body-fill: var(--surface-interactive-hover);
   --card-shadow: 0 0 0 0 transparent;
-  box-shadow: inset 0 0 0 2px var(--gray-12);
+  --card-edge: inset 0 0 0 2px var(--gray-12);
 }
 
 // ---- dragging: lifted card — 1px gray-12 border + a large lift shadow ----
 .dragging {
   --card-shadow: 0 8px 16px 0 var(--box-shadow-shadow-default);
-  box-shadow:
-    var(--card-shadow),
-    inset 0 0 0 1px var(--gray-12);
+  --card-edge: inset 0 0 0 1px var(--gray-12);
 }
 
 // ---- disabled: non-interactive, content dimmed ----

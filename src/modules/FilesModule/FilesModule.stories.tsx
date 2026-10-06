@@ -13,7 +13,7 @@ import { FileVisibility, ModuleFile } from "./FilesModule.types";
 // the handlers, the upload cap, and whether the header offers the list/cards
 // toggle (a 400px side panel has no room for cards, a details page does).
 const meta: Meta = {
-  title: 'Modules/"Files" Display Module',
+  title: 'Modules/File/"Files" DisplayModule',
   parameters: { controls: { disable: true } },
 };
 
@@ -41,11 +41,13 @@ const Demo = ({
   maxFiles,
   showViewToggle = false,
   mobile = false,
+  isLoading = false,
 }: {
   initial?: ModuleFile[];
   maxFiles?: number;
   showViewToggle?: boolean;
   mobile?: boolean;
+  isLoading?: boolean;
 }) => {
   const [files, setFiles] = useState(initial);
 
@@ -66,10 +68,9 @@ const Demo = ({
     toast({ type: "neutral", icon: now === "public" ? "globe" : "lock", title: `"${file.name}" is now ${now}` });
   };
 
-  const deleteFile = (file: ModuleFile) => {
-    setFiles((prev) => prev.filter((row) => row.id !== file.id));
-    toast({ type: "neutral", icon: "trash-can", title: `"${file.name}" deleted` });
-  };
+  // The module asks ("Delete file?") and reports ("File deleted") itself, so a
+  // consumer only removes the row.
+  const deleteFile = (file: ModuleFile) => setFiles((prev) => prev.filter((row) => row.id !== file.id));
 
   return (
     <div style={{ width: mobile ? 343 : 480 }}>
@@ -78,6 +79,8 @@ const Demo = ({
         maxFiles={maxFiles}
         showViewToggle={showViewToggle}
         mobile={mobile}
+        isLoading={isLoading}
+        loadingCount={files.length}
         onReorder={reorder}
         onToggleVisibility={toggleVisibility}
         onDelete={deleteFile}
@@ -142,4 +145,14 @@ export const NoLimit: Story = {
   name: "Without a limit",
   parameters: { layout: "centered" },
   render: () => <Demo showViewToggle maxFiles={Infinity} />,
+};
+
+/**
+ * One flat group of skeleton rows, no header actions and no banner. The COUNT
+ * is already known, so the title keeps its counter and the list draws that many
+ * rows (Equipment side panel node 22012-20559).
+ */
+export const Loading: Story = {
+  parameters: { layout: "centered" },
+  render: () => <Demo showViewToggle maxFiles={25} isLoading />,
 };

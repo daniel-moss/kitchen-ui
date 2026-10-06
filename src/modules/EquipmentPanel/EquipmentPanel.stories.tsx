@@ -21,7 +21,7 @@ import { EquipmentPanelTab } from "./EquipmentPanel.types";
 //   eq-wd-mixer   Dough Mixer — no manufacturer / model / serial, so the panel
 //                 shows the WARNING state, and no labels, notes or files.
 const meta: Meta = {
-  title: 'Modules/"Equipment" Side Panel',
+  title: 'Modules/Equipment/"Equipment" Side Panel',
   parameters: { controls: { disable: true } },
 };
 
@@ -138,11 +138,28 @@ export const LoadingDetails: Story = {
   render: () => <Demo record={WALK_IN} breakpoint="desktop" isLoading />,
 };
 
-/** By the Warranties tab the counts have arrived, so the counters show. */
+/**
+ * By the Warranties tab the counts have arrived, so the counters show — the
+ * navigation's, the module's, and the header avatar's warranty status.
+ */
 export const LoadingWarranties: Story = {
   name: "Loading — Warranties",
   parameters: { layout: "centered" },
   render: () => <Demo record={WALK_IN} breakpoint="desktop" tab="warranties" isLoading />,
+};
+
+/** The file count is known, so the list draws that many skeleton rows. */
+export const LoadingFiles: Story = {
+  name: "Loading — Files",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={WALK_IN} breakpoint="desktop" tab="files" isLoading />,
+};
+
+/** The rows' object types are not known yet, so the avatars load too. */
+export const LoadingHistory: Story = {
+  name: "Loading — History",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={WALK_IN} breakpoint="desktop" tab="history" isLoading />,
 };
 
 /**
@@ -177,7 +194,6 @@ export const NotesFormMobile: Story = {
   render: () => <NotesFormDemo breakpoint="mobile" />,
 };
 
-export const Error: Story = {
-  parameters: { layout: "centered" },
-  render: () => <Demo record={WALK_IN} breakpoint="desktop" state="error" />,
-};
+// The error / offline states are SidePanel's own behavior, documented and
+// demonstrated on that component's page — the panel only forwards `state` and
+// `onRetry`. No story here, so the two cannot drift (Daniel, 2026-09-29).

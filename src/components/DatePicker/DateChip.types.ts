@@ -4,7 +4,7 @@ import { ButtonHTMLAttributes } from "react";
  * The range band behind the chip (Figma DateCell "band"): `none` — no range
  * through this cell; `middle` — the band runs on to both neighbors (square);
  * `capLeft` / `capRight` — the band stops at that edge with a
- * `--border-radius-1_5` (6px) cap (a range end, a row break, or the hover
+ * `--border-radius-2` (8px) cap (a range end, a row break, or the hover
  * preview's end — they all look the same); `capBoth` — caps on both sides
  * (the only banded chip in its row).
  */

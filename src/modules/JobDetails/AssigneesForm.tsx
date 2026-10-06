@@ -59,7 +59,7 @@ export default function AssigneesForm({ open, onClose, value, onSave, mobile = f
       // manager over the keyboard — they ignore `autocomplete="off"` once they
       // have (the SearchField already sets every opt-out there is). So the
       // placeholder avoids the phrase; flagged to Daniel, 2026-08-05.
-      searchPlaceholder="Search assignees..."
+      searchPlaceholder="Assignee..."
       footer={
         <SelectListFooter variant="actionBar">
           <Button size="lg" variant="solid" isFullWidth={mobile} onClick={save}>

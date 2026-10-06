@@ -30,6 +30,12 @@ export interface JobState {
   statusMessage?: string;
   /** Has the job ever been started? Drives "Started on" in the cancelled module. */
   everStarted: boolean;
+  /**
+   * When the job was SCHEDULED — the moment somebody booked the visit, not the
+   * visit itself ("Scheduled for" is the visit, and the two are different
+   * dates on purpose — Daniel, 2026-10-06). Seeded from the job's own history.
+   */
+  scheduledAt?: string;
   /** When the job was FIRST started ("Started on") — set once, never changes. */
   startedAt?: string;
   /** When the job was LAST made active ("Active on") — updates on every start/resume. */
@@ -62,8 +68,11 @@ export const defaultJob: JobState = { status: "upcoming", everStarted: false };
  * needed"). Figma "Statuses" 24575-150808: when the company HAS sub-statuses
  * for one of these, the row is named by the sub-status; without one it keeps
  * the general status name.
+ *
+ * It names the status EVERYWHERE the status is shown — the lifecycle row, the
+ * Status module's badge, and the jobs list — so this is the one list.
  */
-const SUBSTATUS_ROWS = ["active", "quickPaused", "onHold"];
+export const SUBSTATUS_ROWS = ["active", "quickPaused", "onHold"];
 
 /**
  * Tracks how long the job spends in each status, live.
@@ -166,15 +175,14 @@ export function useJobLifecycle(
 // The upcoming job's fixed demo scheduled time ("Scheduled on"). The transition
 // timestamps (Started/Active/Cancelled/Unscheduled on) are REAL — captured with
 // formatStatusTimestamp when the user clicks the action.
-export const STATUS_TS = "Mon, Jan 1 at 12:00 PM";
+export const STATUS_TS = "Jan 1, 2026 at 12:00 PM";
 
-const TS_DATE = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
-const TS_DATE_YEAR = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const TS_DATE = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
 const TS_TIME = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-/** "Mon, Jan 1 at 12:00 PM" — the real moment a status transition happened.
- * Weekday always; the YEAR only when it is not the current one (general rule). */
-export const formatStatusTimestamp = (d: Date) =>
-  `${(d.getFullYear() === new Date().getFullYear() ? TS_DATE : TS_DATE_YEAR).format(d)} at ${TS_TIME.format(d)}`;
+/** "Jan 1, 2027 at 12:00 PM" — the real moment a status transition happened.
+ * NO weekday, and the year ALWAYS (Daniel, 2026-10-04). Also the format of the
+ * Job properties module's system stamps (Created at / Last modified). */
+export const formatStatusTimestamp = (d: Date) => `${TS_DATE.format(d)} at ${TS_TIME.format(d)}`;
 
 /** The Badge/Avatar status to show — an upcoming job reads "pastDue" once late. */
 export function displayStatus(job: JobState, scheduling: Scheduling): BadgeJobStatusStatus {

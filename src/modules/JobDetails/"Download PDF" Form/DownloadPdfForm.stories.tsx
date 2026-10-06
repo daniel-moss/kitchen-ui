@@ -12,7 +12,7 @@ import styles from "./DownloadPdfForm.module.scss";
 // section 24592-39416. With a parent estimate there are two fields (Estimate
 // and Job); without one, only Job.
 const meta: Meta = {
-  title: 'Modules/Job Details/"Download PDF" Form',
+  title: 'Modules/Job/Job Details/"Download PDF" Form',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

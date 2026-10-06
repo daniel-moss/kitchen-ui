@@ -33,10 +33,25 @@ interface LabelsSelectListProps {
   pool: string[];
   /** Save — the picked names, in pick order. The caller closes and toasts. */
   onSave: (labels: string[]) => void;
+  /**
+   * The dialog / drawer title. Default "Labels". The Tax rate panel names its
+   * object ("Tax rate labels", Figma 1-7310) the way its other edit dialogs
+   * do; a picker opened from INSIDE a form keeps the plain "Labels", because
+   * the form's own title already names the object.
+   */
+  title?: string;
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
-export default function LabelsSelectList({ open, onClose, labels, pool, onSave, breakpoint = "auto" }: LabelsSelectListProps) {
+export default function LabelsSelectList({
+  open,
+  onClose,
+  labels,
+  pool,
+  onSave,
+  title = "Labels",
+  breakpoint = "auto",
+}: LabelsSelectListProps) {
   const mobile = !useIsDesktop(breakpoint);
 
   const [picked, setPicked] = useState<string[]>(labels);
@@ -74,7 +89,7 @@ export default function LabelsSelectList({ open, onClose, labels, pool, onSave, 
   return (
     <SelectList
       variant={mobile ? "drawer" : "dialog"}
-      title="Labels"
+      title={title}
       open={open}
       onClose={onClose}
       multiSelect

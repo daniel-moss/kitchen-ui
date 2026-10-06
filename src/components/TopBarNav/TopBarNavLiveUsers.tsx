@@ -45,11 +45,11 @@ export default function TopBarNavLiveUsers({ users, breakpoint = "auto" }: TopBa
     );
 
   if (isDesktop) {
-    // The stack sits at the right screen edge — the tongue goes at the END so
-    // the tooltip body extends leftwards instead of off-screen. The stack in
-    // the tooltip is lg (the doc).
+    // Centred: since the rebuild the stack sits beside the title, not at the
+    // right screen edge, so there is room on both sides. The stack in the
+    // tooltip is lg (the doc).
     return (
-      <HoverTooltip variant="avatarGroup" items={users} avatarGroupSize="lg" align="end">
+      <HoverTooltip variant="avatarGroup" items={users} avatarGroupSize="lg">
         {group}
       </HoverTooltip>
     );

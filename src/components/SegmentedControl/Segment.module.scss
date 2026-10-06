@@ -1,0 +1,164 @@
+@use "../../styles/mixins/font" as *;
+@use "../../styles/mixins/interaction" as *;
+
+// Segment — one option of a SegmentedControl. Values read off Figma
+// "Segment" (set 28712-128163).
+//
+// THE FILL NEVER MOVES (Daniel, 2026-09-30). An unselected segment has no fill
+// in any state; a selected one carries `--gray-a2` and its 1px `--gray-12`
+// border in every state. Engaging a segment shows in the LABEL — `--text-subtle`
+// steps to `--text-strong` on hover, press, focus and selection — and in the
+// focus ring. That keeps the control quiet enough for the selected surface to
+// slide between segments without fills appearing and disappearing around it.
+//
+// `.warning` is the same shape in amber: no fill unselected, `--amber-a2` with
+// an `--amber-a11` border when selected, and `--text-warning` throughout.
+//
+// The selected border is an inset box-shadow, so it never adds to the segment's
+// size.
+.segment {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-2); // 8px slot ↔ content
+  margin: 0;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  max-width: 100%;
+
+  color: var(--text-subtle);
+  background: transparent;
+  border-radius: var(--border-radius-2); // 8px — the track's own radius
+  @include font("body-500-compact"); // Inter Medium 14/20, both sizes
+
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+
+  @media (hover: hover) {
+    &:hover:not(:disabled):not(.warning) {
+      color: var(--text-strong);
+    }
+  }
+
+  &:active:not(:disabled):not(.warning) {
+    color: var(--text-strong);
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+}
+
+// ===== sizes (padding only — the line-height sets the height) =====
+.md {
+  padding: var(--size-1_5) var(--size-2_5); // 6px 10px → 32px
+}
+.lg {
+  padding: var(--size-2) var(--size-3); // 8px 12px → 36px
+}
+
+// ===== content =====
+.slot {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // A 14px glyph sits in a --size-4 (16px) box; an avatar brings its own 20px.
+  min-width: var(--size-4);
+  min-height: var(--size-4);
+}
+
+.label {
+  min-width: 0;
+}
+
+// ===== selected =====
+// One fill, one border, in every state.
+.selected:not(.warning) {
+  color: var(--text-strong);
+  background: var(--gray-a2);
+  box-shadow: inset 0 0 0 1px var(--gray-12);
+}
+
+// Inside a SegmentedControl the track slides one shared surface instead, so the
+// segment drops its fill and border and keeps only the selected text colour.
+.segment.selected.noSurface {
+  background: transparent;
+  box-shadow: none;
+}
+
+// ===== warning =====
+// The scheme turns amber — icon, label, and the selected fill and border. It
+// holds through every state, so an inactive warning segment still shows the
+// problem and a selected one still reads as selected.
+.segment.warning {
+  color: var(--text-warning);
+}
+
+.segment.warning.selected {
+  background: var(--amber-a2);
+  box-shadow: inset 0 0 0 1px var(--amber-a11);
+}
+
+.segment.warning.selected.noSurface {
+  background: transparent;
+  box-shadow: none;
+}
+
+// ===== vertical (lg only) =====
+// Slot on top in a fixed 20px box, so an icon segment and an avatar segment are
+// exactly the same height. The segment hugs its content instead of taking the
+// size's height.
+.vertical {
+  flex-direction: column;
+  gap: var(--size-1); // 4px
+  padding: var(--size-3) var(--size-3) var(--size-2); // 12px 12px 8px
+}
+.vertical .slot {
+  width: var(--size-5); // 20px
+  height: var(--size-5);
+}
+.vertical .label {
+  text-align: center;
+}
+
+// ===== focus (keyboard only) =====
+// Declared last so focus wins over the rules above. The ring: a 2px stroke at
+// the segment's bounds, a 2px visible gap, then the segment's own fill redrawn
+// inside with --border-radius-1 corners — nothing for an unselected segment,
+// the selected fill and border for a selected one. Nothing changes size.
+.segment:focus-visible:not(:disabled):not(.warning) {
+  color: var(--text-strong);
+
+  @include row-focus-ring-inset(transparent);
+}
+
+.segment.selected:focus-visible:not(:disabled):not(.warning) {
+  @include row-focus-ring-inset(var(--gray-a2));
+
+  &::before {
+    box-shadow: inset 0 0 0 1px var(--gray-12);
+  }
+}
+
+// The warning scheme keeps its own amber ring. The mixin's gray-12 stroke is
+// overridden right after the include (the Chip error-focus pattern).
+.segment.warning:focus-visible:not(:disabled) {
+  @include row-focus-ring-inset(transparent);
+
+  box-shadow: inset 0 0 0 2px var(--amber-a11);
+}
+
+.segment.warning.selected:focus-visible:not(:disabled) {
+  @include row-focus-ring-inset(var(--amber-a2));
+
+  box-shadow: inset 0 0 0 2px var(--amber-a11);
+
+  &::before {
+    box-shadow: inset 0 0 0 1px var(--amber-a11);
+  }
+}

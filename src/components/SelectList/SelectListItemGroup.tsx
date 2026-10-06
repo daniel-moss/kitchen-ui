@@ -24,6 +24,7 @@ export default function SelectListItemGroup({ children, label, emptyCaption, div
       <div className={styles.items}>{isEmpty && emptyCaption != null ? <EmptyState caption={emptyCaption} /> : children}</div>
       {divider && (
         <div className={styles.dividerWrap}>
+          {/* LOW contrast — a group boundary inside a card (Daniel, 2026-10-04). */}
           <Divider />
         </div>
       )}

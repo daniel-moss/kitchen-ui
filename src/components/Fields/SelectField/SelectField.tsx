@@ -68,6 +68,11 @@ export default function SelectField({
         styles.root,
         g.rootClass,
         !g.grouped && fitContent && styles.fitContent,
+        // Inside a group the segments split the row evenly, UNLESS this one is
+        // asked to hug: it then takes only its content's width and the other
+        // segments share what is left (the Scheduling form's date + time row,
+        // Figma 24522-88085).
+        g.grouped && fitContent && styles.groupedFitContent,
         !g.grouped && g.disabled && styles.disabled,
         className
       )}

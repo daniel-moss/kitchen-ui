@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import Toaster from "../components/Toast/Toaster";
 import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
 
 import { AppStoreProvider } from "./store/AppStore";
@@ -8,6 +9,7 @@ import { useRoute } from "./routing/useRoute";
 
 import { Page, Sidebar } from "./shell/appShell";
 import { NewJobProvider } from "./shell/newJob";
+import { TaxRatesProvider } from "./shell/taxRates";
 import JobDetailsPage from "./jobDetails/JobDetailsRoute";
 import MenuPage from "./shell/MenuPage";
 import BillsPage from "./BillsPage";
@@ -16,7 +18,7 @@ import CreditNotesPage from "./CreditNotesPage";
 import DiscountsPage from "./DiscountsPage";
 import EstimatesPage from "./EstimatesPage";
 import InvoicesPage from "./InvoicesPage";
-import JobsPage from "./JobsPage";
+import JobsPage, { JOBS_VIEW_DEFAULT, JobsViewState } from "./JobsPage";
 import LaborPage from "./LaborPage";
 import OtherPage from "./OtherPage";
 import POsPage from "./POsPage";
@@ -77,6 +79,16 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
     if (page !== "menu") setListPage(page);
   }, [page]);
 
+  // Which VIEW the Jobs list was on, kept here for the same reason `listPage`
+  // is: opening a job UNMOUNTS the list, so without somewhere outside to keep
+  // it, Back always landed on "All" (Daniel, 2026-10-06 — open a job from
+  // "Pending", come back to "Pending"). It is a memory of where you were, not
+  // a place, so like `listPage` it stays out of the hash.
+  //
+  // The list's own filters, sort and search still reset on the same trip. Say
+  // the word and they move up here too, the same way.
+  const [jobsView, setJobsView] = useState<JobsViewState>(JOBS_VIEW_DEFAULT);
+
   const navigate = navigateToPage;
   const resolved = isDesktop && page === "menu" ? listPage : page;
 
@@ -85,7 +97,12 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
   // like #/vendors/bayview opens the Vendors list rather than nothing.
   const objectArea =
     route.kind === "object" && route.object === "job" ? (
-      <JobDetailsPage id={route.id} breakpoint={breakpoint} onNavigate={navigate} />
+      <JobDetailsPage
+        id={route.id}
+        breakpoint={breakpoint}
+        onNavigate={navigate}
+        onOpenJob={(jobId) => navigateToObject({ kind: "object", object: "job", id: jobId })}
+      />
     ) : null;
 
   const workArea =
@@ -123,16 +140,33 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
         breakpoint={breakpoint}
         onNavigate={navigate}
         onOpenJob={(jobId) => navigateToObject({ kind: "object", object: "job", id: jobId })}
+        viewState={jobsView}
+        onViewStateChange={setJobsView}
       />
     ));
+
+  // The app's ONE toast stack (2026-10-05). Until now nothing outside the Job
+  // Details page mounted a Toaster, so every toast raised from a list, a form
+  // or a panel went nowhere — including the "Job created" one, and the "Tax
+  // rate created" toast whose "Preview" link opens the side panel.
+  //
+  // Toaster must be mounted ONCE, and the Job Details page still mounts its
+  // own, so this one steps aside while that page is on screen; two stacks
+  // would render every toast twice. It can become unconditional as soon as
+  // that module stops bringing its own.
+  const toaster = objectArea == null ? <Toaster breakpoint={breakpoint} /> : null;
 
   return isDesktop ? (
     <div className={styles.desktop}>
       <Sidebar page={resolved} onNavigate={navigate} />
       {workArea}
+      {toaster}
     </div>
   ) : (
-    workArea
+    <>
+      {workArea}
+      {toaster}
+    </>
   );
 };
 
@@ -142,11 +176,18 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
 // `NewJobProvider` holds the app's ONE "New job" form, so every entry point —
 // the sidebar's Create menu, the Jobs list's "New" button, the mobile bottom
 // bar's Create — opens the same instance (2026-09-28).
+//
+// `TaxRatesProvider` does the same for the "New tax rate" form AND the "Tax
+// rate" side panel (2026-10-05). It sits INSIDE the store, which it reads and
+// writes, and outside the app, because both overlays can be opened from any
+// page.
 export default function AppWithStore(props: AppProps) {
   return (
     <AppStoreProvider>
       <NewJobProvider breakpoint={props.breakpoint}>
-        <App {...props} />
+        <TaxRatesProvider breakpoint={props.breakpoint}>
+          <App {...props} />
+        </TaxRatesProvider>
       </NewJobProvider>
     </AppStoreProvider>
   );

@@ -1,10 +1,11 @@
-import { MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react";
+import { MouseEvent as ReactMouseEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
 
 import clsx from "clsx";
 
-import AvatarJob from "../../components/Avatar/AvatarJob";
+import Avatar from "../../components/Avatar/Avatar";
+import AvatarWarning from "../../components/Avatar/AvatarWarning";
+import ItemText from "../../components/ItemText/ItemText/ItemText";
 import { AvatarGroupItem } from "../../components/Avatar/AvatarGroup.types";
-import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import Button from "../../components/Button/Button";
 import { Divider } from "../../components/Divider/Divider";
 import { Icon } from "../../components/Icon/Icon";
@@ -56,7 +57,7 @@ import { JobContact } from "./contacts";
 import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { JobLocation, LOCATIONS } from "./jobData";
-import { chargesOf, chargesTotal, ESTIMATES, INVOICES, jobById } from "../../data/db";
+import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, jobById } from "../../data/db";
 import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
 import { Job as ListJob } from "../shared/jobRow";
@@ -76,18 +77,27 @@ import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import StartJobForm from "./StartJobForm";
 import SubStatusForm from "./SubStatusForm";
-import TimesheetPanel, { categoryIcon, formatHrMin, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
+import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
 
 import styles from "./JobDetails.module.scss";
 
-// Job Details — prototype shell (slice 1). Desktop: SidebarNav + TopBarNav
-// (details) + a max-560px main content column + a 400px right sidebar with
-// the ActionBar pinned on top. Mobile: the right sidebar becomes the first
-// tab ("Details"), the ActionBar pins to the bottom, and the top bar hides
-// on scroll. Content areas are placeholders — filled in later slices.
+// Job Details — the page shell. Restructured 2026-10-04 (Daniel):
+//
+//   Desktop  SidebarNav | TopBarNav (back + job id, live users, and the job's
+//            ACTIONS on the right) above a content row of [section-tabs bar +
+//            scrolling main column] | divider | 400px details sidebar. The
+//            tabs bar lives inside the content area, so it stops at the
+//            divider; the sidebar pins only the time-tracking SessionBar.
+//            There is no action bar here any more.
+//   Mobile   TopBarNav, then the same section-tabs bar as its own row, then
+//            the swipeable tab content; the ActionBar stays pinned at the
+//            bottom. "Details" (the desktop sidebar) is the first tab.
+//
+// The ellipsis that used to sit next to the job id is gone — its Copy URL /
+// Download PDF items are the last group of the actions menu now.
 
 export interface JobDetailsProps {
   /** The job to show — the app looks it up from the route's id. */
@@ -96,6 +106,12 @@ export interface JobDetailsProps {
   breakpoint?: Breakpoint;
   /** Leaving the job. Unset in a standalone story, where there is nowhere to go. */
   onBack?: () => void;
+  /**
+   * Opening ANOTHER job — the "Recall to" link in the Service module and the
+   * Related module's row both use it, in the SAME tab. Unset in a standalone
+   * story (and then those rows are inert).
+   */
+  onOpenJob?: (id: string) => void;
   /**
    * The company setting that rounds logged time UP to the next 5 minutes.
    * A real setting would live in Settings, which this prototype does not have,
@@ -111,20 +127,22 @@ export interface JobDetailsProps {
 // Who is looking at the job right now. Only a job being WORKED has anyone on
 // it, and the people on it are its own assignees (2026-09-28) — it used to be
 // the same two strangers on every job, including ones finished in August.
+/**
+ * Who else is on this job right now — its own assignees, and only while it is
+ * active.
+ *
+ * The VIEWER is left out (Daniel, 2026-10-06): the whole demo is Lorne
+ * Riddle's screen, and "live users" means the people you are sharing the job
+ * with. Seeing your own face there is like being shown yourself.
+ */
 const liveUsersFor = (record: ListJob): AvatarGroupItem[] =>
   record.status !== "active"
     ? []
     : record.assigneeIds
+        .filter((id) => id !== VIEWER_ID)
         .map((id) => usersById.get(id))
         .filter((u): u is NonNullable<typeof u> => u != null)
         .map((u) => ({ kind: "live" as const, content: "image" as const, imageSrc: u.avatar, name: u.name }));
-
-const LIVE_USERS: AvatarGroupItem[] = [users[10], users[2]].map((u) => ({
-  kind: "live",
-  content: "image",
-  imageSrc: u.avatar,
-  name: u.name,
-}));
 
 // On mobile "Details" (the desktop right sidebar) is the first tab and the
 // tabs SWITCH the content (details vs placeholder); the desktop tabs stay
@@ -138,7 +156,10 @@ const Tabs = ({
   value?: string;
   onChange?: (value: string) => void;
 }) => (
-  <TabGroup value={value} onChange={onChange} defaultValue={value == null ? "service" : undefined}>
+  // UNDERLINED (Daniel, 2026-10-04) — these are page sections, and the style
+  // ignores `size`: the tab stretches to fill its bar so the line lands on the
+  // bar's bottom edge.
+  <TabGroup variant="underlined" value={value} onChange={onChange} defaultValue={value == null ? "service" : undefined}>
     {withDetails && <TabItem value="details">Details</TabItem>}
     <TabItem value="service">Service</TabItem>
     <TabItem value="timesheet">Timesheet</TabItem>
@@ -147,34 +168,121 @@ const Tabs = ({
   </TabGroup>
 );
 
+/**
+ * The page's SECTION NAVIGATION — its own bar, not a part of TopBarNav
+ * (Daniel, 2026-10-04). On desktop it lives INSIDE the content area, so it
+ * spans only the main column and never runs over the right sidebar; on mobile
+ * it sits directly under the top bar. 60px like the top bar, transparent like
+ * every app surface, with its own inner bottom stroke.
+ */
+const SectionTabs = ({
+  withDetails = false,
+  value,
+  onChange,
+  hideOnScroll = false,
+}: {
+  withDetails?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  /** Mobile: stick under the top bar and hide while scrolling DOWN (see below). */
+  hideOnScroll?: boolean;
+}) => {
+  const hidden = useHideOnScroll(hideOnScroll);
+  const bar = (
+    <div className={styles.sectionTabs}>
+      {/* A plain horizontal scroller — NO edge fades (Daniel, 2026-10-04): the
+          bar holds nothing but the tabs, so a fade marking "more content" is
+          redundant. */}
+      <div className={styles.sectionTabsScroller}>
+        <div className={styles.sectionTabsInner}>
+          <Tabs withDetails={withDetails} value={value} onChange={onChange} />
+        </div>
+      </div>
+    </div>
+  );
+  if (!hideOnScroll) return bar;
+  // The collapsing wrapper: the bar is bottom-anchored inside a height-animated
+  // clip, so closing it looks like the row sliding up behind the top bar.
+  return (
+    <div ref={hidden.ref} className={clsx(styles.sectionTabsCollapse, hidden.hidden && styles.sectionTabsCollapsed)}>
+      {bar}
+    </div>
+  );
+};
+
+/**
+ * The mobile tabs bar's hide-on-scroll (Daniel, 2026-10-05) — the rule the old
+ * TopBarNav's second tabs row had, now that the tabs are their own bar:
+ * scrolling DOWN slides the row away, and the first scroll UP (or reaching the
+ * top) brings it straight back.
+ *
+ * It listens on the nearest scrollable ANCESTOR, so the bar does not need to
+ * know which shell it is in.
+ */
+function useHideOnScroll(active: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    if (!active) {
+      setHidden(false);
+      return undefined;
+    }
+    const el = ref.current;
+    if (el == null) return undefined;
+    let sc: HTMLElement | null = el.parentElement;
+    while (sc != null && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+    // Collapsing the row changes layout — stop the browser's scroll anchoring
+    // from compensating for it, which reads as a scroll and feeds back.
+    const prevAnchor = sc?.style.overflowAnchor ?? "";
+    if (sc != null) sc.style.overflowAnchor = "none";
+    const read = () => (sc != null ? sc.scrollTop : window.scrollY);
+    let last = read();
+    let ignoreUntil = 0;
+    const onScroll = () => {
+      const y = read();
+      const dy = y - last;
+      last = y;
+      // Our own collapse can clamp scrollTop near the bottom — ignore those
+      // echoes while the height transition runs.
+      if (performance.now() < ignoreUntil) return;
+      if (y <= 0) setHidden(false);
+      else if (dy > 2) {
+        setHidden(true);
+        ignoreUntil = performance.now() + 250;
+      } else if (dy < -2) setHidden(false);
+    };
+    const target: HTMLElement | Window = sc ?? window;
+    target.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      target.removeEventListener("scroll", onScroll);
+      if (sc != null) sc.style.overflowAnchor = prevAnchor;
+    };
+  }, [active]);
+  return { ref, hidden };
+}
+
 interface TopBarProps {
   mobile?: boolean;
-  hideOnScroll?: boolean;
-  /** Opens the job context menu (the ellipsis next to the title). */
-  onActions: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-  actionsPressed?: boolean;
-  /** Mobile: controlled tab selection. */
-  tab?: string;
-  onTabChange?: (value: string) => void;
   /** Who is on the job right now — its own assignees, and only while active. */
   liveUsers: AvatarGroupItem[];
   /** Leaving the job — the app sends you back to the list it came from. */
   onBack?: () => void;
+  /** Desktop: the job's primary actions. The mobile ActionBar owns them instead. */
+  actions?: ReactNode;
 }
 
-const TopBar = ({ mobile = false, hideOnScroll = false, onActions, actionsPressed = false, tab, onTabChange, onBack, liveUsers }: TopBarProps) => {
+// The page's top bar: back + title, live users, and (on desktop) the job's
+// actions on the right. It carries NO tabs — they are their own bar — and no
+// context-menu ellipsis next to the job id: its two items moved into the
+// actions menu (Daniel, 2026-10-04).
+const TopBar = ({ mobile = false, onBack, liveUsers, actions }: TopBarProps) => {
   const jobId = useCurrentJobId();
   return (
-  <TopBarNav
-    variant="details"
-    liveUsers={liveUsers}
-    tabs={<Tabs withDetails={mobile} value={tab} onChange={onTabChange} />}
-    breakpoint={mobile ? "mobile" : "desktop"}
-  >
-    <TopBarNavLeftElements onBack={onBack} onActions={onActions} actionsPressed={actionsPressed}>
+  <TopBarNav liveUsers={liveUsers} actions={actions} breakpoint={mobile ? "mobile" : "desktop"}>
+    <TopBarNavLeftElements onBack={onBack}>
       {/* NO job avatar here (Daniel, 2026-09-26, after trying it on JOB-1094):
           the top bar carries the title alone. The avatar still leads the
-          context-menu drawer's header, where it identifies the job being acted
+          action menu's drawer header, where it identifies the job being acted
           on rather than repeating the page you are already looking at. */}
       <TopBarNavTitle title={jobId} />
     </TopBarNavLeftElements>
@@ -191,14 +299,37 @@ const downloadPdf = () => {
   window.setTimeout(() => toast.update(id, { type: "success", title: "PDF downloaded" }), 2000);
 };
 
-const JobContextMenuItems = ({ onClose }: { onClose: () => void }) => (
+/**
+ * The signed-in user is an ADMIN (Daniel, 2026-10-06: the demo is Lorne
+ * Riddle's view and "he should be able to do everything within the app").
+ *
+ * The demo database has no role model yet, so this is a constant rather than
+ * something read off the user — when roles arrive, this is the one place that
+ * changes. It is what lets the Timesheet be managed for every tech, not only
+ * for the person looking.
+ */
+const VIEWER_IS_ADMIN = true;
+
+/** The signed-in user — Lorne Riddle. The whole demo is his screen. */
+const VIEWER_ID = 1;
+
+const copyJobUrl = () => void copyText(window.location.href, "Job URL");
+
+// "Copy URL" / "Download PDF". They used to be a context menu of their own,
+// behind an ellipsis next to the job id; that ellipsis is gone and they are
+// the FIRST group of the actions menu now — one menu for everything you can
+// do to the job, at both breakpoints (Figma 24049-13712 / 24049-13724).
+//
+// A CANCELLED job has no menu at all any more: the same two actions are its
+// only bar buttons (Figma 24569-142615), and they call the same two functions.
+const linkMenuItems = (onClose: () => void) => (
   <MenuItemGroup>
     <MenuItem
       label="Copy URL"
       slotLeft={slot("link")}
       onClick={() => {
         onClose();
-        void copyText(window.location.href, "Job URL");
+        copyJobUrl();
       }}
     />
     <MenuItem
@@ -217,6 +348,8 @@ interface JobActions {
   onStart: () => void;
   onSchedule: () => void;
   onPause: () => void;
+  /** "Put on hold" — the same form as Pause, opened on the on-hold Type. */
+  onHold: () => void;
   onResume: () => void;
   onChangeActive: () => void;
   onChangePause: () => void;
@@ -243,13 +376,16 @@ interface MenuTrigger {
   open: boolean;
 }
 
-// The primary-actions row: overflow ellipsis on the LEFT, then a full-width
-// primary button (Figma). The buttons depend on the job's state:
-//   upcoming/pastDue → Start job    unscheduled → Schedule
-//   active           → Pause + Complete   (cancelled hides the whole bar)
-//   completed        → ⋯ + "Mark as" + "Create"   (Figma 24567-138762)
-//   finalized        → "Resend summary" + "Create recall", NO ⋯
-//                      (Figma 24568-141432)
+// The primary-actions row. Every status opens with the same ghost "Actions"
+// button (leading `ellipsis`) that opens the overflow menu, then its own
+// buttons:
+//   upcoming/pastDue → Start      unscheduled → Schedule
+//   active           → Complete   paused / held → Resume
+//   completed        → "Mark as" + "Create"   (Figma 24567-138761 / 138770)
+//   finalized        → "Resend summary" (desktop only) + "Create recall"
+//                      (Figma 24568-141431 / 141441)
+//   cancelled        → NO Actions button and no menu: Copy URL + Download PDF
+//                      ARE the two buttons (Figma 24569-142615 / 24972-52200)
 const ActionButtons = ({
   status,
   onMenu,
@@ -257,6 +393,7 @@ const ActionButtons = ({
   actions,
   markAsMenu,
   createMenu,
+  mobile = false,
 }: {
   status: JobStatus;
   onMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void;
@@ -264,21 +401,59 @@ const ActionButtons = ({
   actions: JobActions;
   markAsMenu: MenuTrigger;
   createMenu: MenuTrigger;
+  /**
+   * The mobile ActionBar is a full-width row, so its buttons stretch. In the
+   * desktop top bar they hug instead (Daniel, 2026-10-04). It also decides
+   * WHICH buttons a finalized job gets — the mobile bar has room for two, so
+   * "Resend summary" moves into the menu there (Figma 24972-52007).
+   */
+  mobile?: boolean;
 }) => {
-  const ellipsis = (
-    <IconButton icon="ellipsis" size="lg" variant="ghost" aria-label="More actions" isPressed={menuPressed} noDebounce onClick={onMenu} />
+  const grow = mobile ? styles.grow : undefined;
+  // The overflow trigger is a LABELLED ghost button on every status, not an
+  // icon-only ellipsis (Figma 24971-51627 / 24972-51954, 2026-10-06).
+  const actionsButton = (extraClass?: string) => (
+    <Button
+      size="lg"
+      variant="ghost"
+      leftIcon="ellipsis"
+      className={extraClass}
+      isPressed={menuPressed}
+      noDebounce
+      onClick={onMenu}
+    >
+      Actions
+    </Button>
   );
-  if (status === "completed") {
-    // Both buttons OPEN A MENU, so each holds its pressed look while its menu
-    // shows (the SidebarNav Create-button pattern).
+  if (status === "cancelled") {
+    // A cancelled job has no lifecycle actions left, so the two link actions
+    // come OUT of the overflow menu and become the bar itself. Nothing opens a
+    // menu here any more.
     return (
       <>
-        {ellipsis}
+        <Button size="lg" variant="ghost" leftIcon="link" className={grow} onClick={copyJobUrl}>
+          Copy URL
+        </Button>
+        <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={downloadPdf}>
+          Download PDF
+        </Button>
+      </>
+    );
+  }
+  if (status === "completed") {
+    // All THREE share the mobile bar equally (Daniel, 2026-10-06) — the node
+    // draws "Actions" hugging at 96px, and he chose the even split instead, so
+    // the row matches every other status. Both other buttons OPEN A MENU, so
+    // each holds its pressed look while its menu shows (the SidebarNav
+    // Create-button pattern).
+    return (
+      <>
+        {actionsButton(grow)}
         <Button
           size="lg"
-          variant="subtle"
+          variant="solid"
           rightIcon="angle-down"
-          className={styles.grow}
+          className={grow}
           isPressed={markAsMenu.open}
           noDebounce
           onClick={markAsMenu.onActions}
@@ -289,7 +464,7 @@ const ActionButtons = ({
           size="lg"
           variant="solid"
           rightIcon="angle-down"
-          className={styles.grow}
+          className={grow}
           isPressed={createMenu.open}
           noDebounce
           onClick={createMenu.onActions}
@@ -300,67 +475,81 @@ const ActionButtons = ({
     );
   }
   if (status === "finalized") {
-    // Two subtle buttons and no overflow menu — everything else about a
-    // finalized job is done.
+    // Everything else about a finalized job is done, so all three buttons are
+    // GHOST — nothing here is the one obvious next step.
     return (
       <>
-        <Button size="lg" variant="subtle" leftIcon="paper-plane" className={styles.grow} onClick={actions.onResendSummary}>
-          Resend summary
-        </Button>
-        <Button size="lg" variant="subtle" leftIcon="clock-rotate-left" className={styles.grow} onClick={actions.onCreateRecall}>
+        {actionsButton(grow)}
+        {!mobile && (
+          <Button size="lg" variant="ghost" leftIcon="paper-plane" onClick={actions.onResendSummary}>
+            Resend summary
+          </Button>
+        )}
+        <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" className={grow} onClick={actions.onCreateRecall}>
           Create recall
         </Button>
       </>
     );
   }
   if (status === "unscheduled") {
+    // TWO BUTTONS, no icon-only ellipsis (Figma 24049-13645 desktop /
+    // 24054-13448 mobile, 2026-10-04): a ghost "Actions" that opens the menu,
+    // and the solid "Schedule". On mobile both fill half the bar.
+    //
+    // The icon is the node's LEADING `ellipsis`. A trailing `--dropdown` was
+    // tried on 2026-10-04 (the ellipsis is a label-substitute next to a label,
+    // and "a menu opens here" is the more useful signal) — Daniel kept the
+    // ellipsis for now.
     return (
       <>
-        {ellipsis}
-        <Button size="lg" variant="solid" className={styles.grow} onClick={actions.onSchedule}>
-          Schedule job
+        {actionsButton(grow)}
+        <Button size="lg" variant="solid" leftIcon="calendar-lines-pen" className={grow} onClick={actions.onSchedule}>
+          Schedule
         </Button>
       </>
     );
   }
   if (status === "active") {
+    // Two Buttons (Figma 24058-15415 desktop / 24058-15423 mobile,
+    // 2026-10-04): the Pause button left the bar for the menu, and Complete
+    // is named "Complete".
     return (
       <>
-        {ellipsis}
-        <Button size="lg" variant="subtle" className={styles.grow} onClick={actions.onPause}>
-          Pause job
-        </Button>
-        <Button size="lg" variant="solid" className={styles.grow} onClick={actions.onComplete}>
-          Complete job
+        {actionsButton(grow)}
+        <Button size="lg" variant="solid" leftIcon="circle-check" className={grow} onClick={actions.onComplete}>
+          Complete
         </Button>
       </>
     );
   }
   if (status === "quickPaused" || status === "onHold") {
-    // Paused / on hold → just Resume (no Complete while paused).
+    // Paused / held: ghost "Actions" + the solid "Resume" (Figma 24096-19208
+    // paused / 24970-48536 held, 2026-10-05). No Complete while stopped.
     return (
       <>
-        {ellipsis}
-        <Button size="lg" variant="solid" className={styles.grow} onClick={actions.onResume}>
-          Resume job
+        {actionsButton(grow)}
+        <Button size="lg" variant="solid" leftIcon="circle-play" className={grow} onClick={actions.onResume}>
+          Resume
         </Button>
       </>
     );
   }
-  // upcoming / pastDue
+  // upcoming / pastDue — the same two Buttons as unscheduled (Figma
+  // 24042-14995 desktop / 24055-13310 mobile, 2026-10-04): ghost "Actions"
+  // opens the menu, solid "Start" opens the Start dialog.
   return (
     <>
-      {ellipsis}
-      <Button size="lg" variant="solid" className={styles.grow} onClick={actions.onStart}>
-        Start job
+      {actionsButton(grow)}
+      <Button size="lg" variant="solid" leftIcon="circle-play" className={grow} onClick={actions.onStart}>
+        Start
       </Button>
     </>
   );
 };
 
-// The two groups a completed job shows in THREE places each: inside the
-// overflow menu, and on their own behind the "Create" / "Mark as" buttons
-// (Figma 24590-204304 / 24590-203981). One definition, so they cannot drift.
+// A completed job's two button menus (Figma 24590-204304 / 24590-203981).
+// They are ONLY behind their own buttons now — the overflow menu no longer
+// repeats them (Figma 24567-138776, 2026-10-06).
 const createMenuItems = (actions: JobActions) => (
   <MenuItemGroup>
     <MenuItem label="Create invoice" slotLeft={slot("circle-dollar")} onClick={actions.onCreateInvoice} />
@@ -379,94 +568,151 @@ const markAsMenuItems = (actions: JobActions) => (
 // component — Menu's withGroupDividers can only see the MenuItemGroups when it
 // receives the fragment itself; a component element hides them, and the
 // between-group dividers silently disappear (Daniel caught this, 2026-07-21).
-const jobActionMenuItems = ({ status, actions }: { status: JobStatus; actions: JobActions }) => {
+const jobActionMenuItems = ({
+  status,
+  actions,
+  onClose,
+  mobile = false,
+}: {
+  status: JobStatus;
+  actions: JobActions;
+  /** Closes the menu — the link items act and dismiss. */
+  onClose: () => void;
+  /**
+   * The mobile bar fits fewer buttons, so a FINALIZED job's "Resend summary"
+   * is a menu item there and a bar button on desktop (Figma 24972-52007 vs
+   * 24972-52019).
+   */
+  mobile?: boolean;
+}) => {
+  const links = linkMenuItems(onClose);
+  // The labels name the ACTION, without repeating "job" — the menu is already
+  // the job's (Figma 24049-13712 / 24042-15254, 2026-10-04).
   const cancel = (
     <MenuItemGroup>
-      <MenuItem label="Cancel job" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
+      <MenuItem label="Cancel" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
     </MenuItemGroup>
   );
-  // A completed job (Figma 24567-138778): the two Create actions, the two
-  // Mark-as actions, then recall / resend / resume. No Cancel item.
+  // A completed job (Figma 24567-138776, re-read 2026-10-06): the links, then
+  // recall / resend / resume. The Create and Mark-as actions are NOT repeated
+  // here any more — each has its own button in the bar, with its own menu.
   if (status === "completed") {
     return (
       <>
-        {createMenuItems(actions)}
-        {markAsMenuItems(actions)}
+        {links}
         <MenuItemGroup>
           <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
           <MenuItem label="Resend summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
-          <MenuItem label="Resume job" slotLeft={slot("circle-play")} onClick={actions.onResume} />
+          {/* The one STATUS action in this menu, so it carries the solid icon
+              in its status colour — the same rule the active menu follows. */}
+          <MenuItem label="Resume job" slotLeft={slot("circle-play", "solid", "var(--jade-a9)")} onClick={actions.onResume} />
         </MenuItemGroup>
       </>
     );
   }
-  if (status === "unscheduled") {
+  // A finalized job (Figma 24972-52019 desktop / 24972-52007 mobile): the
+  // links, and on mobile the "Resend summary" the bar had no room for.
+  if (status === "finalized") {
     return (
       <>
-        <MenuItemGroup>
-          <MenuItem label="Schedule job" slotLeft={slot("calendar-lines-pen")} onClick={actions.onSchedule} />
-        </MenuItemGroup>
+        {links}
+        {mobile && (
+          <MenuItemGroup>
+            <MenuItem label="Resend summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
+          </MenuItemGroup>
+        )}
+      </>
+    );
+  }
+  if (status === "unscheduled") {
+    // No "Schedule job" item — Schedule is a BUTTON in the bar now, so the
+    // menu is only the links and Cancel (Figma 24049-13712 / 24049-13724).
+    return (
+      <>
+        {links}
         {cancel}
       </>
     );
   }
   if (status === "active") {
-    // Updated design (Figma 24057-16092): no Start/Stop-time-session item —
-    // the session lives in the bar/pill now. Lifecycle actions + Reschedule.
+    // Figma 24057-16092 (re-read 2026-10-04): the links, then ONE group of
+    // four. No Complete item — Complete is the bar's button — and PAUSE and
+    // PUT ON HOLD are separate entries now, each opening the Pause form on its
+    // own Type. "Change job active status" is annotated "exists only if a
+    // company supports active sub-statuses"; the demo has none configured, so
+    // it is shown unconditionally for now — flagged.
     return (
       <>
+        {links}
         <MenuItemGroup>
-          <MenuItem label="Change job active status" slotLeft={slot("circle-play")} onClick={actions.onChangeActive} />
-          <MenuItem label="Pause job" slotLeft={slot("circle-pause")} onClick={actions.onPause} />
-          <MenuItem label="Complete job" slotLeft={slot("circle-check")} onClick={actions.onComplete} />
-        </MenuItemGroup>
-        <MenuItemGroup>
-          <MenuItem label="Reschedule job" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
+          {/* "Exists only if a company supports active sub-statuses" (the
+              node's annotation). The demo company has them OFF, so this item
+              does not appear here — see StartJobForm's "Active sub-statuses"
+              story for the feature switched on. */}
+          {/* The three STATUS actions carry solid icons in their status colour,
+              so they are easier to pick out of the list (Daniel, 2026-10-05 —
+              Figma 24057-16092). Reschedule is not a status change, so it
+              keeps the plain regular icon. */}
+          {COMPANY.subStatuses.active && (
+            <MenuItem
+              label="Change job active status"
+              slotLeft={slot("circle-play", "solid", "var(--jade-a9)")}
+              onClick={actions.onChangeActive}
+            />
+          )}
+          <MenuItem label="Pause" slotLeft={slot("circle-pause", "solid", "var(--amber-a9)")} onClick={actions.onPause} />
+          <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />
+          <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
         </MenuItemGroup>
       </>
     );
   }
-  // Paused / on hold (Figma 24096-19267): status actions, then Reschedule.
-  // No Cancel item in this design.
+  // Paused (Figma 24096-19267) and HELD (24970-48552) — the same shape, one
+  // status action each, named for the status it changes. No Resume item:
+  // Resume is the bar's button. No Cancel item in this design.
   if (status === "quickPaused" || status === "onHold") {
+    const held = status === "onHold";
     return (
       <>
+        {links}
         <MenuItemGroup>
-          <MenuItem label="Change job pause status" slotLeft={slot("circle-pause")} onClick={actions.onChangePause} />
-          <MenuItem label="Resume job" slotLeft={slot("circle-play")} onClick={actions.onResume} />
-        </MenuItemGroup>
-        <MenuItemGroup>
-          <MenuItem label="Reschedule job" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
+          <MenuItem
+            label={held ? "Change job on hold status" : "Change job pause status"}
+            slotLeft={
+              held
+                ? slot("circle-stop", "solid", "var(--crimson-a9)")
+                : slot("circle-pause", "solid", "var(--amber-a9)")
+            }
+            onClick={actions.onChangePause}
+          />
+          <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
         </MenuItemGroup>
       </>
     );
   }
-  // Scheduled / upcoming / pastDue (Figma 24042-15254, updated 2026-07-21):
-  // three single-item groups — Start / Unschedule / the danger Cancel.
+  // Scheduled / upcoming / pastDue (Figma 24042-15254 desktop / 24042-15137
+  // mobile, re-read 2026-10-04): the links, then ONE group holding Unschedule
+  // and the danger Cancel — they used to be two groups with a line between.
+  // NO "Start" item — Start is a button in the bar now, the same way Schedule
+  // left the unscheduled menu.
   return (
     <>
+      {links}
       <MenuItemGroup>
-        <MenuItem label="Start job" slotLeft={slot("circle-play")} onClick={actions.onStart} />
-      </MenuItemGroup>
-      <MenuItemGroup>
-        <MenuItem label="Unschedule job" slotLeft={slot("calendar-xmark")} onClick={actions.onUnschedule} />
-      </MenuItemGroup>
-      <MenuItemGroup>
-        <MenuItem label="Cancel job" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
+        <MenuItem label="Unschedule" slotLeft={slot("calendar-xmark")} onClick={actions.onUnschedule} />
+        <MenuItem label="Cancel" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
       </MenuItemGroup>
     </>
   );
 };
 
-// The mobile overflow menu's drawer header: the job avatar + id + status caption.
-// The avatar is AvatarJob. It leads the DRAWER's header only — the top bar
-// itself carries no avatar since 2026-09-26, so this is where the job's
-// identity is shown when a menu acts on it.
-// at size xl (36px) — the size the Figma drawer header uses.
-const JobMenuHeader = ({ avatarStatus, caption }: { avatarStatus: BadgeJobStatusStatus; caption: string }) => (
+// The mobile menu drawer's header: the JOB ID, and nothing else (Figma
+// 24049-13724, 2026-10-04). It used to carry an AvatarJob and the status
+// caption as well; the drawer only has to say which job it is acting on.
+const JobMenuHeader = () => (
   <DrawerHeader>
-    <PopoverHeaderContent avatar={<AvatarJob size="xl" status={avatarStatus} />}>
-      <PopoverHeaderText variant="titleCaption" title={useCurrentJobId()} caption={caption} />
+    <PopoverHeaderContent>
+      <PopoverHeaderText title={useCurrentJobId()} />
     </PopoverHeaderContent>
   </DrawerHeader>
 );
@@ -534,7 +780,7 @@ const createMenu = (
       slotLeft={slot(semanticIcons.pricebook)}
       subMenu={
         <MenuItemGroup>
-          <MenuItem label="Labor" slotLeft={slot(semanticIcons.labor)} />
+          <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
           <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
@@ -567,7 +813,7 @@ const navContent = (
     <SidebarNavItem icon={semanticIcons.vendor}>Vendors</SidebarNavItem>
     <SidebarNavItem icon={semanticIcons.clientGeneric}>Clients</SidebarNavItem>
     <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
-      <SidebarNavItem type="stackItem">Labor</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Labor rates</SidebarNavItem>
       <SidebarNavItem type="stackItem">Products</SidebarNavItem>
       <SidebarNavItem type="stackItem">Other</SidebarNavItem>
       <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
@@ -732,26 +978,50 @@ const SessionBar = ({
   // Left-aligned like every other menu; against the screen edge the placement
   // helper flips it to the trigger's right edge.
   const menu = useAnchoredMenu(true);
+  // The avatar is the DS Avatar (36px square icon tile), not a hand-built box.
+  // Running = solid tomato with the status glyph; idle on an ACTIVE job = the
+  // DS AvatarWarning (amber-a3 tile, amber-a11 glyph — it was a SOLID amber
+  // box before, Daniel 2026-10-04); idle otherwise = a gray tile with the
+  // regular stopwatch.
+  const avatar = checkedIn ? (
+    <Avatar
+      size="xl"
+      shape="square"
+      content="icon"
+      icon={categoryIcon(category)}
+      iconPack="solid"
+      backgroundColor="var(--tomato-9)"
+      iconColor="var(--tomato-1)"
+    />
+  ) : jobActive ? (
+    <AvatarWarning size="xl" />
+  ) : (
+    <Avatar
+      size="xl"
+      shape="square"
+      content="icon"
+      icon="stopwatch"
+      iconPack="regular"
+      backgroundColor="var(--gray-a3)"
+      iconColor="var(--gray-a8)"
+    />
+  );
   return (
     <div className={styles.timerBar}>
       <div className={styles.timerRow}>
-        <div className={styles.timerInfo}>
-          <span className={clsx(styles.timerAvatar, !checkedIn && (jobActive ? styles.timerAvatarIdle : styles.timerAvatarNeutral))}>
-            <Icon
-              icon={checkedIn ? categoryIcon(category) : jobActive ? "warning" : "stopwatch"}
-              pack={checkedIn || jobActive ? "solid" : "regular"}
-              size={16}
-            />
-          </span>
-          <span className={styles.timerText}>
-            <span className={clsx(styles.timerClock, !checkedIn && styles.timerClockIdle)}>
-              {checkedIn ? formatElapsed(elapsed) : "00:00"}
-            </span>
-            <span className={clsx(styles.timerLabel, !checkedIn && jobActive && styles.timerLabelIdle)}>
-              {checkedIn ? category ?? "Tracking your time" : jobActive ? "Not tracking your time" : "Check in to track your time"}
-            </span>
-          </span>
-        </div>
+        {avatar}
+        {/* The copy is ItemText (Figma 24357-35024 / 24358-37516 /
+            24596-41059): the clock is the TITLE and the status the CAPTION.
+            The clock is NOT tabular — the nodes ask for plain body/500
+            compact, and ItemTextLine's own font-feature-settings would win
+            over a consumer override anyway. */}
+        <ItemText
+          variant="titleCaption"
+          title={checkedIn ? formatElapsed(elapsed) : "00:00"}
+          titleColor={checkedIn ? "error" : "placeholder"}
+          caption={checkedIn ? category ?? "Tracking your time" : jobActive ? "Not tracking your time" : "Check in to track your time"}
+          captionColor={!checkedIn && jobActive ? "warning" : undefined}
+        />
         {checkedIn ? (
           <IconButton
             icon="ellipsis"
@@ -1009,8 +1279,7 @@ const EQUIPMENT_DATE = new Intl.DateTimeFormat("en-US", { month: "long", day: "n
 // sessions (check-in/out + add/edit/delete). Both shells use it; only the
 // anchored-menu mode (desktop card vs mobile drawer) and layout differ.
 function useJobShell(isDesktop: boolean, record: ListJob) {
-  const menu = useAnchoredMenu(isDesktop); // top-bar ellipsis (Copy URL / …)
-  const actionMenu = useAnchoredMenu(isDesktop); // action-bar ellipsis
+  const actionMenu = useAnchoredMenu(isDesktop); // the actions ellipsis
   // A completed job's two action-bar buttons each open their own menu.
   const markAsMenu = useAnchoredMenu(isDesktop);
   const createMenu = useAnchoredMenu(isDesktop);
@@ -1080,6 +1349,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // Lifecycle forms: Pause, Resume, Change active status, Change pause status,
   // and the "Time logged" (Complete) review.
   const [pauseOpen, setPauseOpen] = useState(false);
+  // WHICH of the two dialogs is open — "Pause" and "Hold" are separate menu
+  // items and separate dialogs (Figma 24058-15840 / 24963-43684).
+  const [pauseFormType, setPauseFormType] = useState<"quick-pause" | "on-hold">("quick-pause");
   const [resumeOpen, setResumeOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   // Opens the moment the Complete flow finishes (Figma 24576-152451), and again
@@ -1108,6 +1380,10 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // The day a NEW session should start on — the Timesheet review's per-day plus
   // names one; every other entry point leaves it as today.
   const [sessionStartDate, setSessionStartDate] = useState<Date | undefined>();
+  // WHOSE session a new one is. The Timesheet's plus belongs to one tech's
+  // group, so an admin adding time for somebody else files it under them
+  // rather than under the viewer (Daniel, 2026-10-06). Unset = the viewer's.
+  const [sessionUserId, setSessionUserId] = useState<number | undefined>();
   const [deleteTarget, setDeleteTarget] = useState<Session | undefined>();
   // Check-in state: a running session ticks `elapsed` once a second.
   const [checkedIn, setCheckedIn] = useState(false);
@@ -1121,9 +1397,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const [checkOutPromptOpen, setCheckOutPromptOpen] = useState(false);
   const [timesheetOpen, setTimesheetOpen] = useState(false);
 
-  // The viewing tech (the logged-in user, "Lorne Riddle") — only their Timesheet
-  // group gets the add-plus + row edit/delete, and the Complete review is theirs.
-  const viewer = users.find((u) => u.id === 1) ?? users[0];
+  // The viewing tech (the logged-in user, "Lorne Riddle"). The Complete review
+  // is theirs, and a session logged live by check-in belongs to them.
+  const viewer = users.find((u) => u.id === VIEWER_ID) ?? users[0];
 
   // The Activity tab's event list, OLDEST first. It opens with the job's
   // creation (stamped at mount, so the log reads "Just now") and grows as the
@@ -1310,8 +1586,31 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // session runs — that is how they reach Check out. Once they do, both
   // disappear for good: nobody checks IN to a job whose work is done.
   const isDone = job.status === "completed" || job.status === "finalized";
-  const canTrackTime = job.status !== "unscheduled" && job.status !== "cancelled" && (!isDone || checkedIn);
+  // A CLOSED job's timesheet is frozen: nobody adds, edits or deletes a
+  // session on one, not even a full-permission admin (Daniel, 2026-10-06), so
+  // those groups show no plus and those rows no context menu.
+  //
+  // CLOSED means the jobs list's **Closed phase** — FINALIZED or CANCELLED.
+  // "Completed" is an OPEN status (it sits under Open in the list, waiting to
+  // be invoiced or estimated), and its timesheet is still editable: correcting
+  // the hours is exactly what happens between completing a job and billing it
+  // (Daniel, 2026-10-06, narrowing my first reading of "closed").
+  const timesheetFrozen = job.status === "finalized" || job.status === "cancelled";
+  // **The time tracker is for the job's ASSIGNEES** (Daniel, 2026-10-06).
+  // Somebody who is not on the job has no time to track on it, so they get
+  // neither the desktop bar nor the mobile pill — being an admin does not
+  // change that, because this is the viewer's OWN stopwatch.
+  const viewerIsAssignee = assignees.includes(viewer.id);
+  const canTrackTime =
+    viewerIsAssignee && job.status !== "unscheduled" && job.status !== "cancelled" && (!isDone || checkedIn);
   const canAddSessions = canTrackTime;
+  // The viewer may manage EVERYBODY's time on this job, not just their own —
+  // add, edit and delete sessions in any tech's Timesheet group (Daniel,
+  // 2026-10-06). It is an ADMIN right, and correcting a timesheet from the
+  // office is not the same action as a tech tracking their own time, so it
+  // does NOT follow `canTrackTime`: a job nobody has started yet, or one the
+  // viewer is not assigned to, can still be corrected — until it closes.
+  const canManageTimesheet = VIEWER_IS_ADMIN && !timesheetFrozen;
   // The job's assignees — the Timesheet tab shows a group per assignee.
   const assigneeUsers = assignees
     .map((id) => users.find((u) => u.id === id))
@@ -1335,17 +1634,22 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // else showed "No time logged").
   const sessionsByUser: Record<number, Session[]> = {};
   for (const session of displaySessions) {
-    const owner = (session as Session & { userId?: number }).userId ?? viewer.id;
-    (sessionsByUser[owner] ??= []).push(session);
+    (sessionsByUser[session.userId ?? viewer.id] ??= []).push(session);
   }
   // What the Assignees module shows per person (Figma 24522-63732): their total
   // tracked time — live, the running session included — and, while they are
   // checked in, the status they are working under.
+  //
+  // The per-session totals are ROUNDED the way the company rounds (2026-10-06,
+  // when `COMPANY.roundsTimeUp` went on): the Timesheet's own group headers
+  // already were, and the same person's "Total tracked" must not read 4 hr
+  // 24 min beside a timesheet that adds up to 4 hr 30 min. A RUNNING session
+  // is never rounded — the Timesheet does not round one either.
   const assigneeStats: Record<number, { trackedSec: number; status?: string }> = {};
   for (const user of assigneeUsers) {
     const list = sessionsByUser[user.id] ?? [];
     assigneeStats[user.id] = {
-      trackedSec: list.reduce((acc, s) => acc + s.durationSec, 0),
+      trackedSec: list.reduce((acc, s) => acc + (s.active ? s.durationSec : roundUpSec(s.durationSec, COMPANY.roundsTimeUp)), 0),
       status: list.find((s) => s.active)?.category,
     };
   }
@@ -1624,9 +1928,13 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   };
 
   // Time-session form actions (the Timesheet plus + the ended-row menu).
-  const openAddSession = (startDate?: Date) => {
+  // `userId` names the tech the new session belongs to — the Timesheet's plus
+  // passes its own group's; the Timesheet review's per-day plus does not, so
+  // that one stays the viewer's own.
+  const openAddSession = (startDate?: Date, userId?: number) => {
     setEditingSession(undefined);
     setSessionStartDate(startDate);
+    setSessionUserId(userId);
     setSessionFormOpen(true);
   };
   const openEditSession = (session: Session) => {
@@ -1668,8 +1976,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     };
     setSessions((prev) =>
       editingSession != null
-        ? prev.map((s) => (s.id === editingSession.id ? { ...s, ...fields } : s))
-        : [...prev, { id: prev.reduce((mx, s) => Math.max(mx, s.id), 0) + 1, ...fields }],
+        ? // An edit never re-files the session: it keeps whosever it already was.
+          prev.map((s) => (s.id === editingSession.id ? { ...s, ...fields } : s))
+        : [...prev, { id: prev.reduce((mx, s) => Math.max(mx, s.id), 0) + 1, userId: sessionUserId ?? viewer.id, ...fields }],
     );
 
     // The activity log (Figma 24453-26325). Adding names the whole session;
@@ -1782,7 +2091,8 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     if (next.date == null && was.date != null) {
       setJob((j) => ({ ...j, status: "unscheduled", unscheduledAt: formatStatusTimestamp(new Date()) }));
     } else if (next.date != null && was.date == null) {
-      setJob({ status: "upcoming", everStarted: false });
+      // Booking it NOW is this job's "Scheduled on".
+      setJob({ status: "upcoming", everStarted: false, scheduledAt: formatStatusTimestamp(new Date()) });
     }
     logScheduling(was, next);
   };
@@ -1807,6 +2117,12 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     },
     onPause: () => {
       actionMenu.close();
+      setPauseFormType("quick-pause");
+      setPauseOpen(true);
+    },
+    onHold: () => {
+      actionMenu.close();
+      setPauseFormType("on-hold");
       setPauseOpen(true);
     },
     onResume: () => {
@@ -1877,7 +2193,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     jobId: record.id,
     charges,
     chargesSubtotal,
-    menu,
     actionMenu,
     markAsMenu,
     createMenu,
@@ -1922,6 +2237,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     confirmSchedule,
     pauseOpen,
     setPauseOpen,
+    pauseFormType,
     resumeOpen,
     setResumeOpen,
     completeOpen,
@@ -1972,6 +2288,8 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     assigneeUsers,
     canTrackTime,
     canAddSessions,
+    canManageTimesheet,
+    timesheetFrozen,
     startJob,
     cancelJob,
     pauseJob,
@@ -1992,7 +2310,7 @@ type ShellState = ReturnType<typeof useJobShell>;
 // only by the mobile flag / Prompt breakpoint). Rendered once per shell.
 const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) => (
   <>
-    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} mobile={mobile} />
+    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} mobile={mobile} />
     {/* Complete job — the 5-step flow (Equipment shares the live equipment list;
         the rest is a snapshot). Figma section 24106-16424. */}
     <CompleteJobForm
@@ -2056,7 +2374,9 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onClose={() => s.setResumeOpen(false)}
       onStart={s.doResume}
       title="Resume job"
-      submitLabel="Resume job"
+      // "Resume", not "Resume job" (Daniel, 2026-10-05) — the dialog's title
+      // already names the job, the same trim Start / Cancel / Schedule took.
+      submitLabel="Resume"
       reasonLabel="Resume reason"
       toastTitle={`"${s.jobId}" resumed`}
       banner={
@@ -2067,12 +2387,15 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       mobile={mobile}
     />
     {/* The two "Mark as" confirmations — both finalize the job
-        (Figma 24567-139607 / 24567-140732). */}
+        (Figma 24567-139607 / 24567-140732). The primary carries the SAME
+        leading icon as its menu item, so the action is recognisable from the
+        row you picked to the button you press (2026-10-06). */}
     <Prompt
       open={s.markInvoicedOpen}
       title="Mark the job as invoiced?"
       body="This action can not be undone"
       actionLabel="Mark as invoiced"
+      actionIcon="circle-dollar"
       onAction={() => {
         s.setMarkInvoicedOpen(false);
         s.finalizeJob("invoiced");
@@ -2085,6 +2408,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       title="Mark the job as estimated?"
       body="This action can not be undone"
       actionLabel="Mark as estimated"
+      actionIcon="clock"
       onAction={() => {
         s.setMarkEstimatedOpen(false);
         s.finalizeJob("estimated");
@@ -2153,7 +2477,9 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       body="Time session will be permanently deleted. This action can not be undone."
       actionLabel="Delete"
       actionVariant="danger"
-      actionIcon="trash"
+      // `trash-can`, the token every other delete uses — this one said
+      // `trash`, a different glyph (Daniel, 2026-10-06).
+      actionIcon="trash-can"
       onAction={s.confirmDeleteSession}
       onCancel={() => s.setDeleteTarget(undefined)}
       breakpoint={mobile ? "mobile" : "desktop"}
@@ -2163,33 +2489,54 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
 
 // ---- layouts --------------------------------------------------------------
 
-const DesktopShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; record: ListJob; onBack?: () => void }) => {
+const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: boolean; record: ListJob; onBack?: () => void; onOpenJob?: (id: string) => void }) => {
   const s = useJobShell(true, record);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
   const [tab, setTab] = useState("service");
   return (
     <div className={styles.workArea}>
-        <TopBar onActions={s.menu.onActions} actionsPressed={s.menu.open} tab={tab} onTabChange={setTab} onBack={onBack} liveUsers={liveUsersFor(record)} />
+        {/* The job's actions sit in the TOP BAR on desktop now — there is no
+            action bar in the sidebar any more (Daniel, 2026-10-04). */}
+        <TopBar
+          onBack={onBack}
+          liveUsers={liveUsersFor(record)}
+          actions={
+            <ActionButtons
+              status={s.job.status}
+              onMenu={s.actionMenu.onActions}
+              menuPressed={s.actionMenu.open}
+              actions={s.actions}
+              markAsMenu={s.markAsMenu}
+              createMenu={s.createMenu}
+            />
+          }
+        />
         <div className={styles.contentRow}>
+          {/* The section tabs belong to the CONTENT AREA, so the bar stops at
+              the sidebar's divider instead of running across it. */}
+          <div className={styles.mainColumn}>
+          <SectionTabs value={tab} onChange={setTab} />
           <ScrollArea wrapperClassName={styles.mainArea} className={styles.mainAreaScroll}>
             {/* The main column is capped at 560px (Figma: never edge-to-edge) —
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} />
+                <ServicePanel serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
                 <TimesheetPanel
                   assignees={s.assigneeUsers}
                   viewerId={s.viewer.id}
+                  canEditOthers={s.canManageTimesheet}
+                  readOnly={s.timesheetFrozen}
                   sessionsByUser={s.sessionsByUser}
                   onStopSession={s.actions.onCheckOut}
                   onSwitchStatus={s.switchStatus}
                   onEditSession={s.openEditSession}
                   onDeleteSession={s.setDeleteTarget}
-                  onAddSession={s.openAddSession}
+                  onAddSession={(userId) => s.openAddSession(undefined, userId)}
                   canAddSessions={s.canAddSessions}
                   started={false}
                   roundTo5min={roundTo5min}
@@ -2219,63 +2566,45 @@ const DesktopShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; r
               <Placeholder className={styles.mainContent} />
             )}
           </ScrollArea>
-          <Divider orientation="vertical" />
+          </div>
+          {/* The details sidebar's left edge — MEDIUM, like SidebarNav's right
+              edge on the other side of the page (Daniel, 2026-10-04). */}
+          <Divider orientation="vertical" contrast="medium" />
           <ScrollArea wrapperClassName={styles.sidebar} className={styles.sidebarScroll}>
-            {/* Action bar + (while checked in) the active-session bar are PINNED
-                together at the top of the sidebar — one block, like an extension of
-                the action bar (Figma 24058-15415): buttons → divider → session bar →
-                divider. A cancelled job hides the whole thing (editing restricted). */}
-            {!s.locked && (
+            {/* The ACTION BAR is gone from the desktop sidebar (Daniel,
+                2026-10-04) — the job's actions are in the top bar. What stays
+                pinned here is time tracking, which is separate from the job
+                lifecycle: the bar shows on every status except Unscheduled /
+                Cancelled, in three states — running session, amber idle
+                (active job) or the neutral "Check in to track your time". */}
+            {!s.locked && s.canTrackTime && (
               <div className={styles.sidebarHeader}>
-                <ActionBar placement="top">
-                  <ActionButtons
-                    status={s.job.status}
-                    onMenu={s.actionMenu.onActions}
-                    menuPressed={s.actionMenu.open}
-                    actions={s.actions}
-                    markAsMenu={s.markAsMenu}
-                    createMenu={s.createMenu}
-                  />
-                </ActionBar>
-                {/* Time tracking is separate from the job lifecycle: the bar
-                    shows on every status except Unscheduled / Cancelled, in
-                    three states — running session, amber idle (active job) or
-                    the neutral "Check in to track your time" idle. */}
-                {s.canTrackTime && (
-                  <>
-                    <SessionBar
-                      checkedIn={s.checkedIn}
-                      jobActive={s.job.status === "active"}
-                      elapsed={s.elapsed}
-                      category={s.activeCategory}
-                      onCheckIn={s.actions.onCheckIn}
-                      onCheckOut={s.actions.onCheckOut}
-                      onSwitchStatus={s.switchStatus}
-                    />
-                    <Divider />
-                  </>
-                )}
+                {/* No Divider after it — the bar draws its own inner bottom
+                    stroke (Daniel, 2026-10-04). */}
+                <SessionBar
+                  checkedIn={s.checkedIn}
+                  jobActive={s.job.status === "active"}
+                  elapsed={s.elapsed}
+                  category={s.activeCategory}
+                  onCheckIn={s.actions.onCheckIn}
+                  onCheckOut={s.actions.onCheckOut}
+                  onSwitchStatus={s.switchStatus}
+                />
               </div>
             )}
             <DetailsPanel scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
           </ScrollArea>
         </div>
-      {/* The top-bar context menu card: below the ellipsis, left-aligned, 4px gap. */}
-      {s.menu.pos != null && (
-        <div ref={s.menu.cardRef} className={styles.contextMenu} style={{ left: s.menu.pos.left, top: s.menu.pos.top }}>
-          <Menu open={s.menu.open} onClose={s.menu.close} breakpoint="desktop">
-            <JobContextMenuItems onClose={s.menu.close} />
-          </Menu>
-        </div>
-      )}
-      {/* The action-bar overflow menu card. */}
-      {!s.locked && s.actionMenu.pos != null && (
+      {/* The actions overflow menu card — it leads with Copy URL / Download
+          PDF on every status. A CANCELLED job has no "Actions" button, so this
+          never opens there: those two are its bar buttons instead. */}
+      {s.actionMenu.pos != null && (
         <div ref={s.actionMenu.cardRef} className={styles.contextMenu} style={{ left: s.actionMenu.pos.left, top: s.actionMenu.pos.top }}>
           <Menu open={s.actionMenu.open} onClose={s.actionMenu.close} breakpoint="desktop">
-            {jobActionMenuItems({ status: s.job.status, actions: s.actions })}
+            {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close })}
           </Menu>
         </div>
       )}
@@ -2459,7 +2788,7 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; record: ListJob; onBack?: () => void }) => {
+const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: boolean; record: ListJob; onBack?: () => void; onOpenJob?: (id: string) => void }) => {
   const s = useJobShell(false, record);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
@@ -2468,10 +2797,17 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
   return (
     <div className={styles.mobile}>
+      {/* The top bar is OUTSIDE the scroller, so it stays fixed while the page
+          scrolls (Daniel, 2026-10-04). The tabs bar is INSIDE it and scrolls
+          away with the content. */}
+      <TopBar mobile onBack={onBack} liveUsers={liveUsersFor(record)} />
       <ScrollArea wrapperClassName={styles.mobileScroll} className={styles.mobileScrollInner}>
-        <TopBar mobile hideOnScroll onActions={s.menu.onActions} actionsPressed={s.menu.open} tab={tab} onTabChange={setTab} onBack={onBack} liveUsers={liveUsersFor(record)} />
+        {/* The tabs are their own bar here too — a row under the top bar, not
+            a part of it (Daniel, 2026-10-04). The ActionBar still owns the
+            job's actions at the bottom of the screen. */}
+        <SectionTabs withDetails hideOnScroll value={tab} onChange={setTab} />
         {/* Swipe-to-switch-tabs listens ONLY here (the tab content) — not on
-            the TopBarNav or the ActionBar (Daniel, 2026-07-22). */}
+            the TopBarNav, the tabs bar or the ActionBar (Daniel, 2026-07-22). */}
         {/* Real-time swipe pager: drag the content to pull the next tab in. */}
         <SwipePager
           tab={tab}
@@ -2482,19 +2818,21 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
           <DetailsPanel mobile scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
             ) : t === "service" ? (
-              <ServicePanel mobile serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} />
+              <ServicePanel mobile serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}
             viewerId={s.viewer.id}
+            canEditOthers={s.canManageTimesheet}
+            readOnly={s.timesheetFrozen}
             sessionsByUser={s.sessionsByUser}
             onStopSession={s.actions.onCheckOut}
             onSwitchStatus={s.switchStatus}
             onEditSession={s.openEditSession}
             onDeleteSession={s.setDeleteTarget}
-            onAddSession={s.openAddSession}
+            onAddSession={(userId) => s.openAddSession(undefined, userId)}
             canAddSessions={s.canAddSessions}
             started={false}
             roundTo5min={roundTo5min}
@@ -2541,18 +2879,20 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
           />
         </div>
       )}
-      {!s.locked && (
-        <ActionBar placement="bottom">
-          <ActionButtons
-            status={s.job.status}
-            onMenu={s.actionMenu.onActions}
-            menuPressed={s.actionMenu.open}
-            actions={s.actions}
-            markAsMenu={s.markAsMenu}
-            createMenu={s.createMenu}
-          />
-        </ActionBar>
-      )}
+      {/* The bottom action bar stays on mobile. A cancelled job keeps it too:
+          Copy URL / Download PDF ARE its two buttons now (Figma 24972-52200,
+          2026-10-06), so nothing it can still do is hidden behind a menu. */}
+      <ActionBar placement="bottom">
+        <ActionButtons
+          status={s.job.status}
+          onMenu={s.actionMenu.onActions}
+          menuPressed={s.actionMenu.open}
+          actions={s.actions}
+          markAsMenu={s.markAsMenu}
+          createMenu={s.createMenu}
+          mobile
+        />
+      </ActionBar>
       <SessionDrawer
         open={sessionDrawerOpen && s.checkedIn}
         elapsed={s.elapsed}
@@ -2565,27 +2905,19 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
         }}
       />
       <Menu
-        open={s.menu.open}
-        onClose={s.menu.close}
-        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
-        breakpoint="mobile"
-      >
-        <JobContextMenuItems onClose={s.menu.close} />
-      </Menu>
-      <Menu
         open={s.actionMenu.open}
         onClose={s.actionMenu.close}
-        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader />}
         breakpoint="mobile"
       >
-        {jobActionMenuItems({ status: s.job.status, actions: s.actions })}
+        {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, mobile: true })}
       </Menu>
       {/* A completed job's two button menus become drawers on mobile, under the
           same job header as the overflow menu (Figma 24590-203977 / 24590-204300). */}
       <Menu
         open={s.markAsMenu.open}
         onClose={s.markAsMenu.close}
-        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader />}
         breakpoint="mobile"
       >
         {markAsMenuItems(s.actions)}
@@ -2593,7 +2925,7 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
       <Menu
         open={s.createMenu.open}
         onClose={s.createMenu.close}
-        drawerHeader={<JobMenuHeader avatarStatus={s.avatarStatus} caption={s.caption} />}
+        drawerHeader={<JobMenuHeader />}
         breakpoint="mobile"
       >
         {createMenuItems(s.actions)}
@@ -2606,7 +2938,7 @@ const MobileShell = ({ roundTo5min, record, onBack }: { roundTo5min: boolean; re
   );
 };
 
-export default function JobDetails({ record, breakpoint = "auto", roundTo5min = false, onBack }: JobDetailsProps) {
+export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
   // Remounting on the job id is deliberate: every module seeds its state from
   // the record, so opening another job has to start those modules over rather
@@ -2614,9 +2946,9 @@ export default function JobDetails({ record, breakpoint = "auto", roundTo5min = 
   return (
     <CurrentJobIdProvider id={record.id}>
       {isDesktop ? (
-        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} />
+        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} />
       ) : (
-        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} />
+        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} />
       )}
     </CurrentJobIdProvider>
   );

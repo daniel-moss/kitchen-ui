@@ -299,36 +299,35 @@ Roughly, as of this handoff:
   BottomBarNav renders ONLY on mobile (≤1024), SidebarNav renders ONLY on
   desktop — each returns null on the other breakpoint (`breakpoint` prop
   forces for stories/tests).**
-- **TopBarNav (`TopBarNav/`, REDESIGNED + renamed from NavTopBar 2026-08-27,
-  Figma 22250-61596):** the page top bar, now part of the TopBar family.
-  60px rows (was 52), px 16, 16px gaps between clusters. `TopBarNavTitle` —
-  title heading-h3 (16/24 Semibold — Daniel bumped the TOKEN from 15px on
-  2026-08-27, so Prompt/FormModule/PopoverHeaderTitle grew with it) strong,
-  ellipsis; optional `slotLeft` = an AVATAR only (fixed xl/36
-  slot, 10px gap — the old icon option is GONE); `subPages` opens an inline
-  SelectList (inline on mobile too); interactive title dims 75/50, NEW
-  keyboard focus ring (2px gray-12, 4px offset, radius 6).
-  `TopBarNavLeftElements` — [back?] 8px [Title] 8px [context menu?]; ghost
-  lg/36 IconButtons; back has a "Back" tooltip. `contextMenu` prop = the bar
-  OWNS the Menu (desktop card 4px below the button left-aligned; mobile
-  drawer whose header repeats the page title + avatar, read off the Title
-  child by introspection); legacy `onActions`/`actionsPressed` kept as a
-  report-only escape hatch. `TopBarNavRightElements` (list only) — [search
-  IconButton, DESKTOP ONLY, tooltip "Object search"][create: desktop = solid
-  lg Button "New" w/ plus, mobile = solid lg plus IconButton + tooltip], gap
-  8. NO live users on list pages anymore (Daniel). `TopBarNavLiveUsers`
-  (details only): xl (36) — ONE user renders AvatarLive, 2+ an inline xl
-  AvatarGroup capped 3 desktop / 2 mobile; desktop hover tooltip with ALL
-  users; mobile tap drawer. `TopBarNav` variants: `list` (title + optional
-  PHASE tabs inline on BOTH breakpoints + right elements), `details` (back +
-  title + context menu + tabs + live users; mobile tabs = second 60px bar
-  row, no fade, "Details" first, ALWAYS hide-on-scroll — the prop is gone;
-  same anchoring guards as before), `inner` (NEW: optional back + title
-  only). Tabs are TabGroup default/lg (36) — the bar provides the default
-  size via TabGroupDefaultSizeContext (context, not prop cloning: consumers
-  wrap their TabGroup in local components, which swallow cloned props); they
-  scroll with DYNAMIC 40px edge fades (was 32) and wheel-scroll with a
-  plain vertical wheel.
+- **TopBarNav (`TopBarNav/`, REBUILT 2026-10-01 from Figma 23681-71465 + doc
+  23807-65080):** the page top bar. ONE 60px row + bottom Divider, px 16,
+  16px between the title cluster and the actions; transparent. The
+  list/details/inner variants are GONE — everything is a slot, and the three
+  page types are compositions documented on the page. Props: `children` (a
+  `TopBarNavLeftElements` assembly), `tabs`, `liveUsers`, `actions`,
+  `isLoading`, `breakpoint`. `TopBarNavTitle` — title heading-h3 (16/24
+  Semibold) strong, one line, ellipsis; optional `slotLeft` = an avatar at
+  **md (28px)**, 12px before the title. The sub-page dropdown
+  (`subPages`/`dropdown` + its SelectList) is REMOVED — the title is a label,
+  not a control; sibling pages come from the sidebar / mobile menu page.
+  `TopBarNavLeftElements` — [back?] 12px [Title] 8px [context menu?]; ghost
+  lg/36 IconButtons; `contextMenu` still means the bar OWNS the Menu.
+  **Tabs and live users both sit BESIDE THE TITLE at both breakpoints** (the
+  tabs scroller is `flex: 0 1 auto` so it hugs instead of filling); the mobile
+  second tabs row and its hide-on-scroll are DELETED, and the job-details
+  section navigation is a separate bar that is not this component.
+  `actions` is a generic slot — one to three buttons of any kind, 8px apart,
+  right-aligned; `TopBarNavRightElements` is the LIST HELPER that goes in it
+  (desktop-only search + create Button → mobile plus IconButton).
+  `TopBarNavLiveUsers`: xl (36) — one user renders AvatarLive, 2+ an inline
+  AvatarGroup capped 3 desktop / 2 mobile; desktop hover tooltip (CENTRED
+  since the stack moved off the right edge), mobile tap drawer.
+  `isLoading` → the title becomes a SkeletonTypography h3 128px and the
+  avatar, tabs, live users, actions and context menu are not drawn; the BACK
+  BUTTON STAYS. It reaches the parts TopBarNav does not render through
+  `TopBarNavLoadingContext` (the title arrives as `children`). Tabs are
+  TabGroup default/lg via TabGroupDefaultSizeContext, scrolling with 40px
+  edge fades and a plain vertical wheel.
 - **Steppers:** `StepItem`, `StepGroup`. **Tabs (`Tabs/`):** `TabItem`, `TabGroup`
   (contained tabs are 4px shorter; `isFullWidth` stretches tabs equally).
   TabItem `warning` (2026-08-05) turns the icon + label `--text-warning` and
@@ -349,7 +348,7 @@ Roughly, as of this handoff:
   accordion).
 - **ValueDisplay:** label–value pair. Horizontal (fixed 120px label column that
   wraps; value kinds text / badge / linkButton — badge & link + slotLeft-text
-  truncate with cursor-following tooltips; `valueColor`; `isWarning` amber text
+  truncate with full-text tooltips; `valueColor`; `isWarning` amber text
   that FILLS the width and pushes the icon to the right edge; one optional
   `slotRight` IconButton) and vertical (`orientation`; text body-400-SPACIOUS
   with optional `lineLimit` clamp + Show more/less, or `kind="avatarGroup"` xs
@@ -387,10 +386,12 @@ Roughly, as of this handoff:
   `--surface-level-first`, over a `--pure-black-a5` scrim. Mobile = the same
   panel filling the screen (no scrim/margin/radius, safe-area padding) — the
   focus-Dialog pattern. Header = PopoverHeader (its `back`/`close`), optional
-  footer = PopoverFooter, optional `nav` = `SidePanelNavigation` (52px rows,
-  16px sides, bottom divider: object tabs = TabGroup default/md scrolling
-  sideways with NO edge fade; `topLevel` adds a second row above = TabGroup
-  contained/**lg** full-width). Body defaults: 16px padding + 16px gap
+  footer = PopoverFooter, optional `nav` = `SidePanelNavigation` (Figma
+  28952-41216: the object row is 56px with 16px sides and a MEDIUM bottom
+  divider, its tabs a TabGroup **underlined** stretching the row's full height
+  so the line lands on that divider, scrolling sideways with NO edge fade;
+  `topLevel` adds a second row above — a full-width **SegmentedControl** lg
+  taking `Segment` children, 6px/16px padding and NO divider of its own). Body defaults: 16px padding + 16px gap
   (`bodyPadded={false}` opts out). `state="error" | "offline"` swaps the body
   for the same EmptyState Dialog uses and hides nav + footer. **A link inside a
   panel never stacks a second panel** — the CONSUMER keeps the stack, swaps
@@ -502,8 +503,18 @@ is why raw `.tsx` uploads there did nothing).
   slot-hover via `:has()` — the `-all` variants would suppress the row state.
 - **Debounce is leading-edge** (`src/utils/debounce.ts`): fires immediately, then
   guards for `wait` ms. Trailing debounce delayed every click by 250ms.
-- **Tooltips never clip:** render in a `document.body` portal (see `TruncatingText`,
-  `HoverTooltip`) — any `overflow`/scroll ancestor would otherwise cut them off.
+- **One tooltip placement, and it is NEVER the cursor** (2026-10-04):
+  `src/components/Tooltip/useAnchoredTooltip.tsx` is the single source — a
+  `document.body` portal (so no `overflow`/scroll ancestor can clip it),
+  pinned to the TRIGGER ELEMENT's box: 8px above it, tongue on its horizontal
+  center, flipping below when there is no room and re-anchoring the tongue to
+  start/end near a screen edge. `HoverTooltip` and every truncation tooltip
+  (`TruncatingText`, `ValueDisplay`, `FilterChip`, `TimeCharts`) run through
+  it, and `isTextClipped` from the same file is the one "does this really show
+  an ellipsis" test. Do NOT position a tooltip at `e.clientX` or move it on
+  `mousemove`: production's tooltip is Radix (`@radix-ui/react-tooltip`),
+  which positions from the trigger's box and has no cursor anchor, so a
+  cursor-following tooltip cannot be rebuilt there (Daniel, 2026-10-04).
 - **A floating card's height is capped by the SCREEN, not only by a number**
   (2026-09-17): `Menu` and `SelectList` both cap at
   `min(1000px, calc(100dvh - var(--size-4)))`. A card taller than the window
@@ -585,6 +596,33 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   ViewMenu (Daniel has not shared their links yet), and ValueDisplayGroup
   (its links exist but it has no page of its own — it is documented inside
   ValueDisplay.mdx).
+- **Caption block (Daniel, 2026-10-01):** every preview carries a caption
+  naming the variant it shows — `<DocCaption>size = md</DocCaption>` from
+  `src/stories/DocCaption.tsx`, placed directly above the `<Canvas>`. From
+  Figma 31479-94199: 14/20 Regular `--text-subtle`, 48px above and 8px below,
+  so it belongs to the preview under it, not to the prose. Labels drawn
+  INSIDE one preview keep the `cap` style from `helpers.tsx` — Daniel wants
+  those to disappear over time, so prefer one preview per caption. Four
+  pages (Chip, ListItem-era) still write captions as plain paragraphs and get
+  a paragraph's spacing — a pending cleanup.
+- **Do / Don't pairs (Daniel, 2026-10-01):** `<DoDont>` with `<Do caption>` /
+  `<Dont caption>` from `src/stories/DoDont.tsx`, from Figma
+  `_DoDon'tCaption` 31498-109348 + `_PreviewSurface` do/don't 31498-109342,
+  laid out like the reference pair 22623-9230. ONE story holds the pair, and
+  the two boxes are STACKED — Do above Don't, full width, `--size-4` (16px)
+  apart (Daniel, 2026-10-01: side by side halved every preview, which a
+  full-width component cannot survive). 80px padding each, the block hugging
+  and overflowing the 600px column equally on both sides. The Canvas
+  wrapper's border/radius/fill are dropped and each box draws its own frame
+  (jade/tomato bar on top with 10px top corners, 2px border on the other
+  three sides) — the only way to get the bar flush with the border's outer
+  edge. The bar's text and glyph are `--pure-white` in BOTH themes (Daniel —
+  the node's jade-1/tomato-1 would flip to near-black in dark). The block
+  owns its padding: do NOT wrap it in `docsFrame`.
+- **Translating a Figma doc page into an mdx** is the
+  `storybook-component-doc` skill (`.claude/skills/` one level up) — the
+  procedure, the block-by-block mapping, and the rule that Figma prose carries
+  no numbers while mdx prose carries token + px.
 - **Props-table gotcha:** `<ArgTypes>` is fed by react-docgen, which CANNOT
   read JSDoc off a **union** props type — it renders an empty table (no
   descriptions, no types). When `<Name>Props` is a union (ListItem's variant

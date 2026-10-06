@@ -2,6 +2,7 @@ import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
+import { weekdayDate } from "../shared/dates";
 
 import styles from "./SignatureModule.module.scss";
 
@@ -41,7 +42,7 @@ export type SignatureState = "notCollected" | "collected" | "skipped";
 export interface SignatureData {
   /** Who signed — plain text, not a user object (Figma). */
   signedBy: string;
-  /** "Monday, January 1" — the app-wide date rule adds the year off-year. */
+  /** When it was signed — shown as "Monday, January 1, 2027". */
   date: Date;
   /** Why the signature was skipped (the `skipped` state only). */
   skipReason?: string;
@@ -62,16 +63,6 @@ export type SignatureResult =
   | { state: "collected"; signedBy: string; date: Date; ink?: string }
   | { state: "skipped"; skipReason: string; date: Date };
 
-// The app-wide date rule: weekday + month + day, and the year ONLY when the
-// date is not in the current year.
-const signatureDate = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    ...(date.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }),
-  }).format(date);
-
 // The "Signature" module (Figma 21849-102410). The header carries NO right
 // slot in any state — a signature is captured in the Complete-job flow, never
 // edited here.
@@ -90,7 +81,7 @@ export default function SignatureModule({ state, data }: { state: SignatureState
             </div>
             <ValueDisplayGroup>
               <ValueDisplay orientation="horizontal" kind="text" label="Signed by" value={data.signedBy} />
-              <ValueDisplay orientation="horizontal" kind="text" label="Date" value={signatureDate(data.date)} />
+              <ValueDisplay orientation="horizontal" kind="text" label="Date" value={weekdayDate(data.date)} />
             </ValueDisplayGroup>
           </div>
         }

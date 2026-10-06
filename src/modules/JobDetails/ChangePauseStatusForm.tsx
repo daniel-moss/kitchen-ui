@@ -6,14 +6,13 @@ import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
+import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
-import { PAUSE_SUB_STATUSES } from "./PauseJobForm";
+import { PauseType, STATUS_GROUPS } from "./PauseJobForm";
 
 import { useCurrentJobId } from "./currentJob";
 
@@ -22,8 +21,8 @@ import styles from "./jobForm.module.scss";
 interface ChangePauseStatusFormProps {
   open: boolean;
   onClose: () => void;
-  /** The current pause type ("quick-pause" | "on-hold"), pre-selected on open. */
-  initialType: string;
+  /** WHICH dialog this is — the job's current pause type. Decides every label. */
+  initialType: PauseType;
   /** The current pause sub-status, pre-selected on open. */
   initialSubStatus?: string;
   /** Commits the chosen pause Type, sub-status and reason (may be ""). */
@@ -45,7 +44,12 @@ export default function ChangePauseStatusForm({
   mobile = false,
 }: ChangePauseStatusFormProps) {
   const jobId = useCurrentJobId();
-  const [type, setType] = useState(initialType);
+  // The job is paused OR held; the dialog never switches between them, so the
+  // entry point's type simply decides the copy. NOT state: the form stays
+  // mounted while the job's status changes underneath it, so `useState` would
+  // freeze the copy at whatever the status was on first render.
+  const type = initialType;
+  const held = type === "on-hold";
   const [subStatus, setSubStatus] = useState(initialSubStatus);
   // The Pause reason always starts EMPTY (Daniel, 2026-08-05): it is a NEW
   // reason for this status change, not an edit of the one given when pausing.
@@ -59,14 +63,13 @@ export default function ChangePauseStatusForm({
       subStatusPop.close();
       return;
     }
-    setType(initialType);
     setSubStatus(initialSubStatus);
     setReason("");
     setShowError(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const dirty = type !== initialType || subStatus !== initialSubStatus || reason !== "";
+  const dirty = subStatus !== initialSubStatus || reason !== "";
 
   // Sub-status is required (Type is always set — pre-selected).
   const submit = () => {
@@ -80,22 +83,12 @@ export default function ChangePauseStatusForm({
   };
 
   // The Sub-status select — revealed inside whichever Type card is selected.
-  const subStatusSelect = (
-    <Input label="Job sub-status">
-      <SelectField
-        value={subStatus || undefined}
-        isValid={!(showError && subStatus === "")}
-        open={subStatusPop.open}
-        onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
-      />
-    </Input>
-  );
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      title="Change job pause status"
+      title={held ? "Change job on hold status" : "Change job pause status"}
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
@@ -106,66 +99,58 @@ export default function ChangePauseStatusForm({
             </Button>
           }
         >
-          <Button size="lg" variant="solid" onClick={submit}>
-            Change job status
+          <Button size="lg" variant="solid" leftIcon={held ? "circle-stop" : "circle-pause"} onClick={submit}>
+            Change status
           </Button>
         </PopoverFooter>
       }
     >
       <div className={styles.form}>
-        <Input label="Pause type">
-        <RadioGroup
-          value={type}
-          onChange={(v) => {
-            setType(v);
-            // A different type has different sub-statuses — reset the pick.
-            setSubStatus(v === initialType ? initialSubStatus : "");
-            setShowError(false);
-          }}
-        >
-          <RadioItem
-            value="quick-pause"
-            variant="card"
-            icon="circle-pause"
-            iconColor="var(--amber-a10)"
-            label="Quick-pause"
-            caption="For periods within the same day. E.g. taking a lunch or heading to the shop for parts."
-            error={showError && type === "quick-pause" && subStatus === ""}
-            content={subStatusSelect}
+        {/* No Pause-type RadioGroup (Daniel, 2026-10-05; Figma 24101-15722 /
+            24970-48572): the job is already paused OR held, so the dialog
+            changes the status WITHIN that — it does not switch between them. */}
+        <Input label={held ? "On hold status" : "Pause status"}>
+          <SelectField
+            value={subStatus || undefined}
+            isValid={!(showError && subStatus === "")}
+            errorMessage={held ? "Choose On hold status" : "Choose Pause status"}
+            open={subStatusPop.open}
+            onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
           />
-          <RadioItem
-            value="on-hold"
-            variant="card"
-            icon="circle-stop"
-            iconColor="var(--crimson-9)"
-            label="On hold"
-            caption="For longer pause. E.g. waiting for parts to be shipped and aren't sure when to reschedule yet."
-            error={showError && type === "on-hold" && subStatus === ""}
-            content={subStatusSelect}
-          />
-        </RadioGroup>
         </Input>
 
-        <Input label="Pause reason" labelCondition="optional" helpText="Why do you need to pause this job?">
+        <Input
+          label={held ? "On hold reason" : "Pause reason"}
+          labelCondition="optional"
+          helpText={held ? "Why do you need to hold this job?" : "Why do you need to pause this job?"}
+        >
           <TextArea value={reason} onChange={(e) => setReason(e.target.value)} />
         </Input>
       </div>
 
-      <SelectPopoverList pop={subStatusPop} mobile={mobile} title="Job sub-status" searchable searchPlaceholder="Search by status name...">
-        <SelectListItemGroup>
-          {(PAUSE_SUB_STATUSES[type] ?? []).map((s) => (
-            <SelectListItem
-              key={s}
-              label={s}
-              selected={s === subStatus}
-              onClick={() => {
-                setSubStatus(s);
-                setShowError(false);
-                subStatusPop.close();
-              }}
-            />
-          ))}
-        </SelectListItemGroup>
+      <SelectPopoverList pop={subStatusPop} mobile={mobile} title={held ? "On hold status" : "Pause status"} searchable searchPlaceholder="Status...">
+        {/* The SAME grouping the "Pause job" / "Hold job" dialogs use (Daniel,
+            2026-10-05) — one plain list for a quick-pause, two labelled groups
+            for on hold: "External" waits on the client, "Internal" on us. */}
+        {STATUS_GROUPS[type].map((group) => (
+          <SelectListItemGroup
+            key={group.label ?? "all"}
+            label={group.label == null ? undefined : <GroupLabel variant="secondary" label={group.label} />}
+          >
+            {group.names.map((name) => (
+              <SelectListItem
+                key={name}
+                label={name}
+                selected={name === subStatus}
+                onClick={() => {
+                  setSubStatus(name);
+                  setShowError(false);
+                  subStatusPop.close();
+                }}
+              />
+            ))}
+          </SelectListItemGroup>
+        ))}
       </SelectPopoverList>
     </Dialog>
   );

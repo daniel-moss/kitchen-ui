@@ -4,71 +4,41 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 import { AvatarGroupItem } from "../Avatar/AvatarGroup.types";
 
 /**
- * TopBarNav variant: `list` for object lists (table, cards), `details` for
- * object details pages, `inner` for inner pages (back + title only).
+ * The page's top navigation bar. Everything in it is a slot, so one component
+ * builds the bar of an object list, of an object details page and of an inner
+ * page — what changes is what is put in the slots.
  */
-export type TopBarNavVariant = "list" | "details" | "inner";
-
-interface TopBarNavBase {
-  /** The left side — a `TopBarNavLeftElements` assembly. */
+export interface TopBarNavProps {
+  /** The left side — a `TopBarNavLeftElements` assembly holding the title. */
   children: ReactNode;
+  /**
+   * The phase tabs — a `TabGroup` element (`default` / `lg` — the bar's
+   * default size flows in through context). They sit beside the title on
+   * desktop and on mobile alike, and scroll with a 40px edge fade when space
+   * is tight. Open / Closed, Active / Inactive — not page navigation.
+   */
+  tabs?: ReactNode;
+  /**
+   * The live users — everyone on the page except the current user. They sit
+   * beside the title, in the same place the tabs would. One user renders an
+   * AvatarLive, two or more an AvatarGroup (`xl`).
+   */
+  liveUsers?: AvatarGroupItem[];
+  /**
+   * The actions at the right end — one to three buttons of any kind, 8px
+   * apart. They act on the page as a whole. A list page passes
+   * `TopBarNavRightElements`, which composes the search and create buttons
+   * with their breakpoint rules; anything else passes its own buttons.
+   */
+  actions?: ReactNode;
+  /**
+   * While the page is still fetching what the bar names: the title becomes a
+   * placeholder, and the avatar, the live users, the tabs and the actions are
+   * not drawn at all. The back button stays — the user must be able to leave a
+   * page that has not finished loading. Default false.
+   */
+  isLoading?: boolean;
   /** Desktop / mobile format. "auto" (default) follows the viewport. */
   breakpoint?: Breakpoint;
   className?: string;
 }
-
-/**
- * The list bar: title + optional phase tabs; right side = optional search
- * (desktop only) + optional create button. No live users on list pages.
- */
-export interface TopBarNavListProps extends TopBarNavBase {
-  variant?: "list";
-  /**
-   * The phase tabs — a `TabGroup` element (`default` / `lg` — the bar's
-   * default size flows in via context). Optional. Scrolls with a 40px edge fade when
-   * space is tight, on desktop and mobile.
-   */
-  tabs?: ReactNode;
-  /** DESKTOP only: the "Object search" IconButton. Shown when set. */
-  onSearch?: () => void;
-  /** The create button — "New" Button on desktop, solid plus IconButton on mobile. */
-  onCreate?: () => void;
-  /** The desktop create button's label (and the mobile tooltip). Default "New". */
-  createLabel?: string;
-
-  liveUsers?: never;
-}
-
-/** The details bar: navigation tabs after the title; right side = live users. */
-export interface TopBarNavDetailsProps extends TopBarNavBase {
-  variant: "details";
-  /**
-   * The navigation tabs — a `TabGroup` element (`default` / `lg` — the bar's
-   * default size flows in via context). Desktop: inline after the title, scrolling with a
-   * 40px edge fade. Mobile: a second 60px bar row without the fade; the row
-   * hides while scrolling down and returns on scrolling up.
-   */
-  tabs?: ReactNode;
-  /**
-   * The live-users stack on the right: up to 3 avatars on desktop / 2 on
-   * mobile, a hover tooltip with all users (desktop), a tap-drawer (mobile).
-   */
-  liveUsers?: AvatarGroupItem[];
-
-  onSearch?: never;
-  onCreate?: never;
-  createLabel?: never;
-}
-
-/** The inner bar: an optional back button + the title, nothing else. */
-export interface TopBarNavInnerProps extends TopBarNavBase {
-  variant: "inner";
-
-  tabs?: never;
-  liveUsers?: never;
-  onSearch?: never;
-  onCreate?: never;
-  createLabel?: never;
-}
-
-export type TopBarNavProps = TopBarNavListProps | TopBarNavDetailsProps | TopBarNavInnerProps;

@@ -6,7 +6,7 @@ import { FULL_ROWS } from "../lifecycleData";
 
 // CONCEPT 2 — Concept 1 with the rows FLATTENED — the same timeline and the same one row per status, but nothing opens. It answers "how long in each status", never "in which stretches".
 const meta: Meta = {
-  title: 'Modules/Job Details/"Job Lifecycle" Module/Concept 2',
+  title: 'Modules/Job/Job Details/"Job Lifecycle" Module/Concept 2',
   ...conceptMeta,
 };
 

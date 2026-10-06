@@ -54,10 +54,9 @@ export default function FilesModule({ mobile = false }: { mobile?: boolean }) {
     toast({ type: "neutral", icon: now === "public" ? "globe" : "lock", title: `"${file.name}" is now ${now}` });
   };
 
-  const deleteFile = (file: ModuleFile) => {
-    setFiles((prev) => prev.filter((row) => row.id !== file.id));
-    toast({ type: "neutral", icon: "trash-can", title: `"${file.name}" deleted` });
-  };
+  // NO confirm and NO toast here: the shared module asks first and reports
+  // afterwards, so this only has to remove the row (2026-10-06).
+  const deleteFile = (file: ModuleFile) => setFiles((prev) => prev.filter((row) => row.id !== file.id));
 
   return (
     <SharedFilesModule
