@@ -179,6 +179,7 @@ export function SelectPopoverList({
   searchPlaceholder,
   noResultsCaption,
   noResultsAction,
+  noResultsState,
   createFromSearch,
   state,
   emptyState,
@@ -194,6 +195,8 @@ export function SelectPopoverList({
   searchPlaceholder?: string;
   noResultsCaption?: string;
   noResultsAction?: { label: string; icon?: string; onClick: () => void };
+  /** Replaces the built-in no-match block entirely (SelectList's own prop). */
+  noResultsState?: ReactNode;
   createFromSearch?: { label: string; onCreate: (query: string) => void };
   state?: "default" | "empty" | "noResults";
   emptyState?: SelectListEmptyState;
@@ -213,6 +216,7 @@ export function SelectPopoverList({
       searchPlaceholder={searchPlaceholder}
       noResultsCaption={noResultsCaption}
       noResultsAction={noResultsAction}
+      noResultsState={noResultsState}
       createFromSearch={createFromSearch}
       state={state}
       emptyState={emptyState}

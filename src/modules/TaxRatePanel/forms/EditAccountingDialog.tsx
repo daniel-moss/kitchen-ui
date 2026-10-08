@@ -13,8 +13,8 @@ import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
 // The tax rate's "Accounting" edit form (Figma 25-5041): a default Dialog
-// titled "Tax rate accounting" with the module's one editable field — the
-// QuickBooks collection agency.
+// titled "Accounting" — the module's own name (Daniel, 2026-10-08) — with the
+// module's one editable field, the QuickBooks collection agency.
 //
 // The sync status is not here: nobody types it, and production only ever
 // reports it.
@@ -80,7 +80,7 @@ export default function EditAccountingDialog({ open, onClose, rate, onSave, brea
       <Dialog
         open={open}
         onClose={onClose}
-        title="Tax rate accounting"
+        title="Accounting"
         breakpoint={breakpoint}
         confirmOnDismiss={dirty}
         footer={

@@ -1,0 +1,23 @@
+// A price-strategy card's revealed content: the strategy's own field, then the
+// calculated Rate, 12px apart (the node's content slot — `gap: --size-3` with
+// the card's own 16px padding around it).
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  align-items: stretch;
+  // The card's own padding (RadioItem's `contentPadded` is off): 16px around,
+  // 12px at the bottom — the node's content slot, where the calculated Rate's
+  // ValueDisplay already brings 8px of its own below the text.
+  padding: var(--size-4) var(--size-4) var(--size-3); // 16px 16px 12px
+}
+
+// The labels picked in the form, under their field — a wrapping row of
+// dismissible badges, 8px apart both ways (the "Labels" Select List doc).
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+  align-items: flex-start;
+  margin-top: var(--size-2); // 8px below the field
+}

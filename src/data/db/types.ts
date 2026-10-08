@@ -1104,6 +1104,50 @@ export interface LaborItem {
   /** → LABOR_LABELS (production `PriceBookItemLabel`, company-written). */
   labelIds: string[];
   lastModifiedAt: string;
+
+  // ---- the side panel's fields (added 2026-10-08) --------------------------
+  // The Labor list never needed these; the "Labor rate" side panel shows them
+  // all. Same production model, same names as `TaxRateItem` carries.
+
+  /** Production `notes` — the internal notes. "" = none. */
+  notes: string;
+  createdAt: string;
+  /**
+   * Who created it (→ `users`). UNDEFINED when nobody here did, which
+   * production's nullable `created_by` covers three ways: an item imported FROM
+   * QuickBooks (`quickbooksId` is then set), one bulk-loaded during onboarding,
+   * and every REVIEW item — the system mints those straight through the ORM
+   * (`LineItemSerializerMixin.create`), which never writes a creator.
+   */
+  createdById?: number;
+  /**
+   * Production `price_strategy` (shipped 2026-09-30). "manual" stores the rate
+   * as typed; the two markups DERIVE it from `cost`, and a database trigger
+   * recomputes it on every save.
+   */
+  priceStrategy: "manual" | "fixed" | "percent";
+  /** Production `price_adjustment_amount` — the "fixed" markup's dollars. Negatives allowed. */
+  priceAdjustmentAmount?: number;
+  /** Production `price_adjustment_percent` — the "percent" markup. −100 … 999.999. */
+  priceAdjustmentPercent?: number;
+  /**
+   * → QUICKBOOKS_ACCOUNTS. Production
+   * `quickbooks_desktop_revenue_account_id` — the income account the item books
+   * to. Required only on QuickBooks Desktop with the DETAILED line-item scheme
+   * (`PriceBookItem.clean`), and a system-minted Review item bypasses that
+   * check, so those carry none.
+   */
+  quickbooksAccountId?: string;
+  /**
+   * Production `quickbooks_desktop_item_id` — QuickBooks' own record key,
+   * written in BOTH directions. No `createdById` PLUS this set is what
+   * identifies an import.
+   */
+  quickbooksId?: string;
+  /** Production `quickbooks_desktop_item_needs_syncing`. True renders as "Not synced". */
+  needsSyncing: boolean;
+  /** When it last reached QuickBooks. Undefined = never. */
+  syncedAt?: string;
 }
 
 /**
@@ -1325,6 +1369,22 @@ export interface TaxRateItem {
 }
 
 /**
+ * A QuickBooks Desktop INCOME account — production `QuickBooksDesktopAccount`
+ * with `account_type = Income`, imported from QuickBooks by the Web Connector
+ * (Roopairs never creates one). It is what a labor rate, a part or a misc
+ * charge books its revenue to, under the detailed line-item scheme. The picker
+ * shows "number: name", or the name alone when QuickBooks has no number for
+ * it; production stores QuickBooks' own ListID. Names are 31 characters at
+ * most — QuickBooks' own limit.
+ */
+export interface QuickbooksAccount {
+  id: string;
+  name: string;
+  /** QuickBooks' account number, when the company numbers its accounts. */
+  number?: string;
+}
+
+/**
  * A QuickBooks Desktop vendor — production `QuickBooksDesktopVendor`, synced
  * from QuickBooks and offered as the tax collection agency on a tax rate. The
  * picker shows the name; production stores QuickBooks' own ListID.
@@ -1445,4 +1505,37 @@ export interface CompanySettings {
    * the database rather than in a component.
    */
   accountingIntegration: "none" | "apideck" | "quickbooksDesktop";
+  /**
+   * Production `ServiceCompany.quickbooks_line_item_scheme` — how invoice
+   * lines reach QuickBooks Desktop: **splitGeneric** ("Generic Split Line
+   * Items") books everything to four generic items built from the company's
+   * revenue accounts, **splitDetailed** sends each pricebook item as its own
+   * QuickBooks item.
+   *
+   * Only the detailed scheme gives an item its OWN revenue account, so it is
+   * the second half of the condition behind the labor rate's "Accounting"
+   * module and the "New labor rate" form's account field (`PriceBookItem.clean`
+   * requires the account exactly there). Added 2026-10-08.
+   */
+  quickbooksLineItemScheme: "splitGeneric" | "splitDetailed";
+
+  // ---- pricebook settings (added 2026-10-08) -------------------------------
+
+  /**
+   * Production `require_subtypes` — "Requires a subtype to be set on pricebook
+   * items and line items if a subtype exists for the item's type." With it off
+   * the Subtype field is optional and its list offers a "No subtype" row.
+   */
+  requireSubtypes: boolean;
+  /**
+   * Production `use_taxes`. False removes every Taxability field and row — the
+   * company does not charge tax at all.
+   */
+  useTaxes: boolean;
+  /**
+   * Production `pricebook_default_taxable_service` — what a new LABOR rate's
+   * Taxability opens on, so the field is never empty. (Production keeps one
+   * per pricebook type; the demo needs the labor one.)
+   */
+  pricebookDefaultTaxableLabor: boolean;
 }

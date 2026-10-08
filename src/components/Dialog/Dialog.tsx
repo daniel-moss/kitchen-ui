@@ -84,6 +84,7 @@ export default function Dialog(props: DialogProps) {
     errorMessage,
     state = "content",
     onRetry,
+    isProcessing = false,
     confirmOnDismiss = false,
     dismissPrompt,
     className,
@@ -154,6 +155,8 @@ export default function Dialog(props: DialogProps) {
   const requireConfirm = confirmOnDismiss && !isStateView;
 
   const attemptDismiss = () => {
+    // An action is running — the dialog stays until it finishes.
+    if (isProcessing) return;
     if (requireConfirm) setConfirming(true);
     else onClose();
   };
@@ -241,7 +244,7 @@ export default function Dialog(props: DialogProps) {
     // are hidden in a state view.
     const header = (
       <>
-        <PopoverHeader close onClose={attemptDismiss} divider={false}>
+        <PopoverHeader close closeDisabled={isProcessing} onClose={attemptDismiss} divider={false}>
           {titleContent}
         </PopoverHeader>
         {!isStateView && stepGroup}
@@ -329,7 +332,7 @@ export default function Dialog(props: DialogProps) {
           {drawerHeader === "dragHandle" ? (
             <DrawerHeader variant="dragHandle" />
           ) : (
-            <DrawerHeader variant="bodyOnly" close onClose={attemptDismiss}>
+            <DrawerHeader variant="bodyOnly" close closeDisabled={isProcessing} onClose={attemptDismiss}>
               {titleContent}
             </DrawerHeader>
           )}
@@ -355,7 +358,7 @@ export default function Dialog(props: DialogProps) {
     } else {
       const header = (
         <>
-          <PopoverHeader close onClose={attemptDismiss}>
+          <PopoverHeader close closeDisabled={isProcessing} onClose={attemptDismiss}>
             {titleContent}
           </PopoverHeader>
           {subHeaderRegion}

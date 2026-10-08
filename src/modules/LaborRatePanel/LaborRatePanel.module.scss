@@ -1,0 +1,22 @@
+// The header's context-menu card, anchored under its ellipsis button.
+//
+// `--z-menu` (1100), NOT `--z-modal` (1000): the wrapper renders wherever the
+// host puts it, and the SidePanel PORTALS itself — so a wrapper that only
+// matched the panel's z-index lost on DOM order and hid behind it.
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// A price-strategy card's revealed content in the "Pricing" dialog: the
+// strategy's own field, then the calculated Rate, 12px apart — the same slot
+// the "New labor rate" form draws.
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+  align-items: stretch;
+  // The card's own padding (RadioItem's `contentPadded` is off): 16px around,
+  // 12px at the bottom, where the Rate's ValueDisplay already brings 8px.
+  padding: var(--size-4) var(--size-4) var(--size-3); // 16px 16px 12px
+}

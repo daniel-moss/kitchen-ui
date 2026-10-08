@@ -7,12 +7,13 @@ import Input from "../../../components/Input/Input";
 import PopoverFooter from "../../../components/Popover/PopoverFooter";
 import { toast } from "../../../components/Toast/Toaster";
 import { TaxRateItem } from "../../../data/db";
-import { isRateText, rateIssue } from "../../NewTaxRateForm/rateRules";
+import { isRateText, MAX_NAME, NAME_COUNTER_FROM, rateIssue } from "../../NewTaxRateForm/rateRules";
 import { TaxRateDetails } from "../TaxRatePanel.types";
 
-// The tax rate's "General details" edit form (Figma 1-7284): a default Dialog
-// titled "Tax rate general details" with the two editable fields of that
-// module — Name and Percentage — pre-filled.
+// The tax rate's "General" edit form (Figma 1-7284): a default Dialog titled
+// "General" — the module's own name, since the panel behind it already names
+// the rate (Daniel, 2026-10-08) — with the two editable fields of that module,
+// Name and Percentage, pre-filled.
 //
 // Its own annotation points at the "New tax rate" form for the inputs, so both
 // share `rateRules` and neither can drift.
@@ -20,7 +21,7 @@ import { TaxRateDetails } from "../TaxRatePanel.types";
 // NO FormModule: the form has no sections, so a section header repeating the
 // dialog's own title would be redundant (the panel forms' rule).
 
-interface EditGeneralDetailsDialogProps {
+interface EditGeneralDialogProps {
   open: boolean;
   onClose: () => void;
   rate: TaxRateItem;
@@ -32,7 +33,7 @@ interface EditGeneralDetailsDialogProps {
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
-export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, breakpoint = "auto" }: EditGeneralDetailsDialogProps) {
+export default function EditGeneralDialog({ open, onClose, rate, onSave, breakpoint = "auto" }: EditGeneralDialogProps) {
   const [name, setName] = useState(rate.name);
   const [percentage, setPercentage] = useState(String(rate.rate));
   const [showErrors, setShowErrors] = useState(false);
@@ -46,6 +47,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, 
     setShowErrors(false);
   }, [open, rate]);
 
+  const nameLeft = Math.max(0, MAX_NAME - name.length);
   const missingName = name.trim() === "";
   const issue = rateIssue(percentage);
   const rateInvalid = issue !== undefined;
@@ -62,13 +64,13 @@ export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, 
       toast({
         type: "error",
         variant: "detailed",
-        title: 'Could not update "General details" module',
+        title: 'Could not update "General" module',
         caption: "Something went wrong. Please try again.",
       });
       return;
     }
 
-    toast({ type: "success", title: '"General details" module updated' });
+    toast({ type: "success", title: '"General" module updated' });
     onClose();
   };
 
@@ -76,7 +78,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, 
     <Dialog
       open={open}
       onClose={onClose}
-      title="Tax rate general details"
+      title="General"
       breakpoint={breakpoint}
       confirmOnDismiss={dirty}
       footer={
@@ -94,8 +96,16 @@ export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, 
       }
     >
       <>
-        <Input label="Name">
-          <TextField value={name} onChange={(event) => setName(event.target.value)} isValid={!(showErrors && missingName)} />
+        {/* The same two rules the create form's Name carries (Figma 44-3119):
+            it caps at 50 characters without ever becoming an error, and the
+            counter appears only in the last 10. */}
+        <Input label="Name" helpText={nameLeft <= NAME_COUNTER_FROM ? `${nameLeft} characters left` : undefined}>
+          <TextField
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            maxLength={MAX_NAME}
+            isValid={!(showErrors && missingName)}
+          />
         </Input>
 
         <Input label="Percentage">
@@ -104,6 +114,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, rate, onSave, 
             onChange={(event) => {
               if (isRateText(event.target.value)) setPercentage(event.target.value);
             }}
+            keyboard="decimal"
             suffix="%"
             isValid={!(showErrors && rateInvalid)}
             errorMessage={issue?.message}

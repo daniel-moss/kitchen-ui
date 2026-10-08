@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { InputHelpTextStatus } from "../InputHelpText/InputHelpText.types";
 import { LabelProps } from "../Label/Label.types";
 import { StrengthIndicatorState } from "./StrengthIndicator.types";
 
@@ -17,8 +18,15 @@ export interface InputProps {
   /** Hint bubble content for the label's trigger (a HoverHint caption). */
   labelHintContent?: ReactNode;
 
-  /** Description help text below the label, above the field (neutral). */
+  /** Description help text below the label, above the field. */
   helpText?: ReactNode;
+  /**
+   * The help text's status. Default "neutral" (plain description, no icon);
+   * any other status colors the text and shows its own icon — e.g. the
+   * "warning" note a value can earn without being invalid ("Less than cost",
+   * the "New labor rate" form's Rate).
+   */
+  helpTextStatus?: InputHelpTextStatus;
 
   /**
    * Password strength — shown at the label's right edge (used with

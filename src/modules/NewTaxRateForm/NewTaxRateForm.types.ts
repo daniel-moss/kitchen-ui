@@ -2,13 +2,13 @@ import { QuickbooksVendor } from "../../data/db";
 
 /** What the form hands back — one new tax rate (production `PriceBookItem`). */
 export interface NewTaxRate {
-  /** Production `description`. Required. */
+  /** Production `description`. Required, max 50 characters. */
   name: string;
-  /** Production `default_price`, a PERCENT: 0–100, up to 3 decimals. Required. */
+  /** Production `default_price`, a PERCENT: 0–100, up to 2 decimals. Required. */
   rate: number;
   /**
    * The chosen QuickBooks collection agency's id. Undefined when the company
-   * has no QuickBooks integration, because the field is not shown then.
+   * has no QuickBooks Desktop integration, because the field is not shown then.
    */
   quickbooksVendorId?: string;
   /** Label NAMES, in pick order. A name the pool did not have is a new label. */
@@ -17,6 +17,17 @@ export interface NewTaxRate {
   summary: string;
   /** Production `notes`. "" = left empty. */
   notes: string;
+}
+
+/** The company's QuickBooks Desktop context — see `quickbooks` below. */
+export interface TaxRateQuickBooks {
+  /**
+   * The company's synced QuickBooks Desktop vendors — the agencies a rate can
+   * be collected for. An EMPTY list is the "nothing synced yet" state: the
+   * module is its warning banner alone and Create is blocked, because
+   * production requires the agency and there is nothing to choose.
+   */
+  vendors: QuickbooksVendor[];
 }
 
 export interface NewTaxRateFormProps {
@@ -28,15 +39,24 @@ export interface NewTaxRateFormProps {
   /** The workspace's tax-rate labels, by name. A label can also be created. */
   labelPool?: string[];
   /**
-   * The company's QuickBooks Desktop vendors — the agencies a rate can be
-   * collected for.
-   *
-   * This list IS the integration signal: production shows the agency field
-   * (and the sync notice above the form) only when the company's accounting
-   * integration is QuickBooks Desktop, and then the field is REQUIRED. Leave
-   * it out and both disappear.
+   * The names already taken, for the duplicate check. Production's uniqueness
+   * is case-insensitive and spans EVERY pricebook item of the company, not just
+   * the tax rates, so a caller that has the whole pricebook should pass all of
+   * it.
    */
-  quickbooksVendors?: QuickbooksVendor[];
+  existingNames?: string[];
+  /**
+   * The company's QuickBooks Desktop context. Present = the "Accounting" module
+   * is shown; leave it out and the module, its notice and the agency field all
+   * disappear.
+   *
+   * Production requires the agency for EVERY company whose
+   * `accounting_integration` is QuickBooks Desktop
+   * (`PriceBookItemSerializer._validate_tax_items`) — the line-item scheme is
+   * not part of that condition for a tax item, though the module's annotation
+   * now says it is (flagged to Daniel 2026-10-08).
+   */
+  quickbooks?: TaxRateQuickBooks;
 
   /**
    * Create. Return `false` (or a Promise of it) to say it FAILED: the form

@@ -1,4 +1,8 @@
+import { useCallback } from "react";
+
 import { Page } from "./shell/appShell";
+import { useNewLaborRate, useOpenLaborRate } from "./shell/laborRates";
+import { useLaborRates } from "./store/AppStore";
 import { LABOR_FILTERS } from "./laborFilters";
 import { TABLE_COLUMNS, sortLabor } from "./laborTable";
 import { LABOR_ROWS, LaborRow, labelsOf, laborStatusLabel, subtypeNameOf } from "./laborData";
@@ -65,8 +69,29 @@ export interface LaborPageProps {
   onNavigate: (next: Page) => void;
 }
 
-const LaborPage = ({ breakpoint = "auto", onNavigate }: LaborPageProps) => (
-  <PricebookPage config={LABOR_LIST} breakpoint={breakpoint} onNavigate={onNavigate} />
-);
+// WIRED 2026-10-08, the second pricebook list after Tax rates: its rows come
+// from the app store rather than the frozen seed, "New" opens the "New labor
+// rate" form, and a row opens the "Labor rate" side panel. Both overlays live
+// at app level (shell/laborRates.tsx), because the Create menu can reach the
+// form from any page and the create toast's "Preview" opens the panel there.
+const LaborPage = ({ breakpoint = "auto", onNavigate }: LaborPageProps) => {
+  const rows = useLaborRates();
+  const openNewLaborRate = useNewLaborRate();
+  const openLaborRate = useOpenLaborRate();
+
+  // Stable — the table is memoised on its props (listTable.tsx).
+  const onRowClick = useCallback((row: LaborRow) => openLaborRate(row.id), [openLaborRate]);
+
+  return (
+    <PricebookPage
+      config={LABOR_LIST}
+      rows={rows}
+      breakpoint={breakpoint}
+      onNavigate={onNavigate}
+      onCreate={openNewLaborRate}
+      onRowClick={onRowClick}
+    />
+  );
+};
 
 export default LaborPage;

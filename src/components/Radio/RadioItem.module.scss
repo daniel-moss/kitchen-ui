@@ -120,7 +120,11 @@
   background: var(--surface-interactive-press);
   box-shadow: inset 0 0 0 1px var(--gray-a8);
 }
-.card.interactive:not(.filled):not(.error):has(input:focus-visible) {
+// The card's OWN radio only: `:has(input:focus-visible)` would also light the
+// card up when a field inside the reveal slot takes focus (the "New labor rate"
+// markup inputs). The radio is a direct child of the label, so the child
+// combinator keeps the ring on the control it belongs to.
+.card.interactive:not(.filled):not(.error):has(> .srInput:focus-visible) {
   background: var(--surface-interactive-hover);
   box-shadow: inset 0 0 0 2px var(--gray-12);
 }
@@ -136,7 +140,7 @@
     inset 0 0 0 1px var(--gray-12),
     0 1px 3px 0 var(--box-shadow-shadow-default);
 }
-.card.interactive.filled:not(.error):has(input:focus-visible) {
+.card.interactive.filled:not(.error):has(> .srInput:focus-visible) {
   box-shadow:
     inset 0 0 0 2px var(--gray-12),
     0 1px 3px 0 var(--box-shadow-shadow-default);

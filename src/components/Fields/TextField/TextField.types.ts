@@ -43,7 +43,10 @@ interface TextFieldBaseProps
   isValid?: boolean;
   /**
    * The error message (shown when isValid is false). Default: "Enter [Label]",
-   * derived from the surrounding Input's string label.
+   * derived from the surrounding Input's string label. An EMPTY string means
+   * "invalid, message elsewhere": the field turns red and draws no help text
+   * (the "New labor rate" markup fields, whose message is the calculated Rate
+   * below them).
    */
   errorMessage?: ReactNode;
 

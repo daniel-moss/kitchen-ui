@@ -5,22 +5,21 @@ import DisplayModule from "../../../components/DisplayModule/DisplayModule";
 import IconButton from "../../../components/IconButton/IconButton";
 import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../../components/ValueDisplay/ValueDisplayGroup";
-import { TaxRateItem } from "../../../data/db";
+import { LaborItem } from "../../../data/db";
 import { formatShortDateTime } from "../../shared/dates";
-import { createdByOf, formatRate, taxRateStatusOf } from "../taxRateData";
+import { createdByOf, laborRateStatusOf, subtypeNameOf } from "../laborRateData";
 
-// The Tax rate panel's "General" module (Figma 1-7275; RENAMED from "General
-// details" on 2026-10-08, when the labor rate panel named every module after
-// its one word). Six label–value pairs, in the node's order: the status badge
-// first, then the two fields the edit form owns, then the three the system
-// writes.
+// The Labor rate panel's "General" module (Figma 1-7275). Six label–value
+// pairs, in the node's order: the status badge first, then the two fields the
+// edit form owns, then the three the system writes.
 //
-// Only Name and Percentage are editable — Status changes through the context
-// menu or the Review footer, and the last three are production's `created_at`,
-// `created_by` and `last_modified_at`, which nobody types.
+// Only Name and Subtype are editable — Status changes through the context menu
+// or the Review footer, and the last three are production's `created_by`,
+// `created_at` and `last_modified_at`, which nobody types. The money fields
+// are NOT here: they are the "Pricing" module below.
 
 interface GeneralModuleProps {
-  rate: TaxRateItem;
+  rate: LaborItem;
   onEdit: () => void;
   /** Hidden while the rate is inactive or in Review, or without the edit permission. */
   canEdit?: boolean;
@@ -45,14 +44,16 @@ export default function GeneralModule({ rate, onEdit, canEdit = true, isLoading 
           <ValueDisplay
             label="Status"
             kind="badge"
-            badge={<BadgePricebookStatus size="md" status={taxRateStatusOf(rate)} />}
+            badge={<BadgePricebookStatus size="md" status={laborRateStatusOf(rate)} />}
             isLoading={isLoading}
           />
           <ValueDisplay label="Name" value={rate.name} isLoading={isLoading} />
-          <ValueDisplay label="Percentage" value={formatRate(rate.rate)} isLoading={isLoading} />
-          {/* Created BY comes before created AT (Daniel, 2026-10-05): who made
-              the rate is the stronger fact, and the two timestamps then sit
-              together at the bottom.
+          {/* Nullable in production, and empty on every system-minted Review
+              item. The row then draws ValueDisplay's own "No Subtype"
+              placeholder — the empty-state convention (Daniel, 2026-10-08). */}
+          <ValueDisplay label="Subtype" value={subtypeNameOf(rate)} isLoading={isLoading} />
+          {/* Created BY comes before created AT: who made the rate is the
+              stronger fact, and the two timestamps then sit together.
 
               Three cases, one row (node 24-4654) — a user with their round
               photo, "QuickBooks" with the square brand tile, or the

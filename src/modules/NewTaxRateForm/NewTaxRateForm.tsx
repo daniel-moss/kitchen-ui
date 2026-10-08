@@ -1,12 +1,15 @@
-import { MouseEvent, useEffect, useState } from "react";
+import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
+import EmptyState from "../../components/EmptyState/EmptyState";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import TextField from "../../components/Fields/TextField/TextField";
+import FormModule from "../../components/FormModule/FormModule";
+import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
@@ -15,42 +18,46 @@ import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
-import { isRateText, rateIssue } from "./rateRules";
+import { isRateText, MAX_NAME, NAME_COUNTER_FROM, rateIssue } from "./rateRules";
 import { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateForm.types";
 
 import styles from "./NewTaxRateForm.module.scss";
 
 // The reusable "New tax rate" form (Figma file dxBs07gWILPa0dhg04fjDR, section
-// 1-7817): a default Dialog titled "New tax rate" with up to six fields and a
-// Create action.
+// 1-7817 — Desktop 1-7818 / Mobile 1-7826): a Dialog titled "New tax rate"
+// holding three FormModules.
 //
-// Name · Percentage · QuickBooks tax collection agency · Labels · Summary
-// template · Internal notes.
+//   General     Name · Percentage
+//   Additional  Labels · Description · Internal notes
+//   Accounting  QuickBooks tax collection agency
+//
+// REBUILT 2026-10-08 to the "New labor rate" form's shape: the fields used to
+// be a flat list in the dialog body, and the QuickBooks notice sat on top of
+// it. Now the form has sections, and the notice belongs to the section it
+// explains.
 //
 // A tax rate is production's leanest pricebook item — no cost, no subtype, no
-// taxability — so this form is the whole record. Two of the six are conditional
-// on the company's accounting integration (see `quickbooksVendors`).
-//
-// NO FormModule: the form has no sections, so a section header repeating the
-// dialog's own title would be redundant (Daniel's rule for the sibling panel
-// forms, 2026-09-28). The fields are a plain list at the Dialog body's own 24px
-// rhythm.
+// taxability — so these six fields are the whole record. The last module exists
+// only for a company on QuickBooks Desktop (see `quickbooks`), and has two
+// faces: the vendor list being there, or not (nothing synced yet).
 
 export default function NewTaxRateForm({
   open,
   onClose,
   labelPool = [],
-  quickbooksVendors = [],
+  existingNames = [],
+  quickbooks,
   onCreated,
   onPreview,
   breakpoint = "auto",
 }: NewTaxRateFormProps) {
   const mobile = !useIsDesktop(breakpoint);
 
-  // The company's integration decides whether the agency field and the sync
-  // notice exist at all (both annotations: "Only shown for the companies with
-  // QuickBooks integration").
-  const hasQuickbooks = quickbooksVendors.length > 0;
+  // The company's integration decides whether the Accounting module exists at
+  // all; an EMPTY vendor list is the module's second face.
+  const vendors = quickbooks?.vendors ?? [];
+  const hasQuickbooks = quickbooks != null;
+  const noSyncedVendors = hasQuickbooks && vendors.length === 0;
 
   const [name, setName] = useState("");
   const [rate, setRate] = useState("");
@@ -60,6 +67,16 @@ export default function NewTaxRateForm({
   const [notes, setNotes] = useState("");
   const [noticeDismissed, setNoticeDismissed] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  // The percentage states its problem when it LOSES FOCUS, and from then on
+  // live — the rule the "New labor rate" form's number fields follow (Daniel,
+  // 2026-10-07). Create marks everything at once.
+  const [rateTouched, setRateTouched] = useState(false);
+  // Bumped on every blocked Create, so pressing it twice scrolls again.
+  const [submitAttempt, setSubmitAttempt] = useState(0);
+  // Create is running: the button spins, Cancel and the ✕ are disabled, and the
+  // dialog ignores every dismissal until the request answers.
+  const [submitting, setSubmitting] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
   // Local so a label created in the flow can join it; re-seeded on every open.
   const [pool, setPool] = useState<string[]>(labelPool);
 
@@ -81,27 +98,42 @@ export default function NewTaxRateForm({
     setNotes("");
     setNoticeDismissed(false);
     setShowErrors(false);
+    setRateTouched(false);
+    setSubmitAttempt(0);
+    setSubmitting(false);
     setPool(labelPool);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // The Validation frame's five states (node 1-7840). "Enter Name", "Enter
-  // Percentage" and "Choose QuickBooks tax collection agency" are exactly what
-  // TextField and SelectField derive from their Input labels, so only the two
-  // percentage RULES need their own message.
+  // "Validates the form. If an error is detected, scrolls to the first field
+  // with error" (the Create button's annotation) — the first error can be two
+  // modules above the button that was just pressed.
+  useEffect(() => {
+    if (submitAttempt === 0) return;
+    const firstError = bodyRef.current?.querySelector('[aria-invalid="true"], [data-form-blocker], [class*="error"]');
+    firstError?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [submitAttempt]);
+
+  // "Enter Name", "Enter Percentage" and "Choose QuickBooks tax collection
+  // agency" are exactly what TextField and SelectField derive from their Input
+  // labels, so only the two rules with copy of their own need a message.
+  const nameLeft = Math.max(0, MAX_NAME - name.length);
   const missingName = name.trim() === "";
-  const missingVendor = hasQuickbooks && vendorId == null;
+  const duplicateName = !missingName && existingNames.some((taken) => taken.trim().toLowerCase() === name.trim().toLowerCase());
+  const missingVendor = hasQuickbooks && vendors.length > 0 && vendorId == null;
 
   const issue = rateIssue(rate);
   const rateInvalid = issue !== undefined;
-  const rateError = issue?.message;
+  const rateChecked = showErrors || rateTouched;
+
+  const blocked = missingName || duplicateName || rateInvalid || missingVendor || noSyncedVendors;
 
   const dirty =
     name.trim() !== "" || rate.trim() !== "" || vendorId != null || labels.length > 0 || summary.trim() !== "" || notes.trim() !== "";
 
-  // "Numerical value only" (the Percentage input's annotation): digits and at
-  // most one decimal point. Everything else never reaches the state, so the
-  // field cannot hold a value the rules above could not judge.
+  // "Numerical value only" / "digits and dot" (the Percentage input's
+  // annotation): the characters AND the 2-decimal cap are enforced on the way
+  // into state, so the field cannot hold a value the rules could not judge.
   const changeRate = (value: string) => {
     if (isRateText(value)) setRate(value);
   };
@@ -116,15 +148,16 @@ export default function NewTaxRateForm({
 
   // Create-from-search: the new label joins the pool AND becomes selected.
   const createLabel = (query: string) => {
-    const name = query.trim();
-    if (name === "" || pool.includes(name)) return;
-    setPool((prev) => [...prev, name]);
-    setLabels((prev) => [...prev, name]);
+    const label = query.trim();
+    if (label === "" || pool.includes(label)) return;
+    setPool((prev) => [...prev, label]);
+    setLabels((prev) => [...prev, label]);
   };
 
   const create = async () => {
-    if (missingName || rateInvalid || missingVendor) {
+    if (blocked) {
       setShowErrors(true);
+      setSubmitAttempt((previous) => previous + 1);
       return;
     }
 
@@ -137,8 +170,12 @@ export default function NewTaxRateForm({
       notes: notes.trim(),
     };
 
-    if ((await onCreated?.(taxRate)) === false) {
-      // The designed failure toast (node 1-7843). The form stays open with the
+    setSubmitting(true);
+    const failed = (await onCreated?.(taxRate)) === false;
+    setSubmitting(false);
+
+    if (failed) {
+      // The designed failure toast (node 1-7845). The form stays open with the
       // values intact so the user can try again.
       toast({
         type: "error",
@@ -161,7 +198,7 @@ export default function NewTaxRateForm({
     onClose();
   };
 
-  const vendorName = quickbooksVendors.find((vendor) => vendor.id === vendorId)?.name;
+  const vendorName = vendors.find((vendor) => vendor.id === vendorId)?.name;
 
   return (
     <>
@@ -170,126 +207,175 @@ export default function NewTaxRateForm({
         onClose={onClose}
         title="New tax rate"
         breakpoint={breakpoint}
+        isProcessing={submitting}
         confirmOnDismiss={dirty}
         footer={
           <PopoverFooter
             slotLeft={
-              <Button size="lg" variant="ghost" onClick={onClose}>
+              <Button size="lg" variant="ghost" isDisabled={submitting} onClick={onClose}>
                 Cancel
               </Button>
             }
           >
-            <Button size="lg" variant="solid" onClick={create}>
+            <Button size="lg" variant="solid" isProcessing={submitting} onClick={create}>
               Create
             </Button>
           </PopoverFooter>
         }
       >
-        <>
-          {/* Production's create-form notice, worded for one rate. A tax item
-              always syncs to QuickBooks Desktop — even when pricebook item sync
-              is switched off — and it cannot be used on an invoice or estimate
-              until it has. */}
-          {hasQuickbooks && !noticeDismissed && (
-            <AlertBanner status="info" orientation="vertical" onDismiss={() => setNoticeDismissed(true)}>
-              The tax rate won&apos;t be available for use during invoice or estimate creation until it&apos;s been synced with QuickBooks
-            </AlertBanner>
-          )}
+        <div ref={bodyRef}>
+          <FormModuleGroup>
+            <FormModule title="General">
+              {/* The counter appears only in the last 10 characters, and the
+                  cap never becomes an error — the field simply stops accepting
+                  input (the node's two annotations). */}
+              <Input label="Name" helpText={nameLeft <= NAME_COUNTER_FROM ? `${nameLeft} characters left` : undefined}>
+                <TextField
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  maxLength={MAX_NAME}
+                  isValid={!(showErrors && (missingName || duplicateName))}
+                  errorMessage={duplicateName ? "Tax rate with this name already exists" : undefined}
+                />
+              </Input>
 
-          <Input label="Name">
-            <TextField value={name} onChange={(event) => setName(event.target.value)} isValid={!(showErrors && missingName)} />
-          </Input>
+              <Input label="Percentage">
+                <TextField
+                  value={rate}
+                  onChange={(event) => changeRate(event.target.value)}
+                  onBlur={() => setRateTouched(true)}
+                  // The pad WITH a separator key — a percentage has decimals.
+                  keyboard="decimal"
+                  suffix="%"
+                  isValid={!(rateChecked && rateInvalid)}
+                  errorMessage={issue?.message}
+                />
+              </Input>
+            </FormModule>
 
-          <Input label="Percentage">
-            <TextField
-              value={rate}
-              onChange={(event) => changeRate(event.target.value)}
-              // The pad WITH a separator key — a percentage has decimals.
-              keyboard="decimal"
-              suffix="%"
-              isValid={!(showErrors && rateInvalid)}
-              errorMessage={rateError}
-            />
-          </Input>
+            <FormModule title="Additional">
+              <Input label="Labels" labelCondition="optional">
+                <>
+                  <SelectField
+                    value={labels.length === 1 ? labels[0] : undefined}
+                    multiSelect
+                    count={labels.length}
+                    multiSelectLabel="Labels selected"
+                    onClearSelection={() => setLabels([])}
+                    open={labelsPop.open}
+                    onClick={(event: MouseEvent<HTMLDivElement>) => labelsPop.toggle(event.currentTarget)}
+                  />
+                  {/* The picked labels, as dismissible lg badges under the
+                      field (the doc's "Selected Labels" frame). */}
+                  {shownLabels.length > 0 && (
+                    <div className={styles.labelRow}>
+                      {shownLabels.map((label) => (
+                        <Badge key={label} size="lg" isDismissable onDismiss={() => toggleLabel(label)}>
+                          {label}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </>
+              </Input>
 
-          {hasQuickbooks && (
-            <Input label="QuickBooks tax collection agency">
-              <SelectField
-                value={vendorName}
-                open={vendorPop.open}
-                onClick={(event: MouseEvent<HTMLDivElement>) => vendorPop.toggle(event.currentTarget)}
-                isValid={!(showErrors && missingVendor)}
-              />
-            </Input>
-          )}
+              {/* RENAMED from "Summary template" 2026-10-07, and the label hint
+                  went with it. The state still carries production's
+                  `summary_template`. */}
+              <Input label="Description" labelCondition="optional">
+                <TextArea value={summary} onChange={(event) => setSummary(event.target.value)} onClear={() => setSummary("")} />
+              </Input>
 
-          <Input label="Labels" labelCondition="optional">
-            <>
-              <SelectField
-                value={labels.length === 1 ? labels[0] : undefined}
-                multiSelect
-                count={labels.length}
-                multiSelectLabel="Labels selected"
-                onClearSelection={() => setLabels([])}
-                open={labelsPop.open}
-                onClick={(event: MouseEvent<HTMLDivElement>) => labelsPop.toggle(event.currentTarget)}
-              />
-              {/* The picked labels, as dismissible lg badges under the field
-                  (the doc's "Selected Labels" frame). */}
-              {shownLabels.length > 0 && (
-                <div className={styles.labelRow}>
-                  {shownLabels.map((label) => (
-                    <Badge key={label} size="lg" isDismissable onDismiss={() => toggleLabel(label)}>
-                      {label}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </>
-          </Input>
+              <Input label="Internal notes" labelCondition="optional">
+                <TextArea value={notes} onChange={(event) => setNotes(event.target.value)} onClear={() => setNotes("")} />
+              </Input>
+            </FormModule>
 
-          <Input
-            label="Summary template"
-            labelCondition="optional"
-            labelHint
-            labelHintContent={'Summary specific to this tax. E.g. "Standard sales tax on purchased parts in San Luis Obispo County".'}
-          >
-            <TextArea value={summary} onChange={(event) => setSummary(event.target.value)} onClear={() => setSummary("")} />
-          </Input>
-
-          <Input label="Internal notes" labelCondition="optional">
-            <TextArea value={notes} onChange={(event) => setNotes(event.target.value)} onClear={() => setNotes("")} />
-          </Input>
-        </>
+            {/* Only for a company on QuickBooks Desktop, which is the one setup
+                where production REQUIRES a tax rate to name the agency it is
+                collected for. Last, because it belongs to the integration
+                rather than to the rate. */}
+            {hasQuickbooks && (
+              <FormModule
+                title="Accounting"
+                banner={
+                  noSyncedVendors ? (
+                    // The blocking condition, and the anchor a blocked Create
+                    // scrolls to. There is no field under it to mark: with
+                    // nothing synced the module is this banner alone — which is
+                    // also why it cannot be dismissed. Closing it would leave
+                    // the module empty and the form blocked with nothing saying
+                    // why.
+                    <div data-form-blocker>
+                      <AlertBanner status="warning" orientation="vertical">
+                        No QuickBooks vendors have been synced yet. Run a sync in the QuickBooks Web Connector, then
+                        create this tax rate.
+                      </AlertBanner>
+                    </div>
+                  ) : (
+                    // Production's create-form notice, worded for one rate. A
+                    // tax item always syncs to QuickBooks Desktop — even when
+                    // pricebook item sync is switched off — and it cannot be
+                    // used on an invoice or estimate until it has.
+                    !noticeDismissed && (
+                      <AlertBanner status="info" orientation="vertical" onDismiss={() => setNoticeDismissed(true)}>
+                        The tax rate won&apos;t be available for use during invoice or estimate creation until it&apos;s
+                        been synced with QuickBooks
+                      </AlertBanner>
+                    )
+                  )
+                }
+              >
+                {/* No field with nothing to choose from (the node draws the
+                    body slot hidden): an empty picker is a control that cannot
+                    do anything. The banner above says what to do instead. */}
+                {!noSyncedVendors && (
+                  <Input label="QuickBooks tax collection agency">
+                    <SelectField
+                      value={vendorName}
+                      open={vendorPop.open}
+                      onClick={(event: MouseEvent<HTMLDivElement>) => vendorPop.toggle(event.currentTarget)}
+                      isValid={!(showErrors && missingVendor)}
+                    />
+                  </Input>
+                )}
+              </FormModule>
+            )}
+          </FormModuleGroup>
+        </div>
       </Dialog>
 
       {/* The agency list — "Options are the company's synced QuickBooks Desktop
           vendors, sorted by name from A to Z" (the Select List's annotation).
           The title only shows on the mobile drawer; the desktop card is a plain
-          anchored list. */}
-      <SelectPopoverList
-        pop={vendorPop}
-        mobile={mobile}
-        title="QuickBooks tax collection agency"
-        searchable
-        searchPlaceholder="Vendor..."
-      >
-        <SelectListItemGroup>
-          {[...quickbooksVendors]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((vendor) => (
-              <SelectListItem
-                key={vendor.id}
-                label={vendor.name}
-                selected={vendor.id === vendorId}
-                onClick={() => {
-                  setVendorId(vendor.id);
-                  vendorPop.close();
-                }}
-              />
-            ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
+          anchored list. The no-match answer is the node's own caption-only
+          EmptyState, which names the object instead of the DS default. */}
+      {!noSyncedVendors && (
+        <SelectPopoverList
+          pop={vendorPop}
+          mobile={mobile}
+          title="QuickBooks tax collection agency"
+          searchable
+          searchPlaceholder="Vendor..."
+          noResultsState={<EmptyState caption="No matching vendors" />}
+        >
+          <SelectListItemGroup>
+            {[...vendors]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((vendor) => (
+                <SelectListItem
+                  key={vendor.id}
+                  label={vendor.name}
+                  selected={vendor.id === vendorId}
+                  onClick={() => {
+                    setVendorId(vendor.id);
+                    vendorPop.close();
+                  }}
+                />
+              ))}
+          </SelectListItemGroup>
+        </SelectPopoverList>
+      )}
 
       {/* The Labels picker, exactly as the "Labels" Select List file documents
           it: inline under the field on desktop, a drawer on mobile, a search

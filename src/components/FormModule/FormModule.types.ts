@@ -28,7 +28,11 @@ export interface FormModuleProps {
    * `orientation="vertical" status="info"`) with contextual guidance.
    */
   banner?: ReactNode;
-  /** The module body — the form fields. */
-  children: ReactNode;
+  /**
+   * The module body — the form fields. With nothing to render (every field
+   * conditioned away) the body is left out entirely, so the module is its
+   * header alone and no gap is left under it.
+   */
+  children?: ReactNode;
   className?: string;
 }

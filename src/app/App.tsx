@@ -8,6 +8,7 @@ import { listOfRoute, Route } from "./routing/routes";
 import { useRoute } from "./routing/useRoute";
 
 import { Page, Sidebar } from "./shell/appShell";
+import { LaborRatesProvider } from "./shell/laborRates";
 import { NewJobProvider } from "./shell/newJob";
 import { TaxRatesProvider } from "./shell/taxRates";
 import JobDetailsPage from "./jobDetails/JobDetailsRoute";
@@ -192,16 +193,19 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
 // bar's Create — opens the same instance (2026-09-28).
 //
 // `TaxRatesProvider` does the same for the "New tax rate" form AND the "Tax
-// rate" side panel (2026-10-05). It sits INSIDE the store, which it reads and
-// writes, and outside the app, because both overlays can be opened from any
+// rate" side panel (2026-10-05), and `LaborRatesProvider` for the labor pair
+// (2026-10-08). Both sit INSIDE the store, which they read and write, and
+// outside the app, because every one of those overlays can be opened from any
 // page.
 export default function AppWithStore(props: AppProps) {
   return (
     <AppStoreProvider>
       <NewJobProvider breakpoint={props.breakpoint}>
-        <TaxRatesProvider breakpoint={props.breakpoint}>
-          <App {...props} />
-        </TaxRatesProvider>
+        <LaborRatesProvider breakpoint={props.breakpoint}>
+          <TaxRatesProvider breakpoint={props.breakpoint}>
+            <App {...props} />
+          </TaxRatesProvider>
+        </LaborRatesProvider>
       </NewJobProvider>
     </AppStoreProvider>
   );

@@ -123,7 +123,11 @@ export default function TextField(props: TextFieldProps) {
         </span>
         {suffix != null && <span className={styles.affix}>{suffix}</span>}
       </label>
-      {g.showOwnError && showInvalid && effectiveError != null && (
+      {/* An EMPTY errorMessage means "invalid, but the message is somewhere
+          else" — the border turns red and no help text is drawn (the "New
+          labor rate" form's markup fields, whose message is the calculated
+          Rate right below them). */}
+      {g.showOwnError && showInvalid && effectiveError != null && effectiveError !== "" && (
         <InputHelpText status="error" slotLeft>
           {effectiveError}
         </InputHelpText>

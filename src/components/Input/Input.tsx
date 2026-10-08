@@ -44,6 +44,7 @@ export default function Input({
   labelHint = false,
   labelHintContent,
   helpText,
+  helpTextStatus = "neutral",
   strength,
   isLoading = false,
   children,
@@ -123,7 +124,10 @@ export default function Input({
             (isLoading ? (
               <SkeletonTypography variant="captionMD" />
             ) : (
-              <InputHelpText status="neutral">{helpText}</InputHelpText>
+              // A status other than neutral brings its own icon.
+              <InputHelpText status={helpTextStatus} slotLeft={helpTextStatus !== "neutral"}>
+                {helpText}
+              </InputHelpText>
             ))}
         </div>
       )}

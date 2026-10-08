@@ -61,6 +61,15 @@ interface DialogBaseProps {
   /** Optional error AlertBanner, pinned above the footer. */
   errorMessage?: ReactNode;
 
+  /**
+   * An action started from the dialog is running (a create, a save): the
+   * close button is disabled and EVERY dismissal — scrim, Escape, the mobile
+   * swipe, Cancel — is ignored until it finishes, so the surface cannot leave
+   * while a request is in flight. The footer's own buttons are the caller's
+   * (Button `isProcessing` / `isDisabled`). Default false.
+   */
+  isProcessing?: boolean;
+
   /** Body state. Default "content". */
   state?: DialogState;
   /** Retry handler for the error / offline states (Reload / Try again). */

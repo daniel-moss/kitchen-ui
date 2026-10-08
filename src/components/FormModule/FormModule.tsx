@@ -1,3 +1,5 @@
+import { Children } from "react";
+
 import clsx from "clsx";
 
 import HintTrigger from "../Hint/HintTrigger";
@@ -52,7 +54,11 @@ export default function FormModule({
         </div>
         {banner != null && banner}
       </div>
-      <div className={styles.body}>{children}</div>
+      {/* No body when every field is conditioned away — the module's 24px gap
+          would otherwise leave dead space under the header. Figma draws this
+          as the body SLOT hidden (e.g. "No Synced Accounts", 2069-7921).
+          Children.toArray drops the false/null a conditional render leaves. */}
+      {Children.toArray(children).length > 0 && <div className={styles.body}>{children}</div>}
     </section>
   );
 }

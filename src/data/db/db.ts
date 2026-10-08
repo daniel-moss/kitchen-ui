@@ -32,6 +32,7 @@ import {
   LocationContact,
   POLabel,
   PurchaseOrder,
+  QuickbooksAccount,
   QuickbooksVendor,
   ShippingOption,
   Service,
@@ -1387,7 +1388,26 @@ const SERVICE_LABOR_FIELDS: Record<
  *   - 5 INACTIVE legacy items (all confirmed — the UI cannot deactivate an
  *     unconfirmed item, so no "review + inactive" row exists on purpose).
  */
-const LABOR_ITEMS_AT_ANCHOR: LaborItem[] = [
+/**
+ * The LIST half of a labor rate — every field the table and its filters read.
+ * The side panel's half (notes, creator, price strategy, QuickBooks) is added
+ * below, so these 40 rows stay as they were written.
+ */
+type LaborItemBase = Omit<
+  LaborItem,
+  | "notes"
+  | "createdAt"
+  | "createdById"
+  | "priceStrategy"
+  | "priceAdjustmentAmount"
+  | "priceAdjustmentPercent"
+  | "quickbooksAccountId"
+  | "quickbooksId"
+  | "needsSyncing"
+  | "syncedAt"
+>;
+
+const LABOR_ITEMS_BASE: LaborItemBase[] = [
   ...SERVICES.map((service) => ({
     id: service.id,
     name: service.name,
@@ -1430,6 +1450,60 @@ const LABOR_ITEMS_AT_ANCHOR: LaborItem[] = [
   { id: "cfc-handling", name: "CFC refrigerant handling", status: "active", isActive: false, subtypeId: "repair", summary: "Retired with the R-12 phase-out.", cost: 90, rate: 260, unitType: "flatRate", taxable: true, estDurationMinutes: 90, labelIds: [], lastModifiedAt: "2026-06-14T15:20:00" },
   { id: "pager-fee", name: "Pager on-call fee", status: "active", isActive: false, subtypeId: null, summary: "", cost: 0, rate: 25, unitType: "flatRate", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-01T09:05:00" },
 ];
+
+/**
+ * The SIDE PANEL's half of a labor rate (added 2026-10-08), written only where
+ * a row has something of its own to say. Everything else takes the defaults in
+ * `withLaborPanelFields` below, which are the ordinary case: an item one of us
+ * created and never edited since, priced manually, booked to Service Revenue
+ * and already in QuickBooks.
+ */
+const LABOR_PANEL_FIELDS: Record<string, Partial<Omit<LaborItem, keyof LaborItemBase>>> = {
+  // The panel's ACTIVE demo rate — the only row carrying internal notes.
+  "after-hours-labor": {
+    createdById: 1,
+    createdAt: "2026-06-05T14:10:00",
+    notes: "Use this rate only outside 7pm-7am and on weekends. Regular-hours work goes on the standard rate. The cost covers the agreed technician burden rate and is reviewed every January.",
+    quickbooksAccountId: "qba-4100",
+  },
+  // The two MARKUP strategies. Each markup agrees with the row's own cost and
+  // rate, because production's trigger derives one from the other:
+  // 50 + 100 = 150, and 80 × 2.75 = 220.
+  "installation-labor": { createdById: 3, priceStrategy: "fixed", priceAdjustmentAmount: 100, quickbooksAccountId: "qba-4020" },
+  "refrigerant-recovery": { createdById: 3, priceStrategy: "percent", priceAdjustmentPercent: 175, quickbooksAccountId: "qba-4010" },
+  // IMPORTED from QuickBooks: no creator plus a QuickBooks key — which is also
+  // why it has no subtype and no summary, since the import carries neither.
+  "standard-labor": { createdById: undefined, quickbooksId: "80000024-1726742400", quickbooksAccountId: "qba-4020" },
+  // Bulk-loaded during onboarding: no creator, no QuickBooks key, never pushed.
+  "helper-labor": { createdById: undefined, quickbooksAccountId: "qba-4020", needsSyncing: true, syncedAt: undefined },
+  // Edited since its last successful push — the other "Not synced" case.
+  "fryer-service": { createdById: 5, needsSyncing: true, syncedAt: "2026-07-24T08:00:00" },
+  // The INACTIVE demo rate.
+  "boiler-descale": { createdById: 1, createdAt: "2026-02-11T10:00:00" },
+};
+
+/**
+ * A REVIEW item is minted by the system from a free-text line item
+ * (`LineItemSerializerMixin.create`), straight through the ORM: no creator, no
+ * revenue account, and never pushed to accounting — production's export
+ * filters on `confirmed`.
+ */
+const withLaborPanelFields = (row: LaborItemBase): LaborItem => {
+  const minted = row.status === "review";
+  return {
+    ...row,
+    notes: "",
+    createdAt: row.lastModifiedAt,
+    createdById: minted ? undefined : 1,
+    priceStrategy: "manual",
+    quickbooksAccountId: minted ? undefined : "qba-4010",
+    needsSyncing: minted,
+    syncedAt: minted ? undefined : row.lastModifiedAt,
+    ...LABOR_PANEL_FIELDS[row.id],
+  };
+};
+
+const LABOR_ITEMS_AT_ANCHOR: LaborItem[] = LABOR_ITEMS_BASE.map(withLaborPanelFields);
 
 /**
  * The workspace's PRODUCT subtypes — production `PriceBookItemSubtype` rows
@@ -1616,6 +1690,23 @@ export const TAX_RATE_LABELS: PricebookLabel[] = [
  * Read that field, never this list, to decide whether to SHOW accounting
  * anywhere — a company on "none" has no agencies and no sync state.
  */
+/**
+ * The workspace's synced QuickBooks INCOME accounts — production
+ * `QuickBooksDesktopAccount` (account_type = Income). INVENTED like every
+ * reference table here (flagged): a chart of accounts a commercial-kitchen
+ * service company would actually run, with two accounts left unnumbered so
+ * the "name alone" row has something to draw.
+ */
+export const QUICKBOOKS_ACCOUNTS: QuickbooksAccount[] = [
+  { id: "qba-4010", number: "4010", name: "Service Revenue" },
+  { id: "qba-4020", number: "4020", name: "Labor Income" },
+  { id: "qba-4030", number: "4030", name: "Parts & Materials" },
+  { id: "qba-4040", number: "4040", name: "Preventive Maintenance" },
+  { id: "qba-4100", number: "4100", name: "Emergency Service" },
+  { id: "qba-consulting", name: "Consulting Income" },
+  { id: "qba-misc", name: "Miscellaneous Income" },
+];
+
 export const QUICKBOOKS_VENDORS: QuickbooksVendor[] = [
   { id: "qb-alameda", name: "Alameda County Tax Collector" },
   { id: "qb-cdtfa", name: "CA Dept of Tax and Fee Administration" },
@@ -2027,6 +2118,19 @@ export const COMPANY: CompanySettings = {
   // gives the tax rates their collection agency and their sync state, and what
   // makes the "Accounting" module and the form's agency field appear at all.
   accountingIntegration: "quickbooksDesktop",
+  // …on the DETAILED scheme, so every labor rate, product and other charge
+  // carries its own QuickBooks revenue account (added 2026-10-08 with the
+  // "Labor rate" side panel). On the generic scheme the account lives in the
+  // company's settings instead, and the item's "Accounting" module disappears.
+  quickbooksLineItemScheme: "splitDetailed",
+  // Pricebook settings (2026-10-08, for the "Labor rate" form and panel).
+  // Subtypes exist but are OPTIONAL here — the richer demo, since it shows
+  // both a filled Subtype row and the "No Subtype" placeholder. The company
+  // charges tax (it keeps four tax rates), and a new labor rate opens
+  // NON-taxable, production's default for the service type.
+  requireSubtypes: false,
+  useTaxes: true,
+  pricebookDefaultTaxableLabor: false,
 };
 
 // EXTENDED for the Invoices list, 2026-09-14: the badge-status model (see

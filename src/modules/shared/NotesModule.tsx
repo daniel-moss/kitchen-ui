@@ -17,9 +17,10 @@ import styles from "./NotesModule.module.scss";
 // loading. One build, so the two panels cannot drift.
 //
 // The title and its empty copy became PROPS on 2026-10-05, when the Tax rate
-// panel drew the same module TWICE with different names — "Summary template"
-// and "Internal notes" (Figma 1-7357 and 1-7382). The defaults are the
-// Equipment / Warranty wording, so neither panel changed.
+// panel drew the same module TWICE with different names — "Description"
+// (renamed from "Summary template" 2026-10-07) and "Internal notes" (Figma
+// 1-7357 and 1-7382). The defaults are the Equipment / Warranty wording, so
+// neither panel changed.
 
 interface NotesModuleProps {
   notes?: string;
@@ -29,7 +30,7 @@ interface NotesModuleProps {
   title?: string;
   /**
    * The empty-state caption. Default "No notes here yet" — follow the same
-   * shape when overriding it ("No summary template here yet").
+   * shape when overriding it ("No description here yet").
    */
   emptyCaption?: string;
   /**

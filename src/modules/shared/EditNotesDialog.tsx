@@ -46,8 +46,8 @@ interface EditNotesDialogProps {
   title?: string;
   /**
    * The FIELD's label. Default "Notes" — the Tax rate panel opens the same
-   * dialog for "Summary template" and "Internal notes" (Figma 1-7366 and
-   * 1-7391), whose fields name themselves.
+   * dialog for "Description" and "Internal notes" (Figma 1-7366 and 1-7391),
+   * whose fields name themselves.
    */
   fieldLabel?: string;
   /**
@@ -56,7 +56,7 @@ interface EditNotesDialogProps {
    *
    * It is the whole subject, pre-quoted, because the designs use two formats:
    * the Equipment and Warranty panels say '"Notes" updated', while every Tax
-   * rate module adds the word module — '"Summary template" module updated'.
+   * rate module adds the word module — '"Description" module updated'.
    * Same reason `copyText` lets a caller override its title.
    */
   toastSubject?: string;

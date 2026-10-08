@@ -10,8 +10,8 @@
 // else may read that copy, and both it and the prototype are deleted when the
 // test is over.
 
-import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
-import { Bill, Client, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, Location, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
+import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
+import { Bill, Client, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
 
 export * from "./types";
 export {
@@ -60,6 +60,7 @@ export {
   DISCOUNT_SUBTYPES,
   TAX_RATE_ITEMS,
   TAX_RATE_LABELS,
+  QUICKBOOKS_ACCOUNTS,
   QUICKBOOKS_VENDORS,
   JOB_LABELS,
   JOB_SOURCES,
@@ -131,6 +132,8 @@ export const warrantiesOf = (equipmentId: string) => WARRANTIES.filter((row) => 
 export const warrantyById = (id: string): Warranty | undefined => WARRANTIES.find((row) => row.id === id);
 /** One tax rate by id — what the "Tax rate" side panel is opened with. */
 export const taxRateItemById = (id: string): TaxRateItem | undefined => TAX_RATE_ITEMS.find((row) => row.id === id);
+/** One labor rate by id — what the "Labor rate" side panel is opened with. */
+export const laborItemById = (id: string): LaborItem | undefined => LABOR_ITEMS.find((row) => row.id === id);
 export const equipmentFilesOf = (equipmentId: string) => EQUIPMENT_FILES.filter((row) => row.equipmentId === equipmentId);
 export const jobsOf = (locationId: string) => JOBS.filter((row) => row.locationId === locationId);
 export const estimatesOf = (locationId: string) => ESTIMATES.filter((row) => row.locationId === locationId);

@@ -44,7 +44,7 @@ const ON_QUICKBOOKS = COMPANY.accountingIntegration === "quickbooksDesktop";
 const labelIdsOf = (names: string[]) => TAX_RATE_LABELS.filter((label) => names.includes(label.name)).map((label) => label.id);
 
 export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint?: Breakpoint; children: ReactNode }) {
-  const { updateTaxRate, createTaxRate, deleteTaxRate } = useAppStore();
+  const { taxRates, updateTaxRate, createTaxRate, deleteTaxRate } = useAppStore();
 
   const [formOpen, setFormOpen] = useState(false);
   const [panelId, setPanelId] = useState<string | null>(null);
@@ -71,12 +71,16 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
           open={formOpen}
           onClose={closeForm}
           labelPool={LABEL_POOL}
+          // The duplicate-name check. Production's uniqueness spans every
+          // pricebook item of the company; the app only has the tax rates, so
+          // that is what it can offer.
+          existingNames={taxRates.map((row) => row.name)}
           // The COMPANY decides whether accounting exists here (see
           // `accountingIntegration` in the database). Only QuickBooks Desktop
           // asks a tax rate for a collection agency, so only it hands the form
-          // a vendor list — and without one the agency field and the sync
-          // notice are both gone.
-          quickbooksVendors={ON_QUICKBOOKS ? QUICKBOOKS_VENDORS : undefined}
+          // its QuickBooks context — and without one the whole "Accounting"
+          // module is gone.
+          quickbooks={ON_QUICKBOOKS ? { vendors: QUICKBOOKS_VENDORS } : undefined}
           onCreated={(input) => {
             // Remembered for "Preview" below: the form hands its own value to
             // that callback, but only the store knows the id it was given.

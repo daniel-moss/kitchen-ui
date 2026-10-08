@@ -7,6 +7,11 @@ export interface PopoverHeaderBodyProps {
   back?: boolean;
   /** Show the close button (muted, xmark). Default true. */
   close?: boolean;
+  /**
+   * Dim the close button and block it — for a surface that must not be
+   * dismissed while an action runs (Dialog's `isProcessing`). Default false.
+   */
+  closeDisabled?: boolean;
   onBack?: () => void;
   onClose?: () => void;
   className?: string;

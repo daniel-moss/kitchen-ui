@@ -13,6 +13,7 @@ export default function PopoverHeaderBody({
   children,
   back = false,
   close = true,
+  closeDisabled = false,
   onBack,
   onClose,
   className,
@@ -29,7 +30,7 @@ export default function PopoverHeaderBody({
 
       {close && (
         <HoverTooltip text="Close" className={styles.close}>
-          <IconButton variant="muted" size="md" icon="xmark" aria-label="Close" onClick={onClose} />
+          <IconButton variant="muted" size="md" icon="xmark" aria-label="Close" isDisabled={closeDisabled} onClick={onClose} />
         </HoverTooltip>
       )}
     </div>

@@ -16,6 +16,7 @@ import { semanticIcons } from "../../styles/semanticIcons";
 import { noop } from "../../stories/helpers";
 
 import { useNewJob } from "./newJob";
+import { useNewLaborRate } from "./laborRates";
 import { useNewTaxRate } from "./taxRates";
 
 import styles from "../App.module.scss";
@@ -97,8 +98,17 @@ export const profileMenu = (
 // The Create menu's items. A FUNCTION since 2026-09-28, because "Job" now opens
 // the "New job" form — the same menu is used by the sidebar's Create button
 // (desktop card) and by the bottom bar's Create (mobile drawer), so both get
-// their handlers from one place. "Tax rate" joined it on 2026-10-05.
-export const createMenu = ({ onCreateJob, onCreateTaxRate }: { onCreateJob: () => void; onCreateTaxRate: () => void }) => (
+// their handlers from one place. "Tax rate" joined it on 2026-10-05, "Labor
+// rate" on 2026-10-08.
+export const createMenu = ({
+  onCreateJob,
+  onCreateLaborRate,
+  onCreateTaxRate,
+}: {
+  onCreateJob: () => void;
+  onCreateLaborRate: () => void;
+  onCreateTaxRate: () => void;
+}) => (
   <MenuItemGroup>
     <MenuItem label="Estimate" slotLeft={slot(semanticIcons.estimate)} />
     <MenuItem
@@ -135,7 +145,7 @@ export const createMenu = ({ onCreateJob, onCreateTaxRate }: { onCreateJob: () =
       slotLeft={slot(semanticIcons.pricebook)}
       subMenu={
         <MenuItemGroup>
-          <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} />
+          <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} onClick={onCreateLaborRate} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
           <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
@@ -341,6 +351,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   }, [pageInPricebookStack]);
 
   const openNewJob = useNewJob();
+  const openNewLaborRate = useNewLaborRate();
   const openNewTaxRate = useNewTaxRate();
 
   return (
@@ -352,7 +363,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
       profileAvatarSrc={PROFILE.avatarSrc}
       profileMenu={profileMenu}
       onSearchClick={noop}
-      createMenu={createMenu({ onCreateJob: openNewJob, onCreateTaxRate: openNewTaxRate })}
+      createMenu={createMenu({ onCreateJob: openNewJob, onCreateLaborRate: openNewLaborRate, onCreateTaxRate: openNewTaxRate })}
       bottomItems={bottomItems}
     >
       {navContent(
@@ -384,6 +395,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
 export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (next: Page) => void }) => {
   const [createOpen, setCreateOpen] = useState(false);
   const openNewJob = useNewJob();
+  const openNewLaborRate = useNewLaborRate();
   const openNewTaxRate = useNewTaxRate();
 
   return (
@@ -414,6 +426,10 @@ export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (ne
           onCreateJob: () => {
             setCreateOpen(false);
             openNewJob();
+          },
+          onCreateLaborRate: () => {
+            setCreateOpen(false);
+            openNewLaborRate();
           },
           onCreateTaxRate: () => {
             setCreateOpen(false);
