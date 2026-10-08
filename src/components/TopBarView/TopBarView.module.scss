@@ -41,6 +41,17 @@
   align-items: center;
   align-self: stretch;
 
+  // The TabGroup must keep its CONTENT width. Two things take it away: it is
+  // a flex child, which shrinks below its content by default, and its own
+  // `width: fit-content` resolves against the AVAILABLE width, not the
+  // content. Either one squeezes the tabs until their labels wrap onto two
+  // lines — and then the scroller never overflows, so it never scrolls and
+  // the fade never shows.
+  > * {
+    flex: none;
+    min-width: max-content;
+  }
+
   &::-webkit-scrollbar {
     display: none;
   }
