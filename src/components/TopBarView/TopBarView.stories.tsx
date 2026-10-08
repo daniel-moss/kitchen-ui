@@ -1,16 +1,18 @@
+import { CSSProperties, ReactNode } from "react";
+
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { DocsFrame, noop } from "../../stories/helpers";
+import { Do, DoDont, Dont } from "../../stories/DoDont";
+import { docsFrame, DocsFrame, noop } from "../../stories/helpers";
 import Button from "../Button/Button";
 import { Icon } from "../Icon/Icon";
 import IconButton from "../IconButton/IconButton";
-import HoverTooltip from "../Tooltip/HoverTooltip";
 import TopBarView from "./TopBarView";
 
 const meta: Meta<typeof TopBarView> = {
   title: "Components/TopBarView",
   component: TopBarView,
-  // fullscreen — the stories' own DocsFrame provides the (only) padding.
+  // fullscreen — the stories' own frame provides the (only) padding.
   parameters: { layout: "fullscreen" },
   args: {
     breakpoint: "desktop",
@@ -33,6 +35,23 @@ export default meta;
 
 type Story = StoryObj<typeof TopBarView>;
 
+// The desktop bar is wider than the 600px docs column, so its previews hug
+// their content and overflow it equally on both sides (`data-hug`, see
+// storybook-docs.css). 740px of bar + 80px padding = the Figma preview's 900.
+const DESKTOP_BAR = 740;
+
+const hugFrame: CSSProperties = { ...docsFrame, maxWidth: "none", width: "fit-content" };
+const Hug = ({ children }: { children: ReactNode }) => (
+  <div data-hug style={hugFrame}>
+    <div style={{ width: DESKTOP_BAR }}>{children}</div>
+  </div>
+);
+
+// 80px between stacked examples, the docs-page rhythm.
+const Stack = ({ children }: { children: ReactNode }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>{children}</div>
+);
+
 const VIEWS = [
   { value: "all", label: "All" },
   { value: "my-jobs", label: "My jobs" },
@@ -44,6 +63,7 @@ const TWO_VIEWS = VIEWS.slice(0, 2);
 
 export const Playground: Story = {
   args: { views: VIEWS },
+  parameters: { layout: "centered" },
   render: (args) => (
     <DocsFrame>
       <TopBarView {...args} />
@@ -51,24 +71,21 @@ export const Playground: Story = {
   ),
 };
 
-/** The two breakpoints, as in the Figma hero: desktop above, mobile below. */
+/** The hero: the desktop bar, as on the Figma page. */
 export const Hero: Story = {
   render: () => (
-    <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarView views={TWO_VIEWS} breakpoint="desktop" onFiltersClick={noop} onViewMenuClick={noop} />
-        <TopBarView views={TWO_VIEWS} breakpoint="mobile" onFiltersClick={noop} onViewMenuClick={noop} />
-      </div>
-    </DocsFrame>
+    <Hug>
+      <TopBarView views={TWO_VIEWS} breakpoint="desktop" onFiltersClick={noop} onViewMenuClick={noop} />
+    </Hug>
   ),
 };
 
-/** Desktop anatomy: TabGroup left, Search / Filters / View right, Divider below. */
+/** Desktop anatomy: TabGroup left; search field, Filters and View right. */
 export const AnatomyDesktop: Story = {
   render: () => (
-    <DocsFrame>
+    <Hug>
       <TopBarView views={TWO_VIEWS} breakpoint="desktop" onFiltersClick={noop} onViewMenuClick={noop} />
-    </DocsFrame>
+    </Hug>
   ),
 };
 
@@ -82,13 +99,56 @@ export const AnatomyMobile: Story = {
 };
 
 /**
- * Live scroll: more tabs than the width fits — the TabGroup scrolls (drag,
+ * Views answer "which records", not "which page": the statuses of the chosen
+ * phase belong here, the phase itself belongs to TopBarNav above.
+ */
+export const WhenToUse: Story = {
+  // `data-hug` on the wrapper, not the column width the pair normally takes:
+  // a desktop bar needs 740px, and the controls alone fill the 440px a
+  // column-width Do / Don't body leaves. The pair still stacks.
+  render: () => (
+    <div data-hug>
+      <DoDont>
+        <Do caption="The statuses of the chosen phase as views — they change which records the same table shows.">
+          <div style={{ width: DESKTOP_BAR }}>
+            <TopBarView
+              views={[
+                { value: "all-open", label: "All open" },
+                { value: "pending", label: "Pending" },
+                { value: "scheduled", label: "Scheduled" },
+              ]}
+              breakpoint="desktop"
+              onFiltersClick={noop}
+              onViewMenuClick={noop}
+            />
+          </div>
+        </Do>
+        <Dont caption="The phase itself as views — open and closed belong to the bar above, and putting them here gives one choice two homes.">
+          <div style={{ width: DESKTOP_BAR }}>
+            <TopBarView
+              views={[
+                { value: "open", label: "Open" },
+                { value: "closed", label: "Closed" },
+              ]}
+              breakpoint="desktop"
+              onFiltersClick={noop}
+              onViewMenuClick={noop}
+            />
+          </div>
+        </Dont>
+      </DoDont>
+    </div>
+  ),
+};
+
+/**
+ * Live scroll: more views than the width fits — the TabGroup scrolls (drag,
  * or a plain mouse wheel) and the 40px fade marks the side where the tabs
  * continue behind the container.
  */
 export const TabsScroll: Story = {
   render: () => (
-    <DocsFrame>
+    <Hug>
       <TopBarView
         views={[
           ...VIEWS,
@@ -100,7 +160,7 @@ export const TabsScroll: Story = {
         onFiltersClick={noop}
         onViewMenuClick={noop}
       />
-    </DocsFrame>
+    </Hug>
   ),
 };
 
@@ -122,7 +182,7 @@ export const ViewNameTruncation: Story = {
       {/* Phone width, so the long name actually runs out of room. */}
       <div style={{ maxWidth: 375, margin: "0 auto" }}>
         <TopBarView
-          views={[{ value: "long", label: "Very long view name which does not fit 1 line" }, ...TWO_VIEWS]}
+          views={[{ value: "long", label: "Very long view name which does not fit one line" }, ...TWO_VIEWS]}
           breakpoint="mobile"
           onFiltersClick={noop}
           onViewMenuClick={noop}
@@ -133,36 +193,14 @@ export const ViewNameTruncation: Story = {
 };
 
 /**
- * Desktop keyword search, top to bottom: the resting "Search" button; the
- * empty field (click into it for the focused state); the field with a value
+ * Mobile keyword search, top to bottom: the resting bar; the search bar open
+ * and empty (the search IconButton has hidden); the search bar with a value
  * and its Clear button.
  */
-export const SearchDesktop: Story = {
+export const Search: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        <TopBarView views={TWO_VIEWS} breakpoint="desktop" onFiltersClick={noop} onViewMenuClick={noop} />
-        <TopBarView views={TWO_VIEWS} breakpoint="desktop" _searchOpen onFiltersClick={noop} onViewMenuClick={noop} />
-        <TopBarView
-          views={TWO_VIEWS}
-          breakpoint="desktop"
-          defaultSearch="Value"
-          onFiltersClick={noop}
-          onViewMenuClick={noop}
-        />
-      </div>
-    </DocsFrame>
-  ),
-};
-
-/**
- * Mobile keyword search, top to bottom: the resting bar; the search bar shown
- * (the Search IconButton hides); the search bar with a value.
- */
-export const SearchMobile: Story = {
-  render: () => (
-    <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
+      <Stack>
         <TopBarView views={VIEWS} breakpoint="mobile" onFiltersClick={noop} onViewMenuClick={noop} />
         <TopBarView views={VIEWS} breakpoint="mobile" _searchOpen onFiltersClick={noop} onViewMenuClick={noop} />
         <TopBarView
@@ -172,70 +210,68 @@ export const SearchMobile: Story = {
           onFiltersClick={noop}
           onViewMenuClick={noop}
         />
-      </div>
+      </Stack>
     </DocsFrame>
   ),
 };
 
-/** Hover the Search IconButton for its tooltip (mobile's icon-only form). */
-export const SearchTooltip: Story = {
+/** The "Filters" control: the labelled Button on desktop, the IconButton on mobile. */
+export const FiltersButton: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", justifyContent: "center", padding: "var(--size-10) 0" }}>
-        <HoverTooltip text="Search">
-          <IconButton variant="ghost" size="lg" icon="search" aria-label="Search" onClick={noop} />
-        </HoverTooltip>
-      </div>
-    </DocsFrame>
-  ),
-};
-
-/** The "View" button (desktop) and its mobile IconButton — hover it for the tooltip. */
-export const ViewButton: Story = {
-  render: () => (
-    <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--size-20)", padding: "var(--size-10) 0" }}>
-        <Button variant="ghost" size="lg" leftIcon="sliders" onClick={noop}>
-          View
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--size-10)" }}>
+        <Button variant="ghost" size="lg" leftIcon="bars-filter" onClick={noop}>
+          Filters
         </Button>
-        <HoverTooltip text="View">
-          <IconButton variant="ghost" size="lg" icon="sliders" aria-label="View" onClick={noop} />
-        </HoverTooltip>
+        <IconButton variant="ghost" size="lg" icon="bars-filter" aria-label="Filters" onClick={noop} />
       </div>
     </DocsFrame>
   ),
 };
 
 /**
- * The mobile Filters control's two states: no applied filters (the
- * IconButton) and applied filters (the ghost Button with the count).
+ * The mobile Filters control's two forms: no applied filters (the IconButton)
+ * and applied filters (the ghost Button whose copy is the count).
  */
 export const FiltersButtonStates: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--size-10)", padding: "var(--size-10) 0" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--size-10)" }}>
         <IconButton variant="ghost" size="lg" icon="bars-filter" aria-label="Filters" onClick={noop} />
         <Icon icon="arrow-right" pack="regular" size={14} style={{ color: "var(--gray-a8)" }} aria-hidden="true" />
-        <Button variant="ghost" size="lg" leftIcon="bars-filter" onClick={noop}>
-          2
+        <Button variant="ghost" size="lg" leftIcon="bars-filter" aria-label="Filters (3 applied)" onClick={noop}>
+          3
         </Button>
       </div>
     </DocsFrame>
   ),
 };
 
-/** The "Filters" button (desktop) and its mobile IconButton — hover it for the tooltip. */
-export const FiltersButton: Story = {
+/** The "View" control: the labelled Button on desktop, the IconButton on mobile. */
+export const ViewButton: Story = {
   render: () => (
     <DocsFrame>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--size-20)", padding: "var(--size-10) 0" }}>
-        <Button variant="ghost" size="lg" leftIcon="bars-filter" onClick={noop}>
-          Filters
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--size-10)" }}>
+        <Button variant="ghost" size="lg" leftIcon="sliders" onClick={noop}>
+          View
         </Button>
-        <HoverTooltip text="Filters">
-          <IconButton variant="ghost" size="lg" icon="bars-filter" aria-label="Filters" onClick={noop} />
-        </HoverTooltip>
+        <IconButton variant="ghost" size="lg" icon="sliders" aria-label="View" onClick={noop} />
       </div>
     </DocsFrame>
+  ),
+};
+
+/**
+ * `isLoading` on both breakpoints: only the views are skeletons, every control
+ * stays, and the bar keeps its height.
+ */
+export const Loading: Story = {
+  render: () => (
+    <Hug>
+      <Stack>
+        <TopBarView views={TWO_VIEWS} breakpoint="desktop" isLoading onFiltersClick={noop} onViewMenuClick={noop} />
+        <TopBarView views={VIEWS} breakpoint="mobile" isLoading onFiltersClick={noop} onViewMenuClick={noop} />
+      </Stack>
+    </Hug>
   ),
 };

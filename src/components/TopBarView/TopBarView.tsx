@@ -13,9 +13,9 @@ import IconButton from "../IconButton/IconButton";
 import SelectList from "../SelectList/SelectList";
 import SelectListItem from "../SelectList/SelectListItem";
 import SelectListItemGroup from "../SelectList/SelectListItemGroup";
+import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
 import TabGroup from "../Tabs/TabGroup";
 import TabItem from "../Tabs/TabItem";
-import HoverTooltip from "../Tooltip/HoverTooltip";
 
 import styles from "./TopBarView.module.scss";
 import { TopBarViewProps } from "./TopBarView.types";
@@ -76,11 +76,12 @@ function TabsScroller({ children }: { children: ReactNode }) {
 }
 
 // TopBarView — the view-controls bar above a table / cards list. Desktop: a
-// TabGroup with the views on the left, Search / Filters / View on the right.
-// Mobile: the tabs become a view selector (an inline select list); the
-// buttons become IconButtons, and the keyword search opens as its own bar
-// below. The Filters and View MENUS are the consumer's wiring — this bar
-// only reports the clicks. See Figma "TopBarView" (node 29570-31216).
+// TabGroup with the views on the left, the always-open search field plus
+// Filters / View on the right. Mobile: the tabs become a view selector (an
+// inline select list); the buttons become IconButtons, and the keyword search
+// starts as a button and opens as its own bar below. The Filters and View
+// MENUS are the consumer's wiring — this bar only reports the clicks. See
+// Figma "TopBarView" (node 29570-31216).
 export default function TopBarView({
   views,
   view,
@@ -95,6 +96,7 @@ export default function TopBarView({
   filtersPressed = false,
   onViewMenuClick,
   viewMenuPressed = false,
+  isLoading = false,
   breakpoint = "auto",
   className,
   _searchOpen = false,
@@ -109,10 +111,11 @@ export default function TopBarView({
   );
   const [searchValue, setSearchValue] = useControllableState(search, defaultSearch ?? "", onSearchChange);
 
-  // The doc's rule, both breakpoints: the search field/bar stays as long as
-  // it has a value or focus. Opening happens on the Search button; closing on
-  // blur with an empty value. The Clear (×) button refocuses the input, so
-  // clearing alone never closes it — the following blur does.
+  // MOBILE ONLY (the doc's rule): the search bar stays as long as it has a
+  // value or focus. Opening happens on the search button; closing on blur with
+  // an empty value. The Clear (×) button refocuses the input, so clearing
+  // alone never closes it — the following blur does. Desktop has no button and
+  // no open state: its field is always there.
   const [searchOpenState, setSearchOpenState] = useState((search ?? defaultSearch ?? "") !== "");
   const searchOpen = searchOpenState || _searchOpen;
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -135,7 +138,6 @@ export default function TopBarView({
     placeholder: searchPlaceholder,
     onChange: (e: ChangeEvent<HTMLInputElement>) => setSearchValue(e.target.value),
     onClear: () => setSearchValue(""),
-    onBlur: onSearchBlur,
   };
 
   // The mobile view-selector list — inline, so it opens over the bar itself.
@@ -165,24 +167,22 @@ export default function TopBarView({
                 has one size, so no `size` is passed: the tabs stretch to the
                 60px row and the line lands on its bottom edge, above the
                 Divider. */}
-            <TabGroup variant="underlined" value={selectedView} onChange={setSelectedView}>
+            {/* Loading tabs load UNSELECTED (the TabItem rule): their content
+                is not known yet, so nothing can be the current view. */}
+            <TabGroup variant="underlined" value={isLoading ? "" : selectedView} onChange={setSelectedView}>
               {views.map((v) => (
-                <TabItem key={v.value} value={v.value}>
+                <TabItem key={v.value} value={v.value} loading={isLoading}>
                   {v.label}
                 </TabItem>
               ))}
             </TabGroup>
           </TabsScroller>
           <div className={styles.controls}>
-            {searchOpen ? (
-              <div ref={searchWrapRef} className={styles.searchField}>
-                <SearchField ref={searchInputRef} type="field" {...searchFieldProps} />
-              </div>
-            ) : (
-              <Button variant="ghost" size="lg" leftIcon="search" onClick={openSearch}>
-                Search
-              </Button>
-            )}
+            {/* The search field is always open on desktop — there is room for
+                it, so there is nothing to reveal and no Search button. */}
+            <div className={styles.searchField}>
+              <SearchField ref={searchInputRef} type="field" {...searchFieldProps} />
+            </div>
             <Button variant="ghost" size="lg" leftIcon="bars-filter" isPressed={filtersPressed} onClick={onFiltersClick}>
               Filters
             </Button>
@@ -191,7 +191,7 @@ export default function TopBarView({
             </Button>
           </div>
         </div>
-        <Divider />
+        <Divider contrast="medium" />
       </div>
     );
   }
@@ -202,18 +202,26 @@ export default function TopBarView({
     <div className={clsx(styles.bar, className)}>
       <div className={clsx(styles.inner, styles.mobileInner)}>
         <div ref={selectorWrapRef} className={styles.selectorWrap}>
-          <button
-            type="button"
-            className={clsx(styles.selector, listOpen && styles.selectorOpen)}
-            aria-haspopup="listbox"
-            aria-expanded={listOpen}
-            onClick={() => setListOpenState(!listOpenState)}
-          >
-            <span className={styles.selectorLabel}>{selectedLabel}</span>
-            <span className={styles.selectorIcon} aria-hidden="true">
-              <Icon icon="angles-up-down" size={14} />
+          {/* Loading: the name is a skeleton and the angles icon is dropped —
+              there is no list to open until the views are known. */}
+          {isLoading ? (
+            <span className={styles.selectorLoading}>
+              <SkeletonTypography variant="bodyCompact" width="var(--size-24)" />
             </span>
-          </button>
+          ) : (
+            <button
+              type="button"
+              className={clsx(styles.selector, listOpen && styles.selectorOpen)}
+              aria-haspopup="listbox"
+              aria-expanded={listOpen}
+              onClick={() => setListOpenState(!listOpenState)}
+            >
+              <span className={styles.selectorLabel}>{selectedLabel}</span>
+              <span className={styles.selectorIcon} aria-hidden="true">
+                <Icon icon="angles-up-down" size={14} />
+              </span>
+            </button>
+          )}
           <div className={styles.listAnchor}>
             {/* breakpoint="desktop" keeps the INLINE list on mobile — the
                 doc's rule: "The select list opens inline on mobile." */}
@@ -235,15 +243,12 @@ export default function TopBarView({
           </div>
         </div>
         <div className={styles.controls}>
-          {/* The Search button HIDES while the search bar is shown (the doc). */}
+          {/* The search button HIDES while the search bar is shown (the doc). */}
           {!searchOpen && (
-            <HoverTooltip text="Search">
-              <IconButton variant="ghost" size="lg" icon="search" aria-label="Search" onClick={openSearch} />
-            </HoverTooltip>
+            <IconButton variant="ghost" size="lg" icon="search" aria-label="Search" onClick={openSearch} />
           )}
           {/* With applied filters the IconButton turns into a Button whose
-              copy is the count; clearing them all turns it back (the doc).
-              The tooltip belongs to the IconButton form only. */}
+              copy is the count; clearing them all turns it back (the doc). */}
           {filtersCount > 0 ? (
             <Button
               variant="ghost"
@@ -256,34 +261,30 @@ export default function TopBarView({
               {filtersCount}
             </Button>
           ) : (
-            <HoverTooltip text="Filters">
-              <IconButton
-                variant="ghost"
-                size="lg"
-                icon="bars-filter"
-                aria-label="Filters"
-                isPressed={filtersPressed}
-                onClick={onFiltersClick}
-              />
-            </HoverTooltip>
-          )}
-          <HoverTooltip text="View">
             <IconButton
               variant="ghost"
               size="lg"
-              icon="sliders"
-              aria-label="View"
-              isPressed={viewMenuPressed}
-              onClick={onViewMenuClick}
+              icon="bars-filter"
+              aria-label="Filters"
+              isPressed={filtersPressed}
+              onClick={onFiltersClick}
             />
-          </HoverTooltip>
+          )}
+          <IconButton
+            variant="ghost"
+            size="lg"
+            icon="sliders"
+            aria-label="View"
+            isPressed={viewMenuPressed}
+            onClick={onViewMenuClick}
+          />
         </div>
       </div>
-      <Divider />
+      <Divider contrast="medium" />
       {searchOpen && (
         <div ref={searchWrapRef}>
-          <SearchField ref={searchInputRef} type="bar" {...searchFieldProps} />
-          <Divider />
+          <SearchField ref={searchInputRef} type="bar" {...searchFieldProps} onBlur={onSearchBlur} />
+          <Divider contrast="medium" />
         </div>
       )}
     </div>

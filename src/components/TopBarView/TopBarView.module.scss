@@ -1,11 +1,12 @@
 @use "../../styles/mixins/font" as *;
 
 // TopBarView — values from Figma "TopBarView" (node 29570-31216): a 60px
-// content row (0 16px padding, 16px gap) over a bottom Divider. The bar
-// itself is transparent — the app background shows through (the app-shell
-// rule). Desktop = TabGroup left + Search/Filters/View right (8px apart);
-// mobile = view selector left + IconButtons right, with the search bar as
-// its own 40px row below the Divider.
+// content row (0 16px padding, 16px gap) over a bottom Divider (contrast
+// medium). The bar itself is transparent — the app background shows through
+// (the app-shell rule). Desktop = TabGroup left + the always-open search
+// field, Filters and View right (8px apart); mobile = view selector left +
+// IconButtons right, with the search bar as its own 40px row below the
+// Divider.
 
 .bar {
   display: flex;
@@ -66,7 +67,8 @@
   justify-content: flex-end;
 }
 
-// Desktop expanded keyword search: a fixed-width SearchField in the cluster.
+// Desktop keyword search: a fixed-width SearchField in the cluster, always
+// shown.
 .searchField {
   width: var(--size-64); // 256px
 }
@@ -117,6 +119,14 @@
 .selectorOpen,
 .selectorOpen:hover {
   opacity: 0.5;
+}
+
+// Loading: the skeleton stands in the selector's place, so the row keeps its
+// height and nothing shifts when the view name arrives.
+.selectorLoading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
 }
 
 .selectorLabel {

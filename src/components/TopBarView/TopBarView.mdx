@@ -1,16 +1,21 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as TopBarViewStories from "./TopBarView.stories";
+import { DocCaption } from "../../stories/DocCaption";
 import { FigmaLinks } from "../../stories/FigmaLinks";
 
 <Meta of={TopBarViewStories} />
 
 # TopBarView
 
-We use **TopBarView** to provide access to view controls.
+**TopBarView** sits above a list and carries the controls that change what the
+list shows: the views, keyword search, filters and the view menu.
+<a href="/?path=/docs/components-topbarnav--docs" target="_top">TopBarNav</a>
+is the bar above it and carries the page title and the phase it belongs to, so
+the views here are always the ones inside the chosen phase.
 
 <FigmaLinks
-  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=22254-75265"
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=29570-31216"
   doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=23684-78701"
 />
 
@@ -32,140 +37,202 @@ We use **TopBarView** to provide access to view controls.
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Views](#views)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Keyword search](#keyword-search)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["View" button](#view-button)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;["Filters" button](#filters-button)<br />
+↳&nbsp;&nbsp;[When to use](#when-to-use)<br />
+↳&nbsp;&nbsp;[Views](#views)<br />
+↳&nbsp;&nbsp;[Search](#search)<br />
+↳&nbsp;&nbsp;["Filters" button](#filters-button)<br />
+↳&nbsp;&nbsp;["View" button](#view-button)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Accessibility](#accessibility)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
 ### Desktop
 
-Fills the width. The height is fixed. Contains a
+Fills the width. The height is fixed and a
 <a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
-component at the bottom. Contains a
+closes the bar at the bottom. A
 <a href="/?path=/docs/components-tabs-tabgroup--docs" target="_top">TabGroup</a>
-on the left and a group of
-<a href="/?path=/story/components-button--playground" target="_top">Buttons</a>
-on the right.
+holds the views on the left, and the search field, the "Filters" button and the
+"View" button sit in one group on the right. The search field is always open,
+so there is no Search button on desktop.
 
 The content row is 60px tall with `--size-4` (16px) side padding and a
-`--size-4` (16px) gap between the tabs area and the buttons. The tabs are
+`--size-4` (16px) gap between the tabs area and the controls. The tabs are
 TabGroup `underlined` — it has one size, and the tabs fill the row, so the
-selected tab's 2px line sits on the row's bottom edge, right above the
-Divider. The buttons are ghost `lg` Buttons — "Search",
-"Filters" and "View", with `regular` icons — `--size-2` (8px) apart. The bar
-itself has no fill: the app background shows through.
+selected tab's line sits on the row's bottom edge, right above the Divider,
+which is `contrast="medium"` (`--gray-a4`). The controls are `--size-2` (8px)
+apart: a
+<a href="/?path=/docs/components-fields-searchfield--docs" target="_top">SearchField</a>
+`field` `--size-64` (256px) wide and `--size-9` (36px) tall, then two ghost
+`lg` <a href="/?path=/story/components-button--playground" target="_top">Buttons</a>
+with `regular` icons. The bar itself has no fill: the app background shows
+through.
+
+<DocCaption>breakpoint = desktop</DocCaption>
 
 <Canvas of={TopBarViewStories.AnatomyDesktop} />
 
 ### Mobile
 
-Fills the width. The height is fixed. Contains a Divider component at the
-bottom. Contains a view selector on the left and a group of
-<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButtons</a>
-on the right. The view selector shows the name of the selected view.
+On mobile there is no room for the tabs, so the view selector takes their place
+and shows the name of the selected view. The three controls on the right become
+<a href="/?path=/docs/components-iconbutton--docs" target="_top">IconButtons</a>.
 
-The row keeps the desktop measurements (60px, `--size-4` sides). The view
-selector is the view's name (`body-500-compact`, `--text-strong`) with an
-`angles-up-down` 14px `regular` icon (`--gray-a9`) `--size-2` (8px) after it.
-The IconButtons are ghost `lg` (36px) — search, bars-filter and sliders —
-`--size-2` (8px) apart.
+The row keeps the desktop measurements (60px, `--size-4` sides) and pushes the
+two sides apart. The view selector is the view's name (`body-500-compact`,
+`--text-strong`) with an `angles-up-down` 14px `regular` icon (`--gray-a9`)
+`--size-2` (8px) after it. The IconButtons are ghost `lg` (36px) — search,
+bars-filter and sliders — `--size-2` (8px) apart.
+
+<DocCaption>breakpoint = mobile</DocCaption>
 
 <Canvas of={TopBarViewStories.AnatomyMobile} />
 
-## Behavior
+## When to use
 
-### Views
+Use TopBarView above any list that can be looked at in more than one way, or
+that needs search and filters. A list page carries one of these bars and no
+second row of controls.
 
-#### Scroll
+Do not use it for navigation. Views answer "which records", not "which page" —
+the phase belongs to TopBarNav above, and the sections inside a record have
+their own bar.
 
-TabGroup scrolls when there is not enough room. A fade-out effect marks the
-side where the tabs continue behind the container. The fade is 40px on each
-affected side and follows the scroll position: at the start only the right
-edge fades, in the middle both do, at the end only the left. A plain mouse
-wheel also scrolls the tabs. The example below is live — drag or wheel-scroll
-the tabs:
+<Canvas of={TopBarViewStories.WhenToUse} />
+
+## Views
+
+A view is one way of looking at the same list. The TabGroup scrolls when there
+is not enough room for all of them, and a fade marks the side where the tabs
+continue behind the container. The fade is 40px on each affected side and
+follows the scroll position: at the start only the right edge fades, in the
+middle both do, at the end only the left. A plain vertical mouse wheel also
+scrolls the tabs sideways — no Shift needed.
+
+<DocCaption>The tabs scrolled to the start, part way, and to the end.</DocCaption>
 
 <Canvas of={TopBarViewStories.TabsScroll} />
 
-#### View selector
-
-Due to the lack of space on mobile, TabGroup turns into a view selector. The
-view selector triggers the select list with the list of available views. The
+On mobile the view selector takes the tabs' place. Tapping it opens a
 <a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">select list</a>
-opens inline on mobile, `--size-1` (4px) below the selector and left-aligned
-with it. Picking a view closes the list. The selector dims to 75% on hover
-and 50% while pressed, and holds the pressed look while its list is open.
+of the available views, inline over the bar itself — `--size-1` (4px) below the
+selector and left-aligned with it. Picking a view closes the list, and so does
+a tap outside it. The selector dims to 75% on hover and 50% while pressed, and
+holds the pressed look while its list is open.
+
+<DocCaption>The view selector with its select list open.</DocCaption>
 
 <Canvas of={TopBarViewStories.ViewSelectorOpen} />
 
-The name of the view truncates if it does not fit the width.
+The name of the selected view truncates when it does not fit the width, so a
+long name never pushes the IconButtons out of the row.
+
+<DocCaption>A view name too long for one line.</DocCaption>
 
 <Canvas of={TopBarViewStories.ViewNameTruncation} />
 
-### Keyword search
+## Search
 
-#### Desktop
+On desktop the search field is always open. There is nothing to reveal and
+nothing to put away, so the bar has no Search button there.
 
-The keyword search is triggered by a "Search" button. Clicking on the button
-turns the button into a
-<a href="/?path=/docs/components-fields-searchfield--docs" target="_top">SearchField</a>
-(`field` type, `--size-64` / 256px wide) and focuses it. The field turns back
-into the button when the value is cleared and there is no focus on the field —
-clearing with the × alone keeps the focused field; clicking away from the
-empty field collapses it.
+Mobile has no room for the field beside the controls, so there search starts as
+a button. Tapping it hides the button and opens the search bar below the
+TopBarView — a SearchField `bar` `--size-10` (40px) tall with its own Divider
+under it. The bar stays as long as the field has a value or the focus; with
+neither, it closes and the button comes back. Clearing with the × keeps the
+field, because Clear refocuses the input — the blur that follows is what closes
+it.
 
-<Canvas of={TopBarViewStories.SearchDesktop} />
+The input is rendered and focused inside the same tap, using `flushSync` so
+both happen in one render. iOS opens the on-screen keyboard only for a focus
+made during the gesture, so a focus in the next render would show the bar with
+no keyboard.
 
-#### Mobile
+<DocCaption>The bar before search, with the search bar open and empty, and with a value typed.</DocCaption>
 
-Tapping on the "Search" button hides the "Search" button and shows the search
-bar. The search bar shows up as a separate bar (SearchField `bar` type, 40px,
-with its own Divider below) below the TopBarView, and the input is focused so
-the keyboard opens right away. The search bar stays as long as there is
-either a value or focus on the field. If there is neither a value nor focus,
-the field turns back into the "Search" button.
+<Canvas of={TopBarViewStories.Search} />
 
-<Canvas of={TopBarViewStories.SearchMobile} />
+## "Filters" button
 
-Hovering over the IconButton triggers a
-<a href="/?path=/story/components-tooltip--playground" target="_top">tooltip</a>.
-
-<Canvas of={TopBarViewStories.SearchTooltip} />
-
-### "View" button
-
-The "View" button opens the view menu. The view menu is
-<a href="/?path=/story/prototypes-view-menu--desktop" target="_top">documented here</a>.
-Hovering over the IconButton triggers a tooltip. **TopBarView does not open
-the menu by itself** — it reports the click through `onViewMenuClick`; the
-menu is your wiring. While the menu is open the button holds the pressed
-look — because the menu is yours, its open state is passed in through
-`viewMenuPressed`.
-
-<Canvas of={TopBarViewStories.ViewButton} />
-
-### "Filters" button
-
-The "Filters" button opens the "Filters" menu. The filters are
+The "Filters" button opens the filters menu, which is
 <a href="https://www.figma.com/design/54dNq5bLwhXf3fXwts0Jvx/Filters---Next-Update?node-id=1950-34790" target="_blank" rel="noreferrer">documented here</a>.
-Hovering over the IconButton triggers a tooltip. **TopBarView does not open
-the menu by itself** — it reports the click through `onFiltersClick`; the
-menu is your wiring. While the menu is open the button holds the pressed
-look — because the menu is yours, its open state is passed in through
-`filtersPressed`.
+It is a labelled ghost `lg` Button on desktop and a ghost `lg` IconButton on
+mobile. **TopBarView does not open the menu by itself** — it reports the click
+through `onFiltersClick`; the menu is your wiring. While the menu is open the
+control holds the pressed look, and because the menu is yours its open state
+comes in through `filtersPressed`.
+
+<DocCaption>The labelled button on desktop, and the icon button on mobile.</DocCaption>
 
 <Canvas of={TopBarViewStories.FiltersButton} />
 
-The IconButton on mobile turns into a Button if there are applied filters.
-The Button copy shows the number of applied filters. When the user clears all
-the filters, the Button turns back to the IconButton. The count comes from
-the `filtersCount` prop.
+The IconButton on mobile turns into a Button if there are applied filters. The
+Button copy shows the number of applied filters, from `filtersCount`. When the
+user clears all the filters, the Button turns back to the IconButton.
+
+<DocCaption>The icon button turns into a button carrying the number of applied filters.</DocCaption>
 
 <Canvas of={TopBarViewStories.FiltersButtonStates} />
+
+## "View" button
+
+The "View" button opens the view menu, which is
+<a href="/?path=/docs/modules-view-menu--docs" target="_top">documented here</a>.
+It is a labelled ghost `lg` Button on desktop and a ghost `lg` IconButton on
+mobile. **TopBarView does not open the menu by itself** — it reports the click
+through `onViewMenuClick`; the menu is your wiring. While the menu is open the
+control holds the pressed look, and because the menu is yours its open state
+comes in through `viewMenuPressed`.
+
+<DocCaption>The labelled button on desktop, and the icon button on mobile.</DocCaption>
+
+<Canvas of={TopBarViewStories.ViewButton} />
+
+## Loading
+
+With `isLoading`, only the views become skeletons. The search field and the
+buttons stay as they are, so the bar keeps its height and nothing moves when
+the data arrives.
+
+On desktop each tab label is a `bodyCompact` skeleton 40px wide — TabItem's own
+`loading` look, so the tabs keep their spacing. On mobile the view name becomes
+one `bodyCompact` skeleton `--size-24` (96px) wide and the `angles-up-down`
+icon is dropped: there is no list to open until the views are known.
+
+<DocCaption>isLoading on both breakpoints</DocCaption>
+
+<Canvas of={TopBarViewStories.Loading} />
+
+## Accessibility
+
+Tab moves through the controls in the order they are drawn. The views on
+desktop are a tab list, so the arrow keys move between them. On mobile the
+selector opens with Enter or Space, and the arrow keys then move through the
+open list.
+
+The views announce themselves as a tab list on desktop and as a select on
+mobile — the selector carries `aria-haspopup="listbox"` plus an
+`aria-expanded` that follows its list. The bar itself announces nothing: it is
+a container.
+
+Every icon-only control needs an accessible name, because the icon alone says
+nothing. The component gives its three mobile IconButtons one, and the Filters
+control keeps `aria-label="Filters (3 applied)"` in the count form as well,
+because "3" on its own does not say what was filtered. The search placeholder
+is a hint and not a label.
+
+## Usage
+
+| Where | Views |
+| --- | --- |
+| Jobs | The job statuses inside the chosen phase |
+| Estimates, Invoices, Credit notes, Bills, Purchase orders | The record statuses inside the chosen phase |
+| Price book lists, Products, Labor rates | The item states |
+| Clients, Vendors, Series | One view per phase — all active or all inactive records |
 
 ## Props
 

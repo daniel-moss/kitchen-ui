@@ -21,7 +21,11 @@ export interface TopBarViewProps {
 
   /** Keyword search value (controlled). */
   search?: string;
-  /** Uncontrolled initial search value. A non-empty value mounts the search field/bar open. */
+  /**
+   * Uncontrolled initial search value. Desktop always shows the field, so this
+   * is only its starting text there; on mobile a non-empty value also mounts
+   * the search bar open.
+   */
   defaultSearch?: string;
   /** Called with the search value on every keystroke, and with "" on Clear. */
   onSearchChange?: (value: string) => void;
@@ -57,12 +61,18 @@ export interface TopBarViewProps {
    */
   viewMenuPressed?: boolean;
 
+  /**
+   * The list's rows are not known yet: the views become skeletons and every
+   * control stays as it is, so the bar keeps its height. Default false.
+   */
+  isLoading?: boolean;
+
   /** "auto" (default) tracks the viewport; "desktop" / "mobile" force one (Storybook, tests). */
   breakpoint?: Breakpoint;
   className?: string;
 
   // Story-only visual-state simulators (hidden from the docs table).
-  /** Force the keyword search open (the desktop field / the mobile search bar). */
+  /** Force the mobile search bar open. Desktop always shows its field. */
   _searchOpen?: boolean;
   /** Force the mobile view-selector list open. */
   _viewListOpen?: boolean;
