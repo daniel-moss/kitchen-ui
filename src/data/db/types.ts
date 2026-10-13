@@ -1200,6 +1200,49 @@ export type StockStatus = "full" | "limited" | "low" | "depleted";
  * part-only five: the manufacturer pair that identifies a physical part, and
  * the inventory trio.
  */
+/**
+ * The weight units production offers (`core.choices.WeightUnit`), stored as
+ * the short code. NOTE the codes are production's own and two are wrong for a
+ * US reader — `st` is the symbol for STONE, not a US ton, and SI writes
+ * kilograms `kg`, not `Kg`. The demo keeps the stored codes and prints the
+ * long names, which is what every UI here shows (Daniel, 2026-10-12).
+ */
+export type WeightUnit = "oz" | "lb" | "st" | "g" | "Kg" | "Mg";
+
+/** The dimension units production offers (`core.choices.DimensionUnit`). */
+export type DimensionUnit = "in" | "ft" | "yd" | "mm" | "cm" | "m";
+
+/**
+ * Production `cost_strategy` — "manual" is typed by hand, the other three
+ * follow the part's vendor costs (`pricebook.choices.CostStrategy`).
+ */
+export type CostStrategy = "manual" | "minVendorCost" | "maxVendorCost" | "avgVendorCost";
+
+/** Production `price_strategy` (`pricebook.choices.PriceStrategy`). */
+export type PriceStrategy = "manual" | "fixedMarkup" | "percentMarkup";
+
+/**
+ * What one vendor charges for one product — production `VendorPartCost`, one
+ * row per (vendor, part) and UNIQUE on that pair. Added 2026-10-13 with the
+ * "New product" form's Vendor cost cards.
+ *
+ * Both values are required in production: `vendor_cost` has no default, and
+ * `vendor_part_number` is a non-blank column. (Four rows in five are empty in
+ * the real data, but every one of those came from one bulk import in March
+ * 2025 — everything the app itself has written since carries a part number.)
+ */
+export interface VendorPartCost {
+  id: string;
+  /** → VENDORS. */
+  vendorId: string;
+  /** → PRODUCT_ITEMS. */
+  productId: string;
+  /** Production `vendor_cost` — DECIMAL(10,3), never negative in practice. */
+  cost: number;
+  /** Production `vendor_part_number` — the VENDOR's own code, 100 chars. */
+  partNumber: string;
+}
+
 export interface ProductItem {
   id: string;
   /** Production `description` — the item's name, unique per company. */
@@ -1227,6 +1270,48 @@ export interface ProductItem {
   manufacturer: string;
   /** Production `part_number` — the MANUFACTURER's part number, not ours. "" = none. */
   partNumber: string;
+  /**
+   * Production `barcode` — the code printed on the part, UNIQUE per company
+   * when set (a partial index, so any number of parts may leave it empty).
+   * Added 2026-10-13 with the "New product" form, which checks a typed or
+   * scanned code against every other product. Absent = never registered.
+   */
+  barcode?: string;
+  /** Production `image_url` — a LINK to a picture of the part, never an upload. 200 chars. */
+  imageUrl?: string;
+  /**
+   * Production `weight` + `weight_unit`, which the server requires TOGETHER:
+   * a value with no unit, or a unit with no value, is rejected. Both absent =
+   * nobody measured it (every real part today, hence optional).
+   */
+  weight?: number;
+  weightUnit?: WeightUnit;
+  /**
+   * Production `length` / `width` / `height` + `dimension_unit` — all four
+   * together or none at all, the same pairing rule the server enforces.
+   */
+  length?: number;
+  width?: number;
+  height?: number;
+  dimensionUnit?: DimensionUnit;
+  /**
+   * Production `cost_strategy` — whether `cost` is typed or follows the
+   * vendor costs. Absent = "manual", the column's default. Under any other
+   * value a database trigger writes `cost`, recomputing it whenever a vendor
+   * cost changes, and 0 when the part has none.
+   */
+  costStrategy?: CostStrategy;
+  /**
+   * Production `price_strategy` + the two adjustment columns. Absent =
+   * "manual". Under a markup the trigger computes `price` from `cost`.
+   */
+  priceStrategy?: PriceStrategy;
+  /** Production `price_adjustment_amount` — the fixed markup, in dollars. */
+  fixedMarkup?: number;
+  /** Production `price_adjustment_percent` — DECIMAL(6,3), so 999.999 at most. */
+  percentMarkup?: number;
+  /** Production `notes` — the internal note. Staff only; nothing else reads it. */
+  notes?: string;
   /**
    * Production `track_inventory` — whether the company counts this part in
    * stock. The Inventory filter's two values (Tracked · Not tracked), and

@@ -38,6 +38,7 @@ import {
   Service,
   Vendor,
   VendorLabel,
+  VendorPartCost,
   Warranty,
 } from "./types";
 
@@ -1559,13 +1560,13 @@ export const PRODUCT_LABELS: PricebookLabel[] = [
  */
 const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
   // ---- TRACKED catalog: refrigeration ----
-  { id: "prod-door-gasket-36", name: "Walk-in door gasket, 36 in", status: "active", isActive: true, subtypeId: "hardware", summary: "Magnetic door gasket for a 36 in walk-in door; cut and fitted on site.", cost: 48, price: 132, taxable: true, manufacturer: "Kason", partNumber: "1855-36-GKT", trackInventory: true, stock: "full", quantity: 14, quantityDesired: 12, labelIds: ["oem", "truck-stock"], lastModifiedAt: "2026-08-21T14:30:00" },
-  { id: "prod-evap-fan-motor", name: "Evaporator fan motor, 9W", status: "active", isActive: true, subtypeId: "refrigeration", summary: "9 watt shaded-pole evaporator fan motor, 115V.", cost: 62, price: 168, taxable: true, manufacturer: "Fasco", partNumber: "D1126", trackInventory: true, stock: "limited", quantity: 5, quantityDesired: 10, labelIds: ["truck-stock"], lastModifiedAt: "2026-08-27T11:20:00" },
+  { id: "prod-door-gasket-36", name: "Walk-in door gasket, 36 in", status: "active", isActive: true, subtypeId: "hardware", summary: "Magnetic door gasket for a 36 in walk-in door; cut and fitted on site.", cost: 48, price: 132, taxable: true, manufacturer: "Kason", partNumber: "1855-36-GKT", barcode: "0012345678905", trackInventory: true, stock: "full", quantity: 14, quantityDesired: 12, labelIds: ["oem", "truck-stock"], lastModifiedAt: "2026-08-21T14:30:00" },
+  { id: "prod-evap-fan-motor", name: "Evaporator fan motor, 9W", status: "active", isActive: true, subtypeId: "refrigeration", summary: "9 watt shaded-pole evaporator fan motor, 115V.", cost: 62, price: 168, taxable: true, manufacturer: "Fasco", partNumber: "D1126", barcode: "RP-PART-7741", weight: 2.4, weightUnit: "lb", length: 5.5, width: 5.5, height: 4.25, dimensionUnit: "in", trackInventory: true, stock: "limited", quantity: 5, quantityDesired: 10, labelIds: ["truck-stock"], lastModifiedAt: "2026-08-27T11:20:00" },
   { id: "prod-condenser-fan-blade", name: "Condenser fan blade, 10 in", status: "active", isActive: true, subtypeId: "refrigeration", summary: "", cost: 21, price: 58, taxable: true, manufacturer: "Supco", partNumber: "FB1015", trackInventory: true, stock: "full", quantity: 9, quantityDesired: 6, labelIds: ["aftermarket"], lastModifiedAt: "2026-07-30T10:15:00" },
   { id: "prod-start-relay", name: "Compressor start relay", status: "active", isActive: true, subtypeId: "refrigeration", summary: "Hard-start relay and capacitor kit for reach-in compressors.", cost: 18, price: 52, taxable: true, manufacturer: "Supco", partNumber: "RCO410", trackInventory: true, stock: "low", quantity: 2, quantityDesired: 12, labelIds: ["truck-stock"], lastModifiedAt: "2026-09-02T10:20:00" },
   { id: "prod-txv-valve", name: "Thermostatic expansion valve", status: "active", isActive: true, subtypeId: "refrigeration", summary: "TXV for medium-temp R-404A systems; includes the bulb strap.", cost: 96, price: 245, taxable: true, manufacturer: "Sporlan", partNumber: "EBSVE-1-CP100", trackInventory: true, stock: "limited", quantity: 3, quantityDesired: 6, labelIds: ["oem"], lastModifiedAt: "2026-08-15T13:00:00" },
   { id: "prod-defrost-timer", name: "Defrost timer", status: "active", isActive: true, subtypeId: "refrigeration", summary: "Mechanical defrost timer, 4-terminal.", cost: 44, price: 118, taxable: true, manufacturer: "Paragon", partNumber: "8145-20", trackInventory: true, stock: "full", quantity: 8, quantityDesired: 8, labelIds: [], lastModifiedAt: "2026-07-12T08:30:00" },
-  { id: "prod-r404a", name: "Refrigerant R-404A, 24 lb cylinder", status: "active", isActive: true, subtypeId: "refrigeration", summary: "24 lb cylinder; recovered weight is logged per EPA 608.", cost: 280, price: 640, taxable: true, manufacturer: "Chemours", partNumber: "R404A-24", trackInventory: true, stock: "low", quantity: 1, quantityDesired: 6, labelIds: ["hazmat"], lastModifiedAt: "2026-09-03T09:10:00" },
+  { id: "prod-r404a", name: "Refrigerant R-404A, 24 lb cylinder", status: "active", isActive: true, subtypeId: "refrigeration", summary: "24 lb cylinder; recovered weight is logged per EPA 608.", cost: 280, price: 640, taxable: true, manufacturer: "Chemours", partNumber: "R404A-24", barcode: "4006381333931", weight: 31.5, weightUnit: "lb", length: 10.5, width: 10.5, height: 24, dimensionUnit: "in", costStrategy: "minVendorCost", trackInventory: true, stock: "low", quantity: 1, quantityDesired: 6, labelIds: ["hazmat"], lastModifiedAt: "2026-09-03T09:10:00" },
   { id: "prod-liquid-line-drier", name: "Liquid line filter drier", status: "active", isActive: true, subtypeId: "refrigeration", summary: "", cost: 26, price: 72, taxable: true, manufacturer: "Sporlan", partNumber: "C-163-S", trackInventory: true, stock: "full", quantity: 18, quantityDesired: 12, labelIds: ["truck-stock"], lastModifiedAt: "2026-08-09T09:45:00" },
   { id: "prod-door-closer", name: "Walk-in door closer", status: "active", isActive: true, subtypeId: "hardware", summary: "Spring door closer for walk-in cooler and freezer doors.", cost: 39, price: 105, taxable: true, manufacturer: "Kason", partNumber: "1094", trackInventory: true, stock: "depleted", quantity: 0, quantityDesired: 4, labelIds: [], lastModifiedAt: "2026-08-04T09:00:00" },
   { id: "prod-door-hinge", name: "Walk-in door hinge, cam-lift", status: "active", isActive: true, subtypeId: "hardware", summary: "", cost: 34, price: 92, taxable: true, manufacturer: "Kason", partNumber: "1245-000010", trackInventory: true, stock: "limited", quantity: 4, quantityDesired: 8, labelIds: [], lastModifiedAt: "2026-06-19T16:45:00" },
@@ -1630,6 +1631,26 @@ const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
   { id: "prod-fax-paper", name: "Fax roll", status: "active", isActive: false, subtypeId: null, summary: "", cost: 4, price: 12, taxable: true, manufacturer: "", partNumber: "", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-01T09:15:00" },
   { id: "prod-legacy-ballast", name: "Fluorescent ballast, T12", status: "active", isActive: false, subtypeId: "electrical", summary: "T12 lamps are no longer stocked.", cost: 32, price: 88, taxable: true, manufacturer: "Advance", partNumber: "REL-2P32-SC", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-07T14:00:00" },
   { id: "prod-legacy-belt", name: "Conveyor toaster belt (legacy)", status: "active", isActive: false, subtypeId: "cooking", summary: "", cost: 76, price: 190, taxable: true, manufacturer: "Prince Castle", partNumber: "88-136S", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-12T09:20:00" },
+];
+
+/**
+ * What each vendor charges for a product — production `VendorPartCost`, one
+ * row per (vendor, part). Added 2026-10-13 with the "New product" form.
+ *
+ * Only a handful of products carry rows, which is production's own shape: a
+ * third of real parts have a vendor cost at all, and the ones that do rarely
+ * have more than two. `prod-r404a` carries three on purpose — it is the demo's
+ * "Min vendor cost" part, so its cost (280) is the cheapest of the three.
+ */
+export const VENDOR_PART_COSTS: VendorPartCost[] = [
+  { id: "vpc-r404a-pacific", vendorId: "pacific-refrigeration", productId: "prod-r404a", cost: 280, partNumber: "PRP-R404A-24" },
+  { id: "vpc-r404a-sequoia", vendorId: "sequoia-hvac", productId: "prod-r404a", cost: 312.5, partNumber: "SEQ-404A-24LB" },
+  { id: "vpc-r404a-peninsula", vendorId: "peninsula-parts", productId: "prod-r404a", cost: 298, partNumber: "PAP-R404A24" },
+  { id: "vpc-evap-pacific", vendorId: "pacific-refrigeration", productId: "prod-evap-fan-motor", cost: 62, partNumber: "PRP-D1126" },
+  { id: "vpc-evap-peninsula", vendorId: "peninsula-parts", productId: "prod-evap-fan-motor", cost: 68.75, partNumber: "PAP-FAS-D1126" },
+  { id: "vpc-gasket-golden-gate", vendorId: "golden-gate-supply", productId: "prod-door-gasket-36", cost: 48, partNumber: "GGR-1855-36" },
+  { id: "vpc-txv-pacific", vendorId: "pacific-refrigeration", productId: "prod-txv-valve", cost: 96, partNumber: "PRP-EBSVE1" },
+  { id: "vpc-ice-pump-peninsula", vendorId: "peninsula-parts", productId: "prod-ice-water-pump", cost: 118, partNumber: "PAP-7601773" },
 ];
 
 /**

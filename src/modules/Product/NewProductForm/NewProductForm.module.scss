@@ -1,0 +1,92 @@
+// The picked labels, under their field. The layout-freeze rule keeps this row
+// still while the list is open — see `labelsPop.freeze`.
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2);
+
+  margin-top: var(--size-2);
+}
+
+// Barcode: the field fills the row and the scan button hugs the end, bottom
+// aligned so the icon sits on the field, not on its label (the node's 8px gap).
+.barcodeRow {
+  display: flex;
+  gap: var(--size-2);
+  align-items: flex-end;
+
+  > :first-child {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// Two fields sharing a row — Manufacturer and Manufacturer part # on desktop
+// (280 + 16 + 280 in the node). The breakpoint comes from the form's own prop,
+// not a media query: inside a device frame the viewport is still the desktop's.
+.fieldRow {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+.fieldRowStacked {
+  flex-direction: column;
+}
+
+// A markup card's content: the value, then the calculated Price. The card
+// carries its own padding — 12px at the BOTTOM, 16px elsewhere.
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+
+  padding: var(--size-4) var(--size-4) var(--size-3);
+}
+
+// ---- Vendor cost ----
+
+// The field has no Input wrapper of its own: a Label, then the cards, then the
+// add button. The gaps are the Input's own rhythm (6px label ↔ field).
+.vendorField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5);
+}
+
+.vendorCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+
+// Cancel + Save in the open card's header.
+.draftActions {
+  display: flex;
+  gap: var(--size-2);
+  align-items: center;
+}
+
+// The open card's two fields: side by side on desktop, stacked on a phone,
+// where 264px each would leave about 155px for a label and a value.
+.draftFields {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// Mobile stacks them (the node: both 311 wide, one under the other).
+.draftFieldsStacked {
+  flex-direction: column;
+}

@@ -1,0 +1,211 @@
+@use "../../../styles/mixins/font" as *;
+
+// The body column. On MOBILE the surface is full-screen, so the column fills
+// the scroller and the viewfinder takes whatever the rows below leave — which
+// is what the node does: the Preview is 468 tall by default and 448 once the
+// warning line appears, while every other row keeps its height.
+.sheet {
+  display: flex;
+  flex-direction: column;
+}
+
+.sheetFill {
+  min-height: 100%;
+}
+
+// The viewfinder. Desktop is the node's 608 × 456 (4:3); on mobile it takes
+// the leftover height instead of a ratio.
+.preview {
+  position: relative;
+
+  display: block;
+  overflow: hidden;
+
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+
+  background: var(--pure-black);
+  border: 0;
+
+  cursor: pointer;
+}
+
+.previewFill {
+  flex: 1 1 auto;
+
+  min-height: 0;
+  aspect-ratio: auto;
+}
+
+// While the scanner starts the preview is a plain black box — no camera
+// picture, no window, nothing to aim with yet (the node's "Preparing Scanner"
+// frame is a bare pure-black fill).
+.preparing {
+  cursor: default;
+}
+
+// The camera picture. FAKE — a still from the design (the node's image fill),
+// so the dimmed mask and the clear window read the way they do over a real
+// camera. `cover` keeps it filling both the 4:3 desktop box and the taller
+// mobile one.
+.feed {
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  inset: 0;
+}
+
+// The aiming window: the picture shows through it, everything around it is
+// dimmed, and a 2px white edge draws its bounds (node: 426 × 320 centred in
+// 608 × 456, stroke pure-white-a6, radius 10).
+//
+// The dim is ONE huge box-shadow spread rather than a second element, so the
+// hole can never drift away from the edge that frames it. The shadow is what
+// the read flashes: green for a code that can be registered, red for one that
+// can not, amber when the check did not finish — back to the resting gray after
+// a second (the two result annotations).
+//
+// The four colours are the a7 steps, used AS THEY ARE: they already carry
+// their alpha, so nothing may thin them further (Daniel, 2026-10-13). FLAGGED:
+// the nodes still draw pure-black-a7 at 50% paint opacity and tomato-a9 at
+// 82%, which is what the mask looked like before this change.
+.window {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  box-sizing: border-box;
+  width: 70%; // 426 of 608
+  aspect-ratio: 426 / 320;
+
+  border: 2px solid var(--pure-white-a6);
+  border-radius: var(--border-radius-2_5); // 10px
+  box-shadow: 0 0 0 9999px var(--scan-mask, var(--gray-a7));
+
+  transform: translate(-50%, -50%);
+
+  transition: box-shadow 200ms ease;
+  pointer-events: none;
+
+  &[data-flash="good"] {
+    --scan-mask: var(--jade-a7);
+  }
+
+  &[data-flash="bad"] {
+    --scan-mask: var(--tomato-a7);
+  }
+
+  &[data-flash="warn"] {
+    --scan-mask: var(--amber-a7);
+  }
+}
+
+// Mobile aims with a square (node: 288 × 288 centred in 375 × 468).
+.windowMobile {
+  width: 76.8%; // 288 of 375
+  aspect-ratio: 1;
+}
+
+// The scan in progress, centred in the preview.
+.spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+
+  color: var(--pure-white);
+
+  transform: translate(-50%, -50%);
+
+  pointer-events: none;
+}
+
+// The row under the viewfinder: the hint or the code, and under it the reason
+// it can not be registered. Both lines are CENTRED (every Code Preview text
+// node is align=CENTER), take one line and truncate — a code can be 255
+// characters long.
+.codeRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  padding: var(--size-4);
+}
+
+// The code itself is heading/h4 — it is the data, not a hint.
+.code {
+  @include font("heading-h4");
+
+  overflow: hidden;
+
+  color: var(--text-subtle);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// "Point the camera at a QR code or barcode", "Scanning…", "Preparing the
+// scanner…" — body text, same colour.
+.hint {
+  @include font("body-400-compact");
+
+  overflow: hidden;
+
+  color: var(--text-subtle);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+// The second line. Red when the code can not be registered, amber when the
+// check itself did not finish (that one does not block Register).
+.reason {
+  @include font("caption-medium-400");
+
+  overflow: hidden;
+
+  color: var(--text-error);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reasonWarning {
+  color: var(--text-warning);
+}
+
+// The camera picker, with the flashlight chip beside it on mobile. The chip
+// sits at the bottom so it lines up with the field, not its label.
+.cameraRow {
+  display: flex;
+  gap: var(--size-2);
+  align-items: flex-end;
+
+  padding: var(--size-4);
+
+  > :first-child {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// A failure takes the viewfinder's place and keeps its height, so the dialog
+// does not change size between the scanner and an error.
+.failure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+.failureFill {
+  flex: 1 1 auto;
+
+  min-height: 0;
+  aspect-ratio: auto;
+}
