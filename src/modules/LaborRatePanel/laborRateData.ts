@@ -44,6 +44,9 @@ export const perUnitSuffix = (rate: LaborItem) => (rate.unitType === "hourly" ? 
 /** "$100.00/hr", "$260.00" — a money field as the Pricing module prints it. */
 export const formatAmount = (value: number, rate: LaborItem) => `${money(value)}${perUnitSuffix(rate)}`;
 
+/** "20%", "7.125%" — a percent with its real decimals and no padding. */
+const formatPercent = (value: number) => `${Number(value.toFixed(3))}%`;
+
 /**
  * The markup row the Pricing module shows between Cost and Rate — one row, or
  * none at all under the manual strategy, where the rate is simply typed.
@@ -54,7 +57,10 @@ export const formatAmount = (value: number, rate: LaborItem) => `${money(value)}
  */
 export const markupRowOf = (rate: LaborItem) => {
   if (rate.priceStrategy === "fixed") return { label: "Fixed markup", value: money(rate.priceAdjustmentAmount ?? 0) };
-  if (rate.priceStrategy === "percent") return { label: "Percent markup", value: `${(rate.priceAdjustmentPercent ?? 0).toFixed(2)}%` };
+  // A percent is printed as it was typed, up to its three decimals ("20%",
+  // "7.125%") — the same rule the tax rate's percentage row follows. Money is
+  // the one that keeps its two (`money` above).
+  if (rate.priceStrategy === "percent") return { label: "Percent markup", value: formatPercent(rate.priceAdjustmentPercent ?? 0) };
   return undefined;
 };
 

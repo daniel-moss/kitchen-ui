@@ -92,3 +92,39 @@
     z-index: 1;
   }
 }
+
+// Grouped + INVALID. A segment must NOT draw its own outline here: the error
+// border is 2px on every segment at once, and two neighbouring 2px borders can
+// never be relied on to land on top of each other — flex gives the segments
+// fractional widths, so the overlap rounds away on some seams and not others
+// (measured: 2px on the first seam, 0 on the next two, so those read 4px).
+//
+// So the OUTLINE belongs to the group — InputGroup draws it over the row — and
+// a segment only tints itself and draws the seam on its own left edge. One
+// 2px line per seam, whatever the rounding does.
+//
+// Include this AFTER the component's own `.field.invalid` rules: it has the
+// same specificity, so source order is what makes it win.
+@mixin input-field-grouped-invalid {
+  &.grouped.invalid,
+  &.grouped.invalid:hover,
+  &.grouped.invalid:focus-within,
+  &.grouped.invalid:focus-visible,
+  &.grouped.invalid.open {
+    background: var(--tomato-a2);
+    box-shadow: none;
+  }
+
+  &.groupMiddle.invalid,
+  &.groupMiddle.invalid:hover,
+  &.groupMiddle.invalid:focus-within,
+  &.groupMiddle.invalid:focus-visible,
+  &.groupMiddle.invalid.open,
+  &.groupLast.invalid,
+  &.groupLast.invalid:hover,
+  &.groupLast.invalid:focus-within,
+  &.groupLast.invalid:focus-visible,
+  &.groupLast.invalid.open {
+    box-shadow: inset 2px 0 0 0 var(--tomato-9);
+  }
+}

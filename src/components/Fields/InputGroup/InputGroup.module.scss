@@ -10,9 +10,30 @@
 // The fused row: the child field segments sit side by side. Each field pulls
 // 1px left (via the grouped chrome) so the seam borders collapse into one line.
 .fused {
+  position: relative;
+
   display: flex;
   align-items: stretch;
   width: 100%;
+}
+
+// The ERROR outline belongs to the group, not to its segments: the 2px border
+// is on every segment at once, and neighbouring borders can not be relied on
+// to land on top of each other (flex widths are fractional, so the overlap
+// rounds away on some seams and not others — that is the doubled line). So the
+// group draws ONE outline over the whole row, and each segment after the first
+// draws only its own left seam. Above the segments (they raise themselves to
+// z-index 1), and transparent to the pointer.
+.invalid::after {
+  position: absolute;
+
+  border-radius: var(--border-radius-2); // 8px — the fused box's outer corners
+  box-shadow: inset 0 0 0 2px var(--tomato-9);
+  z-index: 2;
+  inset: 0;
+
+  content: "";
+  pointer-events: none;
 }
 
 // Group disabled: one opacity over the whole fused box (the segments already

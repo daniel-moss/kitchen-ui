@@ -12,7 +12,6 @@ import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import { LaborItem } from "../../../data/db";
 import {
   computeRate,
-  formatOnBlur,
   isAmountText,
   isSignedText,
   MAX_PERCENT,
@@ -51,8 +50,13 @@ interface EditPricingDialogProps {
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
-/** The money text a field opens with: the stored number in the stored format. */
-const amountText = (value: number | undefined) => (value == null ? "" : value.toFixed(2));
+/**
+ * The money text a field opens with: the stored number, exactly as it is
+ * stored. It is NOT padded to a fixed number of decimals (Daniel, 2026-10-09) —
+ * the fields take three decimals now, and nothing reformats what is typed, so a
+ * pre-filled "100.000" would be the one place a format was still forced.
+ */
+const amountText = (value: number | undefined) => (value == null ? "" : String(value));
 
 export default function EditPricingDialog({ open, onClose, rate, useTaxes = true, onSave, breakpoint = "auto" }: EditPricingDialogProps) {
   const [unitType, setUnitType] = useState<"hourly" | "flat">(rate.unitType === "hourly" ? "hourly" : "flat");
@@ -206,7 +210,6 @@ export default function EditPricingDialog({ open, onClose, rate, useTaxes = true
           <TextField
             value={cost}
             onChange={(event) => isAmountText(event.target.value) && setCost(event.target.value)}
-            onBlur={() => setCost(formatOnBlur(cost))}
             keyboard="decimal"
             prefix="$"
             suffix={unitSuffix}
@@ -230,10 +233,7 @@ export default function EditPricingDialog({ open, onClose, rate, useTaxes = true
                   <TextField
                     value={rateText}
                     onChange={(event) => isAmountText(event.target.value) && setRateText(event.target.value)}
-                    onBlur={() => {
-                      setRateText(formatOnBlur(rateText));
-                      setTouched((prev) => ({ ...prev, rate: true }));
-                    }}
+                    onBlur={() => setTouched((prev) => ({ ...prev, rate: true }))}
                     keyboard="decimal"
                     prefix="$"
                     suffix={unitSuffix}
@@ -256,10 +256,7 @@ export default function EditPricingDialog({ open, onClose, rate, useTaxes = true
                     <TextField
                       value={fixedMarkup}
                       onChange={(event) => isSignedText(event.target.value) && setFixedMarkup(event.target.value)}
-                      onBlur={() => {
-                        setFixedMarkup(formatOnBlur(fixedMarkup));
-                        setTouched((prev) => ({ ...prev, fixed: true }));
-                      }}
+                      onBlur={() => setTouched((prev) => ({ ...prev, fixed: true }))}
                       keyboard="decimal"
                       prefix="$"
                       isValid={!(fixedChecked && (missingMarkup || negativeRate))}
@@ -284,10 +281,7 @@ export default function EditPricingDialog({ open, onClose, rate, useTaxes = true
                     <TextField
                       value={percentMarkup}
                       onChange={(event) => isSignedText(event.target.value) && setPercentMarkup(event.target.value)}
-                      onBlur={() => {
-                        setPercentMarkup(formatOnBlur(percentMarkup));
-                        setTouched((prev) => ({ ...prev, percent: true }));
-                      }}
+                      onBlur={() => setTouched((prev) => ({ ...prev, percent: true }))}
                       keyboard="decimal"
                       suffix="%"
                       isValid={!(percentChecked && (missingMarkup || negativeRate || percentTooHigh))}

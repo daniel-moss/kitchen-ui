@@ -4,7 +4,7 @@ import { QuickbooksVendor } from "../../data/db";
 export interface NewTaxRate {
   /** Production `description`. Required, max 50 characters. */
   name: string;
-  /** Production `default_price`, a PERCENT: 0–100, up to 2 decimals. Required. */
+  /** Production `default_price`, a PERCENT: 0–100, up to 3 decimals. Required. */
   rate: number;
   /**
    * The chosen QuickBooks collection agency's id. Undefined when the company

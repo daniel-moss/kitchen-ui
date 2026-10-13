@@ -15,7 +15,7 @@ $interactive: 'button, a, input, select, textarea, [role="button"], [role="switc
   // state rules below set this var, and `.body` paints it). The card's own
   // surface never changes — that is what keeps an alert banner at one colour.
   --card-body-fill: var(--surface-interactive-default);
-  border-radius: var(--border-radius-2_5); // 10px
+  border-radius: var(--border-radius-3); // 12px
   background: var(--surface-level-second);
   box-shadow: var(--card-shadow);
   // Clip the banner + body to the radius so their corners round automatically.
@@ -62,14 +62,14 @@ $interactive: 'button, a, input, select, textarea, [role="button"], [role="switc
 // corners instead of leaving a thin untinted frame around the content.
 .body {
   position: relative;
-  border-radius: var(--border-radius-2_5); // 10px
+  border-radius: var(--border-radius-3); // 12px
   background: var(--card-body-fill);
   transition: background-color 120ms ease;
 }
 // With a banner on top, only the bottom corners are rounded — the top edge meets
 // the banner square.
 .bodyUnderBanner {
-  border-radius: 0 0 var(--border-radius-2_5) var(--border-radius-2_5);
+  border-radius: 0 0 var(--border-radius-3) var(--border-radius-3);
 }
 
 // ---- interactive states ----

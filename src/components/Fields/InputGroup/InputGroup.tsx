@@ -47,7 +47,7 @@ export default function InputGroup({
 
   return (
     <div className={clsx(styles.group, className)}>
-      <div className={clsx(styles.fused, disabled && styles.disabled)}>{fused}</div>
+      <div className={clsx(styles.fused, showError && styles.invalid, disabled && styles.disabled)}>{fused}</div>
 
       {showError && effectiveError != null && (
         <InputHelpText status="error" slotLeft>

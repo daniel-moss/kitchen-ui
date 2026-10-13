@@ -26,10 +26,28 @@
 
 // Mobile: a fixed full-screen layer that hosts the Popover drawer (the drawer
 // brings its own scrim). Only mounted while the dialog is open.
+//
+// POINTER-EVENTS NONE, and it matters (fixed 2026-10-09). The drawer this
+// layer "hosts" PORTALS OUT of it — to the drawer root — so what is left here
+// is an empty box covering the whole root. Inside a drawer root (a device
+// frame, a SidePanel, the phone-testing wrapper) the portaled scrim is
+// Popover's `.scrim` at z-index 100 while this layer sits at --z-modal (1000):
+// the empty box was then ON TOP of the sheet and swallowed every tap, so a
+// dialog opened on mobile looked completely frozen — visible, and dead to the
+// touch. The layer never needs pointer events of its own: it has no click
+// handler (the desktop path uses `.scrim`, which does), and the drawer's own
+// scrim is what blocks the page behind and dismisses on a tap.
 .fixedLayer {
   position: fixed;
   inset: 0;
   z-index: var(--z-modal);
+  pointer-events: none;
+
+  // Only the EMPTY box is transparent to touch: anything that really renders
+  // here (rather than portaling away) takes its events back.
+  > * {
+    pointer-events: auto;
+  }
 }
 
 // Inside a mock container (a Storybook device frame) the dialog portals into

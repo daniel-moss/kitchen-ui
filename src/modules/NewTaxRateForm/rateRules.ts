@@ -11,9 +11,9 @@
 // stored as DECIMAL(10,3), and `PriceBookItem.clean` rejects a tax rate over
 // 100 ("This value may not exceed 100%."). The step is only the spinner's
 // increment — 5.73 is accepted — so the real rules are the range and the
-// precision. NOTE: the column keeps THREE decimals and the node now says two
-// (it used to say three) — flagged to Daniel, because a real rate like NYC's
-// 8.875% needs the third one.
+// precision. The precision is THREE decimals (Daniel, 2026-10-09): it matches
+// the DECIMAL(10,3) column and a real rate like NYC's 8.875% needs the third
+// one. The node still says two — it is the node that is behind now.
 //
 // Name (Figma 44-3119): "Caps at 50 characters · Characters counter shows up
 // only when 10 characters left · Mobile keyboard is 'text'", and the cap
@@ -31,17 +31,17 @@ export const NAME_COUNTER_FROM = 10;
 
 export const MAX_RATE = 100;
 
-/** The decimals the percentage may carry (the node, 2026-10-08). */
-export const MAX_DECIMALS = 2;
+/** The decimals the percentage may carry (Daniel, 2026-10-09). */
+export const MAX_DECIMALS = 3;
 
 const withinDecimals = (value: string) => (value.split(".")[1] ?? "").length <= MAX_DECIMALS;
 
 /**
- * True while the text is something the field may hold ("", "8", "8.63").
+ * True while the text is something the field may hold ("", "8", "8.875").
  *
- * The precision is enforced on the way INTO state, like the Name's cap: a third
- * decimal is simply not accepted, so there is no error state for it (the node
- * draws none — only the empty and the over-100 ones).
+ * The precision is enforced on the way INTO state, like the Name's cap: a
+ * fourth decimal is simply not accepted, so there is no error state for it (the
+ * node draws none — only the empty and the over-100 ones).
  */
 export const isRateText = (value: string) => (value === "" || /^\d*\.?\d*$/.test(value)) && withinDecimals(value);
 

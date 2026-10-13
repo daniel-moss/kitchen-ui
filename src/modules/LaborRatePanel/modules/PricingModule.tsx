@@ -13,7 +13,7 @@ import { formatAmount, markupRowOf, taxabilityOf, unitTypeOf } from "../laborRat
 //   Cost            what the work costs the company. Never empty: production
 //                   defaults the column to 0, so "no value" reads "$0.00".
 //   Fixed markup    ONLY under that strategy — "$50.00".
-//   Percent markup  ONLY under that strategy — "50.00%".
+//   Percent markup  ONLY under that strategy — "50%", "7.125%".
 //   Rate            what the client is charged. Under a markup it is
 //                   DERIVED (a database trigger recomputes it), so the three
 //                   money rows are always one consistent sum.

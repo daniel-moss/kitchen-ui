@@ -23,7 +23,6 @@ import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import {
   computeRate,
-  formatOnBlur,
   isAmountText,
   isSignedText,
   MAX_NAME,
@@ -421,7 +420,6 @@ export default function NewLaborRateForm({
                   <TextField
                     value={cost}
                     onChange={(event) => isAmountText(event.target.value) && setCost(event.target.value)}
-                    onBlur={() => setCost(formatOnBlur(cost))}
                     keyboard="decimal"
                     prefix="$"
                     suffix={unitSuffix}
@@ -456,10 +454,7 @@ export default function NewLaborRateForm({
                           <TextField
                             value={rate}
                             onChange={(event) => isAmountText(event.target.value) && setRate(event.target.value)}
-                            onBlur={() => {
-                              setRate(formatOnBlur(rate));
-                              setTouched((prev) => ({ ...prev, rate: true }));
-                            }}
+                            onBlur={() => setTouched((prev) => ({ ...prev, rate: true }))}
                             keyboard="decimal"
                             prefix="$"
                             suffix={unitSuffix}
@@ -482,10 +477,7 @@ export default function NewLaborRateForm({
                             <TextField
                               value={fixedMarkup}
                               onChange={(event) => isSignedText(event.target.value) && setFixedMarkup(event.target.value)}
-                              onBlur={() => {
-                                setFixedMarkup(formatOnBlur(fixedMarkup));
-                                setTouched((prev) => ({ ...prev, fixed: true }));
-                              }}
+                              onBlur={() => setTouched((prev) => ({ ...prev, fixed: true }))}
                               keyboard="decimal"
                               prefix="$"
                               isValid={!(fixedChecked && (missingMarkup || negativeRate))}
@@ -512,10 +504,7 @@ export default function NewLaborRateForm({
                               onChange={(event) =>
                                 isSignedText(event.target.value) && setPercentMarkup(event.target.value)
                               }
-                              onBlur={() => {
-                                setPercentMarkup(formatOnBlur(percentMarkup));
-                                setTouched((prev) => ({ ...prev, percent: true }));
-                              }}
+                              onBlur={() => setTouched((prev) => ({ ...prev, percent: true }))}
                               keyboard="decimal"
                               suffix="%"
                               isValid={!(percentChecked && (missingMarkup || negativeRate || percentTooHigh))}

@@ -115,3 +115,9 @@
 .field.readOnly {
   @include input-field-readonly;
 }
+
+// The grouped error chrome — the group owns the outline, the segment owns its
+// seam. Must sit after the `.field.invalid` rules above (same specificity).
+.field {
+  @include input-field-grouped-invalid;
+}

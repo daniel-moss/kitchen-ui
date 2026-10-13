@@ -132,7 +132,7 @@ export default function NewTaxRateForm({
     name.trim() !== "" || rate.trim() !== "" || vendorId != null || labels.length > 0 || summary.trim() !== "" || notes.trim() !== "";
 
   // "Numerical value only" / "digits and dot" (the Percentage input's
-  // annotation): the characters AND the 2-decimal cap are enforced on the way
+  // annotation): the characters AND the 3-decimal cap are enforced on the way
   // into state, so the field cannot hold a value the rules could not judge.
   const changeRate = (value: string) => {
     if (isRateText(value)) setRate(value);
