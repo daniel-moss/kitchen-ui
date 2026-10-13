@@ -1,5 +1,3 @@
-import { ReactNode } from "react";
-
 import { DimensionUnit, PricebookSubtype, Vendor, WeightUnit } from "../../../data/db/types";
 
 import { CostStrategy, PriceStrategy } from "./productRules";
@@ -114,13 +112,12 @@ export interface NewProductFormProps {
   existingBarcodes?: Record<string, string>;
 
   /**
-   * Block Create and say why. This is NOT validation — it is for a form that
-   * can not be saved at all yet: the button is disabled and this node shows as
-   * a banner above the footer (usually an AlertBanner). The demo app uses it
-   * while the Inventory section is unbuilt, so a product can not be half
-   * created. Leave it out and the form saves normally.
+   * Block Create. This is NOT validation — it is for a form that can not be
+   * saved at all yet: the button stays disabled however the fields are filled.
+   * The demo app sets it while the Inventory section is unbuilt, so a product
+   * can not be half created. Default false.
    */
-  createBlockedReason?: ReactNode;
+  isCreateBlocked?: boolean;
 
   /**
    * Create. Return `false` (or a Promise of it) to say it FAILED: the form

@@ -1,6 +1,5 @@
 import { ReactNode, createContext, useCallback, useContext, useState } from "react";
 
-import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import { COMPANY, PRODUCT_ITEMS, PRODUCT_LABELS, PRODUCT_SUBTYPES, VENDORS } from "../../data/db";
 import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewProductForm from "../../modules/Product/NewProductForm/NewProductForm";
@@ -19,10 +18,10 @@ import { noop } from "../../stories/helpers";
 //
 // NOTHING IS SAVED (Daniel, 2026-10-13: "It shouldn't be possible to save the
 // product, though. Because we still haven't built Inventory part."). The form
-// is missing its fifth module, so a product created now would be half made —
-// Create is blocked and the banner says why. Removing `createBlockedReason`
-// and adding a `createProduct` to the store is all it takes once Inventory is
-// built.
+// is missing its fifth module, so a product created now would be half made, and
+// Create stays disabled. Nothing explains that in the UI — Daniel asked for the
+// banner to go. Dropping `isCreateBlocked` and adding a `createProduct` to the
+// store is all it takes once Inventory is built.
 
 const NewProductContext = createContext<() => void>(() => {});
 
@@ -67,11 +66,7 @@ export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint
         // has these products, so that is what it can offer.
         existingNames={PRODUCT_ITEMS.map((item) => item.name)}
         existingBarcodes={TAKEN_BARCODES}
-        createBlockedReason={
-          <AlertBanner status="info" orientation="vertical">
-            A product can not be created yet — the Inventory section of this form is still being designed.
-          </AlertBanner>
-        }
+        isCreateBlocked
         breakpoint={breakpoint}
       />
     </NewProductContext.Provider>

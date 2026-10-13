@@ -93,7 +93,7 @@ export default function NewProductForm({
   labelPool = [],
   existingNames = [],
   existingBarcodes = {},
-  createBlockedReason,
+  isCreateBlocked = false,
   onCreated,
   onPreview,
   breakpoint = "auto",
@@ -355,7 +355,6 @@ export default function NewProductForm({
         breakpoint={breakpoint}
         isProcessing={submitting}
         confirmOnDismiss={dirty}
-        errorMessage={createBlockedReason}
         footer={
           <PopoverFooter
             slotLeft={
@@ -368,7 +367,7 @@ export default function NewProductForm({
               size="lg"
               variant="solid"
               isProcessing={submitting}
-              isDisabled={createBlockedReason != null}
+              isDisabled={isCreateBlocked}
               onClick={create}
             >
               Create
