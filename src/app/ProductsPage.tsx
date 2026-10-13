@@ -1,4 +1,5 @@
 import { Page } from "./shell/appShell";
+import { useNewProduct } from "./shell/products";
 import { PRODUCT_NOUN } from "./listData";
 import { PRODUCT_FILTERS } from "./productFilters";
 import { TABLE_COLUMNS, sortProducts } from "./productsTable";
@@ -61,8 +62,14 @@ export interface ProductsPageProps {
   onNavigate: (next: Page) => void;
 }
 
-const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) => (
-  <PricebookPage config={PRODUCTS_LIST} breakpoint={breakpoint} onNavigate={onNavigate} />
-);
+// WIRED 2026-10-13: "New" opens the "New product" form, which lives at app
+// level (shell/products.tsx) because the Create menu reaches it from any page.
+// The rows are still the frozen seed — nothing can be created until the
+// Inventory section is designed, so there is nothing for a store to hold yet.
+const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) => {
+  const openNewProduct = useNewProduct();
+
+  return <PricebookPage config={PRODUCTS_LIST} breakpoint={breakpoint} onNavigate={onNavigate} onCreate={openNewProduct} />;
+};
 
 export default ProductsPage;

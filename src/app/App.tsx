@@ -9,6 +9,7 @@ import { useRoute } from "./routing/useRoute";
 
 import { Page, Sidebar } from "./shell/appShell";
 import { LaborRatesProvider } from "./shell/laborRates";
+import { ProductsProvider } from "./shell/products";
 import { NewJobProvider } from "./shell/newJob";
 import { TaxRatesProvider } from "./shell/taxRates";
 import JobDetailsPage from "./jobDetails/JobDetailsRoute";
@@ -196,14 +197,18 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
 // rate" side panel (2026-10-05), and `LaborRatesProvider` for the labor pair
 // (2026-10-08). Both sit INSIDE the store, which they read and write, and
 // outside the app, because every one of those overlays can be opened from any
-// page.
+// page. `ProductsProvider` (2026-10-13) holds the "New product" form only —
+// there is no Product side panel yet, and the form can not save until the
+// Inventory section is designed, so it reads the database and not the store.
 export default function AppWithStore(props: AppProps) {
   return (
     <AppStoreProvider>
       <NewJobProvider breakpoint={props.breakpoint}>
         <LaborRatesProvider breakpoint={props.breakpoint}>
           <TaxRatesProvider breakpoint={props.breakpoint}>
-            <App {...props} />
+            <ProductsProvider breakpoint={props.breakpoint}>
+              <App {...props} />
+            </ProductsProvider>
           </TaxRatesProvider>
         </LaborRatesProvider>
       </NewJobProvider>
