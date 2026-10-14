@@ -4,6 +4,7 @@ import clsx from "clsx";
 
 import Button from "../../../components/Button/Button";
 import Chip from "../../../components/Chip/Chip";
+import Dialog from "../../../components/Dialog/Dialog";
 import { Icon } from "../../../components/Icon/Icon";
 import { Divider } from "../../../components/Divider/Divider";
 import EmptyState from "../../../components/EmptyState/EmptyState";
@@ -16,7 +17,6 @@ import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
 import { MAX_BARCODE } from "./productRules";
-import ScanSurface from "./ScanSurface";
 import useCameraScanner from "./useCameraScanner";
 
 import scanFeed from "../../../assets/scan-preview.jpg";
@@ -182,7 +182,7 @@ export default function ScanCodeDialog({
   const [owner, setOwner] = useState<string | undefined>(undefined);
   const [fakeCamera, setFakeCamera] = useState(FAKE_CAMERAS[0]);
   const [fakeLight, setFakeLight] = useState(false);
-  const [flash, setFlash] = useState<"none" | "good" | "bad" | "warn">("none");
+  const [flash, setFlash] = useState<"none" | "good" | "bad">("none");
   const nextCode = useRef(0);
   const timers = useRef<number[]>([]);
   // The code the result row is showing, read synchronously by the camera loop
@@ -204,10 +204,11 @@ export default function ScanCodeDialog({
     setResult(next);
     setPhase("result");
     const bad = next === "tooLong" || next === "taken";
-    // Green for a code that can be registered, red for one that can not, amber
-    // when the check did not finish — that last one is a warning, not a
-    // failure, so it buzzes ONCE like a good read and Register stays on.
-    setFlash(bad ? "bad" : next === "unreachable" ? "warn" : "good");
+    // Green for a code that can be registered, red for one that can not. A
+    // check that did not finish leaves the mask NEUTRAL — the node's "Couldn't
+    // Check" frame draws the resting black, and it is a warning, not a
+    // failure: it buzzes once and Register stays on.
+    setFlash(bad ? "bad" : next === "unreachable" ? "none" : "good");
     navigator.vibrate?.(bad ? [60, 60, 60] : 60);
     later(() => setFlash("none"), FLASH_MS);
   };
@@ -327,11 +328,19 @@ export default function ScanCodeDialog({
 
   return (
     <>
-      <ScanSurface
+      <Dialog
         open={open}
         onClose={onClose}
         title="Product code registration"
         breakpoint={breakpoint}
+        bodyPadded={false}
+        // The node (4117-31776) draws the mobile surface as a FULL-HEIGHT
+        // drawer — the DS one, not a surface of its own (Daniel, 2026-10-14:
+        // "I don't like how 'custom' drawer looks like. I think it's more
+        // consistent to use what DS specifies"). `fillHeight` is what makes
+        // the sheet take the whole screen so the viewfinder gets the room;
+        // desktop ignores it and stays the 608 card.
+        fillHeight
         footer={
           <PopoverFooter
             slotLeft={
@@ -406,7 +415,7 @@ export default function ScanCodeDialog({
             </>
           )}
         </div>
-      </ScanSurface>
+      </Dialog>
 
       <SelectPopoverList pop={cameraPop} mobile={mobile} title="Camera">
         <SelectListItemGroup>

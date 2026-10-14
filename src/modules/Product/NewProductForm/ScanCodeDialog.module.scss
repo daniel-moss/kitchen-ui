@@ -1,9 +1,9 @@
 @use "../../../styles/mixins/font" as *;
 
-// The body column. On MOBILE the surface is full-screen, so the column fills
-// the scroller and the viewfinder takes whatever the rows below leave — which
-// is what the node does: the Preview is 468 tall by default and 448 once the
-// warning line appears, while every other row keeps its height.
+// The body column. On MOBILE the dialog is the DS full-height drawer, so the
+// column fills the scroller and the viewfinder takes whatever the rows below
+// leave — which is what the node does: every other row keeps its height and
+// the Preview gives up 20px when the warning line appears.
 .sheet {
   display: flex;
   flex-direction: column;
@@ -65,13 +65,13 @@
 // The dim is ONE huge box-shadow spread rather than a second element, so the
 // hole can never drift away from the edge that frames it. The shadow is what
 // the read flashes: green for a code that can be registered, red for one that
-// can not, amber when the check did not finish — back to the resting gray after
-// a second (the two result annotations).
+// can not — back to the resting black after a second (the two result
+// annotations). A check that did not finish leaves it neutral.
 //
-// The four colours are the a7 steps, used AS THEY ARE: they already carry
-// their alpha, so nothing may thin them further (Daniel, 2026-10-13). FLAGGED:
-// the nodes still draw pure-black-a7 at 50% paint opacity and tomato-a9 at
-// 82%, which is what the mask looked like before this change.
+// The three colours are the a7 steps, used AS THEY ARE: they already carry
+// their alpha, so nothing may thin them further (Daniel, 2026-10-13/14). The
+// nodes still carry Figma's own paint opacity on top (50% / 45% / 40%), which
+// is deliberately ignored.
 .window {
   position: absolute;
   top: 50%;
@@ -83,7 +83,7 @@
 
   border: 2px solid var(--pure-white-a6);
   border-radius: var(--border-radius-2_5); // 10px
-  box-shadow: 0 0 0 9999px var(--scan-mask, var(--gray-a7));
+  box-shadow: 0 0 0 9999px var(--scan-mask, var(--pure-black-a7));
 
   transform: translate(-50%, -50%);
 
@@ -96,10 +96,6 @@
 
   &[data-flash="bad"] {
     --scan-mask: var(--tomato-a7);
-  }
-
-  &[data-flash="warn"] {
-    --scan-mask: var(--amber-a7);
   }
 }
 
