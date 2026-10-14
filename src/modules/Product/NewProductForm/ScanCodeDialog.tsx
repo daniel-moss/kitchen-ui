@@ -17,6 +17,7 @@ import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover"
 
 import { MAX_BARCODE } from "./productRules";
 import ScanSurface from "./ScanSurface";
+import useCameraScanner from "./useCameraScanner";
 
 import scanFeed from "../../../assets/scan-preview.jpg";
 
@@ -26,15 +27,15 @@ import styles from "./ScanCodeDialog.module.scss";
 // camera keeps running, the last code read waits under the viewfinder with its
 // registration status, and Register hands it to the Barcode field.
 //
-// THE CAMERA IS FAKED (Daniel, 2026-10-13: "let's try fake camera first"). A
-// real scanner needs getUserMedia plus a WebAssembly decoder, and it only runs
-// over HTTPS — which the Storybook link over a LAN IP is not. So the preview is
-// a tappable surface that "reads" the next code from `demoCodes` over a still
-// picture, and every state the design draws is reachable: the three results
-// from the codes themselves, each camera failure from the `state` prop.
+// THE CAMERA IS REAL (2026-10-14) — see useCameraScanner.ts for the stream and
+// the zxing-wasm decoder. It needs a secure context: an https page or
+// localhost. Over a LAN IP `getUserMedia` does not exist and the dialog shows
+// "No secure connection", which is the honest answer rather than a bug.
 //
-// What a real build keeps from here: the states, the copy, the layout, and the
-// rule that the camera never stops while a result waits below.
+// `simulated` keeps the FAKE scanner the states were built against: tapping
+// the viewfinder reads the next demo code over a still picture. Every result
+// and every camera failure is reachable that way, which a real camera will not
+// do on demand — so the state stories use it and the product does not.
 
 /** Every failure the design draws, named as its frame is. */
 export type ScanFailure =
@@ -103,8 +104,8 @@ const FAILURES: Record<
   },
 };
 
-/** The cameras the fake scanner offers. One name = the input stays read-only. */
-const CAMERAS = ["Back Triple Camera", "Front Camera"];
+/** The cameras the FAKE scanner offers. One name = the input stays read-only. */
+const FAKE_CAMERAS = ["Back Triple Camera", "Front Camera"];
 
 /** What the scanner is doing. "result" holds the last code read. */
 type Phase = "preparing" | "idle" | "scanning" | "result";
@@ -123,18 +124,20 @@ export interface ScanCodeDialogProps {
    */
   registered?: Record<string, string>;
   /**
-   * What the fake camera reads, in order, each time the preview is tapped. The
-   * default walks a free code, a too-long one, one that is already registered,
-   * and one whose check can not reach the server.
+   * Use the FAKE scanner: a still picture that reads the next demo code when
+   * it is tapped. For stories and tests — a real camera can not be asked for a
+   * code that is too long. Default false.
    */
+  simulated?: boolean;
+  /** FAKE only. What the camera reads, in order, each time the preview is tapped. */
   demoCodes?: string[];
   /**
-   * Codes whose registration check can not finish — the "Couldn't check" state.
-   * The code is still registerable: the warning says only that Roopairs could
-   * not look it up.
+   * FAKE only. Codes whose registration check can not finish — the "Couldn't
+   * check" state. The code is still registerable: the warning says only that
+   * Roopairs could not look it up.
    */
   unreachableCodes?: string[];
-  /** Draw a camera failure instead of the viewfinder. */
+  /** FAKE only. Draw a camera failure instead of the viewfinder. */
   state?: ScanFailure;
   breakpoint?: "auto" | "desktop" | "mobile";
 }
@@ -153,8 +156,9 @@ const TOO_LONG_CODE = `RP-TOO-LONG-${Array.from({ length: 50 }, (_, i) => String
 const DEFAULT_CODES = ["RP-PART-4410", TOO_LONG_CODE, "RP-PART-7741", "RP-PART-5520"];
 const DEFAULT_UNREACHABLE = ["RP-PART-5520"];
 
-/** How long the fake read takes before a result lands. */
+/** How long the fake read takes, and how long a real code's lookup is shown. */
 const SCAN_MS = 800;
+const LOOKUP_MS = 400;
 /** The mask holds its colour for a second — both result annotations say so. */
 const FLASH_MS = 1000;
 
@@ -163,6 +167,7 @@ export default function ScanCodeDialog({
   onClose,
   onRegister,
   registered = {},
+  simulated = false,
   demoCodes = DEFAULT_CODES,
   unreachableCodes = DEFAULT_UNREACHABLE,
   state,
@@ -171,70 +176,117 @@ export default function ScanCodeDialog({
   const mobile = !useIsDesktop(breakpoint);
   const cameraPop = useSelectPopover(mobile);
 
-  // "preparing" is the first moment of every session: the decoder and the
-  // camera take a beat, and the design draws that beat as a black preview.
   const [phase, setPhase] = useState<Phase>("preparing");
   const [code, setCode] = useState("");
   const [result, setResult] = useState<Result>("ok");
   const [owner, setOwner] = useState<string | undefined>(undefined);
-  const [camera, setCamera] = useState(CAMERAS[0]);
-  const [light, setLight] = useState(false);
+  const [fakeCamera, setFakeCamera] = useState(FAKE_CAMERAS[0]);
+  const [fakeLight, setFakeLight] = useState(false);
   const [flash, setFlash] = useState<"none" | "good" | "bad" | "warn">("none");
   const nextCode = useRef(0);
   const timers = useRef<number[]>([]);
+  // The code the result row is showing, read synchronously by the camera loop
+  // so the same label is not re-read 4 times a second.
+  const shownCode = useRef("");
 
   const later = (fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms));
   };
 
+  // Everything a read produces, from either scanner.
+  const land = (value: string) => {
+    const taken = registered[value];
+    const next: Result =
+      value.length > MAX_BARCODE ? "tooLong" : taken != null ? "taken" : unreachableCodes.includes(value) && simulated ? "unreachable" : "ok";
+    shownCode.current = value;
+    setCode(value);
+    setOwner(taken);
+    setResult(next);
+    setPhase("result");
+    const bad = next === "tooLong" || next === "taken";
+    // Green for a code that can be registered, red for one that can not, amber
+    // when the check did not finish — that last one is a warning, not a
+    // failure, so it buzzes ONCE like a good read and Register stays on.
+    setFlash(bad ? "bad" : next === "unreachable" ? "warn" : "good");
+    navigator.vibrate?.(bad ? [60, 60, 60] : 60);
+    later(() => setFlash("none"), FLASH_MS);
+  };
+
+  // ---- the real camera ----
+  // A read goes through "Scanning…" first: the decode has happened, but
+  // whether the code is already registered is a question for the server, and
+  // that beat is the state the design draws.
+  const scanner = useCameraScanner({
+    active: open && !simulated,
+    onRead: (value) => {
+      if (value === shownCode.current || phase === "scanning") return;
+      shownCode.current = value;
+      setPhase("scanning");
+      later(() => land(value), LOOKUP_MS);
+    },
+  });
+
   useEffect(() => {
     if (!open) return undefined;
     setPhase("preparing");
     setCode("");
-    setLight(false);
+    shownCode.current = "";
+    setFakeLight(false);
     setFlash("none");
     nextCode.current = 0;
-    later(() => setPhase("idle"), 900);
+    // The fake scanner's own warm-up. The real one reports its own readiness.
+    if (simulated) later(() => setPhase("idle"), 900);
     return () => {
       timers.current.forEach(window.clearTimeout);
       timers.current = [];
     };
-  }, [open]);
+  }, [open, simulated]);
 
-  // A read: the scanner works for a moment, then the mask flashes, the phone
-  // buzzes and the result lands. A failure flashes red and buzzes twice (the
-  // two result annotations).
+  // The real scanner drives the preparing state: the decoder and the camera
+  // take a beat, and the design draws that beat as a black preview.
+  useEffect(() => {
+    if (simulated || !open) return;
+    if (!scanner.preparing && phase === "preparing") setPhase("idle");
+    if (scanner.preparing && phase !== "preparing") setPhase("preparing");
+    // `phase` is deliberately not a dependency: this only reacts to the
+    // scanner's own readiness changing.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanner.preparing, simulated, open]);
+
+  // A read on the FAKE scanner: tap the viewfinder.
   const readCode = () => {
-    if (phase === "preparing" || phase === "scanning" || state) return;
+    if (!simulated || phase === "preparing" || phase === "scanning" || state) return;
     setPhase("scanning");
     setFlash("none");
     later(() => {
       const value = demoCodes[nextCode.current % demoCodes.length] ?? "";
       nextCode.current += 1;
-      const taken = registered[value];
-      const next: Result = value.length > MAX_BARCODE ? "tooLong" : taken != null ? "taken" : unreachableCodes.includes(value) ? "unreachable" : "ok";
-      setCode(value);
-      setOwner(taken);
-      setResult(next);
-      setPhase("result");
-      const bad = next === "tooLong" || next === "taken";
-      // Green for a code that can be registered, red for one that can not,
-      // amber when the check did not finish — that last one is a warning, not
-      // a failure, so it buzzes ONCE like a good read and Register stays on.
-      setFlash(bad ? "bad" : next === "unreachable" ? "warn" : "good");
-      navigator.vibrate?.(bad ? [60, 60, 60] : 60);
-      later(() => setFlash("none"), FLASH_MS);
+      land(value);
     }, SCAN_MS);
   };
 
-  const failure = state ? FAILURES[state] : undefined;
+  // A forced failure (stories) wins; otherwise the camera reports its own.
+  const failureKey = state ?? (simulated ? undefined : scanner.failure);
+  const failure = failureKey ? FAILURES[failureKey] : undefined;
   const showCamera = !failure || failure.keepsCamera;
   const canRegister = phase === "result" && (result === "ok" || result === "unreachable");
+
+  // The cameras, the torch and the retry come from whichever scanner is running.
+  const cameraNames = simulated ? FAKE_CAMERAS : scanner.cameras.map((camera) => camera.label);
+  const cameraValue = simulated ? fakeCamera : (scanner.cameras.find((camera) => camera.id === scanner.cameraId)?.label ?? "");
+  const showTorch = simulated ? mobile : scanner.hasTorch;
+  const torchOn = simulated ? fakeLight : scanner.torchOn;
 
   // The line under the viewfinder: a hint while nothing has been read, the code
   // itself once something has.
   const hint =
-    phase === "preparing" ? "Preparing the scanner…" : phase === "scanning" ? "Scanning…" : phase === "idle" ? "Point the camera at a QR code or barcode" : undefined;
+    phase === "preparing"
+      ? "Preparing the scanner…"
+      : phase === "scanning"
+        ? "Scanning…"
+        : phase === "idle"
+          ? "Point the camera at a QR code or barcode"
+          : undefined;
 
   // The second line — why the code can not be registered, or that the check
   // did not finish.
@@ -249,22 +301,23 @@ export default function ScanCodeDialog({
 
   const cameraField = (
     <div className={styles.cameraRow}>
-      <Input label="Camera" labelCondition={CAMERAS.length < 2 ? "readOnly" : undefined}>
+      <Input label="Camera" labelCondition={cameraNames.length < 2 ? "readOnly" : undefined}>
         <SelectField
-          value={camera}
-          readOnly={CAMERAS.length < 2}
+          value={cameraValue}
+          readOnly={cameraNames.length < 2}
           open={cameraPop.open}
           onClick={(event) => cameraPop.toggle(event.currentTarget)}
         />
       </Input>
-      {/* "Only shown if the flashlight is detected" — a phone thing, so the
-          chip rides the mobile layout only. */}
-      {mobile && (
+      {/* "Only shown if the flashlight is detected" — which on a real device
+          means a back camera on a phone, and on the fake one the mobile
+          layout. */}
+      {showTorch && (
         <Chip
           size="lg"
-          isSelected={light}
+          isSelected={torchOn}
           slotLeft={<Icon icon="flashlight" rotate={270} />}
-          onClick={() => setLight((on) => !on)}
+          onClick={() => (simulated ? setFakeLight((on) => !on) : scanner.toggleTorch())}
         >
           Light
         </Chip>
@@ -298,12 +351,12 @@ export default function ScanCodeDialog({
             <div className={clsx(styles.failure, mobile && styles.failureFill)}>
               <EmptyState
                 error
-                icon={state === "scannerCouldNotLoad" ? "qrcode-read" : "camera-slash"}
+                icon={failureKey === "scannerCouldNotLoad" ? "qrcode-read" : "camera-slash"}
                 title={failure.title}
-                caption={typeof failure.caption === "function" ? failure.caption(CAMERAS.length) : failure.caption}
+                caption={typeof failure.caption === "function" ? failure.caption(cameraNames.length) : failure.caption}
                 primaryAction={
                   failure.action === "retry"
-                    ? { label: "Try again", leftIcon: "refresh", variant: "subtle", onClick: () => undefined }
+                    ? { label: "Try again", leftIcon: "refresh", variant: "subtle", onClick: () => (simulated ? undefined : scanner.retry()) }
                     : { label: "Type it instead", variant: "subtle", onClick: onClose }
                 }
               />
@@ -313,13 +366,20 @@ export default function ScanCodeDialog({
               type="button"
               className={clsx(styles.preview, mobile && styles.previewFill, phase === "preparing" && styles.preparing)}
               onClick={readCode}
-              aria-label="Simulate a scan"
+              aria-label={simulated ? "Simulate a scan" : "Camera preview"}
             >
-              {/* Nothing but black while the scanner starts — the node draws no
-                  picture, no window and no spinner in that state. */}
+              {/* The camera picture. The real one is a live <video> that must
+                  stay mounted for its ref to exist while the stream starts;
+                  black until it plays, which is the "Preparing" frame. */}
+              {simulated ? (
+                phase !== "preparing" && <img className={styles.feed} src={scanFeed} alt="" />
+              ) : (
+                <video ref={scanner.videoRef} className={styles.feed} muted playsInline autoPlay />
+              )}
+              {/* Nothing to aim with until the scanner is ready — the node
+                  draws no window and no spinner in that state. */}
               {phase !== "preparing" && (
                 <>
-                  <img className={styles.feed} src={scanFeed} alt="" />
                   <span className={clsx(styles.window, mobile && styles.windowMobile)} data-flash={flash} />
                   {phase === "scanning" && <Icon className={styles.spinner} icon="spinner-third" pack="solid" size={24} spin />}
                 </>
@@ -350,14 +410,18 @@ export default function ScanCodeDialog({
 
       <SelectPopoverList pop={cameraPop} mobile={mobile} title="Camera">
         <SelectListItemGroup>
-          {CAMERAS.map((name) => (
+          {(simulated ? FAKE_CAMERAS.map((name) => ({ id: name, label: name })) : scanner.cameras).map((camera) => (
             <SelectListItem
-              key={name}
-              label={name}
-              selected={name === camera}
+              key={camera.id}
+              label={camera.label}
+              selected={simulated ? camera.label === fakeCamera : camera.id === scanner.cameraId}
               onClick={() => {
-                setCamera(name);
-                setLight(false);
+                if (simulated) {
+                  setFakeCamera(camera.label);
+                  setFakeLight(false);
+                } else {
+                  scanner.selectCamera(camera.id);
+                }
                 cameraPop.close();
               }}
             />

@@ -23,10 +23,15 @@ import ScanCodeDialog, { ScanFailure } from "./ScanCodeDialog";
 //   · add a vendor cost, and the three vendor cost strategies wake up with
 //     their resolved values in the captions.
 //
-// THE SCANNER IS FAKE. Tapping the camera preview reads the next demo code,
-// over a still picture: a free one, then one over the 255-character limit, then
-// one already registered, then one whose check can not reach the server. Every
-// camera failure has its own story below.
+// THE SCANNER IS REAL — pressing the scan button opens the camera and reads a
+// code with a WebAssembly decoder. It needs a secure context, so it works on
+// the published Storybook (https) and on localhost, but not over a LAN IP.
+//
+// The scan stories below use the FAKE scanner instead: tapping the preview
+// reads the next demo code over a still picture — a free one, then one over
+// the 255-character limit, then one already registered, then one whose check
+// can not reach the server. A real camera can not be asked for those on
+// demand, nor for the nine camera failures. "Real Camera" is the exception.
 //
 // Inventory is not built yet — the fifth module is being designed.
 const meta: Meta = {
@@ -138,7 +143,16 @@ export const CreateFails: Story = {
 
 // ---- the scanner, state by state ----
 
-const ScanDemo = ({ state, breakpoint }: { state?: ScanFailure; breakpoint: "desktop" | "mobile" }) => {
+const ScanDemo = ({
+  state,
+  breakpoint,
+  simulated = true,
+}: {
+  state?: ScanFailure;
+  breakpoint: "desktop" | "mobile";
+  /** False opens the real camera. */
+  simulated?: boolean;
+}) => {
   const [open, setOpen] = useState(true);
   return (
     <>
@@ -150,6 +164,7 @@ const ScanDemo = ({ state, breakpoint }: { state?: ScanFailure; breakpoint: "des
         onClose={() => setOpen(false)}
         onRegister={() => setOpen(false)}
         registered={TAKEN_BARCODES}
+        simulated={simulated}
         state={state}
         breakpoint={breakpoint}
       />
@@ -166,6 +181,28 @@ export const Scanner: Story = {
   name: '"Scan" Form',
   parameters: { layout: "centered" },
   render: () => <ScanDemo breakpoint="desktop" />,
+};
+
+/**
+ * The REAL camera: it asks for permission, lists the device's cameras, offers
+ * the flashlight when there is one, and reads QR codes and barcodes. Needs
+ * https or localhost — over a LAN IP it shows "No secure connection".
+ */
+export const ScannerReal: Story = {
+  name: '"Scan" Form — Real Camera',
+  parameters: { layout: "centered" },
+  render: () => <ScanDemo breakpoint="desktop" simulated={false} />,
+};
+
+/** The real camera on a phone — the one to open from the published Storybook. */
+export const ScannerRealMobile: Story = {
+  name: '"Scan" Form — Real Camera Mobile',
+  parameters: { layout: "centered" },
+  render: () => (
+    <DeviceFrame statusBar homeIndicator>
+      <ScanDemo breakpoint="mobile" simulated={false} />
+    </DeviceFrame>
+  ),
 };
 
 export const ScannerMobile: Story = {
