@@ -34,8 +34,13 @@ const config = {
     },
     'storybook-addon-pseudo-states',
   ],
-  // Serve public/ so avatar images resolve at /avatars/… in dev and static builds.
-  staticDirs: ['../public'],
+  // NO `staticDirs` — on purpose. Vite already serves and copies `public/`
+  // (its own `publicDir`), and Storybook ALSO copies every staticDirs entry.
+  // Listing '../public' therefore pointed two concurrent copies at the same
+  // output folder, and they raced: `EEXIST: file already exists, mkdir
+  // './storybook-static/fonts'`, which failed a Pages deploy on 2026-10-14 and
+  // one local build before that. Vite's copy alone puts avatars, fonts, forms
+  // and the manifest where they belong, in dev and in a static build.
   framework: {
     name: '@storybook/react-vite',
     options: {},
