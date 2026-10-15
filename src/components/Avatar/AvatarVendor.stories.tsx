@@ -1,28 +1,52 @@
-import { Fragment } from "react";
+import { ReactNode } from "react";
 
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { docsFrame } from "../../stories/helpers";
+
 import AvatarVendor from "./AvatarVendor";
-import { AvatarVendorStatus } from "./AvatarVendor.types";
+import { AvatarVendorAddOn } from "./AvatarVendor.types";
 import { AvatarSize } from "./Avatar.types";
 
 const SIZES: AvatarSize[] = ["xxs", "xs", "sm", "md", "lg", "xl"];
-const STATUSES: AvatarVendorStatus[] = ["none", "active", "inactive"];
+// `preferred` has no xxs (Avatar has no icon addOn there).
+const PREFERRED_SIZES = SIZES.filter((s) => s !== "xxs");
+const ADD_ONS: AvatarVendorAddOn[] = ["none", "active", "inactive", "preferred"];
+
+// The docs preview frame: the examples sit centred in one row, 32px apart
+// (mirrors the Figma Documentation "Preview" frames).
+const frame = (node: ReactNode) => (
+  <div style={docsFrame}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--size-8)" }}>
+      {node}
+    </div>
+  </div>
+);
+
+const row = (content: "icon" | "image", addOn: AvatarVendorAddOn, sizes = SIZES) =>
+  frame(
+    <>
+      {sizes.map((size) => (
+        <AvatarVendor key={size} size={size} content={content} addOn={addOn} />
+      ))}
+    </>,
+  );
 
 /**
  * AvatarVendor — an Avatar template: object avatar with the `vendor` semantic
- * icon (or an image), and a `status` shown as the corner statusDot. xxs
- * supports `none` only.
+ * icon (or an image), and an `addOn` — a statusDot for active / inactive, or
+ * the amber crown for a preferred vendor.
  */
 const meta: Meta<typeof AvatarVendor> = {
   title: "Components/Avatar/AvatarVendor",
   component: AvatarVendor,
-  parameters: { layout: "centered" },
-  args: { size: "md", content: "icon", status: "active" },
+  // fullscreen — the docs stories' own `docsFrame` provides the (only) padding.
+  parameters: { layout: "fullscreen" },
+  args: { size: "md", content: "icon", addOn: "none" },
   argTypes: {
     size: { options: SIZES, control: { type: "select" } },
     content: { options: ["icon", "image"], control: { type: "inline-radio" } },
-    status: { options: STATUSES, control: { type: "select" } },
+    addOn: { options: ADD_ONS, control: { type: "select" } },
     imageSrc: { if: { arg: "content", eq: "image" } },
   },
 };
@@ -31,50 +55,31 @@ export default meta;
 
 type Story = StoryObj<typeof AvatarVendor>;
 
-const labelStyle: React.CSSProperties = {
-  font: "var(--font-caption-medium-500)",
-  color: "var(--text-subtle)",
+export const Playground: Story = {
+  parameters: { layout: "centered" },
 };
 
-export const Playground: Story = {};
+const docs: Partial<Story> = { parameters: { controls: { disable: true } } };
 
-/** Icon content: every status × size. Plus an image row. xxs shows `none` only. */
-export const Matrix: Story = {
-  parameters: { controls: { disable: true } },
-  render: () => (
-    <div
-      style={{
-        display: "inline-grid",
-        gridTemplateColumns: `auto repeat(${SIZES.length}, 44px)`,
-        gap: "var(--size-3)",
-        alignItems: "center",
-        justifyItems: "center",
-      }}
-    >
-      <span />
-      {SIZES.map((s) => (
-        <span key={s} style={labelStyle}>
-          {s}
-        </span>
-      ))}
-      {STATUSES.map((status) => (
-        <Fragment key={status}>
-          <span style={{ ...labelStyle, justifySelf: "start" }}>{status}</span>
-          {SIZES.map((size) => (
-            <div key={size}>
-              {size === "xxs" && status !== "none" ? null : (
-                <AvatarVendor size={size} status={status} />
-              )}
-            </div>
-          ))}
-        </Fragment>
-      ))}
-      <span style={{ ...labelStyle, justifySelf: "start" }}>image</span>
-      {SIZES.map((size) => (
-        <div key={size}>
-          <AvatarVendor size={size} content="image" />
-        </div>
-      ))}
-    </div>
-  ),
-};
+/** The hero: xl, icon content, no addOn. */
+export const Hero: Story = { ...docs, render: () => frame(<AvatarVendor size="xl" />) };
+
+/** Content — the uploaded logo, every size. */
+export const ContentImage: Story = { ...docs, render: () => row("image", "none") };
+/** Content — the generic vendor icon, every size. */
+export const ContentIcon: Story = { ...docs, render: () => row("icon", "none") };
+
+/** addOn active — the jade statusDot. */
+export const ActiveImage: Story = { ...docs, render: () => row("image", "active") };
+export const ActiveIcon: Story = { ...docs, render: () => row("icon", "active") };
+
+/** addOn inactive — the gray statusDot. */
+export const InactiveImage: Story = { ...docs, render: () => row("image", "inactive") };
+export const InactiveIcon: Story = { ...docs, render: () => row("icon", "inactive") };
+
+/** addOn preferred — the amber crown. No xxs. */
+export const PreferredImage: Story = { ...docs, render: () => row("image", "preferred", PREFERRED_SIZES) };
+export const PreferredIcon: Story = { ...docs, render: () => row("icon", "preferred", PREFERRED_SIZES) };
+
+/** Loading — the generic variant: icon content, no addOn. */
+export const Loading: Story = { ...docs, render: () => row("icon", "none") };

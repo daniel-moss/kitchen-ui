@@ -1,0 +1,116 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as AvatarVendorStories from "./AvatarVendor.stories";
+import AlertBanner from "../AlertBanner/AlertBanner";
+import { DocCaption } from "../../stories/DocCaption";
+import { FigmaLinks } from "../../stories/FigmaLinks";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
+
+<Meta of={AvatarVendorStories} />
+
+# AvatarVendor
+
+An avatar with vendor-based parameters. It is based on the
+<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
+component — a square object avatar — so the sizes, corners and loading surface
+all come from Avatar.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=23629-10403"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=25497-35070"
+/>
+
+<Canvas of={AvatarVendorStories.Hero} />
+
+```tsx
+<AvatarVendor size="md" content="image" imageSrc={vendor.logo} addOn="preferred" />
+```
+
+↳&nbsp;&nbsp;[Content](#content)<br />
+↳&nbsp;&nbsp;[Add-ons](#add-ons)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Content
+
+Supports an image and an icon (`content`). If the logotype is uploaded, the
+avatar shows the logo (`content="image"` with `imageSrc`). Otherwise, it shows a
+generic icon — the solid `store` glyph, the design system's `vendor` semantic
+icon. Default `icon`. Without an `imageSrc`, the image content falls back to the
+object placeholder.
+
+Every size from Avatar is supported: `xxs` (16px), `xs` (20px), `sm` (24px),
+`md` (28px), `lg` (32px) and `xl` (36px). Default `md`.
+
+<DocCaption>content = image</DocCaption>
+
+<Canvas of={AvatarVendorStories.ContentImage} />
+
+<DocCaption>content = icon</DocCaption>
+
+<Canvas of={AvatarVendorStories.ContentIcon} />
+
+## Add-ons
+
+The add-on (`addOn`) sits in the bottom-right corner and cuts a notch out of the
+avatar, so a ring of the surface behind shows around it. Default `none`.
+
+### Active
+
+Vendor's status is "active". The add-on is a `--jade-a9` status dot.
+
+<DocCaption>{`content = image${TEXT_SEPARATOR}addOn = active`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.ActiveImage} />
+
+<DocCaption>{`content = icon${TEXT_SEPARATOR}addOn = active`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.ActiveIcon} />
+
+### Inactive
+
+Vendor's status is "inactive". The add-on is a `--gray-a9` status dot.
+
+<DocCaption>{`content = image${TEXT_SEPARATOR}addOn = inactive`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.InactiveImage} />
+
+<DocCaption>{`content = icon${TEXT_SEPARATOR}addOn = inactive`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.InactiveIcon} />
+
+### Preferred
+
+The vendor is marked as "Preferred vendor". The add-on is the solid `crown`
+icon in `--amber-a10` — the same crown
+<a href="/?path=/docs/components-avatar-avataruser--docs" target="_top">AvatarUser</a>
+uses for a primary contact.
+
+{/* Children on one line: MDX wraps multi-line JSX text in a docs <p>, whose margins break the banner. */}
+<AlertBanner type="card" orientation="vertical" status="warning">Must not be used in xxs size!</AlertBanner>
+
+Avatar has no icon add-on at `xxs`, so the code drops the crown there:
+`size="xxs"` with `addOn="preferred"` renders the plain avatar.
+
+<DocCaption>{`content = image${TEXT_SEPARATOR}addOn = preferred`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.PreferredImage} />
+
+<DocCaption>{`content = icon${TEXT_SEPARATOR}addOn = preferred`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.PreferredIcon} />
+
+## Loading
+
+On loading state, we don't know the vendor's status or whether it has a logo.
+But we do know that the avatar is going to be a vendor avatar. So, use the
+generic variant without status: `content="icon"` and `addOn="none"`.
+AvatarVendor has no `isLoading` prop of its own.
+
+<DocCaption>{`content = icon${TEXT_SEPARATOR}addOn = none`}</DocCaption>
+
+<Canvas of={AvatarVendorStories.Loading} />
+
+## Props
+
+<ArgTypes of={AvatarVendorStories} />
