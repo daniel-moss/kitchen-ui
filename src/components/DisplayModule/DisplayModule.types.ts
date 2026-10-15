@@ -23,11 +23,12 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
 
   /** Title text — used by default / accordion. Truncates with an ellipsis. */
   title?: ReactNode;
-  /** Left slot — an Avatar (object / user / template), md (28px) size. */
+  /** Left slot — one avatar of any type, at `lg` (32px), `--size-3` (12px) before the title. */
   slotLeft?: ReactNode;
   /**
-   * Right slot — up to 2 elements: IconButton, Button (ghost), a live Avatar,
-   * or a `md` SegmentedControl.
+   * Right slot — up to 2 elements: a ghost IconButton or Button at `md`, an
+   * avatar at `lg` (a live Avatar while someone edits), a Badge or BadgeColor
+   * at `lg`, or a `md` SegmentedControl. All are 32px.
    *
    * The SegmentedControl is the slot's **view switcher** (Daniel, 2026-10-01 —
    * it replaces the TabGroup that used to sit here; `contained` tabs became
@@ -82,8 +83,10 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
 }
 
 /**
- * The title's badge slot and the caption are mutually exclusive — a title row
- * can have either a trailing badge or a caption below, not both.
+ * The title slot (`titleSlotRight` — a Counter, Badge or HintTrigger) and the
+ * caption are mutually exclusive here — a title row has either a trailing slot
+ * or a caption below, not both. (Figma excludes only the Badge; see the docs
+ * page.)
  */
 export type DisplayModuleProps = DisplayModuleBaseProps &
   ({ titleSlotRight?: ReactNode; caption?: never } | { caption?: ReactNode; titleSlotRight?: never });

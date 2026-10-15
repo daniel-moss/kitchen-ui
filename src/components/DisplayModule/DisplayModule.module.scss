@@ -77,9 +77,22 @@
 .accordion .headerRow:active:not(:has(.slotRight:active)) {
   @include row-press-fill;
 }
-// Focus — the DS focus ring, with DisplayModule's wider 4px gap.
+// Focus — the inset focus spec (Figma DisplayModuleHeaderAccordion* focused):
+// a 2px --gray-12 ring at the header's edge, a 2px transparent gap, then a
+// --gray-a3 fill with --border-radius-2 (8px) corners — outer 12px minus the
+// 4px inset. The inner corners follow the header's own: none where it meets
+// the body below (open) or a banner above.
 .accordion .headerRow:focus-visible {
-  @include row-focus-ring($gap: 4px);
+  @include row-focus-ring-inset($radius: var(--border-radius-2));
+}
+.accordion .headerRow.open:focus-visible::before {
+  border-radius: var(--border-radius-2) var(--border-radius-2) 0 0;
+}
+.accordion.hasBanner .headerRow:focus-visible::before {
+  border-radius: 0 0 var(--border-radius-2) var(--border-radius-2);
+}
+.accordion.hasBanner .headerRow.open:focus-visible::before {
+  border-radius: 0;
 }
 .accordion .headerRow.disabled {
   @include row-disabled;
@@ -112,7 +125,7 @@
   flex: none;
   display: flex;
   align-items: center;
-  padding-right: var(--size-2_5); // 10px
+  padding-right: var(--size-3); // 12px — Figma HeaderContent gap
 }
 .copy {
   flex: 1 1 0;
@@ -155,12 +168,15 @@
   display: flex;
   align-items: center;
   gap: var(--size-2); // 8px between the (max 2) elements
-  padding-left: var(--size-4); // 16px
+  padding-left: var(--size-3); // 12px — Figma HeaderContent gap
 }
 
 // ===== body (content slot) =====
 .body {
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px between the content's children (Figma body slot)
   width: 100%;
   padding: var(--size-4); // 16px default content padding
 }

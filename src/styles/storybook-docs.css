@@ -485,3 +485,23 @@
 .sbdocs table:not(.docblock-argstable):not(.docs-story *) tr:nth-of-type(2n) {
   background: transparent;
 }
+
+/* DS colors, so the table follows the theme — Storybook's own cell colors are
+   fixed and stay dark text on the dark theme. Header cells read like the
+   headings (--text-strong), body cells like the prose (--text-subtle); the
+   rules are the DS divider color. */
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) tr {
+  background: transparent;
+  border-color: var(--gray-a5);
+}
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) th,
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) td {
+  border-color: var(--gray-a5);
+  color: var(--text-subtle);
+  font-size: 14px;
+  line-height: 20px;
+}
+.sbdocs table:not(.docblock-argstable):not(.docs-story *) th {
+  color: var(--text-strong);
+  font-weight: 600;
+}

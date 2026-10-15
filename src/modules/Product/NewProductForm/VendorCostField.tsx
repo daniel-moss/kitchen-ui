@@ -162,7 +162,7 @@ export default function VendorCostField({
         {draft != null && (
           <DisplayModule
             title={nameOf(draft.vendorId)}
-            slotLeft={<AvatarVendor size="md" />}
+            slotLeft={<AvatarVendor size="lg" />}
             slotRight={
               <div className={styles.draftActions}>
                 <Button size="md" variant="ghost" onClick={cancelDraft}>

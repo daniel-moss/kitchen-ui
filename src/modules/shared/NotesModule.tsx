@@ -59,11 +59,12 @@ export default function NotesModule({
   const label = copyLabel ?? title;
 
   const content = isLoading ? (
-    <>
+    // One wrapper, so the module body's 16px gap does not split the lines.
+    <div>
       {[0, 1, 2, 3].map((line) => (
         <SkeletonTypography key={line} variant="bodySpacious" />
       ))}
-    </>
+    </div>
   ) : hasNotes ? (
     <p className={styles.notes}>{notes}</p>
   ) : (

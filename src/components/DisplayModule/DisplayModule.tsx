@@ -127,7 +127,8 @@ export default function DisplayModule({
     <AlertBanner
       type="banner"
       status={status}
-      orientation={banner.ctaLabel ? "horizontal" : "vertical"}
+      // Always one row, with or without a CTA (Figma DisplayModule banner).
+      orientation="horizontal"
       ctaLabel={banner.ctaLabel as string}
       ctaHref={banner.ctaHref}
       ctaOnClick={banner.ctaOnClick}

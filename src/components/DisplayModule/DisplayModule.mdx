@@ -1,0 +1,376 @@
+import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
+
+import * as DisplayModuleStories from "./DisplayModule.stories";
+import { FigmaLinks } from "../../stories/FigmaLinks";
+import { DocCaption } from "../../stories/DocCaption";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
+
+<Meta of={DisplayModuleStories} />
+
+# DisplayModule
+
+`DisplayModule` is a section of a page, a side panel or a form. It holds a header with
+the section's title and actions, and a body slot for any content. Unlike
+<a href="/?path=/docs/components-card-card--docs" target="_top">Card</a>, the module
+itself is not a target: only the actions in its header and an accordion header react to
+a click.
+
+<FigmaLinks
+  component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=24003-5468"
+  doc="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=24009-19865"
+/>
+
+<Canvas of={DisplayModuleStories.Hero} />
+
+```tsx
+<DisplayModule
+  title="Service address"
+  slotRight={<IconButton icon="pen" size="md" variant="ghost" aria-label="Edit" onClick={edit} />}
+  content={<ValueDisplayGroup>{rows}</ValueDisplayGroup>}
+/>
+```
+
+↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
+↳&nbsp;&nbsp;[When to use](#when-to-use)<br />
+↳&nbsp;&nbsp;[Variants](#variants)<br />
+↳&nbsp;&nbsp;[Header](#header)<br />
+↳&nbsp;&nbsp;[Body](#body)<br />
+↳&nbsp;&nbsp;[Status](#status)<br />
+↳&nbsp;&nbsp;[Accordion](#accordion)<br />
+↳&nbsp;&nbsp;[Edit and Copy](#edit-and-copy)<br />
+↳&nbsp;&nbsp;[Loading](#loading)<br />
+↳&nbsp;&nbsp;[Load error](#load-error)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Accessibility](#accessibility)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
+↳&nbsp;&nbsp;[Props](#props)
+
+## Anatomy
+
+A module stacks a header, a divider and a body slot. The header holds the title and an
+optional slot on each side. An optional banner sits above the header, and an optional
+status ring outlines the whole module.
+
+The module's surface is `--surface-level-second` with a `--border-radius-3` (12px)
+corner, over a `0 1px 3px` drop shadow in `--box-shadow-shadow-default`. It clips its
+content, so the banner and the body follow the corner. The header is at least 52px tall,
+with `--size-2_5` (10px) top and bottom and `--size-4` (16px) side padding. The divider
+under it is a Divider at `contrast="medium"`.
+
+<DocCaption>{`status = "info"${TEXT_SEPARATOR}banner set`}</DocCaption>
+
+<Canvas of={DisplayModuleStories.Anatomy} />
+
+## When to use
+
+Use DisplayModule to group related data under one title on a details page, a side panel
+or a form. Use Card when the whole block is one object the person opens or picks,
+because a card is one target and a module is not.
+
+<Canvas of={DisplayModuleStories.WhenToUse} />
+
+## Variants
+
+Default shows the header, the divider and the body. Use it for most sections.
+
+<DocCaption>variant = "default"</DocCaption>
+
+<Canvas of={DisplayModuleStories.VariantDefault} />
+
+Accordion turns the header into a toggle that opens and closes the body. Use it for
+content the person needs only sometimes, so a long page or form stays short.
+
+<DocCaption>{`variant = "accordion"${TEXT_SEPARATOR}open = false`}</DocCaption>
+
+<Canvas of={DisplayModuleStories.VariantAccordion} />
+
+`bodyOnly` drops the header and the divider. Use it when the content does not need a
+title, like a list of files where every row names itself.
+
+<DocCaption>variant = "bodyOnly"</DocCaption>
+
+<Canvas of={DisplayModuleStories.VariantBodyOnly} />
+
+## Header
+
+The title, the caption and the title slot are
+<a href="/?path=/docs/components-itemtext-itemtext--docs" target="_top">ItemText</a>,
+so they follow its rules. The page below covers only what the module adds.
+
+### Title
+
+Every header has a title, and it stays on one line. A long title ends with an ellipsis,
+and hovering it shows the full text in a tooltip above it. The title is
+`body-500-compact` (Inter Medium 14/20) in `--text-strong`. The tooltip is anchored to
+the title itself, never to the cursor, and it portals to `<body>`, so the module's
+clipping cannot cut it.
+
+<DocCaption>A title too long for one line, with its tooltip.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Title} />
+
+### Caption
+
+A caption under the title adds one detail, like a date or a count. It wraps to as many
+lines as it needs, so it is never cut. It is `caption-medium-400` (Inter Regular 13/20)
+in `--text-subtle`.
+
+<DocCaption>A title with a caption that wraps to two lines.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Caption} />
+
+A badge and a caption never show together. In code the rule is wider for now: while
+`titleSlotRight` is set, `caption` is not rendered, so a counter or a hint trigger also
+hides it. The props type forbids passing both.
+
+### Left slot
+
+The left slot holds one avatar of any type. Its size is fixed at `lg` (32px), so every
+header keeps the same height — the 32px the header's padding leaves, the same as the
+right slot. It sits `--size-3` (12px) before the title.
+
+<DocCaption>slotLeft set</DocCaption>
+
+<Canvas of={DisplayModuleStories.LeftSlot} />
+
+### Right slot
+
+The right slot holds one or two elements: an icon button, a button, an avatar, a badge
+or a segmented control. Their sizes are fixed, so the header never grows — a ghost
+IconButton or Button at `md`, an avatar at `lg`, a Badge or BadgeColor at `lg` and a
+SegmentedControl at `md` are all 32px, the height the header's padding leaves. The slot starts `--size-3` (12px) after
+the title, with `--size-2` (8px) between two elements.
+
+<DocCaption>slotRight = Button + IconButton</DocCaption>
+
+<Canvas of={DisplayModuleStories.RightSlot} />
+
+<DocCaption>slotRight = Avatar</DocCaption>
+
+<Canvas of={DisplayModuleStories.RightSlotAvatar} />
+
+<DocCaption>slotRight = Badge</DocCaption>
+
+<Canvas of={DisplayModuleStories.RightSlotBadge} />
+
+A segmented control in the right slot switches how the body shows its content, like a
+list or cards.
+
+<DocCaption>slotRight = SegmentedControl</DocCaption>
+
+<Canvas of={DisplayModuleStories.RightSlotSegmentedControl} />
+
+## Body
+
+The body is a slot for any content. Its padding and gap are a default, and can change
+for each case, like a list that runs edge to edge. The default padding is `--size-4`
+(16px) on all four sides, and the content's children stack `--size-4` (16px) apart.
+`bodyPadded={false}` removes the padding so the content brings its own; to change the
+gap, pass one wrapper element that sets its own spacing. An
+EmptyState passed as `content` drops the padding by itself, because it has its own.
+
+<DocCaption>A body with its default padding.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Body} />
+
+<DocCaption>A list that runs edge to edge, with the body padding removed.</DocCaption>
+
+<Canvas of={DisplayModuleStories.BodyEdgeToEdge} />
+
+## Status
+
+A status draws a ring around the module in its colour: info (`--blue-9`), success
+(`--jade-9`), warning (`--amber-9`) or error (`--tomato-9`). Use the ring alone when the
+content already says what is wrong. The ring is a 1px inset `box-shadow`, so the module
+keeps its size when it appears.
+
+<DocCaption>status = "warning"</DocCaption>
+
+<Canvas of={DisplayModuleStories.StatusRing} />
+
+Add a banner when the person needs to read why. A banner always needs a status and takes
+the ring's colour, so the two never disagree — in code a `banner` passed with
+`status="none"` is not drawn.
+
+<DocCaption>{`status = "warning"${TEXT_SEPARATOR}banner set`}</DocCaption>
+
+<Canvas of={DisplayModuleStories.StatusBanner} />
+
+The banner's content depends on the case. It can have a call to action or not, and it can
+be dismissible or not. It is an
+<a href="/?path=/story/components-alertbanner--playground" target="_top">AlertBanner</a>
+in its `banner` type, always laid out in one row.
+
+<DocCaption>An info banner with a call to action and a dismiss button.</DocCaption>
+
+<Canvas of={DisplayModuleStories.StatusBannerActions} />
+
+## Accordion
+
+The whole accordion header opens and closes the body, not only the caret. The caret
+points right when the module is closed and down when it is open. It is a 14px solid
+`caret-down` in a `--size-4` (16px) box, `--size-3` (12px) before the title, turned
+90° while closed; the body animates its height as it opens and closes. `open` is
+controlled with `onOpenChange`, or uncontrolled with `defaultOpen`.
+
+<DocCaption>open = false</DocCaption>
+
+<Canvas of={DisplayModuleStories.AccordionClosed} />
+
+<DocCaption>open = true</DocCaption>
+
+<Canvas of={DisplayModuleStories.AccordionOpen} />
+
+Actions in the header still work while the module is closed. Using one never opens or
+closes the module — the right slot stops its clicks, and its Enter and Space key
+presses, from reaching the header.
+
+<DocCaption>A closed accordion with an action in its header.</DocCaption>
+
+<Canvas of={DisplayModuleStories.AccordionAction} />
+
+## Edit and Copy
+
+### Edit
+
+An Edit button opens the edit form for the module's content. Only one person can edit a
+module at a time. A `pen` IconButton in `slotRight` gets its "Edit" tooltip from the
+module, so the caller does not wrap it.
+
+<DocCaption>An Edit button in the right slot, with its tooltip.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Edit} />
+
+While someone else edits, their live avatar replaces the Edit button. Hovering it shows
+their first name and the first letter of their last name. The module does not do this
+by itself — the caller swaps the button for an AvatarLive at `lg` wrapped in a
+HoverTooltip.
+
+<DocCaption>The editor's live avatar, with its tooltip.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Editing} />
+
+### Copy
+
+A Copy button copies the data of the whole module, like notes, an address or
+instructions. Edit and Copy always show their tooltip on hover: a `copy` or `pen`
+IconButton gets it automatically, and a button already wrapped in its own HoverTooltip
+keeps that one.
+
+<DocCaption>A Copy button in the right slot, with its tooltip.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Copy} />
+
+## Loading
+
+DisplayModule has no loading state of its own. While data loads, the title stays and the
+header's slots turn off. Draw the body's placeholder in the design file, because its
+shape depends on the content — in code, pass skeletons as `content` and leave
+`slotRight` and `titleSlotRight` unset.
+
+<DocCaption>A loading module, with a placeholder drawn for its content.</DocCaption>
+
+<Canvas of={DisplayModuleStories.Loading} />
+
+## Load error
+
+When the content fails to load, the body shows the error empty state with a Reload
+button. The header stays, so the person knows which section failed. Set `error` and wire
+`onRetry` to the Reload button; the body drops its padding for the
+<a href="/?path=/story/components-emptystate--playground" target="_top">EmptyState</a>,
+which brings its own.
+
+<DocCaption>The error empty state in the body.</DocCaption>
+
+<Canvas of={DisplayModuleStories.LoadError} />
+
+## States
+
+Only the accordion header is interactive. Disabled dims the header and leaves the body as
+it is. Hover is wrapped in `@media (hover: hover)`, so a touch device never keeps a sticky
+hover after a tap.
+
+| State | Header |
+| --- | --- |
+| default | no fill |
+| hovered | `--gray-a3` fill |
+| pressed | `--gray-a4` fill |
+| focused | 2px `--gray-12` ring at the edge, a 2px transparent gap, then a `--gray-a3` fill with `--border-radius-2` (8px) corners |
+| disabled | 30% opacity, not interactive |
+
+The header takes the module's corners: all four while closed, the top two while open.
+The focus ring's inner fill is a `::before`, so it can carry its own corners, and nothing
+inside the header moves when focus arrives.
+
+<DocCaption>default</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateDefault} />
+
+<DocCaption>hovered</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateHovered} />
+
+<DocCaption>pressed</DocCaption>
+
+<Canvas of={DisplayModuleStories.StatePressed} />
+
+<DocCaption>focused</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateFocused} />
+
+<DocCaption>disabled</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateDisabled} />
+
+Hovering or pressing an action in the header changes only that action, not the header.
+The header's hover and press exclude the right slot with `:not(:has(.slotRight:hover))`.
+
+<DocCaption>An action hovered inside an accordion header.</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateActionHovered} />
+
+Under a banner, the focus ring's top corners are square in the product, because the
+header meets the banner there.
+
+<DocCaption>{`focused${TEXT_SEPARATOR}banner set`}</DocCaption>
+
+<Canvas of={DisplayModuleStories.StateFocusedBanner} />
+
+In Figma, set open and variant first and the header state last. Changing either while the
+header is not in its default state resets the header's title and slots.
+
+## Accessibility
+
+### Keyboard
+
+Tab moves to an accordion header and then to each action in the header. Enter or Space
+opens and closes the module, and on an action it runs only that action. A disabled
+header leaves the tab order.
+
+### Announced as
+
+An accordion header is announced as a button that says whether the module is open or
+closed — `role="button"` with `aria-expanded`, and `aria-disabled` when disabled. A
+default header is plain text with its actions.
+
+### What to supply
+
+Give every accordion a title, because it is the button's name. Give every icon-only
+action a name with `aria-label` — the module adds the Edit and Copy tooltips, but not
+their names.
+
+## Usage
+
+| Area | Modules | Variant |
+| --- | --- | --- |
+| Job details | Work summary, Notes to dispatcher(s), Status, Signature, Forms, Equipment, Timesheet, Time distribution, Charges | default |
+| Complete job form | Forms, Signature | accordion, body only |
+| Side panels: Equipment, Warranty, Tax rate, Labor rate | General details, Location, Warranties, History, Pricing, Accounting | default, with status and banner |
+| New job series form | Type, Service details, Assignees, Equipment, Forms | default, body only |
+| Files | Files, with the list and cards switch | default |
+| Add files form | File list | body only |
+| Shared | Notes, Labels | default |
+
+## Props
+
+<ArgTypes of={DisplayModuleStories} />
