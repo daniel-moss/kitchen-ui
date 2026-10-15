@@ -23,7 +23,13 @@ Why it exists (Daniel's goals):
 
 - Daniel is **not a native English speaker**. Use simple, clear, plain English.
   No idioms, slang, or rare words. Simple does NOT mean leaving out important
-  information — keep it informative.
+  information — keep it informative. Use short, clear sentences.
+- Daniel is **not a developer**. Do not put code snippets, file contents,
+  commands, or other technical details in replies. Describe what the code does
+  in plain words. Basic terms are fine: tokens, camelCase, PascalCase, props,
+  variants, and similar.
+- Use a **clear structure**. Split a reply into numbered lists, so Daniel can
+  answer each point by its number.
 - He prefers **careful, small steps** and understanding each part. Explain a
   meaningful change before doing it; do not make big foundational decisions
   silently.
@@ -592,7 +598,8 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   `--gray-a8` (hover/press step it to gray-12); the focus ring is an
   addition (the node has none). The colorful logo is the node's exported
   asset `src/assets/figma-logo.svg` — never redraw it. Rolled out
-  2026-09-08 to every docs page EXCEPT: Avatar family, Button, IconButton,
+  2026-09-08 to every docs page EXCEPT: Avatar family (AvatarVendor got its
+  links + page 2026-10-15), Button, IconButton,
   ViewMenu (Daniel has not shared their links yet), and ValueDisplayGroup
   (its links exist but it has no page of its own — it is documented inside
   ValueDisplay.mdx).
