@@ -104,13 +104,15 @@ export interface DialogDefaultProps extends DialogBaseProps {
    */
   cardStyle?: CSSProperties;
   /**
-   * MOBILE only — how the drawer's header looks. "bodyOnly" (default) is the
-   * title row with the close button; "dragHandle" drops the row and leaves the
-   * grab handle alone, for a drawer that is dismissed by dragging or tapping
-   * the scrim. `title` is still required and still names the dialog for screen
-   * readers. Desktop is unaffected.
+   * MOBILE only — how the drawer's header looks (DrawerHeader's variants).
+   * "bodyOnly" (default) is the title row with the close button; "default" is
+   * the grab handle above the title row, with NO close button — the drawer is
+   * dismissed by dragging it or tapping the scrim (the "New product" form's
+   * "Scan code", Figma 4011-9592); "dragHandle" leaves the grab handle alone.
+   * With "dragHandle" `title` still names the dialog for screen readers.
+   * Desktop is unaffected.
    */
-  drawerHeader?: "bodyOnly" | "dragHandle";
+  drawerHeader?: "bodyOnly" | "default" | "dragHandle";
 }
 
 /**

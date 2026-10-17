@@ -16,16 +16,22 @@ import SelectListItemGroup from "../../../components/SelectList/SelectListItemGr
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
-import { MAX_BARCODE } from "./productRules";
+import { MAX_BARCODE, stripControlCharacters } from "./productRules";
+import { TEXT_SEPARATOR } from "../../../utils/textSeparator";
 import useCameraScanner from "./useCameraScanner";
 
 import scanFeed from "../../../assets/scan-preview.jpg";
 
 import styles from "./ScanCodeDialog.module.scss";
 
-// The "Product code registration" dialog (Figma "Scan" Form, 4011-9592): the
-// camera keeps running, the last code read waits under the viewfinder with its
-// registration status, and Register hands it to the Barcode field.
+// The "Scan code" dialog (Figma "Scan Code" Form, 4011-9592): the camera
+// keeps running, the last code read waits under the viewfinder with its
+// registration status, and "Use code" hands it to the Barcode field.
+//
+// Updated 2026-10-17: the title, "Use code" (was Register), "Type code" (was
+// "Type it instead"), the too-long line now counts the characters, a camera
+// FAILURE hides the footer, and the phone's footer is "Use code" alone, full
+// width — the drawer is closed by its own drag handle.
 //
 // THE CAMERA IS REAL (2026-10-14) — see useCameraScanner.ts for the stream and
 // the zxing-wasm decoder. It needs a secure context: an https page or
@@ -80,7 +86,7 @@ const FAILURES: Record<
   },
   cannotScan: {
     title: "This browser can't scan",
-    caption: "Type the code instead, or open Roopairs in a new version of the browser",
+    caption: "Update your browser, or type the code instead",
     action: "type",
     keepsCamera: false,
   },
@@ -116,11 +122,11 @@ type Result = "ok" | "tooLong" | "taken" | "unreachable";
 export interface ScanCodeDialogProps {
   open: boolean;
   onClose: () => void;
-  /** Register hands the code to the field and closes. */
+  /** "Use code" hands the code to the field and closes. */
   onRegister: (code: string) => void;
   /**
    * The products a code is already registered to, by code. A scan that hits
-   * one shows "Already registered to …" and Register stays disabled.
+   * one shows "Already registered to …" and "Use code" stays disabled.
    */
   registered?: Record<string, string>;
   /**
@@ -194,7 +200,10 @@ export default function ScanCodeDialog({
   };
 
   // Everything a read produces, from either scanner.
-  const land = (value: string) => {
+  const land = (raw: string) => {
+    // "Invisible characters are removed from the scanned code before the
+    // duplicate check."
+    const value = stripControlCharacters(raw);
     const taken = registered[value];
     const next: Result =
       value.length > MAX_BARCODE ? "tooLong" : taken != null ? "taken" : unreachableCodes.includes(value) && simulated ? "unreachable" : "ok";
@@ -207,7 +216,7 @@ export default function ScanCodeDialog({
     // Green for a code that can be registered, red for one that can not. A
     // check that did not finish leaves the mask NEUTRAL — the node's "Couldn't
     // Check" frame draws the resting black, and it is a warning, not a
-    // failure: it buzzes once and Register stays on.
+    // failure: it buzzes once and "Use code" stays on.
     setFlash(bad ? "bad" : next === "unreachable" ? "none" : "good");
     navigator.vibrate?.(bad ? [60, 60, 60] : 60);
     later(() => setFlash("none"), FLASH_MS);
@@ -293,7 +302,7 @@ export default function ScanCodeDialog({
   // did not finish.
   const reason =
     result === "tooLong"
-      ? `Too long to register (${MAX_BARCODE} characters max)`
+      ? `Too long${TEXT_SEPARATOR}${code.length} / ${MAX_BARCODE} characters`
       : result === "taken"
         ? `Already registered to ${owner}`
         : result === "unreachable"
@@ -331,7 +340,7 @@ export default function ScanCodeDialog({
       <Dialog
         open={open}
         onClose={onClose}
-        title="Product code registration"
+        title="Scan code"
         breakpoint={breakpoint}
         bodyPadded={false}
         // The node (4117-31776) draws the mobile surface as a FULL-HEIGHT
@@ -341,18 +350,30 @@ export default function ScanCodeDialog({
         // the sheet take the whole screen so the viewfinder gets the room;
         // desktop ignores it and stays the 608 card.
         fillHeight
+        // The phone's header is the grab handle over the title — no close
+        // button (the node's DrawerHeader, dragHandle + body).
+        drawerHeader="default"
         footer={
-          <PopoverFooter
-            slotLeft={
-              <Button size="lg" variant="ghost" onClick={onClose}>
-                Cancel
+          // "On camera errors the footer is hidden."
+          failure ? undefined : mobile ? (
+            <PopoverFooter stretch>
+              <Button size="lg" variant="solid" isDisabled={!canRegister} onClick={() => onRegister(code)}>
+                Use code
               </Button>
-            }
-          >
-            <Button size="lg" variant="solid" isDisabled={!canRegister} onClick={() => onRegister(code)}>
-              Register
-            </Button>
-          </PopoverFooter>
+            </PopoverFooter>
+          ) : (
+            <PopoverFooter
+              slotLeft={
+                <Button size="lg" variant="ghost" onClick={onClose}>
+                  Cancel
+                </Button>
+              }
+            >
+              <Button size="lg" variant="solid" isDisabled={!canRegister} onClick={() => onRegister(code)}>
+                Use code
+              </Button>
+            </PopoverFooter>
+          )
         }
       >
         <div className={clsx(styles.sheet, mobile && styles.sheetFill)}>
@@ -366,7 +387,7 @@ export default function ScanCodeDialog({
                 primaryAction={
                   failure.action === "retry"
                     ? { label: "Try again", leftIcon: "refresh", variant: "subtle", onClick: () => (simulated ? undefined : scanner.retry()) }
-                    : { label: "Type it instead", variant: "subtle", onClick: onClose }
+                    : { label: "Type code", variant: "subtle", onClick: onClose }
                 }
               />
             </div>

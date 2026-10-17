@@ -15,8 +15,15 @@ export interface PromptProps {
 
   /** Cancel button label. Default "Cancel". */
   cancelLabel?: string;
+  /**
+   * Show the Cancel button. Default true. Set it to false for a prompt that
+   * only INFORMS — one "OK" action and nothing to choose (the "New product"
+   * form's "Sync QuickBooks accounts first", Figma 4209-30972). The action is
+   * then the only way out.
+   */
+  hasCancel?: boolean;
   /** Called when Cancel is pressed. The only dismissal besides the action. */
-  onCancel: () => void;
+  onCancel?: () => void;
 
   /** Primary (action) button label. */
   actionLabel: string;

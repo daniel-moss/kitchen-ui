@@ -1,8 +1,18 @@
 import { ReactNode, createContext, useCallback, useContext, useState } from "react";
 
-import { COMPANY, PRODUCT_ITEMS, PRODUCT_LABELS, PRODUCT_SUBTYPES, VENDORS } from "../../data/db";
+import {
+  COMPANY,
+  INVENTORY_LOCATIONS,
+  PRODUCT_LABELS,
+  PRODUCT_SUBTYPES,
+  QUICKBOOKS_ACCOUNTS,
+  QUICKBOOKS_ASSET_ACCOUNTS,
+  QUICKBOOKS_COGS_ACCOUNTS,
+  VENDORS,
+} from "../../data/db";
 import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewProductForm from "../../modules/Product/NewProductForm/NewProductForm";
+import { useAppStore } from "../store/AppStore";
 import { noop } from "../../stories/helpers";
 
 // ONE "New product" form for the whole app — the arrangement shell/taxRates.tsx
@@ -16,12 +26,11 @@ import { noop } from "../../stories/helpers";
 // There is no "Product" side panel yet, so a row click still does nothing and
 // this provider has no `useOpenProduct` twin.
 //
-// NOTHING IS SAVED (Daniel, 2026-10-13: "It shouldn't be possible to save the
-// product, though. Because we still haven't built Inventory part."). The form
-// is missing its fifth module, so a product created now would be half made, and
-// Create stays disabled. Nothing explains that in the UI — Daniel asked for the
-// banner to go. Dropping `isCreateBlocked` and adding a `createProduct` to the
-// store is all it takes once Inventory is built.
+// CREATE SAVES (Daniel, 2026-10-17, once the Inventory module was built): the
+// form hands its product to the store's `createProduct`, closes, and shows
+// the "Product created" toast; the new row appears in the Products list.
+// Create's annotation ends on the new product's side panel — that panel does
+// not exist yet, so the user simply stays where they were.
 
 const NewProductContext = createContext<() => void>(() => {});
 
@@ -29,15 +38,25 @@ const NewProductContext = createContext<() => void>(() => {});
 export const useNewProduct = () => useContext(NewProductContext);
 
 const LABEL_POOL = PRODUCT_LABELS.map((label) => label.name);
-/** A cost can only be added for a vendor still in business. */
-const ACTIVE_VENDORS = VENDORS.filter((vendor) => vendor.isActive);
-/** The codes already registered, by code → the product that holds it. */
-const TAKEN_BARCODES = Object.fromEntries(
-  PRODUCT_ITEMS.filter((item) => item.barcode).map((item) => [item.barcode as string, item.name]),
-);
+/** The company's inventory setup — the Inventory module exists only with the feature on. */
+const INVENTORY = COMPANY.featureInventoryEnabled
+  ? { locations: INVENTORY_LOCATIONS, defaultTrackInventory: COMPANY.defaultTrackInventory }
+  : undefined;
+/** The Accounting module: QuickBooks Desktop on the Detailed Split scheme only. */
+const QUICKBOOKS =
+  COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed"
+    ? {
+        revenueAccounts: QUICKBOOKS_ACCOUNTS,
+        cogsAccounts: QUICKBOOKS_COGS_ACCOUNTS,
+        assetAccounts: QUICKBOOKS_ASSET_ACCOUNTS,
+        defaultCogsAccountId: COMPANY.quickbooksDefaultCogsAccountId,
+        defaultAssetAccountId: COMPANY.quickbooksDefaultAssetAccountId,
+      }
+    : undefined;
 
 export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint?: Breakpoint; children: ReactNode }) {
   const [formOpen, setFormOpen] = useState(false);
+  const { products, createProduct } = useAppStore();
 
   // Stable, so a memoised consumer (the list's top bar) does not re-render on
   // every app render.
@@ -54,7 +73,12 @@ export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint
         subtypes={PRODUCT_SUBTYPES}
         requireSubtypes={COMPANY.requireSubtypes}
         useTaxes={COMPANY.useTaxes}
-        vendors={ACTIVE_VENDORS}
+        defaultIsTaxable={COMPANY.pricebookDefaultTaxableProduct}
+        // Every vendor — the form offers the active ones and shows the
+        // inactive ones disabled.
+        vendors={VENDORS}
+        inventory={INVENTORY}
+        quickbooks={QUICKBOOKS}
         // The viewer is an admin, so the vendor list's "Add vendor" footer row
         // is there — but the "New vendor" form is not built, so the row does
         // nothing, like every unbuilt row in the Create menu. FLAGGED.
@@ -64,9 +88,13 @@ export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint
         // The duplicate-name and duplicate-barcode checks. Production's
         // uniqueness spans every pricebook item of the company; the app only
         // has these products, so that is what it can offer.
-        existingNames={PRODUCT_ITEMS.map((item) => item.name)}
-        existingBarcodes={TAKEN_BARCODES}
-        isCreateBlocked
+        existingNames={products.map((item) => item.name)}
+        existingBarcodes={Object.fromEntries(
+          products.filter((item) => item.barcode).map((item) => [item.barcode as string, item.name]),
+        )}
+        onCreated={(product) => {
+          createProduct(product);
+        }}
         breakpoint={breakpoint}
       />
     </NewProductContext.Provider>

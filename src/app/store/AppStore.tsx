@@ -1,9 +1,12 @@
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
-import { LABOR_LABELS, TAX_RATE_LABELS } from "../../data/db";
+import { LABOR_LABELS, PRODUCT_LABELS, StockStatus, TAX_RATE_LABELS } from "../../data/db";
 import { users } from "../../data/users";
 import { Job, JOBS as SEED_JOBS } from "../jobsData";
 import { LABOR_ROWS as SEED_LABOR_RATES, LaborRow } from "../laborData";
+import { PRODUCT_ROWS as SEED_PRODUCTS, ProductRow } from "../productsData";
+import { NewProduct } from "../../modules/Product/NewProductForm/NewProductForm.types";
+import { stockLevel } from "../../modules/Product/NewProductForm/productRules";
 import { TAX_RATE_ROWS as SEED_TAX_RATES, TaxRateRow } from "../taxRatesData";
 
 // THE APP'S WRITABLE LAYER — what a demo changes, and what every screen reads.
@@ -118,6 +121,11 @@ interface AppStoreValue {
   updateLaborRate: (id: string, patch: LaborRatePatch) => void;
   createLaborRate: (input: NewLaborRateInput) => string;
   deleteLaborRate: (id: string) => void;
+
+  /** Every product — the seed plus anything created in this session. */
+  products: ProductRow[];
+  /** Adds a product from the "New product" form and returns its id. */
+  createProduct: (input: NewProduct) => string;
 }
 
 /**
@@ -231,6 +239,65 @@ const seedNewLaborRate = (input: NewLaborRateInput, id: string): LaborRow => ({
   needsSyncing: true,
 });
 
+const PRODUCT_LABEL_ID_OF = new Map(PRODUCT_LABELS.map((label) => [label.name, label.id]));
+
+/** Worst first — production's `lowest_inventory_status` keeps the worst level. */
+const STOCK_WORST: StockStatus[] = ["depleted", "low", "limited", "full"];
+
+/**
+ * A new product, as production would store it: CONFIRMED (someone here typed
+ * it, so it is not in Review), active, and its list columns derived from what
+ * the form collected:
+ *
+ *   stock            the WORST level across its locations (a location with no
+ *                    target counts as full, production's rule); null when the
+ *                    product is not tracked or is stocked nowhere yet
+ *   quantity         on hand summed over the locations
+ *   quantityDesired  the targets summed (null when none is set)
+ *
+ * The vendor costs, inventory rows and QuickBooks accounts are not list
+ * columns and the demo has no product side panel yet, so they are not kept.
+ * A label the picker INVENTED has no id in the demo database and is dropped,
+ * like on the rates.
+ */
+const seedNewProduct = (input: NewProduct, id: string): ProductRow => {
+  const levels = input.trackInventory ? input.inventoryLevels : [];
+  const statuses = levels.map((level) => stockLevel(level.onHand, level.onOrder, level.target, level.alertAt) ?? "full");
+  const targets = levels.map((level) => level.target).filter((value): value is number => value != null);
+  return {
+    id,
+    name: input.name,
+    status: "active",
+    isActive: true,
+    subtypeId: input.subtypeId ?? null,
+    summary: input.description,
+    notes: input.notes,
+    cost: input.cost,
+    price: input.price,
+    taxable: input.isTaxable,
+    manufacturer: input.manufacturer,
+    partNumber: input.partNumber,
+    barcode: input.barcode || undefined,
+    imageUrl: input.imageUrl || undefined,
+    weight: input.weight,
+    weightUnit: input.weightUnit,
+    length: input.length,
+    width: input.width,
+    height: input.height,
+    dimensionUnit: input.dimensionUnit,
+    costStrategy: input.costStrategy,
+    priceStrategy: input.priceStrategy,
+    fixedMarkup: input.fixedMarkup,
+    percentMarkup: input.percentMarkup,
+    trackInventory: input.trackInventory,
+    stock: statuses.length === 0 ? null : (STOCK_WORST.find((level) => statuses.includes(level)) ?? null),
+    quantity: levels.length === 0 ? null : levels.reduce((sum, level) => sum + level.onHand, 0),
+    quantityDesired: targets.length === 0 ? null : targets.reduce((sum, value) => sum + value, 0),
+    labelIds: input.labels.map((name) => PRODUCT_LABEL_ID_OF.get(name)).filter((value): value is string => value != null),
+    lastModifiedAt: new Date().toISOString(),
+  };
+};
+
 const AppStoreContext = createContext<AppStoreValue | null>(null);
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
@@ -277,6 +344,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   );
   const deleteLaborRate = laborRateTable.remove;
 
+  const productTable = useEditableTable(SEED_PRODUCTS, byName);
+  const products = productTable.rows;
+  const createProduct = useCallback(
+    (input: NewProduct) => productTable.create(seedNewProduct(input, newId("product"))),
+    [productTable],
+  );
+
   const value = useMemo(
     () => ({
       jobs,
@@ -292,6 +366,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateLaborRate,
       createLaborRate,
       deleteLaborRate,
+      products,
+      createProduct,
     }),
     [
       jobs,
@@ -307,6 +383,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateLaborRate,
       createLaborRate,
       deleteLaborRate,
+      products,
+      createProduct,
     ],
   );
 
@@ -342,3 +420,6 @@ export const useLaborRate = (id: string | null): LaborRow | undefined => {
   const { laborRateById } = useAppStore();
   return id == null ? undefined : laborRateById.get(id);
 };
+
+/** Every product, with this session's new ones — the Products list reads this. */
+export const useProducts = (): ProductRow[] => useAppStore().products;

@@ -331,6 +331,8 @@ export default function Dialog(props: DialogProps) {
         <>
           {drawerHeader === "dragHandle" ? (
             <DrawerHeader variant="dragHandle" />
+          ) : drawerHeader === "default" ? (
+            <DrawerHeader variant="default">{titleContent}</DrawerHeader>
           ) : (
             <DrawerHeader variant="bodyOnly" close closeDisabled={isProcessing} onClose={attemptDismiss}>
               {titleContent}

@@ -32,6 +32,7 @@ import {
   LocationContact,
   POLabel,
   PurchaseOrder,
+  InventoryLocation,
   QuickbooksAccount,
   QuickbooksVendor,
   ShippingOption,
@@ -1728,6 +1729,40 @@ export const QUICKBOOKS_ACCOUNTS: QuickbooksAccount[] = [
   { id: "qba-misc", name: "Miscellaneous Income" },
 ];
 
+/**
+ * The synced QuickBooks COST OF GOODS SOLD accounts and the INVENTORY ASSET
+ * accounts — the two account lists an INVENTORY product needs on the
+ * detailed scheme (production sends them only for an inventory part).
+ * Added 2026-10-17 with the "New product" form's Accounting module.
+ * INVENTED, the income list's way.
+ */
+export const QUICKBOOKS_COGS_ACCOUNTS: QuickbooksAccount[] = [
+  { id: "qba-5000", number: "5000", name: "Cost of Goods Sold" },
+  { id: "qba-5010", number: "5010", name: "Parts Cost" },
+  { id: "qba-5020", number: "5020", name: "Refrigerant Cost" },
+  { id: "qba-freight", name: "Freight In" },
+];
+
+export const QUICKBOOKS_ASSET_ACCOUNTS: QuickbooksAccount[] = [
+  { id: "qba-1300", number: "1300", name: "Inventory Asset" },
+  { id: "qba-1310", number: "1310", name: "Truck Stock" },
+  { id: "qba-consigned", name: "Consigned Inventory" },
+];
+
+/**
+ * Where the company keeps stock — production `InventoryLocation`. Three
+ * trucks (two with plates), the warehouse and a supplier drop-point, plus one
+ * retired truck so the list has an "Inactive" row. Added 2026-10-17.
+ */
+export const INVENTORY_LOCATIONS: InventoryLocation[] = [
+  { id: "inv-warehouse", name: "Main warehouse", type: "warehouse", address: "1450 Industrial Way, San Leandro, CA 94577", isActive: true },
+  { id: "inv-truck-mike", name: "Mike's truck", type: "truck", plateNumber: "8XKT214", isActive: true },
+  { id: "inv-truck-ana", name: "Ana's truck", type: "truck", plateNumber: "7BRW559", isActive: true },
+  { id: "inv-truck-spare", name: "Spare van", type: "truck", isActive: true },
+  { id: "inv-drop-oakland", name: "Oakland drop-point", type: "dropPoint", address: "300 Harrison St, Oakland, CA 94607", isActive: true },
+  { id: "inv-truck-old", name: "Old service van", type: "truck", plateNumber: "5MNP802", isActive: false },
+];
+
 export const QUICKBOOKS_VENDORS: QuickbooksVendor[] = [
   { id: "qb-alameda", name: "Alameda County Tax Collector" },
   { id: "qb-cdtfa", name: "CA Dept of Tax and Fee Administration" },
@@ -2152,6 +2187,15 @@ export const COMPANY: CompanySettings = {
   requireSubtypes: false,
   useTaxes: true,
   pricebookDefaultTaxableLabor: false,
+  // A new product opens TAXABLE — the "New product" Figma pre-selects it.
+  pricebookDefaultTaxableProduct: true,
+  // Inventory is ON for this company, and a new product opens as
+  // non-inventory (the Figma's pre-selected card). Both accounts have a
+  // default, so an inventory product opens with them filled (2026-10-17).
+  featureInventoryEnabled: true,
+  defaultTrackInventory: false,
+  quickbooksDefaultCogsAccountId: "qba-5010",
+  quickbooksDefaultAssetAccountId: "qba-1300",
 };
 
 // EXTENDED for the Invoices list, 2026-09-14: the badge-status model (see

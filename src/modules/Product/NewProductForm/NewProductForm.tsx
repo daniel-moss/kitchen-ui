@@ -2,6 +2,7 @@ import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import clsx from "clsx";
 
+import AlertBanner from "../../../components/AlertBanner/AlertBanner";
 import Badge from "../../../components/Badge/Badge";
 import Button from "../../../components/Button/Button";
 import Dialog from "../../../components/Dialog/Dialog";
@@ -15,6 +16,7 @@ import FormModuleGroup from "../../../components/FormModule/FormModuleGroup";
 import IconButton from "../../../components/IconButton/IconButton";
 import Input from "../../../components/Input/Input";
 import PopoverFooter from "../../../components/Popover/PopoverFooter";
+import Prompt from "../../../components/Prompt/Prompt";
 import RadioGroup from "../../../components/Radio/RadioGroup";
 import RadioItem from "../../../components/Radio/RadioItem";
 import SelectListItem from "../../../components/SelectList/SelectListItem";
@@ -26,13 +28,16 @@ import { DimensionUnit, WeightUnit } from "../../../data/db/types";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
+import AccountField from "./AccountField";
+import InventoryLevelsField from "./InventoryLevelsField";
 import {
   computePrice,
-  COUNTER_FROM,
   CostStrategy,
+  decimalText,
   DIMENSION_UNITS,
   dimensionsHelpText,
   isBlank,
+  isImageUrl,
   isMeasureText,
   isMoneyText,
   isPercentText,
@@ -42,63 +47,81 @@ import {
   MAX_NAME,
   MAX_PERCENT,
   MAX_TEXT,
+  missingDimensionsError,
+  NO_SUGGESTIONS,
   money,
   numberOf,
+  overLimitError,
   padMoneyOnBlur,
   PriceStrategy,
   resolveCost,
+  stripControlCharacters,
   WEIGHT_UNITS,
 } from "./productRules";
 import ScanCodeDialog from "./ScanCodeDialog";
 import VendorCostField from "./VendorCostField";
-import { NewProduct, NewProductFormProps, NewProductVendorCost } from "./NewProductForm.types";
+import { NewProduct, NewProductFormProps, NewProductInventoryLevel, NewProductVendorCost } from "./NewProductForm.types";
 
 import styles from "./NewProductForm.module.scss";
 
 // The reusable "New product" form (Figma file n4FkA98uVyhbOJeLY0AXZV —
 // Desktop 2003-1517 / Mobile 1-7826): a Dialog titled "New product" holding
-// four FormModules.
+// up to six FormModules, in this order.
 //
-//   General   Name · Subtype · Labels · Manufacturer · Manufacturer part # · Barcode
-//   Pricing   Vendor cost · Cost strategy · Price strategy · Taxability
-//   Details   Image URL · Dimensions · Weight
-//   Notes     Description · Internal notes
+//   General     Name · Subtype · Labels · Manufacturer · Manufacturer part # · Barcode
+//   Pricing     Vendor cost · Cost strategy · Price strategy · Taxability
+//   Inventory   Stock type · Inventory levels      (`inventory` — the company feature)
+//   Accounting  Revenue / Cost of goods / Inventory asset account
+//                                                  (`quickbooks` — QB Desktop + Detailed Split)
+//   Details     Image URL · Dimensions · Weight
+//   Notes       Description · Internal notes
 //
-// INVENTORY IS NOT BUILT YET (Daniel, 2026-10-13). It is the fifth module, and
-// the heaviest: a Non-inventory / Inventory choice that opens a row per
-// inventory location, and those rows are being designed.
+// The form's own rules:
 //
-// Three rules that are this form's own:
-//
-// 1. Cost strategy opens on MANUAL ("'Manual' is a default selection"), while
-//    Price strategy and Taxability open EMPTY and both are required — their
-//    nodes say "Default — No selection" and draw a "Choose …" error.
+// 1. Everything that can open on a value does: Cost AND Price strategy open on
+//    Manual, Taxability on the company default, Stock type on the company
+//    default, and the two inventory accounts on the company's default accounts.
 // 2. The three VENDOR cost strategies stay disabled until a vendor cost card
-//    exists, because without one production's trigger would write a cost of 0.
-//    Their captions show what each would resolve to, live.
-// 3. A unit travels only with its value. The unit selects open pre-filled, but
+//    exists, because without one production's trigger would write a cost of 0;
+//    their captions show what each would resolve to, live. Removing the LAST
+//    card while one of them is chosen falls back to Manual (showing its old
+//    value, or 0.00).
+// 3. A character limit never stops the typing — the field turns red with
+//    "60 / 50 characters" while it is over (see productRules).
+// 4. A unit travels only with its value. The unit selects open pre-filled, but
 //    an empty Weight sends no `weight_unit` and empty dimensions send no
-//    `dimension_unit` — the server rejects a unit without a value, and an
-//    untouched field means "not measured" however the select looks.
+//    `dimension_unit` — the server rejects a unit without a value.
+// 5. While a vendor or inventory card is open, Create does not create: it
+//    scrolls to that card.
+// 6. Two companies' users never see the form: with no synced QuickBooks income
+//    account, or a user who can not classify a required subtype (2+ subtypes),
+//    the form opens as an explaining Prompt with a single OK.
 
 export default function NewProductForm({
   open,
   onClose,
   subtypes = [],
   requireSubtypes = false,
+  cannotClassifySubtypes = false,
   useTaxes = true,
+  defaultIsTaxable = true,
   vendors = [],
   canCreateVendor = false,
   onCreateVendor,
+  inventory,
+  quickbooks,
   labelPool = [],
   existingNames = [],
   existingBarcodes = {},
   isCreateBlocked = false,
   onCreated,
-  onPreview,
   breakpoint = "auto",
 }: NewProductFormProps) {
   const mobile = !useIsDesktop(breakpoint);
+
+  // ---- the two entry Prompts (rule 6) ----
+  const noSyncedAccounts = quickbooks != null && quickbooks.revenueAccounts.length === 0;
+  const cantClassify = cannotClassifySubtypes && requireSubtypes && subtypes.length >= 2;
 
   // ---- General ----
   const [name, setName] = useState("");
@@ -107,21 +130,41 @@ export default function NewProductForm({
   const [manufacturer, setManufacturer] = useState("");
   const [partNumber, setPartNumber] = useState("");
   const [barcode, setBarcode] = useState("");
-  const [barcodeTouched, setBarcodeTouched] = useState(false);
   const [scanning, setScanning] = useState(false);
 
   // ---- Pricing ----
   const [vendorCosts, setVendorCosts] = useState<NewProductVendorCost[]>([]);
   const [costStrategy, setCostStrategy] = useState<CostStrategy>("manual");
   const [cost, setCost] = useState("");
-  const [priceStrategy, setPriceStrategy] = useState<PriceStrategy | null>(null);
+  const [priceStrategy, setPriceStrategy] = useState<PriceStrategy>("manual");
   const [price, setPrice] = useState("");
   const [fixedMarkup, setFixedMarkup] = useState("");
   const [percentMarkup, setPercentMarkup] = useState("");
-  const [isTaxable, setIsTaxable] = useState<boolean | null>(null);
+  const [isTaxable, setIsTaxable] = useState<boolean>(defaultIsTaxable);
+
+  // ---- Inventory ----
+  // "If there are no active inventory locations, Non-inventory is selected and
+  // the input is read-only. This rule also wins over the company's default."
+  const noActiveLocations = inventory != null && !inventory.locations.some((location) => location.isActive);
+  const [trackInventory, setTrackInventory] = useState<boolean>(
+    inventory != null && !noActiveLocations && inventory.defaultTrackInventory,
+  );
+  const [inventoryLevels, setInventoryLevels] = useState<NewProductInventoryLevel[]>([]);
+
+  // ---- Accounting ----
+  const [revenueAccountId, setRevenueAccountId] = useState<string | null>(null);
+  const [cogsAccountId, setCogsAccountId] = useState<string | null>(quickbooks?.defaultCogsAccountId ?? null);
+  const [assetAccountId, setAssetAccountId] = useState<string | null>(quickbooks?.defaultAssetAccountId ?? null);
+  const [syncNoticeDismissed, setSyncNoticeDismissed] = useState(false);
+
+  // Which "add a card" field has a card open (rule 5).
+  const [editingVendor, setEditingVendor] = useState(false);
+  const [editingLevel, setEditingLevel] = useState(false);
 
   // ---- Details ----
   const [imageUrl, setImageUrl] = useState("");
+  // The "Invalid URL" verdict of the last blur (or Create).
+  const [imageUrlChecked, setImageUrlChecked] = useState(false);
   const [length, setLength] = useState("");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
@@ -143,7 +186,17 @@ export default function NewProductForm({
   // A money field states its problem when it LOSES FOCUS, and from then on
   // live — the Labor rate form's rule, and every "Validates only when the field
   // loses the focus" annotation here.
-  const [touched, setTouched] = useState({ price: false, fixed: false, percent: false });
+  // The price checks that run "when the field loses the focus" — less than
+  // cost, a negative price, a percent over the top value. They are a VERDICT
+  // taken at that moment (blur of Cost, Price or a markup, or Create), not a
+  // live reading, so typing never flips them on or off. Kept with the strategy
+  // it was taken under, so another strategy's card does not inherit it.
+  const [priceVerdict, setPriceVerdict] = useState<{
+    strategy: PriceStrategy;
+    belowCost: boolean;
+    negative: boolean;
+    tooHigh: boolean;
+  } | null>(null);
   const [submitAttempt, setSubmitAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -175,42 +228,58 @@ export default function NewProductForm({
   const hasVendorCosts = vendorCostValues.length > 0;
   const resolvedCost = resolveCost(costStrategy, numberOf(cost), vendorCostValues);
   const percentValue = numberOf(percentMarkup);
-  const computedPrice = computePrice(priceStrategy ?? "manual", resolvedCost, numberOf(fixedMarkup), percentValue);
+  const computedPrice = computePrice(priceStrategy, resolvedCost, numberOf(fixedMarkup), percentValue);
 
   const markupText = priceStrategy === "fixedMarkup" ? fixedMarkup : percentMarkup;
   const markupEmpty = isBlank(markupText);
 
   // ---- validation ----
 
-  const nameLeft = Math.max(0, MAX_NAME - name.length);
+  // Name: duplicates are checked "in real-time while typing", ignoring case
+  // and the spaces around it.
   const missingName = name.trim() === "";
   const duplicateName = !missingName && existingNames.some((taken) => taken.trim().toLowerCase() === name.trim().toLowerCase());
+  const nameTooLong = overLimitError(name, MAX_NAME);
 
-  const barcodeLeft = Math.max(0, MAX_BARCODE - barcode.length);
+  // Barcode: the duplicate check runs while typing too.
   const barcodeOwner = barcode.trim() === "" ? undefined : existingBarcodes[barcode.trim()];
-  const duplicateBarcode = barcodeOwner != null && barcodeTouched;
+  const barcodeTooLong = overLimitError(barcode, MAX_BARCODE);
 
-  const manufacturerLeft = Math.max(0, MAX_TEXT - manufacturer.length);
-  const partNumberLeft = Math.max(0, MAX_TEXT - partNumber.length);
-  const imageUrlLeft = Math.max(0, MAX_IMAGE_URL - imageUrl.length);
+  const manufacturerTooLong = overLimitError(manufacturer, MAX_TEXT);
+  const partNumberTooLong = overLimitError(partNumber, MAX_TEXT);
+  const imageUrlTooLong = overLimitError(imageUrl, MAX_IMAGE_URL);
+  // "Invalid URL" — validated when the field loses the focus.
+  const imageUrlInvalid = !isImageUrl(imageUrl);
 
   const missingSubtype = requireSubtypes && subtypes.length > 0 && subtypeId == null;
-  const missingPriceStrategy = priceStrategy == null;
-  const missingTaxability = useTaxes && isTaxable == null;
 
+  // Accounting: the revenue account always, the two inventory ones only for an
+  // inventory product.
+  const hasAccounting = quickbooks != null && !noSyncedAccounts;
+  const missingRevenueAccount = hasAccounting && revenueAccountId == null;
+  const missingInventoryAccounts = hasAccounting && trackInventory && (cogsAccountId == null || assetAccountId == null);
+
+  // Cost is required under Manual — "Enter Cost" (Figma 4057-13777).
+  const missingCost = costStrategy === "manual" && isBlank(cost);
   const missingPrice = priceStrategy === "manual" && isBlank(price);
   const missingMarkup = (priceStrategy === "fixedMarkup" || priceStrategy === "percentMarkup") && markupEmpty;
-  const negativePrice = priceStrategy !== "manual" && priceStrategy != null && !markupEmpty && computedPrice < 0;
+  const negativePrice = priceStrategy !== "manual" && !markupEmpty && computedPrice < 0;
   const percentTooHigh = priceStrategy === "percentMarkup" && percentValue > MAX_PERCENT;
   const belowCost =
     priceStrategy === "manual"
       ? !isBlank(price) && numberOf(price) < resolvedCost
       : !markupEmpty && computedPrice >= 0 && computedPrice < resolvedCost;
 
-  const priceChecked = showErrors || touched.price;
-  const markupChecked = showErrors || (priceStrategy === "fixedMarkup" ? touched.fixed : touched.percent);
-  const showBelowCost = belowCost && (priceStrategy === "manual" ? priceChecked : markupChecked);
-  const showNegativePrice = negativePrice && markupChecked;
+  const judgePrice = () =>
+    setPriceVerdict({ strategy: priceStrategy, belowCost, negative: negativePrice, tooHigh: percentTooHigh });
+  const verdict = priceVerdict?.strategy === priceStrategy ? priceVerdict : null;
+  const showBelowCost = verdict?.belowCost === true;
+  const showNegativePrice = verdict?.negative === true;
+  const showPercentTooHigh = verdict?.tooHigh === true;
+  // An EMPTY value is checked by Create only, and marks the input alone — the
+  // card turns red only for a negative price or a percent over the top value.
+  const showMissingPrice = showErrors && missingPrice;
+  const showMissingMarkup = showErrors && missingMarkup;
 
   // The three dimensions are all-or-nothing (production's own pairing rule).
   const dimensionValues = [length, width, height];
@@ -221,14 +290,21 @@ export default function NewProductForm({
   const blocked =
     missingName ||
     duplicateName ||
+    nameTooLong != null ||
     barcodeOwner != null ||
+    barcodeTooLong != null ||
+    manufacturerTooLong != null ||
+    partNumberTooLong != null ||
     missingSubtype ||
-    missingPriceStrategy ||
-    missingTaxability ||
+    missingCost ||
     missingPrice ||
     missingMarkup ||
     negativePrice ||
     percentTooHigh ||
+    missingRevenueAccount ||
+    missingInventoryAccounts ||
+    imageUrlTooLong != null ||
+    imageUrlInvalid ||
     partialDimensions;
 
   const dirty =
@@ -239,8 +315,12 @@ export default function NewProductForm({
     partNumber.trim() !== "" ||
     barcode.trim() !== "" ||
     vendorCosts.length > 0 ||
-    priceStrategy != null ||
-    isTaxable != null ||
+    !isBlank(cost) ||
+    !isBlank(price) ||
+    !isBlank(fixedMarkup) ||
+    !isBlank(percentMarkup) ||
+    inventoryLevels.length > 0 ||
+    revenueAccountId != null ||
     imageUrl.trim() !== "" ||
     anyDimension ||
     !isBlank(weight) ||
@@ -269,9 +349,27 @@ export default function NewProductForm({
     if (lockedSubtype && subtypeId == null) setSubtypeId(lockedSubtype.id);
   }, [lockedSubtype, subtypeId]);
 
+  // Removing the LAST vendor card under a vendor strategy falls back to
+  // Manual, showing its old value or "0.00" (the "Remove Last Vendor Cost"
+  // annotation).
+  const changeVendorCosts = (next: NewProductVendorCost[]) => {
+    setVendorCosts(next);
+    if (next.length === 0 && costStrategy !== "manual") {
+      setCostStrategy("manual");
+      if (isBlank(cost)) setCost("0.00");
+    }
+  };
+
   const create = async () => {
+    // Rule 5: an open card is unfinished work — go back to it.
+    if (editingVendor || editingLevel) {
+      bodyRef.current?.querySelector("[data-editing-card]")?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    judgePrice();
     if (blocked) {
       setShowErrors(true);
+      setImageUrlChecked(imageUrlInvalid);
       setSubmitAttempt((previous) => previous + 1);
       return;
     }
@@ -286,11 +384,16 @@ export default function NewProductForm({
       vendorCosts,
       costStrategy,
       cost: resolvedCost,
-      priceStrategy: priceStrategy ?? "manual",
+      priceStrategy,
       price: priceStrategy === "manual" ? numberOf(price) : computedPrice,
       fixedMarkup: priceStrategy === "fixedMarkup" ? numberOf(fixedMarkup) : undefined,
       percentMarkup: priceStrategy === "percentMarkup" ? percentValue : undefined,
-      isTaxable: isTaxable ?? false,
+      isTaxable: useTaxes ? isTaxable : false,
+      trackInventory,
+      inventoryLevels: trackInventory ? inventoryLevels : [],
+      revenueAccountId: hasAccounting ? (revenueAccountId ?? undefined) : undefined,
+      cogsAccountId: hasAccounting && trackInventory ? (cogsAccountId ?? undefined) : undefined,
+      assetAccountId: hasAccounting && trackInventory ? (assetAccountId ?? undefined) : undefined,
       imageUrl: imageUrl.trim(),
       // The unit only travels with a value — see the header note.
       weight: isBlank(weight) ? undefined : numberOf(weight),
@@ -311,7 +414,7 @@ export default function NewProductForm({
       toast({
         type: "error",
         variant: "detailed",
-        title: "Could not create the product",
+        title: "Couldn't create the product",
         caption: "Something went wrong. Please try again.",
       });
       return;
@@ -322,7 +425,6 @@ export default function NewProductForm({
       variant: "detailed",
       title: "Product created",
       caption: product.name,
-      cta: onPreview == null ? undefined : { children: "Preview", onClick: () => onPreview(product) },
     });
     onClose();
   };
@@ -345,6 +447,23 @@ export default function NewProductForm({
       isWarning={showBelowCost}
     />
   );
+
+  if (noSyncedAccounts || cantClassify)
+    return (
+      <Prompt
+        open={open}
+        title={noSyncedAccounts ? "Sync QuickBooks accounts first" : "You can't create products"}
+        body={
+          noSyncedAccounts
+            ? "No QuickBooks accounts have been synced yet. Run a sync in the QuickBooks Web Connector, then create the product."
+            : "Every product needs a subtype, and your account can’t choose one. Ask an admin to create the product."
+        }
+        hasCancel={false}
+        actionLabel="OK"
+        onAction={onClose}
+        breakpoint={breakpoint}
+      />
+    );
 
   return (
     <>
@@ -379,13 +498,13 @@ export default function NewProductForm({
           <FormModuleGroup>
             {/* ---------------- General ---------------- */}
             <FormModule title="General">
-              <Input label="Name" helpText={nameLeft <= COUNTER_FROM ? `${nameLeft} characters left` : undefined}>
+              <Input label="Name">
                 <TextField
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  maxLength={MAX_NAME}
-                  isValid={!(showErrors && (missingName || duplicateName))}
-                  errorMessage={duplicateName ? "Product with this name already exists" : undefined}
+                  {...NO_SUGGESTIONS}
+                  isValid={!(nameTooLong || duplicateName || (showErrors && missingName))}
+                  errorMessage={nameTooLong ?? (duplicateName ? "Product with this name already exists" : undefined)}
                 />
               </Input>
 
@@ -430,43 +549,38 @@ export default function NewProductForm({
 
               {/* One row on desktop (280 + 16 + 280 in the node), stacked on a phone. */}
               <div className={clsx(styles.fieldRow, mobile && styles.fieldRowStacked)}>
-                <Input
-                  label="Manufacturer"
-                  labelCondition="optional"
-                  helpText={manufacturerLeft <= COUNTER_FROM ? `${manufacturerLeft} characters left` : undefined}
-                >
-                  <TextField value={manufacturer} onChange={(event) => setManufacturer(event.target.value)} maxLength={MAX_TEXT} />
+                <Input label="Manufacturer" labelCondition="optional">
+                  <TextField
+                    value={manufacturer}
+                    onChange={(event) => setManufacturer(event.target.value)}
+                    {...NO_SUGGESTIONS}
+                    isValid={manufacturerTooLong == null}
+                    errorMessage={manufacturerTooLong}
+                  />
                 </Input>
 
-                <Input
-                  label="Manufacturer part #"
-                  labelCondition="optional"
-                  helpText={partNumberLeft <= COUNTER_FROM ? `${partNumberLeft} characters left` : undefined}
-                >
-                  <TextField value={partNumber} onChange={(event) => setPartNumber(event.target.value)} maxLength={MAX_TEXT} />
+                <Input label="Manufacturer part #" labelCondition="optional">
+                  <TextField
+                    value={partNumber}
+                    onChange={(event) => setPartNumber(event.target.value)}
+                    {...NO_SUGGESTIONS}
+                    isValid={partNumberTooLong == null}
+                    errorMessage={partNumberTooLong}
+                  />
                 </Input>
               </div>
 
-              {/* The code and its scanner. The duplicate check fires on blur —
-                  typing a code that is taken should not wait for Create. */}
-              <Input
-                label="Barcode or QR code"
-                labelCondition="optional"
-                helpText={
-                  barcodeLeft <= COUNTER_FROM ? `${barcodeLeft} characters left` : "Scan or type the code printed on the product"
-                }
-              >
+              {/* The code and its scanner. The duplicate check runs while
+                  typing; control characters (a scanned GS1 code can carry
+                  them) are dropped on the way in. */}
+              <Input label="Barcode or QR code" labelCondition="optional" helpText="Scan or type the code printed on the product">
                 <div className={styles.barcodeRow}>
                   <TextField
                     value={barcode}
-                    onChange={(event) => {
-                      setBarcode(event.target.value);
-                      setBarcodeTouched(false);
-                    }}
-                    onBlur={() => setBarcodeTouched(true)}
-                    maxLength={MAX_BARCODE}
-                    isValid={!duplicateBarcode}
-                    errorMessage={duplicateBarcode ? `Already registered to ${barcodeOwner}` : undefined}
+                    onChange={(event) => setBarcode(stripControlCharacters(event.target.value))}
+                    {...NO_SUGGESTIONS}
+                    isValid={barcodeTooLong == null && barcodeOwner == null}
+                    errorMessage={barcodeTooLong ?? (barcodeOwner != null ? `Already registered to ${barcodeOwner}` : undefined)}
                   />
                   <HoverTooltip text="Scan">
                     <IconButton icon="qrcode-read" variant="ghost" size="lg" aria-label="Scan" onClick={() => setScanning(true)} />
@@ -480,10 +594,11 @@ export default function NewProductForm({
               <VendorCostField
                 vendors={vendors}
                 costs={vendorCosts}
-                onChange={setVendorCosts}
+                onChange={changeVendorCosts}
                 costFollowsVendors={costStrategy !== "manual"}
                 canCreateVendor={canCreateVendor}
                 onCreateVendor={onCreateVendor}
+                onEditingChange={setEditingVendor}
                 mobile={mobile}
               />
 
@@ -503,11 +618,16 @@ export default function NewProductForm({
                       <Input label="Cost">
                         <TextField
                           value={cost}
-                          onChange={(event) => isMoneyText(event.target.value) && setCost(event.target.value)}
-                          onBlur={() => setCost(padMoneyOnBlur(cost))}
+                          onChange={(event) => isMoneyText(decimalText(event.target.value)) && setCost(decimalText(event.target.value))}
+                          onBlur={() => {
+                            setCost(padMoneyOnBlur(cost));
+                            judgePrice();
+                          }}
                           keyboard="decimal"
                           prefix="$"
                           placeholder="0.00"
+                          // "Enter Cost" — checked by Create only.
+                          isValid={!(showErrors && missingCost)}
                         />
                       </Input>
                     }
@@ -536,26 +656,25 @@ export default function NewProductForm({
               <Input label="Price strategy">
                 <RadioGroup
                   orientation="vertical"
-                  value={priceStrategy ?? undefined}
+                  value={priceStrategy}
                   onChange={(value) => setPriceStrategy(value as PriceStrategy)}
-                  isValid={!(showErrors && missingPriceStrategy)}
                 >
                   <RadioItem
                     value="manual"
                     label="Manual"
-                    error={priceStrategy === "manual" && priceChecked && missingPrice}
                     content={
                       <Input label="Price" helpText={showBelowCost ? "Less than cost" : undefined} helpTextStatus="warning">
                         <TextField
                           value={price}
-                          onChange={(event) => isMoneyText(event.target.value) && setPrice(event.target.value)}
+                          onChange={(event) => isMoneyText(decimalText(event.target.value)) && setPrice(decimalText(event.target.value))}
                           onBlur={() => {
                             setPrice(padMoneyOnBlur(price));
-                            setTouched((prev) => ({ ...prev, price: true }));
+                            judgePrice();
                           }}
                           keyboard="decimal"
                           prefix="$"
-                          isValid={!(priceChecked && missingPrice)}
+                          placeholder="0.00"
+                          isValid={!showMissingPrice}
                         />
                       </Input>
                     }
@@ -564,21 +683,22 @@ export default function NewProductForm({
                   <RadioItem
                     value="fixedMarkup"
                     label="Fixed markup"
-                    error={priceStrategy === "fixedMarkup" && markupChecked && (missingMarkup || negativePrice)}
+                    error={priceStrategy === "fixedMarkup" && showNegativePrice}
                     contentPadded={false}
                     content={
                       <div className={styles.cardContent}>
                         <Input label="Fixed markup">
                           <TextField
                             value={fixedMarkup}
-                            onChange={(event) => isSignedMoneyText(event.target.value) && setFixedMarkup(event.target.value)}
+                            onChange={(event) => isSignedMoneyText(decimalText(event.target.value)) && setFixedMarkup(decimalText(event.target.value))}
                             onBlur={() => {
                               setFixedMarkup(padMoneyOnBlur(fixedMarkup));
-                              setTouched((prev) => ({ ...prev, fixed: true }));
+                              judgePrice();
                             }}
-                            keyboard="decimal"
+                            {...NO_SUGGESTIONS}
                             prefix="$"
-                            isValid={!(markupChecked && (missingMarkup || negativePrice))}
+                            placeholder="0.00"
+                            isValid={!(showMissingMarkup || showNegativePrice)}
                             // The negative price's own message is the Price row
                             // below, so the field turns red without one.
                             errorMessage={showNegativePrice ? "" : undefined}
@@ -592,23 +712,24 @@ export default function NewProductForm({
                   <RadioItem
                     value="percentMarkup"
                     label="Percent markup"
-                    error={priceStrategy === "percentMarkup" && markupChecked && (missingMarkup || negativePrice || percentTooHigh)}
+                    error={priceStrategy === "percentMarkup" && (showNegativePrice || showPercentTooHigh)}
                     contentPadded={false}
                     content={
                       <div className={styles.cardContent}>
                         <Input label="Percent markup">
                           <TextField
                             value={percentMarkup}
-                            onChange={(event) => isPercentText(event.target.value) && setPercentMarkup(event.target.value)}
+                            onChange={(event) => isPercentText(decimalText(event.target.value)) && setPercentMarkup(decimalText(event.target.value))}
                             onBlur={() => {
                               setPercentMarkup(padMoneyOnBlur(percentMarkup));
-                              setTouched((prev) => ({ ...prev, percent: true }));
+                              judgePrice();
                             }}
-                            keyboard="decimal"
+                            {...NO_SUGGESTIONS}
                             suffix="%"
-                            isValid={!(markupChecked && (missingMarkup || negativePrice || percentTooHigh))}
+                            placeholder="0.00"
+                            isValid={!(showMissingMarkup || showNegativePrice || showPercentTooHigh)}
                             errorMessage={
-                              markupChecked && percentTooHigh ? `Must be ${MAX_PERCENT}% or less` : showNegativePrice ? "" : undefined
+                              showPercentTooHigh ? `Must be ${MAX_PERCENT}% or less` : showNegativePrice ? "" : undefined
                             }
                           />
                         </Input>
@@ -623,9 +744,8 @@ export default function NewProductForm({
                 <Input label="Taxability">
                   <RadioGroup
                     orientation="horizontal"
-                    value={isTaxable == null ? undefined : isTaxable ? "taxable" : "non-taxable"}
+                    value={isTaxable ? "taxable" : "non-taxable"}
                     onChange={(value) => setIsTaxable(value === "taxable")}
-                    isValid={!(showErrors && missingTaxability)}
                   >
                     <RadioItem value="non-taxable" label="Non-taxable" />
                     <RadioItem value="taxable" label="Taxable" />
@@ -634,18 +754,105 @@ export default function NewProductForm({
               )}
             </FormModule>
 
+            {/* ---------------- Inventory ---------------- */}
+            {/* "Only shown if the company enables this feature (Django)." */}
+            {inventory != null && (
+              <FormModule title="Inventory">
+                <Input label="Stock type">
+                  <RadioGroup
+                    orientation="vertical"
+                    value={trackInventory ? "inventory" : "nonInventory"}
+                    onChange={(value) => setTrackInventory(value === "inventory")}
+                  >
+                    <RadioItem value="nonInventory" label="Non-inventory" caption="Stock isn't tracked" readOnly={noActiveLocations} />
+                    <RadioItem
+                      value="inventory"
+                      label="Inventory"
+                      caption={
+                        noActiveLocations
+                          ? "Add an inventory location first. Contact Roopairs support."
+                          : "Stock is tracked at each location and updates with jobs and purchase orders"
+                      }
+                      readOnly={noActiveLocations}
+                    />
+                  </RadioGroup>
+                </Input>
+
+                {trackInventory && (
+                  <InventoryLevelsField
+                    locations={inventory.locations}
+                    levels={inventoryLevels}
+                    onChange={setInventoryLevels}
+                    onEditingChange={setEditingLevel}
+                    mobile={mobile}
+                  />
+                )}
+              </FormModule>
+            )}
+
+            {/* ---------------- Accounting ---------------- */}
+            {/* "Only shown if a service company uses QuickBooks Desktop and
+                chose the Detailed Split line-item setup in settings." */}
+            {hasAccounting && quickbooks != null && (
+              <FormModule
+                title="Accounting"
+                banner={
+                  !syncNoticeDismissed && (
+                    <AlertBanner type="card" status="info" orientation="vertical" onDismiss={() => setSyncNoticeDismissed(true)}>
+                      The product won&apos;t be available for use in invoice or estimate line items until it&apos;s been synced
+                      with QuickBooks Desktop
+                    </AlertBanner>
+                  )
+                }
+              >
+                <AccountField
+                  label="Revenue account"
+                  accounts={quickbooks.revenueAccounts}
+                  value={revenueAccountId}
+                  onChange={setRevenueAccountId}
+                  showErrors={showErrors}
+                  mobile={mobile}
+                />
+                {/* "Only shown for Inventory products." */}
+                {trackInventory && (
+                  <>
+                    <AccountField
+                      label="Cost of goods account"
+                      accounts={quickbooks.cogsAccounts}
+                      value={cogsAccountId}
+                      onChange={setCogsAccountId}
+                      defaultId={quickbooks.defaultCogsAccountId}
+                      showErrors={showErrors}
+                      mobile={mobile}
+                    />
+                    <AccountField
+                      label="Inventory asset account"
+                      accounts={quickbooks.assetAccounts}
+                      value={assetAccountId}
+                      onChange={setAssetAccountId}
+                      defaultId={quickbooks.defaultAssetAccountId}
+                      showErrors={showErrors}
+                      mobile={mobile}
+                    />
+                  </>
+                )}
+              </FormModule>
+            )}
+
             {/* ---------------- Details ---------------- */}
             <FormModule title="Details">
-              <Input
-                label="Image URL"
-                labelCondition="optional"
-                helpText={imageUrlLeft <= COUNTER_FROM ? `${imageUrlLeft} characters left` : undefined}
-              >
+              <Input label="Image URL" labelCondition="optional">
                 <TextField
                   value={imageUrl}
                   onChange={(event) => setImageUrl(event.target.value)}
-                  maxLength={MAX_IMAGE_URL}
+                  // "Validates when the field loses the focus" — the check runs
+                  // on blur only, so typing never flips the error on or off.
+                  onBlur={() => setImageUrlChecked(!isImageUrl(imageUrl))}
+                  keyboard="url"
+                  {...NO_SUGGESTIONS}
                   prefix="https://"
+                  isValid={imageUrlTooLong == null && !imageUrlChecked}
+                  errorMessage={imageUrlTooLong ?? "Invalid URL"}
                 />
               </Input>
 
@@ -673,27 +880,27 @@ export default function NewProductForm({
                     setDimensionsTouched(true);
                   }}
                 >
-                  <InputGroup isValid={!showDimensionError} errorMessage="The field is required when any dimension is set">
+                  <InputGroup isValid={!showDimensionError} errorMessage={missingDimensionsError(length, width, height)}>
                   <TextField
                     value={length}
-                    onChange={(event) => isMeasureText(event.target.value) && setLength(event.target.value)}
+                    onChange={(event) => isMeasureText(decimalText(event.target.value)) && setLength(decimalText(event.target.value))}
                     keyboard="decimal"
                     placeholder="Length"
                   />
                   <TextField
                     value={width}
-                    onChange={(event) => isMeasureText(event.target.value) && setWidth(event.target.value)}
+                    onChange={(event) => isMeasureText(decimalText(event.target.value)) && setWidth(decimalText(event.target.value))}
                     keyboard="decimal"
                     placeholder="Width"
                   />
                   <TextField
                     value={height}
-                    onChange={(event) => isMeasureText(event.target.value) && setHeight(event.target.value)}
+                    onChange={(event) => isMeasureText(decimalText(event.target.value)) && setHeight(decimalText(event.target.value))}
                     keyboard="decimal"
                     placeholder="Height"
                   />
                     <SelectField
-                      value={dimensionUnit}
+                      value={DIMENSION_UNITS.find((unit) => unit.value === dimensionUnit)?.tag}
                       fitContent
                       open={dimensionUnitPop.open}
                       onClick={(event: MouseEvent<HTMLDivElement>) => dimensionUnitPop.toggle(event.currentTarget)}
@@ -706,11 +913,11 @@ export default function NewProductForm({
                 <InputGroup>
                   <TextField
                     value={weight}
-                    onChange={(event) => isMeasureText(event.target.value) && setWeight(event.target.value)}
+                    onChange={(event) => isMeasureText(decimalText(event.target.value)) && setWeight(decimalText(event.target.value))}
                     keyboard="decimal"
                   />
                   <SelectField
-                    value={weightUnit}
+                    value={WEIGHT_UNITS.find((unit) => unit.value === weightUnit)?.tag}
                     fitContent
                     open={weightUnitPop.open}
                     onClick={(event: MouseEvent<HTMLDivElement>) => weightUnitPop.toggle(event.currentTarget)}
@@ -748,7 +955,7 @@ export default function NewProductForm({
         title="Subtype"
         searchable
         searchPlaceholder="Subtype..."
-        noResultsState={<EmptyState caption="No matching subtypes" />}
+        noResultsState={<EmptyState caption="No subtypes match" />}
       >
         <SelectListItemGroup>
           {/* "Only exists if subtype is NOT required by company settings." */}
@@ -802,7 +1009,7 @@ export default function NewProductForm({
             <SelectListItem
               key={unit.value}
               label={unit.name}
-              tag={unit.value}
+              tag={unit.tag}
               selected={unit.value === dimensionUnit}
               onClick={() => {
                 setDimensionUnit(unit.value);
@@ -819,7 +1026,7 @@ export default function NewProductForm({
             <SelectListItem
               key={unit.value}
               label={unit.name}
-              tag={unit.value}
+              tag={unit.tag}
               selected={unit.value === weightUnit}
               onClick={() => {
                 setWeightUnit(unit.value);
@@ -834,8 +1041,7 @@ export default function NewProductForm({
         open={scanning}
         onClose={() => setScanning(false)}
         onRegister={(code) => {
-          setBarcode(code);
-          setBarcodeTouched(true);
+          setBarcode(stripControlCharacters(code));
           setScanning(false);
         }}
         registered={existingBarcodes}

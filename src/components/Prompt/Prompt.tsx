@@ -26,6 +26,7 @@ export default function Prompt({
   title,
   body,
   cancelLabel = "Cancel",
+  hasCancel = true,
   onCancel,
   actionLabel,
   onAction,
@@ -59,9 +60,11 @@ export default function Prompt({
   const footer = (
     <PopoverFooter
       leadingButton={
-        <Button size="lg" variant="ghost" onClick={onCancel}>
-          {cancelLabel}
-        </Button>
+        hasCancel ? (
+          <Button size="lg" variant="ghost" onClick={onCancel}>
+            {cancelLabel}
+          </Button>
+        ) : undefined
       }
     >
       <Button

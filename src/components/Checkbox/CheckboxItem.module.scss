@@ -120,7 +120,12 @@
   background: var(--surface-interactive-press);
   box-shadow: inset 0 0 0 1px var(--gray-a8);
 }
-.card.interactive:not(.filled):not(.error):has(input:focus-visible) {
+// The card's OWN checkbox only: `:has(input:focus-visible)` would also light
+// the card up when a field inside the reveal slot takes focus (the "New
+// product" form's Target / Alert at, 2026-10-17). The checkbox is a direct
+// child of the label, so the child combinator keeps the ring on its control —
+// RadioItem's rule.
+.card.interactive:not(.filled):not(.error):has(> .srInput:focus-visible) {
   background: var(--surface-interactive-hover);
   box-shadow: inset 0 0 0 2px var(--gray-12);
 }
@@ -143,7 +148,7 @@
   background: var(--surface-interactive-press);
   box-shadow: inset 0 0 0 1px var(--gray-12);
 }
-.card.interactive.filled:not(.error):has(input:focus-visible) {
+.card.interactive.filled:not(.error):has(> .srInput:focus-visible) {
   background: var(--surface-interactive-hover);
   box-shadow: inset 0 0 0 2px var(--gray-12);
 }

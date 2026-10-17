@@ -79,6 +79,8 @@
   display: flex;
   gap: var(--size-4);
 
+  padding: var(--size-4);
+
   > * {
     flex: 1;
 
@@ -89,4 +91,9 @@
 // Mobile stacks them (the node: both 311 wide, one under the other).
 .draftFieldsStacked {
   flex-direction: column;
+}
+
+// "Make preferred" — the crown is amber-9 on the ghost button (the node).
+.preferredIcon {
+  color: var(--amber-9);
 }

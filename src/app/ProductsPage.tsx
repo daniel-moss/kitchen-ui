@@ -5,6 +5,7 @@ import { PRODUCT_FILTERS } from "./productFilters";
 import { TABLE_COLUMNS, sortProducts } from "./productsTable";
 import { PRODUCT_ROWS, ProductRow, labelsOf, productStatusLabel, subtypeNameOf } from "./productsData";
 import { PricebookListConfig, PricebookPage } from "./pricebookList";
+import { useProducts } from "./store/AppStore";
 
 // The PRODUCTS list — added 2026-09-16 (Daniel: "Build", against his "↳
 // Products" canvas 15058-61566). The pricebook's PART type (production
@@ -64,12 +65,16 @@ export interface ProductsPageProps {
 
 // WIRED 2026-10-13: "New" opens the "New product" form, which lives at app
 // level (shell/products.tsx) because the Create menu reaches it from any page.
-// The rows are still the frozen seed — nothing can be created until the
-// Inventory section is designed, so there is nothing for a store to hold yet.
+// Since 2026-10-17 the rows come from the app store, so a product created
+// there shows up here. A row click still does nothing: there is no "Product"
+// side panel yet.
 const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) => {
+  const rows = useProducts();
   const openNewProduct = useNewProduct();
 
-  return <PricebookPage config={PRODUCTS_LIST} breakpoint={breakpoint} onNavigate={onNavigate} onCreate={openNewProduct} />;
+  return (
+    <PricebookPage config={PRODUCTS_LIST} rows={rows} breakpoint={breakpoint} onNavigate={onNavigate} onCreate={openNewProduct} />
+  );
 };
 
 export default ProductsPage;

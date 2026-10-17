@@ -2,35 +2,62 @@ import { DimensionUnit, WeightUnit } from "../../../data/db/types";
 import { TEXT_SEPARATOR } from "../../../utils/textSeparator";
 
 // Every field rule of the "New product" form in one place (Figma file
-// n4FkA98uVyhbOJeLY0AXZV — each input's own annotation), because four modules
+// n4FkA98uVyhbOJeLY0AXZV — each input's own annotation), because five modules
 // collect numbers and text that obey the same handful of rules.
 //
-//   Name              50 characters  · counter in the last 10 · no error at the cap
-//   Manufacturer      100 characters · the same counter rule
-//   Manufacturer #    100 characters · the same counter rule
-//   Barcode           255 characters · the same counter rule · unique per company
-//   Image URL         200 characters · the same counter rule
+//   Name              50 characters
+//   Manufacturer      100 characters
+//   Manufacturer #    100 characters
+//   Barcode           255 characters · unique per company · control characters dropped
+//   Image URL         200 characters · must read as a URL
+//   Vendor part #     100 characters
+//   Bin location      50 characters
 //   Cost / Price      3 decimals · 7 digits before the dot · NEGATIVE NOT allowed
 //   Fixed markup      3 decimals · 7 digits · negative IS allowed
-//   Percent markup    3 decimals · 3 digits · negative IS allowed · max 999%
+//   Percent markup    3 decimals · 3 digits · negative IS allowed · max 999.999%
 //   Weight / L·W·H    4 decimals · 6 digits · NEGATIVE NOT allowed
+//   On hand           3 decimals · 4 digits · negative IS allowed
+//   On order / Target / Alert at   3 decimals · 4 digits · NEGATIVE NOT allowed
 //
-// The characters each field accepts are part of the annotation, so they are
-// enforced on the way INTO state: a value the rules could not judge never
-// exists. The digit limits are production's columns — money is DECIMAL(10,3)
-// (7 before the dot), the percent DECIMAL(6,3) (3), and the measurements
-// DECIMAL(10,4) (6).
+// A CHARACTER LIMIT NEVER STOPS THE TYPING (Daniel, 2026-10-16, and every
+// "Characters Limit" annotation since): the field takes the text and turns
+// red in real time with "60 / 50 characters" while it is over. The NUMBER
+// rules are different — the characters each one accepts are part of its
+// annotation, so they are enforced on the way INTO state and a value the rules
+// could not judge never exists. The digit limits are production's columns —
+// money is DECIMAL(10,3) (7 before the dot), the percent DECIMAL(6,3) (3), the
+// measurements DECIMAL(10,4) (6), and the stock quantities DECIMAL(7,3) (4).
+
+/**
+ * Spread on every free-text field of the form: no autocomplete, autocorrect,
+ * auto-capitalisation or spell check. Turning all four off is what keeps the
+ * iPhone keyboard from drawing its suggestions bar over a field that holds a
+ * name, a code or a number (Daniel, 2026-10-17).
+ */
+export const NO_SUGGESTIONS = { autoComplete: "off", autoCorrect: "off", autoCapitalize: "off", spellCheck: false } as const;
+
+/**
+ * The iPhone "decimal" keyboard shows the separator of the phone's REGION — a
+ * comma in much of Europe — and a web page can not change that key. So every
+ * number field here reads a typed comma as the dot it means.
+ */
+export const decimalText = (value: string) => value.replace(/,/g, ".");
 
 export const MAX_NAME = 50;
 export const MAX_TEXT = 100;
 export const MAX_BARCODE = 255;
 export const MAX_IMAGE_URL = 200;
+export const MAX_BIN = 50;
 
-/** The counter only appears in the last stretch, on every capped field. */
-export const COUNTER_FROM = 10;
+/**
+ * The error a field shows while its text is over the limit — "60 / 50
+ * characters" — and undefined while it fits. One wording for every field.
+ */
+export const overLimitError = (value: string, max: number) =>
+  value.length > max ? `${value.length} / ${max} characters` : undefined;
 
-/** "Can not be greater than 999%" — the Percent markup's own error state. */
-export const MAX_PERCENT = 999;
+/** "The value can't be greater than this" — the Percent markup's top value. */
+export const MAX_PERCENT = 999.999;
 
 export type CostStrategy = "manual" | "minVendorCost" | "maxVendorCost" | "avgVendorCost";
 export type PriceStrategy = "manual" | "fixedMarkup" | "percentMarkup";
@@ -56,6 +83,36 @@ export const isPercentText = (value: string) =>
 /** Weight and the three dimensions: 4 decimals, 6 digits, never negative. */
 export const isMeasureText = (value: string) => isNumberText(value, 4, 6);
 
+/** On order, Target and Alert at: 3 decimals, 4 digits, never negative. */
+export const isQuantityText = (value: string) => isNumberText(value, 3, 4);
+
+/** On hand — the one stock number that may go below zero. */
+export const isSignedQuantityText = (value: string) =>
+  (value === "" || value === "-" || /^-?\d*\.?\d*$/.test(value)) && digitsAfter(value) <= 3 && digitsBefore(value) <= 4;
+
+/**
+ * "Automatically removes control characters to avoid error states" — a
+ * scanned GS1 code can carry them, and the server rejects the code if it does.
+ */
+// eslint-disable-next-line no-control-regex
+export const stripControlCharacters = (value: string) => value.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+
+/**
+ * The Image URL's "Invalid URL" check. The field draws "https://" as its
+ * prefix, so the user types the rest — a host with a dot and no spaces is
+ * enough; a pasted full link with its own scheme is accepted too.
+ */
+export const isImageUrl = (value: string) => {
+  const text = value.trim();
+  if (text === "") return true;
+  try {
+    const url = new URL(/^[a-z]+:\/\//i.test(text) ? text : `https://${text}`);
+    return /^https?:$/.test(url.protocol) && url.hostname.includes(".") && !/\s/.test(text);
+  } catch {
+    return false;
+  }
+};
+
 /** "No value = 0", and a half-typed "-" or "." is worth 0 too. */
 export const numberOf = (value: string) => {
   const parsed = Number(value);
@@ -66,10 +123,11 @@ export const numberOf = (value: string) => {
 export const isBlank = (value: string) => value.trim() === "" || value.trim() === "-" || value.trim() === ".";
 
 /**
- * What a MONEY field holds after it loses focus: the typed value padded to at
- * least two decimals — "100" → "100.00", "100.5" → "100.50", "100.046"
- * unchanged (Daniel, 2026-10-13). An empty field stays empty, so the Cost
- * placeholder keeps showing.
+ * What a MONEY or PERCENT field holds after it loses focus: the typed value
+ * padded to at least two decimals — "100" → "100.00", "100.5" → "100.50",
+ * "100.046" unchanged, and "50%" → "50.00%" (Daniel, 2026-10-13; the percent
+ * joined on 2026-10-17). An empty field stays empty, so a placeholder keeps
+ * showing.
  *
  * NOTE this is the opposite of the Labor rate and Tax rate forms, where the
  * blur formatter was deleted on 2026-10-09. Daniel: the pad-to-2 is the
@@ -123,24 +181,30 @@ export function computePrice(strategy: PriceStrategy, cost: number, fixed: numbe
   return roundMoney(cost);
 }
 
-/** The weight units, in production's own order (`core.choices.WeightUnit`). */
-export const WEIGHT_UNITS: { value: WeightUnit; name: string }[] = [
-  { value: "oz", name: "Ounces" },
-  { value: "lb", name: "Pounds" },
-  { value: "st", name: "Tons (US)" },
-  { value: "g", name: "Grams" },
-  { value: "Kg", name: "Kilograms" },
-  { value: "Mg", name: "Megagrams (Tonnes)" },
+/**
+ * The weight units, in production's own order (`core.choices.WeightUnit`).
+ * `value` is the code production STORES; `tag` is what the list and the field
+ * show. The two differ twice, on purpose: production stores "st" and "Kg",
+ * which read as STONE and a wrong-case kilogram, so the design shows "ton"
+ * and "kg" (Figma 4054-11871).
+ */
+export const WEIGHT_UNITS: { value: WeightUnit; name: string; tag: string }[] = [
+  { value: "oz", name: "Ounces", tag: "oz" },
+  { value: "lb", name: "Pounds", tag: "lb" },
+  { value: "st", name: "Tons (US)", tag: "ton" },
+  { value: "g", name: "Grams", tag: "g" },
+  { value: "Kg", name: "Kilograms", tag: "kg" },
+  { value: "Mg", name: "Megagrams (Tonnes)", tag: "Mg" },
 ];
 
-/** The dimension units (`core.choices.DimensionUnit`). */
-export const DIMENSION_UNITS: { value: DimensionUnit; name: string }[] = [
-  { value: "in", name: "Inches" },
-  { value: "ft", name: "Feet" },
-  { value: "yd", name: "Yards" },
-  { value: "mm", name: "Millimeters" },
-  { value: "cm", name: "Centimeters" },
-  { value: "m", name: "Meters" },
+/** The dimension units (`core.choices.DimensionUnit`). Here code = tag. */
+export const DIMENSION_UNITS: { value: DimensionUnit; name: string; tag: string }[] = [
+  { value: "in", name: "Inches", tag: "in" },
+  { value: "ft", name: "Feet", tag: "ft" },
+  { value: "yd", name: "Yards", tag: "yd" },
+  { value: "mm", name: "Millimeters", tag: "mm" },
+  { value: "cm", name: "Centimeters", tag: "cm" },
+  { value: "m", name: "Meters", tag: "m" },
 ];
 
 /**
@@ -158,3 +222,46 @@ export function dimensionsHelpText(length: string, width: string, height: string
   const part = (label: string, value: string) => (isBlank(value) ? label : `${label}: ${Number(value)} ${unit}`);
   return [part("Length", length), part("Width", width), part("Height", height)].join(TEXT_SEPARATOR);
 }
+
+/**
+ * The Dimensions error, which "lists the missing properties": "Enter Width
+ * and Height", "Enter Height". Undefined while all three or none are set.
+ */
+export function missingDimensionsError(length: string, width: string, height: string): string | undefined {
+  const parts: [string, string][] = [["Length", length], ["Width", width], ["Height", height]];
+  const missing = parts.filter(([, value]) => isBlank(value)).map(([label]) => label);
+  if (missing.length === 0 || missing.length === 3) return undefined;
+  return `Enter ${missing.length === 1 ? missing[0] : `${missing.slice(0, -1).join(", ")} and ${missing[missing.length - 1]}`}`;
+}
+
+// ---- inventory ---------------------------------------------------------------
+
+/**
+ * A location's stock status — the four "Inventory Location" Card statuses,
+ * judged on ON HAND + ON ORDER against the target (Figma 4121-34006):
+ *
+ *   full      on hand + on order ≥ target
+ *   limited   alert < on hand + on order < target
+ *   low       0 < on hand + on order ≤ alert
+ *   depleted  on hand + on order ≤ 0
+ *
+ * No target = no status (the card says "No target"). Without an alert the
+ * "low" band does not exist, so anything above zero and below the target is
+ * "limited".
+ */
+export type StockLevel = "full" | "limited" | "low" | "depleted";
+
+export function stockLevel(onHand: number, onOrder: number, target?: number, alertAt?: number): StockLevel | undefined {
+  if (target == null) return undefined;
+  const stock = onHand + onOrder;
+  if (stock <= 0) return "depleted";
+  if (stock >= target) return "full";
+  if (alertAt != null && stock <= alertAt) return "low";
+  return "limited";
+}
+
+/**
+ * A stock quantity as the card prints it: up to its three decimals, never
+ * padded, and a negative with the true MINUS SIGN (U+2212).
+ */
+export const quantity = (value: number) => `${Number(value.toFixed(3))}`.replace(/^-/, "−");

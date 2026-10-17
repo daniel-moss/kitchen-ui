@@ -1470,6 +1470,30 @@ export interface QuickbooksAccount {
 }
 
 /**
+ * A place the company keeps stock — production `InventoryLocation`
+ * (apps/inventory). Roopairs staff create them in Django; a user never can.
+ * The "New product" form's Inventory module adds one card per location the
+ * product is stocked at.
+ *
+ *   truck      a service van — usually carries its licence plate
+ *   warehouse  the company's own store
+ *   dropPoint  a box or locker a supplier delivers to
+ *
+ * Added 2026-10-17 with that module. INVENTED like every reference table here.
+ */
+export interface InventoryLocation {
+  id: string;
+  name: string;
+  type: "truck" | "warehouse" | "dropPoint";
+  /** The truck's licence plate. Shown before the name, only when it exists. */
+  plateNumber?: string;
+  /** The address "as written in the Django" — one free line, never split. */
+  address?: string;
+  /** Deactivated locations stay in the data, like vendors. */
+  isActive: boolean;
+}
+
+/**
  * A QuickBooks Desktop vendor — production `QuickBooksDesktopVendor`, synced
  * from QuickBooks and offered as the tax collection agency on a tax rate. The
  * picker shows the name; production stores QuickBooks' own ListID.
@@ -1623,4 +1647,32 @@ export interface CompanySettings {
    * per pricebook type; the demo needs the labor one.)
    */
   pricebookDefaultTaxableLabor: boolean;
+  /**
+   * Production `pricebook_default_taxable_part` — what a new PRODUCT's
+   * Taxability opens on (the "New product" form pre-selects it; added
+   * 2026-10-17).
+   */
+  pricebookDefaultTaxableProduct: boolean;
+
+  // ---- inventory + product accounting (added 2026-10-17) -------------------
+
+  /**
+   * Production `feature_inventory_enabled` — the Django switch behind the
+   * "New product" form's whole Inventory module.
+   */
+  featureInventoryEnabled: boolean;
+  /**
+   * Production `default_pricebook_track_inventory` — which "Stock type" a new
+   * product opens on. Production also has "Unknown", which behaves as
+   * non-inventory today, so the demo keeps the two real answers.
+   */
+  defaultTrackInventory: boolean;
+  /**
+   * The company's default QuickBooks accounts for an INVENTORY product —
+   * → QUICKBOOKS_COGS_ACCOUNTS / QUICKBOOKS_ASSET_ACCOUNTS. Undefined = nobody
+   * set it in Settings yet, or it was deleted in QuickBooks; the form then
+   * opens the field empty.
+   */
+  quickbooksDefaultCogsAccountId?: string;
+  quickbooksDefaultAssetAccountId?: string;
 }
