@@ -67,9 +67,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  // A 14px glyph sits in a --size-4 (16px) box; an avatar brings its own 20px.
+  // A 14px glyph sits in a --size-4 (16px) wide box; an avatar brings its own
+  // 20px. The box is as TALL as the label's line (--size-5, 20px), so a
+  // slot-only segment keeps the size's height (32 / 36) instead of shrinking
+  // to the glyph — the label is what set it, and it is gone.
   min-width: var(--size-4);
-  min-height: var(--size-4);
+  min-height: var(--size-5);
 }
 
 .label {
