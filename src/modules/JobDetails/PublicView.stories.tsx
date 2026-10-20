@@ -12,18 +12,20 @@ import JobDetails from "./JobDetails";
 // (Daniel, 2026-10-20).
 //
 // No single demo job carries everything the node draws, so the job is a
-// control: a completed job (the node's status), a recall (the Service module's
+// control: a finalized job (the default — its Summary tab shows the public
+// completed forms and the tech's work summary), a completed job (the node's
+// status), a recall (the Service module's
 // "Recall to" link and the Related row), a job created from an estimate (the
 // Related "Created from" row), a job on hold (the Status module's sub-status
 // and reason), and the closed statuses.
 
 const JOBS: Record<string, string> = {
+  "JOB-1209": "Finalized",
   "JOB-1204": "Completed",
   "JOB-1211": "Recall",
   "JOB-1206": "Created from an estimate",
   "JOB-1208": "On hold",
   "JOB-1201": "Active",
-  "JOB-1209": "Finalized",
   "JOB-1210": "Cancelled",
 };
 
@@ -37,7 +39,7 @@ interface PublicViewArgs {
 const meta: Meta<PublicViewArgs> = {
   title: "Modules/Job/Job Details/Public View",
   parameters: { layout: "fullscreen" },
-  args: { jobId: "JOB-1204", companyHasLogo: true },
+  args: { jobId: "JOB-1209", companyHasLogo: true },
   argTypes: {
     jobId: {
       name: "Job",
@@ -90,3 +92,4 @@ export const Mobile: Story = {
     </PhoneViewport>
   ),
 };
+

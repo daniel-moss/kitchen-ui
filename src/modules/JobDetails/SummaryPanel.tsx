@@ -16,7 +16,9 @@ import SignatureModule, { SignatureData, SignatureResult, SignatureState } from 
 import WorkSummaryForm from "./WorkSummaryForm";
 import useSummaryGenerator from "./summaryGenerator";
 
+import { jobById, workSummary } from "../../data/db";
 import type { ChargeGroup } from "../../data/db";
+import { useCurrentJobId } from "./currentJob";
 
 import styles from "./SummaryPanel.module.scss";
 
@@ -86,7 +88,15 @@ export default function SummaryPanel({
   const [sub, setSub] = useState("tech-work");
 
   // ---- Work summary (Figma 21833-91131) ----
-  const [summary, setSummary] = useState("");
+  // Seeded from the DATABASE (2026-10-20): a completed or finalized job comes
+  // with the summary its tech wrote (`workSummary` — empty for a job not yet
+  // worked). It used to start empty on every job, so a finished job showed the
+  // Generate button instead of what was done.
+  const jobId = useCurrentJobId();
+  const [summary, setSummary] = useState(() => {
+    const job = jobById(jobId);
+    return job == null ? "" : workSummary(job);
+  });
   const [summaryOpen, setSummaryOpen] = useState(false);
   // Which forms revision the current summary was written from, and where the
   // forms are now. Different → the "Forms updated" banner.
