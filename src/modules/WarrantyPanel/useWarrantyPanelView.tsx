@@ -12,6 +12,7 @@ import Prompt from "../../components/Prompt/Prompt";
 import { toast } from "../../components/Toast/Toaster";
 import { Warranty, warrantyStateOf } from "../../data/db";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import { semanticIcons } from "../../styles/semanticIcons";
 import { useAnchoredMenu } from "../shared/anchoredMenu";
 import EditNotesDialog from "../shared/EditNotesDialog";
 import { slot } from "../shared/helpers";
@@ -62,6 +63,8 @@ interface UseWarrantyPanelViewOptions extends WarrantyPanelActions {
    */
   active: boolean;
   isLoading?: boolean;
+  /** The read-only PUBLIC view — see `WarrantyPanelProps.isPublicView`. */
+  isPublicView?: boolean;
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
@@ -72,6 +75,7 @@ export function useWarrantyPanelView({
   onSaveNotes,
   onDelete,
   isLoading = false,
+  isPublicView = false,
   breakpoint = "auto",
 }: UseWarrantyPanelViewOptions): WarrantyPanelView {
   const mobile = !useIsDesktop(breakpoint);
@@ -113,13 +117,13 @@ export function useWarrantyPanelView({
   const remove = async () => {
     if (record == null) return;
     setDeleting(false);
-    // "Delete — 1. Deletes the warranty  2. Triggers the toast" (the Prompt's
-    // Delete annotation, node 21807-1804).
+    // "Delete — 1. Deletes the warranty.  2. Triggers the Toast." (the Prompt's
+    // Delete annotation; the toasts are node 21807-1804).
     if ((await onDelete?.(record)) === false) {
       toast({
         type: "error",
         variant: "detailed",
-        title: "Could not delete the warranty",
+        title: "Couldn't delete the warranty",
         caption: "Something went wrong. Please try again.",
       });
       return;
@@ -131,13 +135,14 @@ export function useWarrantyPanelView({
     return { title: "", avatar: null, headerActions: undefined, body: null, overlays: null };
   }
 
-  // ONE item: a danger "Delete" with the trash-can icon (node 21936-9254).
+  // ONE item: a danger "Delete" whose icon is the DS `--delete` token (node
+  // 21936-9254 binds it).
   const menuBody = (
     <MenuItemGroup>
       <MenuItem
         danger
         label="Delete"
-        slotLeft={slot("trash-can")}
+        slotLeft={slot(semanticIcons.delete)}
         onClick={() => {
           menu.close();
           setDeleting(true);
@@ -154,10 +159,11 @@ export function useWarrantyPanelView({
     // would be a guess (the Loading frame sets status="none").
     avatar: <AvatarWarranty size="xl" status={isLoading ? "none" : warrantyStateOf(record)} />,
     // While loading there is nothing to act on yet, so the context menu is
-    // hidden — the Loading frame draws the header with actions=false.
-    headerActions: isLoading ? undefined : (
+    // hidden — the Loading frame draws the header with actions=false. The
+    // public view has no menu either ("No context menu IconButton").
+    headerActions: isLoading || isPublicView ? undefined : (
       <IconButton
-        icon="ellipsis"
+        icon={semanticIcons.contextMenu}
         variant="ghost"
         size="md"
         aria-label="More actions"
@@ -168,11 +174,27 @@ export function useWarrantyPanelView({
     ),
     body: (
       <>
-        <GeneralDetailsModule warranty={record} onEdit={() => setEditingDetails(true)} isLoading={isLoading} />
-        <NotesModule notes={record.details} onEdit={() => setEditingNotes(true)} isLoading={isLoading} />
+        <GeneralDetailsModule
+          warranty={record}
+          onEdit={() => setEditingDetails(true)}
+          isLoading={isLoading}
+          canEdit={!isPublicView}
+        />
+        {/* The Notes copy follows the 2026-10-20 update: empty = "No notes",
+            copy failure = 'Couldn't copy "Notes"' (nodes 21869-14043 and
+            21869-14063). The public view keeps Copy only. */}
+        <NotesModule
+          notes={record.details}
+          onEdit={() => setEditingNotes(true)}
+          isLoading={isLoading}
+          emptyCaption="No notes"
+          copyErrorTitle={'Couldn\'t copy "Notes"'}
+          canEdit={!isPublicView}
+        />
       </>
     ),
-    overlays: (
+    // The public view opens nothing: no menu, no forms, no Prompt.
+    overlays: isPublicView ? null : (
       <>
         {mobile ? (
           <Menu
@@ -208,12 +230,16 @@ export function useWarrantyPanelView({
           onSave={saveDetails}
           breakpoint={breakpoint}
         />
+        {/* Titled "Notes" since the 2026-10-20 update (it was "Warranty
+            notes"); toasts '"Notes" module updated' / 'Couldn't update "Notes"
+            module' (node 21869-14056). */}
         <EditNotesDialog
           open={editingNotes}
           onClose={() => setEditingNotes(false)}
           notes={record.details}
           onSave={saveNotes}
-          title="Warranty notes"
+          toastSubject={'"Notes" module'}
+          errorTitle={'Couldn\'t update "Notes" module'}
           optional
           breakpoint={breakpoint}
         />
@@ -224,7 +250,8 @@ export function useWarrantyPanelView({
           body={`Warranty ${record.name} will be permanently deleted. This action can not be undone.`}
           actionLabel="Delete"
           actionVariant="danger"
-          actionIcon="trash-can"
+          // The DS `--delete` token, as the node binds it (21864-11055).
+          actionIcon={semanticIcons.delete}
           onAction={remove}
           onCancel={() => setDeleting(false)}
           breakpoint={breakpoint}

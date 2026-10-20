@@ -7,10 +7,12 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
 
 /**
  * "January 1, 2026" — the LONG format, used by the General details modules
- * (Daniel, 2026-09-28: "the general details carries full date").
+ * (Daniel, 2026-09-28: "the general details carries full date"). Also takes a
+ * `Date`, so a DateField can show the same text through `formatValue` — no
+ * weekday (the Warranty "General" form, Daniel 2026-10-20).
  */
-export function formatLongDate(iso: string): string {
-  const date = new Date(iso);
+export function formatLongDate(value: string | Date): string {
+  const date = typeof value === "string" ? new Date(value) : value;
   return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 

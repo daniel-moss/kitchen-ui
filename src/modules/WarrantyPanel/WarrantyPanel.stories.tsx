@@ -9,9 +9,9 @@ import { DeviceFrame } from "../../stories/helpers";
 import WarrantyPanel from "./WarrantyPanel";
 
 // The "Warranty" side panel (Figma "Warranty Side Panel — Next Update", page
-// "👍 Validated"). One module every warranty object uses: the caller hands over
-// the record, the panel renders the two display modules — General details and
-// Notes — with no navigation and no footer.
+// "↳ Side Panel"). One module every warranty object uses: the caller hands over
+// the record, the panel renders the two display modules — General and Notes —
+// with no navigation and no footer.
 //
 // Four demo warranties out of the database:
 //   w-wd-walkin-parts  Manufacturer parts — ACTIVE, both dates, notes filled.
@@ -38,6 +38,7 @@ const Demo = ({
   isLoading,
   state,
   fails = false,
+  isPublicView = false,
 }: {
   record: Warranty;
   breakpoint: "desktop" | "mobile";
@@ -45,6 +46,7 @@ const Demo = ({
   state?: "content" | "error" | "offline";
   /** Every action reports failure — the three designed error toasts. */
   fails?: boolean;
+  isPublicView?: boolean;
 }) => {
   // The panel holds no record of its own — the caller is the source of truth,
   // so every Save lands here.
@@ -61,6 +63,7 @@ const Demo = ({
         onClose={() => setOpen(false)}
         warranty={warranty}
         isLoading={isLoading}
+        isPublicView={isPublicView}
         state={state}
         breakpoint={breakpoint}
         onSaveDetails={(edits) => (fails ? false : void setWarranty((prev) => ({ ...prev, ...edits })))}
@@ -114,11 +117,30 @@ export const Loading: Story = {
   render: () => <Demo record={ACTIVE} breakpoint="desktop" isLoading />,
 };
 
-/** Save and Delete report failure — the three "Could not …" toasts. */
+/** Save and Delete report failure — the three "Couldn't …" toasts. */
 export const ActionsFail: Story = {
   name: "Actions fail",
   parameters: { layout: "centered" },
   render: () => <Demo record={ACTIVE} breakpoint="desktop" fails />,
+};
+
+// ---- the PUBLIC view (Figma "Public View", 22148-2141) — what the client
+// sees: no context menu, no edit buttons, Notes keeps Copy.
+
+export const PublicDesktop: Story = {
+  name: "Public view — desktop",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={ACTIVE} breakpoint="desktop" isPublicView />,
+};
+
+export const PublicMobile: Story = {
+  name: "Public view — mobile",
+  parameters: { layout: "centered" },
+  render: () => (
+    <DeviceFrame statusBar homeIndicator>
+      <Demo record={ACTIVE} breakpoint="mobile" isPublicView />
+    </DeviceFrame>
+  ),
 };
 
 // The error / offline states are SidePanel's own behavior, documented and

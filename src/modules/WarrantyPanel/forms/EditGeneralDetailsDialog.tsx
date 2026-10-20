@@ -9,17 +9,18 @@ import PopoverFooter from "../../../components/Popover/PopoverFooter";
 import { toast } from "../../../components/Toast/Toaster";
 import { Warranty } from "../../../data/db";
 import useIsDesktop from "../../../hooks/useIsDesktop";
+import { formatLongDate } from "../../shared/dates";
 import { WarrantyEdits } from "../WarrantyPanel.types";
 
 import styles from "../../shared/fieldRow.module.scss";
 
-// The warranty's "General details" edit form (Figma 21869-13823): a default
-// Dialog titled "Warranty general details" holding the same three fields the
-// "New warranty" form collects, pre-filled — Name, Start date, End date.
-//
-// The design draws the RETIRED TextInput / DateInput; these are the current
-// `Input` wrapper + `TextField` / `DateField`. Its own annotation points at the
-// "New warranty" form for the inputs, so the two forms stay identical.
+// The warranty's "General" edit form (Figma 21869-13823): a default Dialog
+// titled "General" — the module's own name, since the 2026-10-20 update (it
+// was "Warranty general details") — holding the same three fields the "New
+// warranty" form collects, pre-filled: Name, Start date, End date. The
+// `Input` wrapper + `TextField` / `DateField`, exactly as the node draws them.
+// The date fields show "January 1, 2026" — month, day, year, NO weekday (the
+// node's values; Daniel 2026-10-20) — the same long format the module shows.
 //
 // NO FormModule: the form has no sections, so a section header repeating the
 // dialog's own title would be redundant (the Equipment panel's rule).
@@ -68,19 +69,19 @@ export default function EditGeneralDetailsDialog({ open, onClose, warranty, onSa
       return;
     }
 
-    // "Save — 1. Saves changes  2. Triggers the toast" (the Save button's
-    // annotation, node 21864-11908).
+    // "Save — 1. Saves changes.  2. Triggers the Toast." (the Save button's
+    // annotation; the toasts are node 21864-11908).
     if ((await onSave({ name: name.trim(), startDate: toIso(startDate)!, endDate: toIso(endDate) })) === false) {
       toast({
         type: "error",
         variant: "detailed",
-        title: 'Could not update "General details"',
+        title: 'Couldn\'t update "General" module',
         caption: "Something went wrong. Please try again.",
       });
       return;
     }
 
-    toast({ type: "success", title: '"General details" updated' });
+    toast({ type: "success", title: '"General" module updated' });
     onClose();
   };
 
@@ -88,7 +89,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, warranty, onSa
     <Dialog
       open={open}
       onClose={onClose}
-      title="Warranty general details"
+      title="General"
       breakpoint={breakpoint}
       confirmOnDismiss={dirty}
       footer={
@@ -118,6 +119,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, warranty, onSa
               isValid={!(showErrors && missingStartDate)}
               // A warranty cannot start after it ends.
               maxDate={endDate ?? undefined}
+              formatValue={formatLongDate}
               breakpoint={mobile ? "mobile" : "desktop"}
             />
           </Input>
@@ -126,6 +128,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, warranty, onSa
               value={endDate}
               onDateChange={setEndDate}
               minDate={startDate ?? undefined}
+              formatValue={formatLongDate}
               breakpoint={mobile ? "mobile" : "desktop"}
             />
           </Input>

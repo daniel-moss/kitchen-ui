@@ -4,12 +4,13 @@ import { useWarrantyPanelView } from "./useWarrantyPanelView";
 import { WarrantyPanelProps } from "./WarrantyPanel.types";
 
 // The "Warranty" side panel (Figma file RhlvzzPevWrSHCjZRPL19E, page
-// "👍 Validated"). ONE module for every warranty object; the warranty record is
+// "↳ Side Panel"). ONE module for every warranty object; the warranty record is
 // a prop, so nothing here is specific to one warranty.
 //
 // Unlike the Equipment panel this one has NO navigation and NO footer (the
 // node's SidePanel sets nav=false, footer=false) — the body is just the two
-// display modules: General details · Notes.
+// display modules: General · Notes. `isPublicView` is the client's read-only
+// version of the same panel.
 //
 // This file is only the SHELL. Everything inside lives in
 // `useWarrantyPanelView`, because the Equipment panel shows the same view
@@ -23,6 +24,7 @@ export default function WarrantyPanel({
   onSaveDetails,
   onSaveNotes,
   onDelete,
+  isPublicView = false,
   isLoading = false,
   state = "content",
   onRetry,
@@ -35,6 +37,7 @@ export default function WarrantyPanel({
     onSaveNotes,
     onDelete,
     isLoading,
+    isPublicView,
     breakpoint,
   });
 

@@ -10,6 +10,7 @@ import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import { formatLongDate } from "../shared/dates";
 
 import { NewWarranty, NewWarrantyFormProps } from "./NewWarrantyForm.types";
 
@@ -142,6 +143,9 @@ export default function NewWarrantyForm({
               isValid={!(showErrors && missingStartDate)}
               // A warranty cannot start after it ends.
               maxDate={endDate ?? undefined}
+              // "January 1, 2026" — no weekday, like the Warranty panel's
+              // "General" form (Daniel, 2026-10-20).
+              formatValue={formatLongDate}
               breakpoint={mobile ? "mobile" : "desktop"}
             />
           </Input>
@@ -150,6 +154,7 @@ export default function NewWarrantyForm({
               value={endDate}
               onDateChange={setEndDate}
               minDate={startDate ?? undefined}
+              formatValue={formatLongDate}
               breakpoint={mobile ? "mobile" : "desktop"}
             />
           </Input>

@@ -1,6 +1,6 @@
 import { Warranty } from "../../data/db";
 
-/** What the "General details" form hands back — the editable half of a Warranty. */
+/** What the "General" form hands back — the editable half of a Warranty. */
 export type WarrantyEdits = Pick<Warranty, "name" | "startDate" | "endDate">;
 
 /**
@@ -8,14 +8,14 @@ export type WarrantyEdits = Pick<Warranty, "name" | "startDate" | "endDate">;
  * Equipment panel, which shows the same view inside its own panel.
  *
  * Every one of the three may return `false` (or a Promise of it) to report that
- * the action FAILED — the view then shows the designed error toast ('Could not
- * update "General details"' / 'Could not update "Notes"' / "Could not delete
- * the warranty") and the form stays open with the values intact. Anything else,
+ * the action FAILED — the view then shows the designed error toast ('Couldn't
+ * update "General" module' / 'Couldn't update "Notes" module' / "Couldn't
+ * delete the warranty") and the form stays open with the values intact. Anything else,
  * a missing handler included, counts as success. Same contract as the "New
  * warranty" form's `onCreated`.
  */
 export interface WarrantyPanelActions {
-  /** Save from the "General details" form. */
+  /** Save from the "General" form. */
   onSaveDetails?: (edits: WarrantyEdits) => void | boolean | Promise<void | boolean>;
   /** Save from the "Notes" text-area dialog. */
   onSaveNotes?: (notes: string) => void | boolean | Promise<void | boolean>;
@@ -45,6 +45,17 @@ export interface WarrantyPanelProps extends WarrantyPanelActions {
    * panel's content, the CALLER keeps the stack and passes this.
    */
   onBack?: () => void;
+
+  // ---- view ----
+
+  /**
+   * The PUBLIC view — what the client sees (Figma "Public View", 22148-2141):
+   * - the header has no context menu, so the warranty cannot be deleted;
+   * - "General": no edit button;
+   * - "Notes": Copy only, no edit button.
+   * Nothing else changes. Default false.
+   */
+  isPublicView?: boolean;
 
   // ---- state ----
 
