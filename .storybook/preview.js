@@ -860,6 +860,25 @@ const preview = {
           [
             // Grouped into object folders on 2026-09-29 (Daniel). Folders
             // first, A→Z; the two modules that belong to no object yet follow.
+            "Contact",
+            [
+              '"Contact" Side Panel',
+              [
+                "Desktop",
+                "Mobile",
+                "Location contact — primary",
+                "Individual client",
+                "Job contact",
+                "No name",
+                "No phone or email",
+                "Inactive client",
+                "Someone is editing",
+                "Loading",
+                "Actions fail",
+                "Public view — desktop",
+                "Public view — mobile",
+              ],
+            ],
             "Equipment",
             [
               '"Equipment" Side Panel',

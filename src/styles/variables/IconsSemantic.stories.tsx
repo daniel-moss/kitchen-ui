@@ -35,7 +35,7 @@ const GROUPS: { group: string; tokens: string[] }[] = [
     group: "Navigation & app chrome",
     tokens: [
       "menu", "dropdown", "context-menu", "contact-support", "settings",
-      "help-center", "what-is-new", "request-feature", "log-out", "delete",
+      "help-center", "what-is-new", "request-feature", "log-out", "delete", "copy", "edit",
     ],
   },
   { group: "Files", tokens: ["private", "public"] },

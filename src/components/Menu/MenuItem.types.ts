@@ -28,7 +28,7 @@ type MenuItemCopyProps =
  * item's label as the title, so keep the label a string.
  */
 type MenuItemKindProps =
-  | { danger?: false; slotRight?: ReactNode; toggle?: never; checked?: never; defaultChecked?: never; onCheckedChange?: never; subMenu?: never; subMenuTitle?: never }
+  | { danger?: false; slotRight?: ReactNode; toggle?: never; checked?: never; defaultChecked?: never; onCheckedChange?: never; toggleDisabled?: never; subMenu?: never; subMenuTitle?: never }
   | {
       danger?: false;
       /** The row is an on/off switch (role="menuitemcheckbox"). */
@@ -38,6 +38,14 @@ type MenuItemKindProps =
       /** Uncontrolled initial state. Default false. */
       defaultChecked?: boolean;
       onCheckedChange?: (checked: boolean) => void;
+      /**
+       * The switch cannot be used: it dims and shows OFF, and the row stops
+       * responding (no hover, no focus, no click). Unlike `disabled`, the label
+       * and caption keep their full color — the row still reads, it just has
+       * nothing to switch (Figma "No channel": a reminder needs a phone or an
+       * email first, and the caption says which). Default false.
+       */
+      toggleDisabled?: boolean;
       slotRight?: never;
       subMenu?: never;
       subMenuTitle?: never;
@@ -53,7 +61,8 @@ type MenuItemKindProps =
       checked?: never;
       defaultChecked?: never;
       onCheckedChange?: never;
+      toggleDisabled?: never;
     }
-  | { danger: true; slotRight?: never; toggle?: never; checked?: never; defaultChecked?: never; onCheckedChange?: never; subMenu?: never; subMenuTitle?: never };
+  | { danger: true; slotRight?: never; toggle?: never; checked?: never; defaultChecked?: never; onCheckedChange?: never; toggleDisabled?: never; subMenu?: never; subMenuTitle?: never };
 
 export type MenuItemProps = MenuItemBaseProps & MenuItemCopyProps & MenuItemKindProps;

@@ -69,6 +69,12 @@ const meta: Meta<typeof ListItem> = {
         "What the caption line shows when `caption` has no value — \"No Location name\", \"No End date\". One token dimmer (`--text-placeholder`), the copy doc's standard empty behaviour. With neither, the caption line renders nothing.",
       table: { type: { summary: "ReactNode" } },
     },
+    titleStyle: {
+      options: ["bodyMedium", "bodyRegular"],
+      control: { type: "inline-radio" },
+      description: "The title's type style. `bodyRegular` (Inter Regular 14/20) is for a title that is a VALUE, not a name — a phone number, an email address.",
+      table: { type: { summary: '"bodyMedium" | "bodyRegular" | "caption"' }, defaultValue: { summary: '"bodyMedium"' } },
+    },
     titleLines: {
       options: LINES,
       control: { type: "inline-radio" },
@@ -94,6 +100,7 @@ const meta: Meta<typeof ListItem> = {
     // ---- clickable ----
     isClickable: flag("The whole row is a button: hover / press / focus states, and `onClick` fires. Clicks on a real control inside a slot stay in the slot."),
     onClick: slot("(event: MouseEvent<HTMLDivElement>) => void", "Row click handler. Needs `isClickable`."),
+    isPressed: flag("Holds the pressed look while something the row opened is showing — a menu anchored to it. Needs `isClickable`.", "false"),
     toggle: flag("The row is an on/off switch (`role=\"switch\"`): clicking anywhere flips the ToggleSwitch drawn at the end of the right slot. Needs `isClickable`."),
     checked: flag("Controlled on/off state (`toggle`)."),
     defaultChecked: flag("Uncontrolled initial on/off state (`toggle`).", "false"),

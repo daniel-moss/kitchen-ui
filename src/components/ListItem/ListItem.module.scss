@@ -79,6 +79,10 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
 .clickable:active:not(.dragging):not(:has(.slotStop :is(#{$slot-interactive}):active)):not(:has(.slotBottom :is(#{$slot-interactive}):active)) {
   @include row-press-fill;
 }
+// `isPressed` — held while the row's own menu is open.
+.pressed:not(.dragging) {
+  @include row-press-fill;
+}
 // Focus — the DS focus ring: 2px stroke, 2px gap; the inner fill's corner is
 // the row radius minus those 4px, so it lands at `--border-radius-1` (4px).
 .clickable:focus-visible {

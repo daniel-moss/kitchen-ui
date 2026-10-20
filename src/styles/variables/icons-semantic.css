@@ -19,6 +19,8 @@
   --request-feature: "circle-info";
   --log-out: "arrow-right-from-bracket";
   --delete: "trash-can";
+  --copy: "copy";
+  --edit: "pen";
 
   /* files */
   --private: "lock";

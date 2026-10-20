@@ -1,4 +1,4 @@
-import { ContactRecord, clientById, clientContactsOf, locationById, locationContactsOf } from "../../data/db";
+import { ContactRecord, ContactReminders, clientById, clientContactsOf, locationById, locationContactsOf } from "../../data/db";
 import { joinWithSeparator } from "../../utils/textSeparator";
 
 // The job's contact pool — what the "Job reporter" / "Site supervisor" select
@@ -23,7 +23,7 @@ import { joinWithSeparator } from "../../utils/textSeparator";
 // form needs are the database's own: Marcus Boyd has no phone, Rosa Klein no
 // e-mail. FLAGGED: the Figma demo names (McDonald's people) no longer match.
 
-export interface JobContact {
+export interface JobContact extends ContactReminders {
   /** The DATABASE contact id (client or location contact). */
   id: string;
   name: string;
@@ -33,6 +33,9 @@ export interface JobContact {
   email?: string;
   /** A contact may have no phone (Marcus Boyd — the Send-summary warning). */
   phone?: string;
+  /** Shown only in the "Contact" side panel (phone row + "General" module). */
+  phoneExtension?: string;
+  position?: string;
 }
 
 const toJobContact = (c: ContactRecord): JobContact => ({
@@ -41,6 +44,12 @@ const toJobContact = (c: ContactRecord): JobContact => ({
   avatar: c.avatar,
   email: c.email,
   phone: c.phone,
+  phoneExtension: c.phoneExtension,
+  position: c.position,
+  estimateRemindersEmail: (c as ContactReminders).estimateRemindersEmail,
+  estimateRemindersSms: (c as ContactReminders).estimateRemindersSms,
+  invoiceRemindersEmail: (c as ContactReminders).invoiceRemindersEmail,
+  invoiceRemindersSms: (c as ContactReminders).invoiceRemindersSms,
 });
 
 export interface ContactGroup {

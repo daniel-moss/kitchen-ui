@@ -11,7 +11,7 @@
 // test is over.
 
 import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
-import { Bill, Client, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
+import { Bill, Client, ClientContact, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, LocationContact, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
 
 export * from "./types";
 export {
@@ -131,6 +131,9 @@ export const clientContactsOf = (clientId: string) => CLIENT_CONTACTS.filter((ro
 export const locationContactsOf = (locationId: string) => LOCATION_CONTACTS.filter((row) => row.locationId === locationId);
 export const equipmentOf = (locationId: string) => EQUIPMENT.filter((row) => row.locationId === locationId);
 export const warrantiesOf = (equipmentId: string) => WARRANTIES.filter((row) => row.equipmentId === equipmentId);
+/** One saved contact by id, from either table — what the "Contact" side panel is opened with. */
+export const clientContactById = (id: string): ClientContact | undefined => CLIENT_CONTACTS.find((row) => row.id === id);
+export const locationContactById = (id: string): LocationContact | undefined => LOCATION_CONTACTS.find((row) => row.id === id);
 /** One warranty by id — what the "Warranty" side panel is opened with. */
 export const warrantyById = (id: string): Warranty | undefined => WARRANTIES.find((row) => row.id === id);
 /** One tax rate by id — what the "Tax rate" side panel is opened with. */

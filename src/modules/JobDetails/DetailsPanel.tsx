@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
 import AvatarClient from "../../components/Avatar/AvatarClient";
@@ -32,7 +32,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { JOB_LABELS, jobById, jobLabelsOf, recallOf } from "../../data/db";
+import { JOB_LABELS, clientContactById, jobById, jobLabelsOf, locationContactById, recallOf } from "../../data/db";
 
 /** A related job's avatar status — its real one, read from the database. */
 const jobAvatarStatus = (id: string) => jobById(id)?.status ?? "none";
@@ -50,6 +50,8 @@ import {
   SERVICE_CLIENT_CONTACTS,
   SERVICE_LOCATION_CONTACTS,
 } from "./contacts";
+import ContactPanel, { ContactOwner, PanelContact } from "../ContactPanel/ContactPanel";
+import { contactPanelData, reminderFields } from "../ContactPanel/contactData";
 import NewLocationForm from "../NewLocationForm/NewLocationForm";
 import { NewLocation } from "../NewLocationForm/NewLocationForm.types";
 import { groupLocations, JobLocation, locationCaption, SERVICE_CLIENTS } from "./jobData";
@@ -144,13 +146,15 @@ interface ContactRowProps {
   mobile: boolean;
   /** Opens the contact select list for this role. */
   onChange: () => void;
+  /** A click on the row — opens the "Contact" side panel. */
+  onOpen: () => void;
   /** Removes the contact — its row becomes the role's empty state. */
   onRemove: () => void;
   /** Locked (cancelled job) → hide the edit (ellipsis) menu. */
   locked?: boolean;
 }
 
-const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false }: ContactRowProps) => {
+const ContactRow = ({ contact, role, mobile, onChange, onOpen, onRemove, locked = false }: ContactRowProps) => {
   const menu = useAnchoredMenu(!mobile);
   const { email, phone } = contact;
   // Locked (cancelled job): the menu stays, but the editing actions (Change /
@@ -223,7 +227,7 @@ const ContactRow = ({ contact, role, mobile, onChange, onRemove, locked = false 
         caption={role}
         avatar={<AvatarUser size="xl" imageSrc={contact.avatar} />}
         isClickable
-        onClick={noop}
+        onClick={onOpen}
         slotRight={
           <>
             {email != null && (
@@ -378,6 +382,39 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   const pickerLabel = pickerRole === "reporter" ? "Job reporter" : "Site supervisor";
   const pickedContact = pickerRole === "reporter" ? reporter : supervisor;
 
+  // The "Contact" side panel, opened by a click on a contact row. A job contact
+  // is whatever it was picked or created as (Daniel, 2026-10-20): a SAVED
+  // contact of the service client, the service location or a different billing
+  // client — then the panel shows its owner, its Reminders and "Set as
+  // primary" — or a job-only contact ("Add job contact" can keep a new one on
+  // the job only), which opens as the JOB kind. The owner is read from the db
+  // by the contact's id; an id the db does not know is a job-only contact.
+  // `panelRole` is never reset and the last contact is kept, so the panel keeps
+  // its content while it slides out — also after "Delete" empties the role.
+  const [panelRole, setPanelRole] = useState<"reporter" | "supervisor">("reporter");
+  const [panelOpen, setPanelOpen] = useState(false);
+  const panelLabel = panelRole === "reporter" ? "Job reporter" : "Site supervisor";
+  const roleContact = panelRole === "reporter" ? reporter : supervisor;
+  const lastPanelContact = useRef<JobContact | null>(null);
+  if (roleContact != null) lastPanelContact.current = roleContact;
+  const panelSource = roleContact ?? lastPanelContact.current;
+  // Memoised: the panel resets its working copy whenever this object changes.
+  const panelContact = useMemo<PanelContact | null>(() => (panelSource == null ? null : { ...panelSource }), [panelSource]);
+  const panelOwnerId = panelSource?.id;
+  const { owner: panelOwner, isPrimary: panelIsPrimary } = useMemo<{ owner: ContactOwner; isPrimary: boolean }>(
+    () =>
+      panelOwnerId != null && (clientContactById(panelOwnerId) != null || locationContactById(panelOwnerId) != null)
+        ? contactPanelData(panelOwnerId)
+        : { owner: { kind: "job" }, isPrimary: false },
+    [panelOwnerId],
+  );
+  const setRoleContact = panelRole === "reporter" ? setReporter : setSupervisor;
+  const editRoleContact = (fields: Partial<JobContact>) => setRoleContact((prev) => (prev == null ? prev : { ...prev, ...fields }));
+  const openPanel = (role: "reporter" | "supervisor") => {
+    setPanelRole(role);
+    setPanelOpen(true);
+  };
+
   const openPicker = (role: "reporter" | "supervisor") => {
     setPickerRole(role);
     setPickerOpen(true);
@@ -520,12 +557,13 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
 
   return (
     <div className={styles.panel}>
-      {/* Client & location — editable via the pencil (opens the locations
+      {/* Service location — editable via the pencil (opens the locations
           select list) only while the job was never started and has no parent
-          objects. The title names BOTH because the row shows both: the client
-          on the title line, the location under it (Daniel, 2026-09-28). */}
+          objects. The row still shows both: the client on the title line, the
+          location under it (renamed from "Client & location", Daniel,
+          2026-10-20). */}
       <DisplayModule
-        title="Client & location"
+        title="Service location"
         slotRight={
           locationEditable ? (
             <HoverTooltip text="Edit">
@@ -567,7 +605,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
         breakpoint={mobile ? "mobile" : "desktop"}
         open={locationOpen}
         onClose={() => setLocationOpen(false)}
-        title="Locations"
+        title="Service location"
         searchable
         searchPlaceholder="Location or client..."
         noResultsCaption="Try a different search or add a new location"
@@ -577,7 +615,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 clients list (the per-client plus buttons stay display-only:
                 their client is known, the New-location form is not built). */}
             <MenuItem
-              label="Add location"
+              label="Add service location"
               slotLeft={slot("plus")}
               onClick={() => {
                 setLocationOpen(false);
@@ -968,6 +1006,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 role="Job reporter"
                 mobile={mobile}
                 onChange={() => openPicker("reporter")}
+                onOpen={() => openPanel("reporter")}
                 onRemove={() => {
                   setReporter(null);
                   onContactChange("Job reporter", reporter, null);
@@ -983,6 +1022,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 role="Site supervisor"
                 mobile={mobile}
                 onChange={() => openPicker("supervisor")}
+                onOpen={() => openPanel("supervisor")}
                 onRemove={() => {
                   setSupervisor(null);
                   onContactChange("Site supervisor", supervisor, null);
@@ -995,6 +1035,33 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
           </div>
         }
       />
+
+      {panelContact != null && (
+        <ContactPanel
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          contact={panelContact}
+          owner={panelOwner}
+          isPrimary={panelIsPrimary}
+          // A cancelled job cannot be edited — the panel keeps Copy, Call and
+          // Send email only (its public-view rules).
+          isPublicView={locked}
+          breakpoint={mobile ? "mobile" : "desktop"}
+          onSaveGeneral={(edits) => editRoleContact({ name: edits.name, position: edits.position })}
+          onSavePhone={(edits) => editRoleContact({ phone: edits.phone, phoneExtension: edits.phoneExtension })}
+          onDeletePhone={() => editRoleContact({ phone: undefined, phoneExtension: undefined })}
+          onSaveEmail={(email) => editRoleContact({ email })}
+          onDeleteEmail={() => editRoleContact({ email: undefined })}
+          onSaveReminders={(kind, channels) => editRoleContact(reminderFields(kind, channels))}
+          // Delete removes the contact (a saved one for good) — so it also
+          // leaves this job, and the role's row becomes its empty state.
+          onDelete={() => {
+            setPanelOpen(false);
+            onContactChange(panelLabel, roleContact, null);
+            setRoleContact(null);
+          }}
+        />
+      )}
 
       {/* The contact select list, opened by "Change …" in a contact's menu and
           by the empty row's "Add" button. ONE list for both roles (Figma

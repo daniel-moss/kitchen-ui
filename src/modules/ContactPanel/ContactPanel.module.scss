@@ -1,0 +1,14 @@
+// The menu cards, anchored under their trigger (header ellipsis, a row's
+// ellipsis, a Reminders row). `--z-menu`, not `--z-modal`: the SidePanel
+// portals itself, so a wrapper that only matched its z-index would lose on DOM
+// order and hide behind it (the Warranty panel's fix).
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// "No Name" — the title of a contact without a name (Figma 23908-4100 binds
+// `--text-placeholder`).
+.placeholder {
+  color: var(--text-placeholder);
+}

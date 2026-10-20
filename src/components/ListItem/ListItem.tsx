@@ -83,6 +83,7 @@ export default function ListItem({
   children,
   size = "default",
   disabled = false,
+  isPressed = false,
   isLoading = false,
   className,
   ...bodyProps
@@ -227,6 +228,7 @@ export default function ListItem({
         styles.item,
         size === "compact" && styles.compact,
         isClickable && styles.clickable,
+        isClickable && isPressed && styles.pressed,
         toggle && switchStyles.control, // row hover/press drive the switch visual
         isDragging && styles.dragging,
         disabled && styles.disabled,

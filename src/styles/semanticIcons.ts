@@ -24,6 +24,10 @@ export const semanticIcons = {
   requestFeature: "circle-info",
   logOut: "arrow-right-from-bracket",
   delete: "trash-can",
+  /** Copy a value to the clipboard (Daniel added the token 2026-10-20). */
+  copy: "copy",
+  /** Edit an object or a module (Daniel added the token 2026-10-20). */
+  edit: "pen",
 
   // files
   private: "lock",

@@ -420,15 +420,19 @@ const CLIENTS_AT_ANCHOR: Client[] = [
 ];
 
 export const CLIENT_CONTACTS: ClientContact[] = [
-  { id: "cc-wildwood-1", clientId: "wildwood", name: "Kate Sherman", position: "Operations Director", phone: "(415) 555-0198", email: "kate@wildwoodkitchen.com", avatar: "avatars/user-10.jpg" },
+  { id: "cc-wildwood-1", clientId: "wildwood", name: "Kate Sherman", position: "Operations Director", phone: "(415) 555-0198", email: "kate@wildwoodkitchen.com", avatar: "avatars/user-10.jpg", estimateRemindersEmail: true, invoiceRemindersEmail: true, invoiceRemindersSms: true },
   // No phone — the Send-summary form needs a contact missing a channel.
-  { id: "cc-wildwood-2", clientId: "wildwood", name: "Marcus Boyd", position: "Accounts Payable", email: "ap@wildwoodkitchen.com", avatar: "avatars/user-14.jpg" },
-  { id: "cc-wildwood-3", clientId: "wildwood", name: "Dana Whitfield", position: "Office Manager", phone: "(415) 555-0156", email: "dana@wildwoodkitchen.com", avatar: "avatars/user-11.jpg" },
+  { id: "cc-wildwood-2", clientId: "wildwood", name: "Marcus Boyd", position: "Accounts Payable", email: "ap@wildwoodkitchen.com", avatar: "avatars/user-14.jpg", invoiceRemindersEmail: true },
+  { id: "cc-wildwood-3", clientId: "wildwood", name: "Dana Whitfield", position: "Office Manager", phone: "(415) 555-0156", email: "dana@wildwoodkitchen.com", avatar: "avatars/user-11.jpg", estimateRemindersEmail: true, estimateRemindersSms: true, invoiceRemindersEmail: true, invoiceRemindersSms: true },
   { id: "cc-harbour-1", clientId: "harbour", name: "Elaine Fox", position: "Owner", phone: "(415) 555-0142", email: "elaine@harbourgrill.com", avatar: "avatars/user-13.jpg" },
-  { id: "cc-bayside-1", clientId: "bayside", name: "Tom Okafor", position: "Facility Manager", phone: "(510) 555-0173", phoneExtension: "204", email: "t.okafor@baysidecatering.com", avatar: "avatars/user-18.jpg" },
+  { id: "cc-bayside-1", clientId: "bayside", name: "Tom Okafor", position: "Facility Manager", phone: "(510) 555-0173", phoneExtension: "204", email: "t.okafor@baysidecatering.com", avatar: "avatars/user-18.jpg", estimateRemindersEmail: true, invoiceRemindersEmail: true },
   { id: "cc-ferry-1", clientId: "ferry", name: "Dana Liu", phone: "(415) 555-0117" },
   { id: "cc-northpoint-1", clientId: "northpoint", name: "Victor Ames", position: "Chief Engineer", phone: "(415) 555-0186", email: "vames@northpointhotel.com", avatar: "avatars/user-19.jpg" },
   { id: "cc-northpoint-2", clientId: "northpoint", name: "Priya Nair", position: "Purchasing", email: "purchasing@northpointhotel.com", avatar: "avatars/user-17.jpg" },
+  // Added 2026-10-20 for the "Contact" side panel: a contact with NEITHER a
+  // phone nor an email — the Phone and Email modules' warning state, and a
+  // Reminders menu with no channel to switch on.
+  { id: "cc-sunset-1", clientId: "sunset", name: "Lena Park", position: "Bookkeeper" },
 ];
 
 export const LOCATIONS: Location[] = [
@@ -462,7 +466,7 @@ export const LOCATIONS: Location[] = [
 ];
 
 export const LOCATION_CONTACTS: LocationContact[] = [
-  { id: "lc-wildwood-downtown-1", locationId: "wildwood-downtown", name: "Ben Castillo", position: "Kitchen Manager", phone: "(415) 555-0121", email: "ben@wildwoodkitchen.com", avatar: "avatars/user-16.jpg" },
+  { id: "lc-wildwood-downtown-1", locationId: "wildwood-downtown", name: "Ben Castillo", position: "Kitchen Manager", phone: "(415) 555-0121", email: "ben@wildwoodkitchen.com", avatar: "avatars/user-16.jpg", estimateRemindersEmail: true, estimateRemindersSms: true, invoiceRemindersEmail: true, invoiceRemindersSms: true },
   // No e-mail — the Send-summary form needs a contact missing a channel.
   { id: "lc-wildwood-downtown-2", locationId: "wildwood-downtown", name: "Rosa Klein", position: "Sous Chef", phone: "(415) 555-0175", avatar: "avatars/user-12.jpg" },
   { id: "lc-wildwood-downtown-3", locationId: "wildwood-downtown", name: "Miguel Santos", position: "Line Cook", phone: "(415) 555-0187", email: "miguel.santos@wildwoodkitchen.com", avatar: "avatars/user-15.jpg" },
@@ -483,7 +487,13 @@ export const LOCATION_CONTACTS: LocationContact[] = [
   { id: "lc-ferry-main-2", locationId: "ferry-main", name: "Dmitri Sokolov", position: "Shift Lead", phone: "(415) 555-0119", phoneExtension: "4" },
   { id: "lc-northpoint-banquet-1", locationId: "northpoint-banquet", name: "Claire Whitfield", position: "Banquet Manager", phone: "(415) 555-0172", email: "c.whitfield@northpointhotel.com", avatar: "avatars/user-17.jpg" },
   { id: "lc-harbour-marina-1", locationId: "harbour-marina", name: "Noel Byrne", position: "Head Chef", phone: "(415) 555-0135", email: "noel@harbourgrill.com", avatar: "avatars/user-18.jpg" },
-  { id: "lc-presidio-canteen-1", locationId: "presidio-canteen", name: "Aiko Tanaka", position: "Site Supervisor", phone: "(415) 555-0166", email: "aiko@presidiocanteen.com", avatar: "avatars/user-19.jpg" },
+  // Added 2026-10-20 for the "Contact" side panel: a contact with NO NAME
+  // (production allows it — any one of name, phone or email is enough; the
+  // Figma "No Name" header says it "might show up from legacy code"). The
+  // Marina site had no contact at all, and it has no photo (initials need a
+  // name, so the avatar is the generic person icon).
+  { id: "lc-wildwood-marina-1", locationId: "wildwood-marina", phone: "(415) 555-0153", estimateRemindersSms: true },
+  { id: "lc-presidio-canteen-1", locationId: "presidio-canteen", name: "Aiko Tanaka", position: "Site Supervisor", phone: "(415) 555-0166", email: "aiko@presidiocanteen.com", avatar: "avatars/user-19.jpg", invoiceRemindersEmail: true },
 ];
 
 // Equipment CATEGORIES, TYPES and OWNERSHIP — the REAL product lists, read out

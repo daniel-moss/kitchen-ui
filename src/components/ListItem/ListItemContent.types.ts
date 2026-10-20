@@ -1,5 +1,7 @@
 import { ReactNode } from "react";
 
+import { ItemTextLineStyle } from "../ItemText/ItemText/ItemTextLine.types";
+
 /** Layout: title only, title + caption, or caption above title. */
 export type ListItemTextVariant = "title" | "titleCaption" | "titleCaptionReversed";
 
@@ -50,6 +52,13 @@ export interface ListItemContentProps {
    * (2026-09-14).
    */
   captionPlaceholder?: ReactNode;
+  /**
+   * The title's type style. Default "bodyMedium" (Inter Medium 14/20). Figma's
+   * ItemTextLine exposes it as `textStyle`; "bodyRegular" is for a row whose
+   * title is a VALUE rather than a name — the Contact panel's phone number and
+   * email address (node annotation: "ListItem text style is overridden here").
+   */
+  titleStyle?: ItemTextLineStyle;
   /** Title truncation rule. Default 1. */
   titleLines?: ListItemTextLines;
   /** Caption truncation rule. Default 1. */

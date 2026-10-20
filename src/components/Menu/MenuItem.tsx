@@ -42,6 +42,7 @@ export default function MenuItem({
   checked,
   defaultChecked = false,
   onCheckedChange,
+  toggleDisabled = false,
   subMenu,
   subMenuTitle,
   danger = false,
@@ -57,6 +58,9 @@ export default function MenuItem({
   const isDesktop = menuCtx ? menuCtx.isDesktop : autoDesktop;
 
   const [isChecked, setChecked] = useControllableState(checked, defaultChecked, onCheckedChange);
+  // A toggle row whose switch cannot be used is inert as a whole — it has no
+  // other action — but keeps its copy at full color (see `toggleDisabled`).
+  const inert = disabled || (toggle === true && toggleDisabled);
 
   // ---- desktop sub-menu (hover) ----
   const hasSub = subMenu != null;
@@ -209,18 +213,19 @@ export default function MenuItem({
       aria-checked={toggle ? isChecked : undefined}
       aria-haspopup={hasSub ? "menu" : undefined}
       aria-expanded={hasSub ? subOpen : undefined}
-      aria-disabled={disabled || undefined}
-      tabIndex={disabled ? undefined : 0}
+      aria-disabled={inert || undefined}
+      tabIndex={inert ? undefined : 0}
       className={clsx(
         styles.item,
-        toggle && switchStyles.control, // row hover/press drive the switch visual
+        toggle && !inert && switchStyles.control, // row hover/press drive the switch visual
         danger && styles.danger,
         disabled && styles.disabled,
+        !disabled && inert && styles.inert,
         hasSub && subOpen && styles.subOpen, // stay highlighted while the sub-menu shows
         className,
       )}
-      onClick={disabled ? undefined : handleActivate}
-      onKeyDown={disabled ? undefined : handleKeyDown}
+      onClick={inert ? undefined : handleActivate}
+      onKeyDown={inert ? undefined : handleKeyDown}
       onPointerEnter={hasSub && isDesktop && !disabled ? hoverOpenSub : undefined}
       onPointerLeave={hasSub && isDesktop && !disabled ? hoverScheduleClose : undefined}
       {...rest}
@@ -247,7 +252,7 @@ export default function MenuItem({
       />
       {toggle ? (
         <span className={styles.slotRight}>
-          <ToggleSwitch checked={isChecked} />
+          <ToggleSwitch checked={toggleDisabled ? false : isChecked} dimmed={toggleDisabled} interactive={!toggleDisabled} />
         </span>
       ) : hasSub ? (
         <span className={styles.slotRight}>

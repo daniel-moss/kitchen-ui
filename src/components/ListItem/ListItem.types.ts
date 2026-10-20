@@ -16,6 +16,13 @@ interface ListItemBaseProps extends ListItemBodyProps {
   /** Dimmed, non-interactive. For the interactive variants. */
   disabled?: boolean;
   /**
+   * Holds the PRESSED look while something the row opened is showing — a
+   * menu anchored to it (Figma ListItem state=pressed; the Contact panel's
+   * Reminders rows). The twin of IconButton's `isPressed`. Clickable rows only.
+   * Default false.
+   */
+  isPressed?: boolean;
+  /**
    * Loading: the text lines become bars and the row hides everything that is
    * not content — the grip, the accordion caret, the right slot and the bottom
    * slot — and stops responding. Those are controls, and while loading there is

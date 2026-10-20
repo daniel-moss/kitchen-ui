@@ -43,6 +43,12 @@
 .disabled {
   @include row-disabled;
 }
+// `toggleDisabled`: no row states at all, but the copy keeps its color — only
+// the switch dims (it carries its own `dimmed` look).
+.inert {
+  cursor: default;
+  pointer-events: none;
+}
 // A sub-menu trigger stays highlighted while its sub-menu is open.
 .subOpen {
   background: var(--gray-a3);

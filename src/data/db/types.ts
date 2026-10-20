@@ -243,11 +243,27 @@ export interface ContactRecord {
   email?: string;
 }
 
-export interface ClientContact extends ContactRecord {
+/**
+ * Which reminders a SAVED contact receives — production's four
+ * `receive_{estimate,invoice}_reminders_via_{email,sms}` booleans on both
+ * `ExternalClientContact` and `ServiceLocationContact` (default False). A
+ * job's own contact has none (it is not a saved row). Production's `clean()`
+ * refuses an SMS reminder without a phone and an email reminder without an
+ * email, so a reminder whose channel is missing reads as OFF. Unset = false.
+ * Added 2026-10-20 for the "Contact" side panel's Reminders module.
+ */
+export interface ContactReminders {
+  estimateRemindersEmail?: boolean;
+  estimateRemindersSms?: boolean;
+  invoiceRemindersEmail?: boolean;
+  invoiceRemindersSms?: boolean;
+}
+
+export interface ClientContact extends ContactRecord, ContactReminders {
   clientId: string;
 }
 
-export interface LocationContact extends ContactRecord {
+export interface LocationContact extends ContactRecord, ContactReminders {
   locationId: string;
 }
 
