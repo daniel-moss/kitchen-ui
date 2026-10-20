@@ -4,7 +4,8 @@ import ItemGroup from "../../../components/ItemGroup/ItemGroup";
 import ListItem from "../../../components/ListItem/ListItem";
 import ListItemSlotIcon from "../../../components/ListItem/ListItemSlotIcon";
 
-// The "Location" module (Figma 21958-15149). One row: the CLIENT on the title
+// The "Service location" module (Figma 21958-15149; renamed from "Location"
+// 2026-10-19). One row: the CLIENT on the title
 // line and the location under it, opening the Location side panel. The module
 // header carries no button of its own.
 
@@ -20,7 +21,7 @@ interface LocationModuleProps {
 export default function LocationModule({ clientName, locationCaption, onOpen, isLoading = false }: LocationModuleProps) {
   return (
     <DisplayModule
-      title="Location"
+      title="Service location"
       // The ItemGroup brings the body's 4px padding, so the module adds none.
       bodyPadded={false}
       content={

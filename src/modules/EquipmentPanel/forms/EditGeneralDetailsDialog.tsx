@@ -14,9 +14,9 @@ import { EQUIPMENT_CATEGORIES, EQUIPMENT_TYPES, Equipment, OWNERSHIP_TYPES } fro
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
-// The "General details" edit form (Figma 17192-89328): the same nine fields
-// the New-equipment form collects, pre-filled, in a default Dialog titled
-// "Equipment general details". The design still draws the retired TextInput /
+// The "General" edit form (Figma 17192-89328): the same nine fields the
+// New-equipment form collects, pre-filled, in a default Dialog titled
+// "General" (renamed 2026-10-19). The design still draws the retired TextInput /
 // SelectInput / DateInput — these are the current `Input` + field components.
 //
 // NO FormModule (Daniel, 2026-09-28): the form has no sections, so a section
@@ -33,7 +33,8 @@ interface EditGeneralDetailsDialogProps {
   open: boolean;
   onClose: () => void;
   equipment: Equipment;
-  onSave: (edits: EquipmentEdits) => void;
+  /** Return `false` (or a Promise of it) when the save FAILED: the error toast shows and the form stays open. */
+  onSave: (edits: EquipmentEdits) => void | boolean | Promise<void | boolean>;
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
@@ -107,12 +108,12 @@ export default function EditGeneralDetailsDialog({ open, onClose, equipment, onS
     area !== (equipment.physicalLocation ?? "") ||
     toIso(installDate) !== equipment.installationDate;
 
-  const save = () => {
+  const save = async () => {
     if (missingName || missingCategory) {
       setShowErrors(true);
       return;
     }
-    onSave({
+    const result = await onSave({
       displayName: name.trim(),
       category: category as Equipment["category"],
       type: type === "" ? undefined : type,
@@ -123,7 +124,16 @@ export default function EditGeneralDetailsDialog({ open, onClose, equipment, onS
       physicalLocation: area.trim() === "" ? undefined : area.trim(),
       installationDate: toIso(installDate),
     });
-    toast({ type: "success", title: '"General details" updated' });
+    if (result === false) {
+      toast({
+        type: "error",
+        variant: "detailed",
+        title: 'Couldn\'t update "General" module',
+        caption: "Something went wrong. Please try again.",
+      });
+      return;
+    }
+    toast({ type: "success", title: '"General" module updated' });
     onClose();
   };
 
@@ -132,7 +142,7 @@ export default function EditGeneralDetailsDialog({ open, onClose, equipment, onS
       <Dialog
         open={open}
         onClose={onClose}
-        title="Equipment general details"
+        title="General"
         breakpoint={breakpoint}
         confirmOnDismiss={dirty}
         footer={

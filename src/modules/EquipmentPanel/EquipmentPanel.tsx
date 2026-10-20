@@ -36,12 +36,14 @@ import { EQUIPMENT_LABELS, Warranty, warrantyCoverageOf } from "../../data/db";
 
 import styles from "./EquipmentPanel.module.scss";
 
+const SOMETHING_WENT_WRONG = "Something went wrong. Please try again.";
+
 // The "Equipment" side panel (Figma file yee2IMsxPF0E4verwgQrm6, page
 // "👍 Validated"). ONE module for every equipment object: the shell, its four
 // tabs and the seven display modules inside them. The equipment record is a
 // prop, so nothing here is specific to one piece of equipment.
 //
-// Tabs: Details (General details · Location · Labels · Notes) · Warranties ·
+// Tabs: Details (General · Service location · Labels · Notes) · Warranties ·
 // Files (the shared FilesModule) · History.
 
 export default function EquipmentPanel({
@@ -63,6 +65,8 @@ export default function EquipmentPanel({
   onSaveWarrantyNotes,
   onOpenHistoryObject,
   defaultHistoryFilter,
+  onDownloadFile,
+  isPublicView = false,
   isLoading = false,
   state = "content",
   onRetry,
@@ -106,7 +110,8 @@ export default function EquipmentPanel({
   // of ZERO shows no counter at all (Daniel, 2026-09-28).
   const countsKnown = !isLoading || active !== "details";
   const tabCounter = (count: number) => (countsKnown && count > 0 ? count : undefined);
-  const warningState = !isLoading && hasMissingKeyDetails(record);
+  // The public view has no warning state — the client cannot fix it.
+  const warningState = !isLoading && !isPublicView && hasMissingKeyDetails(record);
 
   // The header avatar's warranty-coverage status follows the SAME rule: it is
   // derived from the warranties, which the Details tab is what loads — so the
@@ -129,7 +134,8 @@ export default function EquipmentPanel({
   // uploads; re-seeded whenever the equipment changes.
   const [files, setFiles] = useState(data.files);
   useEffect(() => setFiles(data.files), [data.files]);
-  const fileCount = files.length;
+  // The public view counts only what the client can see.
+  const fileCount = isPublicView ? files.filter((file) => file.visibility === "public").length : files.length;
 
   const toggleFileVisibility = (file: ModuleFile) => {
     const now = file.visibility === "private" ? "public" : "private";
@@ -153,12 +159,16 @@ export default function EquipmentPanel({
 
   const dropWarranty = (id: string) => setWarranties((prev) => prev.filter((row) => row.id !== id));
 
-  const deleteWarranty = () => {
+  const deleteWarranty = async () => {
     if (deleting == null) return;
-    dropWarranty(deleting.id);
-    onDeleteWarranty?.(deleting);
-    toast({ type: "success", variant: "detailed", title: "Warranty deleted", caption: deleting.name });
+    const row = deleting;
     setDeleting(null);
+    if ((await onDeleteWarranty?.(row)) === false) {
+      toast({ type: "error", variant: "detailed", title: "Couldn't delete warranty", caption: SOMETHING_WENT_WRONG });
+      return;
+    }
+    dropWarranty(row.id);
+    toast({ type: "success", variant: "detailed", title: "Warranty deleted", caption: row.name });
   };
 
   // The "New warranty" form hands back its values; the panel turns them into a
@@ -181,7 +191,9 @@ export default function EquipmentPanel({
   // Opening a warranty REPLACES this panel's content (it does not stack a
   // second panel) and still reports the intent to the caller.
   const openWarrantyView = (warranty: Warranty) => {
-    setOpenWarrantyId(warranty.id);
+    // The swapped-in warranty view is the EDITABLE one; its public version is
+    // not built yet, so the public view only reports the intent.
+    if (!isPublicView) setOpenWarrantyId(warranty.id);
     onOpenWarranty?.(warrantyRow(warranty));
   };
 
@@ -229,7 +241,8 @@ export default function EquipmentPanel({
       <TabItem value="files" counter={tabCounter(fileCount)}>
         Files
       </TabItem>
-      <TabItem value="history">History</TabItem>
+      {/* No History in the public view (the navigation's annotation). */}
+      {!isPublicView && <TabItem value="history">History</TabItem>}
     </SidePanelNavigation>
   );
 
@@ -260,15 +273,28 @@ export default function EquipmentPanel({
 
         {openWarranty == null && active === "details" && (
           <>
-            <GeneralDetailsModule equipment={record} coverage={coverage} onEdit={() => setEditingDetails(true)} isLoading={isLoading} />
+            <GeneralDetailsModule
+              equipment={record}
+              coverage={coverage}
+              onEdit={() => setEditingDetails(true)}
+              isLoading={isLoading}
+              isPublicView={isPublicView}
+            />
             <LocationModule
               clientName={data.clientName}
               locationCaption={data.locationCaption}
               onOpen={() => onOpenLocation?.()}
               isLoading={isLoading}
             />
-            <LabelsModule labels={data.labels} onEdit={() => setEditingLabels(true)} isLoading={isLoading} />
-            <NotesModule notes={record.notes} onEdit={() => setEditingNotes(true)} isLoading={isLoading} />
+            {/* Labels are internal — the public view has no Labels module. */}
+            {!isPublicView && <LabelsModule labels={data.labels} onEdit={() => setEditingLabels(true)} isLoading={isLoading} />}
+            <NotesModule
+              notes={record.notes}
+              onEdit={() => setEditingNotes(true)}
+              isLoading={isLoading}
+              copyErrorTitle={'Couldn\'t copy "Notes"'}
+              canEdit={!isPublicView}
+            />
           </>
         )}
 
@@ -288,6 +314,7 @@ export default function EquipmentPanel({
               if (found != null) openWarrantyView(found);
             }}
             onDelete={setDeleting}
+            isPublicView={isPublicView}
           />
         )}
 
@@ -303,10 +330,12 @@ export default function EquipmentPanel({
             onDelete={deleteFile}
             onPreview={() => {}}
             onFilesAdded={(added) => setFiles((prev) => [...prev, ...added])}
+            isPublicView={isPublicView}
+            onDownload={onDownloadFile}
           />
         )}
 
-        {openWarranty == null && active === "history" && (
+        {openWarranty == null && active === "history" && !isPublicView && (
           <HistoryModule
             rows={data.history}
             mobile={mobile}
@@ -325,9 +354,9 @@ export default function EquipmentPanel({
         open={editingDetails}
         onClose={() => setEditingDetails(false)}
         equipment={record}
-        onSave={(edits) => {
+        onSave={async (edits) => {
+          if ((await onSaveDetails?.(edits)) === false) return false;
           setRecord((prev) => ({ ...prev, ...edits }));
-          onSaveDetails?.(edits);
         }}
         breakpoint={breakpoint}
       />
@@ -338,10 +367,14 @@ export default function EquipmentPanel({
         onClose={() => setEditingLabels(false)}
         labels={data.labels}
         pool={EQUIPMENT_LABELS.map((label) => label.name)}
-        onSave={(labels) => {
+        onSave={async (labels) => {
+          // A failed save keeps the list open with the picks intact.
+          if ((await onSaveLabels?.(labels)) === false) {
+            toast({ type: "error", variant: "detailed", title: 'Couldn\'t update "Labels" module', caption: SOMETHING_WENT_WRONG });
+            return;
+          }
           setRecord((prev) => ({ ...prev, labelIds: EQUIPMENT_LABELS.filter((label) => labels.includes(label.name)).map((label) => label.id) }));
-          onSaveLabels?.(labels);
-          toast({ type: "success", title: '"Labels" updated' });
+          toast({ type: "success", title: '"Labels" module updated' });
           setEditingLabels(false);
         }}
         breakpoint={breakpoint}
@@ -350,9 +383,12 @@ export default function EquipmentPanel({
         open={editingNotes}
         onClose={() => setEditingNotes(false)}
         notes={record.notes}
-        onSave={(notes) => {
+        optional
+        toastSubject={'"Notes" module'}
+        errorTitle={'Couldn\'t update "Notes" module'}
+        onSave={async (notes) => {
+          if ((await onSaveNotes?.(notes)) === false) return false;
           setRecord((prev) => ({ ...prev, notes: notes === "" ? undefined : notes }));
-          onSaveNotes?.(notes);
         }}
         breakpoint={breakpoint}
       />
@@ -376,6 +412,8 @@ export default function EquipmentPanel({
         body={`Warranty ${deleting?.name ?? ""} will be permanently deleted. This action can not be undone.`}
         actionLabel="Delete"
         actionVariant="danger"
+        // The DS `--delete` icon token (trash-can), as the Figma Delete button draws it.
+        actionIcon="trash-can"
         onAction={deleteWarranty}
         onCancel={() => setDeleting(null)}
         breakpoint={breakpoint}

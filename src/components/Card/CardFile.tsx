@@ -1,4 +1,4 @@
-import { forwardRef, MouseEvent, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, MouseEvent, ReactNode, useLayoutEffect, useRef, useState } from "react";
 import clsx from "clsx";
 
 import Card from "./Card";
@@ -6,6 +6,7 @@ import { Divider } from "../Divider/Divider";
 import { Icon } from "../Icon/Icon";
 import IconButton from "../IconButton/IconButton";
 import { SkeletonTypography } from "../SkeletonTypography/SkeletonTypography";
+import HoverTooltip from "../Tooltip/HoverTooltip";
 import TruncatingText from "../Tooltip/TruncatingText";
 
 import styles from "./CardFile.module.scss";
@@ -98,6 +99,10 @@ function FileTile({
   );
 }
 
+// The action button's optional hover tooltip; no text = no wrapper.
+const ActionTooltip = ({ text, children }: { text?: string; children: ReactNode }) =>
+  text ? <HoverTooltip text={text}>{children}</HoverTooltip> : <>{children}</>;
+
 // Divider + the file name + an optional action button. While loading, the name
 // is a skeleton and the action button is dropped.
 function Footer({
@@ -109,6 +114,7 @@ function Footer({
   actionIcon,
   actionLabel,
   actionDanger,
+  actionTooltip,
 }: {
   name: string;
   onMenuClick?: (event: MouseEvent<HTMLButtonElement>) => void;
@@ -118,6 +124,7 @@ function Footer({
   actionIcon?: string;
   actionLabel?: string;
   actionDanger?: boolean;
+  actionTooltip?: string;
 }) {
   return (
     <div className={styles.footer}>
@@ -135,26 +142,28 @@ function Footer({
             </div>
             {onMenuClick && (
               <span className={styles.menuGuard}>
-                <IconButton
-                  aria-label={actionLabel ?? "File actions"}
-                  icon={actionIcon ?? "ellipsis"}
-                  size="sm"
-                  variant="ghost"
-                  // Danger (delete, etc.) recolors the ghost button red — the DS
-                  // has no danger IconButton variant, so it is a CardFile-local
-                  // override of the button's color vars.
-                  className={actionDanger ? styles.dangerAction : undefined}
-                  isDisabled={disabled}
-                  // Held pressed while its menu is open.
-                  isPressed={menuOpen}
-                  // No debounce, so stopPropagation runs on every click (a debounced
-                  // second click would otherwise bubble to the card's onClick).
-                  noDebounce
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onMenuClick(event);
-                  }}
-                />
+                <ActionTooltip text={actionTooltip}>
+                  <IconButton
+                    aria-label={actionLabel ?? "File actions"}
+                    icon={actionIcon ?? "ellipsis"}
+                    size="sm"
+                    variant="ghost"
+                    // Danger (delete, etc.) recolors the ghost button red — the DS
+                    // has no danger IconButton variant, so it is a CardFile-local
+                    // override of the button's color vars.
+                    className={actionDanger ? styles.dangerAction : undefined}
+                    isDisabled={disabled}
+                    // Held pressed while its menu is open.
+                    isPressed={menuOpen}
+                    // No debounce, so stopPropagation runs on every click (a debounced
+                    // second click would otherwise bubble to the card's onClick).
+                    noDebounce
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onMenuClick(event);
+                    }}
+                  />
+                </ActionTooltip>
               </span>
             )}
           </>
@@ -179,6 +188,7 @@ const CardFile = forwardRef<HTMLDivElement, CardFileProps>(function CardFile(
     actionIcon,
     actionLabel,
     actionDanger,
+    actionTooltip,
     disabled = false,
     isLoading = false,
     dragging = false,
@@ -208,6 +218,7 @@ const CardFile = forwardRef<HTMLDivElement, CardFileProps>(function CardFile(
         actionIcon={actionIcon}
         actionLabel={actionLabel}
         actionDanger={actionDanger}
+        actionTooltip={actionTooltip}
       />
     </Card>
   );

@@ -1,4 +1,5 @@
 import { Equipment, Warranty } from "../../data/db";
+import { ModuleFile } from "../FilesModule/FilesModule.types";
 
 import { NewWarranty } from "../NewWarrantyForm/NewWarrantyForm.types";
 import { WarrantyEdits } from "../WarrantyPanel/WarrantyPanel.types";
@@ -28,12 +29,12 @@ export interface EquipmentPanelProps {
 
   // ---- edits (the three forms hand their result up) ----
 
-  /** Save from the "General details" form. */
-  onSaveDetails?: (edits: EquipmentEdits) => void;
-  /** Save from the "Labels" select list — label NAMES, in pick order. */
-  onSaveLabels?: (labels: string[]) => void;
-  /** Save from the "Notes" text-area dialog. */
-  onSaveNotes?: (notes: string) => void;
+  /** Save from the "General" form. Return `false` (or a Promise of it) to say the save FAILED: the designed error toast shows and the form stays open. */
+  onSaveDetails?: (edits: EquipmentEdits) => void | boolean | Promise<void | boolean>;
+  /** Save from the "Labels" select list — label NAMES, in pick order. Return `false` (or a Promise of it) to say the save FAILED: the designed error toast shows and the form stays open. */
+  onSaveLabels?: (labels: string[]) => void | boolean | Promise<void | boolean>;
+  /** Save from the "Notes" text-area dialog. Return `false` (or a Promise of it) to say the save FAILED: the designed error toast shows and the form stays open. */
+  onSaveNotes?: (notes: string) => void | boolean | Promise<void | boolean>;
 
   // ---- navigation out of the panel ----
 
@@ -85,6 +86,24 @@ export interface EquipmentPanelProps {
   onOpenHistoryObject?: (row: HistoryRow) => void;
   /** Initial History filter — "all", or one object type. Default "all". */
   defaultHistoryFilter?: "all" | HistoryKind;
+  /** Download one file — the PUBLIC view's file-row button. */
+  onDownloadFile?: (file: ModuleFile) => void;
+
+  // ---- view ----
+
+  /**
+   * The PUBLIC view — what the client sees (Figma "Public View", 22438-33582):
+   * - no "History" tab, and the Details tab never turns amber;
+   * - "General": no edit button, no warning state (copy stays);
+   * - no "Labels" module; "Notes" keeps Copy only;
+   * - "Warranties": no add button, no row menu — a row only opens;
+   * - "Files": public files only, one flat list, no add / re-order / menu,
+   *   a Download button per row.
+   * A warranty row only REPORTS `onOpenWarranty` here: the warranty view this
+   * panel swaps in is the editable one, and its public version is not built.
+   * Default false.
+   */
+  isPublicView?: boolean;
 
   // ---- state ----
 

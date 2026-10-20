@@ -42,12 +42,14 @@ const Demo = ({
   showViewToggle = false,
   mobile = false,
   isLoading = false,
+  isPublicView = false,
 }: {
   initial?: ModuleFile[];
   maxFiles?: number;
   showViewToggle?: boolean;
   mobile?: boolean;
   isLoading?: boolean;
+  isPublicView?: boolean;
 }) => {
   const [files, setFiles] = useState(initial);
 
@@ -86,6 +88,9 @@ const Demo = ({
         onDelete={deleteFile}
         onPreview={() => {}}
         onFilesAdded={(added) => setFiles((prev) => [...prev, ...added])}
+        isPublicView={isPublicView}
+        // The demo files are not real, so a download only reports itself.
+        onDownload={(file) => toast({ type: "neutral", icon: "download", title: `Downloading "${file.name}"` })}
       />
       <Toaster />
     </div>
@@ -155,4 +160,26 @@ export const NoLimit: Story = {
 export const Loading: Story = {
   parameters: { layout: "centered" },
   render: () => <Demo showViewToggle maxFiles={25} isLoading />,
+};
+
+// ---- the PUBLIC view (Figma Public View 9966:2752): what the client sees —
+// public files only, no editing, no re-ordering, no add button.
+
+export const PublicDesktop: Story = {
+  name: "Public view — desktop",
+  parameters: { layout: "centered" },
+  render: () => <Demo showViewToggle isPublicView />,
+};
+
+export const PublicMobile: Story = {
+  name: "Public view — mobile",
+  parameters: { layout: "centered" },
+  render: () => <Demo showViewToggle isPublicView mobile />,
+};
+
+/** No toggle — the side-panel setup (the Equipment panel's Files tab). */
+export const PublicNoViewToggle: Story = {
+  name: "Public view — without the view toggle",
+  parameters: { layout: "centered" },
+  render: () => <Demo isPublicView />,
 };

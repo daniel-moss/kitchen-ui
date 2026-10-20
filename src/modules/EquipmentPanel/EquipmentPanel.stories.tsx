@@ -43,6 +43,7 @@ const Demo = ({
   isLoading,
   state,
   historyFilter,
+  isPublicView,
 }: {
   record: Equipment;
   breakpoint: "desktop" | "mobile";
@@ -50,6 +51,7 @@ const Demo = ({
   isLoading?: boolean;
   state?: "content" | "error" | "offline";
   historyFilter?: "all" | "estimate" | "job" | "invoice";
+  isPublicView?: boolean;
 }) => {
   // The panel holds no record of its own — the caller is the source of truth,
   // so every Save lands here.
@@ -69,6 +71,7 @@ const Demo = ({
         isLoading={isLoading}
         state={state}
         defaultHistoryFilter={historyFilter}
+        isPublicView={isPublicView}
         breakpoint={breakpoint}
         onSaveDetails={(edits) => setEquipment((prev) => ({ ...prev, ...edits }))}
         onSaveLabels={(labels) => setEquipment((prev) => ({ ...prev, labelIds: labelIdsOf(labels) }))}
@@ -166,6 +169,44 @@ export const LoadingHistory: Story = {
  * The "Notes" edit form on its own (the shared "Text Area" form pattern):
  * desktop keeps a 12-row minimum, mobile fills the drawer's height.
  */
+// ---- the PUBLIC view (Figma "Public View", 22438-33582) — what the client
+// sees: no History tab, no editing, public files only.
+
+export const PublicDesktop: Story = {
+  name: "Public view — desktop",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={WALK_IN} breakpoint="desktop" isPublicView />,
+};
+
+export const PublicMobile: Story = {
+  name: "Public view — mobile",
+  parameters: { layout: "centered" },
+  render: () => (
+    <DeviceFrame statusBar homeIndicator>
+      <Demo record={WALK_IN} breakpoint="mobile" isPublicView />
+    </DeviceFrame>
+  ),
+};
+
+export const PublicWarranties: Story = {
+  name: "Public view — warranties",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={WALK_IN} breakpoint="desktop" tab="warranties" isPublicView />,
+};
+
+export const PublicFiles: Story = {
+  name: "Public view — files",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={WALK_IN} breakpoint="desktop" tab="files" isPublicView />,
+};
+
+/** Missing key details show as plain placeholders — no warning in public. */
+export const PublicMissingKeyDetails: Story = {
+  name: "Public view — missing key details",
+  parameters: { layout: "centered" },
+  render: () => <Demo record={MIXER} breakpoint="desktop" isPublicView />,
+};
+
 const NotesFormDemo = ({ breakpoint }: { breakpoint: "desktop" | "mobile" }) => {
   const [notes, setNotes] = useState(WALK_IN.notes ?? "");
   const [open, setOpen] = useState(true);
@@ -174,7 +215,17 @@ const NotesFormDemo = ({ breakpoint }: { breakpoint: "desktop" | "mobile" }) => 
       <Button size="lg" variant="subtle" onClick={() => setOpen(true)}>
         Edit notes
       </Button>
-      <EditNotesDialog open={open} onClose={() => setOpen(false)} notes={notes} onSave={setNotes} breakpoint={breakpoint} />
+      {/* The same settings the panel passes. */}
+      <EditNotesDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        notes={notes}
+        optional
+        toastSubject={'"Notes" module'}
+        errorTitle={'Couldn\'t update "Notes" module'}
+        onSave={setNotes}
+        breakpoint={breakpoint}
+      />
       <Toaster />
     </>
   );

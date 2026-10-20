@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import AvatarFile from "../../components/Avatar/AvatarFile";
+import Button from "../../components/Button/Button";
 import CardFile from "../../components/Card/CardFile";
 import { FileType } from "../../components/Card/CardFile.types";
 import Counter from "../../components/Counter/Counter";
@@ -77,6 +78,63 @@ const toModuleFile = (file: ManagedFile, userId: number): ModuleFile => ({
   visibility: file.visibility,
   meta: addedCaption(userId),
 });
+
+// ---- one file in the PUBLIC view: a plain list row with a Download button ----
+// No menu, no drag. The right slot is a ghost lg Button whose label IS the
+// file size, with the download icon on its right ("Files" Display Module,
+// Public View 9966:2752 — it replaced the Equipment panel's icon button +
+// "Download / size" tooltip, 22438-36831).
+const PublicFileRow = ({
+  file,
+  onPreview,
+  onDownload,
+}: {
+  file: ModuleFile;
+  onPreview?: (file: ModuleFile) => void;
+  onDownload?: (file: ModuleFile) => void;
+}) => (
+  <ListItem
+    variant="titleCaption"
+    title={file.name}
+    caption={file.meta}
+    avatar={<AvatarFile size="xl" type={file.type} />}
+    isClickable
+    onClick={() => onPreview?.(file)}
+    slotRight={
+      <Button
+        variant="ghost"
+        size="lg"
+        rightIcon="download"
+        aria-label={`Download ${file.name}, ${file.size}`}
+        onClick={() => onDownload?.(file)}
+      >
+        {file.size}
+      </Button>
+    }
+  />
+);
+
+// ---- the same file as a CARD in the public view: the footer button
+// downloads, and its tooltip names the size (node 9966:4183) ----
+const PublicFileCard = ({
+  file,
+  onPreview,
+  onDownload,
+}: {
+  file: ModuleFile;
+  onPreview?: (file: ModuleFile) => void;
+  onDownload?: (file: ModuleFile) => void;
+}) => (
+  <CardFile
+    name={file.name}
+    fileType={cardType(file.type)}
+    onClick={() => onPreview?.(file)}
+    actionIcon="download"
+    actionLabel={`Download ${file.name}`}
+    actionTooltip={file.size}
+    onMenuClick={() => onDownload?.(file)}
+  />
+);
 
 // ---- one file: a list row OR a card, plus its Public/Private context menu ----
 // The group clones this wrapper for the lifted drag copy — list injects
@@ -263,6 +321,8 @@ export default function FilesModule({
   defaultView = "list",
   isLoading = false,
   loadingCount = 5,
+  isPublicView = false,
+  onDownload,
   mobile = false,
   className,
 }: FilesModuleProps) {
@@ -288,7 +348,8 @@ export default function FilesModule({
 
   const publicFiles = files.filter((file) => file.visibility === "public");
   const privateFiles = files.filter((file) => file.visibility === "private");
-  const count = files.length;
+  // The public view counts (and shows) only what the client can see.
+  const count = isPublicView ? publicFiles.length : files.length;
   /** What the title's counter shows — the loading count stands in for it. */
   const countShown = isLoading ? loadingCount : count;
 
@@ -363,7 +424,21 @@ export default function FilesModule({
   const content = isLoading ? (
     loadingContent
   ) : count === 0 ? (
-    <EmptyState caption="No files here yet" />
+    <EmptyState caption="No files" />
+  ) : isPublicView ? (
+    // One flat group — no Public / Private labels, since everything is public.
+    // The list / cards switch works here too (Public View 9966:2752).
+    <div className={styles.listBody}>
+      <ItemGroup view={view} cardCountBasis={publicFiles.length}>
+        {publicFiles.map((file) =>
+          view === "cards" ? (
+            <PublicFileCard key={file.id} file={file} onPreview={onPreview} onDownload={onDownload} />
+          ) : (
+            <PublicFileRow key={file.id} file={file} onPreview={onPreview} onDownload={onDownload} />
+          ),
+        )}
+      </ItemGroup>
+    </div>
   ) : (
     <div className={styles.listBody}>
       {group(
@@ -371,7 +446,7 @@ export default function FilesModule({
         "public",
         "globe",
         "Public",
-        "No public files here yet",
+        "No public files",
         true,
       )}
       {group(
@@ -379,10 +454,28 @@ export default function FilesModule({
         "private",
         "lock",
         "Private",
-        "No private files here yet",
+        "No private files",
         false,
       )}
     </div>
+  );
+
+  // Same files, another format — a switcher, not navigation, so a
+  // SegmentedControl (Daniel, 2026-09-30). The SELECTED segment's icon is
+  // SOLID (Daniel, 2026-10-06). `list-ul` is the Figma glyph (9966:2752).
+  const viewToggle = (
+    <SegmentedControl size="md" value={view} onChange={(value) => setView(value as FileView)}>
+      <Segment
+        value="list"
+        slotLeft={<Icon icon="list-ul" size={14} pack={view === "list" ? "solid" : "regular"} />}
+        aria-label="List view"
+      />
+      <Segment
+        value="cards"
+        slotLeft={<Icon icon="grid-2" size={14} pack={view === "cards" ? "solid" : "regular"} />}
+        aria-label="Cards view"
+      />
+    </SegmentedControl>
   );
 
   const addButton = full ? (
@@ -420,15 +513,15 @@ export default function FilesModule({
       <DisplayModule
         className={className}
         title="Files"
-        // No counter at zero — the empty module has nothing to count. (The
-        // Figma Files file still draws a stale 3 on its empty frame; the
-        // Equipment panel's own Empty State node is the deliberate one.)
+        // No counter at zero — the empty module has nothing to count ("No
+        // Files" annotation, Figma 9801:10218).
         // While loading the counter shows the count that is already known.
         titleSlotRight={countShown === 0 ? undefined : <Counter value={countShown} />}
-        // The limit banner needs the real files, so it waits for them.
-        status={isLoading ? "none" : full ? "warning" : approaching ? "info" : "none"}
+        // The limit banner needs the real files, so it waits for them. The
+        // public view never uploads, so it never shows one.
+        status={isLoading || isPublicView ? "none" : full ? "warning" : approaching ? "info" : "none"}
         banner={
-          isLoading
+          isLoading || isPublicView
             ? undefined
             : full
             ? {
@@ -442,26 +535,15 @@ export default function FilesModule({
         }
         // Every header action waits for the files (the Loading node draws a
         // bare title + counter), like every other module in the panel.
+        // The public view has no add button — only the switch. A module with
+        // NO files has no switch either: there is nothing to view two ways
+        // ("No Files" annotation, Figma 9801:10218).
         slotRight={
-          isLoading ? undefined : showViewToggle ? (
+          isLoading ? undefined : isPublicView ? (
+            showViewToggle && count > 0 ? viewToggle : undefined
+          ) : showViewToggle && count > 0 ? (
             <>
-              {/* Same files, another format — a switcher, not navigation, so
-                  this is a SegmentedControl (Daniel, 2026-09-30).
-                  The SELECTED segment's icon is SOLID (Daniel, 2026-10-06) —
-                  the same "selected = solid glyph" rule the sidebar's active
-                  item and the status menu items follow. */}
-              <SegmentedControl size="md" value={view} onChange={(value) => setView(value as FileView)}>
-                <Segment
-                  value="list"
-                  slotLeft={<Icon icon="list" size={14} pack={view === "list" ? "solid" : "regular"} />}
-                  aria-label="List view"
-                />
-                <Segment
-                  value="cards"
-                  slotLeft={<Icon icon="grid-2" size={14} pack={view === "cards" ? "solid" : "regular"} />}
-                  aria-label="Cards view"
-                />
-              </SegmentedControl>
+              {viewToggle}
               {addButton}
             </>
           ) : (

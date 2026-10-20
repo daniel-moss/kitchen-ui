@@ -76,6 +76,11 @@ export interface CardFileProps {
   actionLabel?: string;
   /** Render the action button in the danger (red) style — e.g. a delete action. */
   actionDanger?: boolean;
+  /**
+   * A hover tooltip on the action button — e.g. the file size on a "Download"
+   * button ("Files" Display Module, Public View, node 9966:4183). Unset = none.
+   */
+  actionTooltip?: string;
 
   /** Non-interactive and dimmed (Card's disabled). */
   disabled?: boolean;

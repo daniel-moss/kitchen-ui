@@ -152,7 +152,9 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
             <Button
               variant="ghost"
               size="md"
+              // The `--dropdown` icon token's value, in --gray-a9.
               rightIcon="angles-up-down"
+              rightIconClassName={styles.filterDropdownIcon}
               leftIcon={filter === "all" ? undefined : HISTORY_KIND_META[filter].icon}
               isPressed={filterPop.open}
               onClick={(event: MouseEvent<HTMLButtonElement>) => filterPop.toggle(event.currentTarget)}

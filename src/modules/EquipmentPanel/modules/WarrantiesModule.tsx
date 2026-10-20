@@ -5,6 +5,7 @@ import EmptyState from "../../../components/EmptyState/EmptyState";
 import IconButton from "../../../components/IconButton/IconButton";
 import ItemGroup from "../../../components/ItemGroup/ItemGroup";
 import ListItem from "../../../components/ListItem/ListItem";
+import ListItemSlotIcon from "../../../components/ListItem/ListItemSlotIcon";
 import Menu from "../../../components/Menu/Menu";
 import MenuItem from "../../../components/Menu/MenuItem";
 import MenuItemGroup from "../../../components/Menu/MenuItemGroup";
@@ -119,6 +120,11 @@ interface WarrantiesModuleProps {
   onOpen: (warranty: WarrantyRow) => void;
   onDelete: (warranty: WarrantyRow) => void;
   /**
+   * The PUBLIC view (Figma 22438-36154): no add button and no context menu —
+   * each row only opens, with a chevron on the right.
+   */
+  isPublicView?: boolean;
+  /**
    * Loading: the Details tab has already told us HOW MANY warranties there
    * are, so the list shows that many skeleton rows (the Loading frame's own
    * annotation) — pass the count the tab carries.
@@ -135,6 +141,7 @@ export default function WarrantiesModule({
   onDelete,
   isLoading = false,
   loadingCount = 3,
+  isPublicView = false,
 }: WarrantiesModuleProps) {
   const count = isLoading ? loadingCount : warranties.length;
 
@@ -148,9 +155,22 @@ export default function WarrantiesModule({
     <EmptyState caption="No warranties here yet" />
   ) : (
     <ItemGroup>
-      {warranties.map((warranty) => (
-        <WarrantyEntry key={warranty.id} warranty={warranty} mobile={mobile} onOpen={onOpen} onDelete={onDelete} />
-      ))}
+      {warranties.map((warranty) =>
+        isPublicView ? (
+          <ListItem
+            key={warranty.id}
+            variant="titleCaption"
+            title={warranty.name}
+            caption={warranty.range}
+            avatar={<AvatarWarranty size="xl" status={warranty.state} />}
+            isClickable
+            onClick={() => onOpen(warranty)}
+            slotRight={<ListItemSlotIcon icon="angle-right" />}
+          />
+        ) : (
+          <WarrantyEntry key={warranty.id} warranty={warranty} mobile={mobile} onOpen={onOpen} onDelete={onDelete} />
+        ),
+      )}
     </ItemGroup>
   );
 
@@ -163,7 +183,7 @@ export default function WarrantiesModule({
       // (node 22012-20142 draws "3" over 3 skeleton rows).
       titleSlotRight={count === 0 ? undefined : <Counter value={count} />}
       slotRight={
-        isLoading ? undefined : (
+        isLoading || isPublicView ? undefined : (
           <HoverTooltip text="Add warranty">
             <IconButton icon="plus" variant="ghost" size="md" aria-label="Add warranty" onClick={onAdd} />
           </HoverTooltip>

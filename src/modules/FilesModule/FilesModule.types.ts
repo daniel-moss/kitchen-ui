@@ -83,6 +83,17 @@ export interface FilesModuleProps {
   /** How many skeleton rows to draw, and what the counter shows. Default 5. */
   loadingCount?: number;
 
+  /**
+   * The PUBLIC view (what the client sees — "Files" Display Module, Public
+   * View 9966:2752): only the public files, in one group with no label; no
+   * add button, no re-ordering, no context menu, no limit banner. A list row
+   * keeps its click (preview) and ends with a ghost Button showing the file
+   * size + download icon; a card's footer button downloads, with the size as
+   * its tooltip. The list / cards switch still works. Default false.
+   */
+  isPublicView?: boolean;
+  /** Download one file — the public view's row / card button. */
+  onDownload?: (file: ModuleFile) => void;
   /** Mobile presentation for the per-file menus (drawer instead of a card). */
   mobile?: boolean;
   /** Body padding: the module owns it. Set false inside a padded container. */

@@ -8,7 +8,8 @@ import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
 import { copyText } from "../../shared/helpers";
 import { formatLongDate } from "../equipmentData";
 
-// The "General details" module (Figma 17192-89308). Ten label–value pairs; the
+// The "General" module (Figma 17192-89308; renamed from "General details"
+// 2026-10-19). Ten label–value pairs; the
 // five copyable ones carry a copy IconButton in the value's right slot, and the
 // tenth ("Warranty") is derived, not stored.
 
@@ -35,10 +36,21 @@ interface GeneralDetailsModuleProps {
   coverage: WarrantyCoverage;
   onEdit: () => void;
   isLoading?: boolean;
+  /**
+   * The PUBLIC view (Figma 22438-33652): no edit button and no warning state —
+   * a missing value is a plain "No [Label]" placeholder. Copy stays.
+   */
+  isPublicView?: boolean;
 }
 
-export default function GeneralDetailsModule({ equipment, coverage, onEdit, isLoading = false }: GeneralDetailsModuleProps) {
-  const warning = !isLoading && hasMissingKeyDetails(equipment);
+export default function GeneralDetailsModule({
+  equipment,
+  coverage,
+  onEdit,
+  isLoading = false,
+  isPublicView = false,
+}: GeneralDetailsModuleProps) {
+  const warning = !isLoading && !isPublicView && hasMissingKeyDetails(equipment);
 
   // One copy button — `lg` (36px) and muted, the size the value slot takes.
   // While loading there is nothing to copy, so the slot is empty — the Loading
@@ -46,7 +58,7 @@ export default function GeneralDetailsModule({ equipment, coverage, onEdit, isLo
   const copyButton = (label: string, value: string | undefined) =>
     isLoading || value == null || value === "" ? undefined : (
       <HoverTooltip text="Copy">
-        <IconButton icon="copy" variant="muted" size="lg" aria-label={`Copy ${label.toLowerCase()}`} onClick={() => copyText(value, label)} />
+        <IconButton icon="copy" variant="muted" size="lg" aria-label={`Copy ${label.toLowerCase()}`} onClick={() => copyText(value, label, undefined, `Couldn't copy "${label}"`)} />
       </HoverTooltip>
     );
 
@@ -54,13 +66,13 @@ export default function GeneralDetailsModule({ equipment, coverage, onEdit, isLo
 
   return (
     <DisplayModule
-      title="General details"
+      title="General"
       status={warning ? "warning" : "none"}
-      banner={warning ? { children: "Key details missing", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
+      banner={warning ? { children: "Key details missing!", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
       // While loading there is nothing to edit yet, so the header loses its
       // button (Figma's Loading frame draws the header with no right slot).
       slotRight={
-        isLoading ? undefined : <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit general details" onClick={onEdit} />
+        isLoading || isPublicView ? undefined : <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit general" onClick={onEdit} />
       }
       content={
         <ValueDisplayGroup>

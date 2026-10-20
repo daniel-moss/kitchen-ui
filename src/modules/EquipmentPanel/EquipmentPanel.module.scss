@@ -32,3 +32,9 @@
 .placeholderCaption {
   color: var(--text-placeholder);
 }
+
+// The History filter button's right icon (the `--dropdown` token, angles-up-down)
+// is --gray-a9, not the label's color (Daniel, 2026-10-19).
+.filterDropdownIcon {
+  color: var(--gray-a9);
+}

@@ -39,6 +39,11 @@ interface NotesModuleProps {
    */
   copyLabel?: string;
   /**
+   * Overrides the copy-failure toast's title. Default 'Could not copy
+   * "<copyLabel>"'; the Equipment panel's design reads 'Couldn't copy "Notes"'.
+   */
+  copyErrorTitle?: string;
+  /**
    * False HIDES the edit button, keeping Copy — the record is read-only (the
    * Tax rate panel's inactive state: "Reactivate to edit details"), or the user
    * lacks the permission. Reading is not editing. Default true.
@@ -53,6 +58,7 @@ export default function NotesModule({
   title = "Notes",
   emptyCaption = "No notes here yet",
   copyLabel,
+  copyErrorTitle,
   canEdit = true,
 }: NotesModuleProps) {
   const hasNotes = notes != null && notes.trim() !== "";
@@ -87,7 +93,7 @@ export default function NotesModule({
                 variant="ghost"
                 size="md"
                 aria-label={`Copy ${label.toLowerCase()}`}
-                onClick={() => copyText(notes!, label)}
+                onClick={() => copyText(notes!, label, undefined, copyErrorTitle)}
               />
             )}
             {canEdit && (

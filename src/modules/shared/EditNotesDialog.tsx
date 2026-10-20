@@ -14,8 +14,8 @@ import styles from "./textDialog.module.scss";
 // file pnpE6Jr6JG1Bm2iLWyy1vS): a default Dialog whose body is one TextArea.
 //
 // SHARED since 2026-09-28 (promoted out of the Equipment side panel): the
-// Warranty side panel opens the same dialog, only with its own title
-// ("Warranty notes", node 22049-1908) and an "(optional)" label condition.
+// Warranty side panel opens the same dialog with an "(optional)" label
+// condition (node 22049-1908).
 //
 // The doc's four rules:
 //   Behaviour      the field is focused on open (the mobile keyboard follows),
@@ -40,8 +40,7 @@ interface EditNotesDialogProps {
    */
   onSave: (notes: string) => void | boolean | Promise<void | boolean>;
   /**
-   * The dialog title. Default "Notes" (the Equipment panel); the Warranty
-   * panel names its object — "Warranty notes".
+   * The dialog title. Default "Notes" (the Equipment and Warranty panels).
    */
   title?: string;
   /**
@@ -60,6 +59,12 @@ interface EditNotesDialogProps {
    * Same reason `copyText` lets a caller override its title.
    */
   toastSubject?: string;
+  /**
+   * Overrides the failure toast's title. Default 'Could not update
+   * <toastSubject>'; the Equipment panel's design reads 'Couldn't update
+   * "Notes" module' (2026-10-19).
+   */
+  errorTitle?: string;
   /** Show "(optional)" next to the field label. Default false. */
   optional?: boolean;
   breakpoint?: "auto" | "desktop" | "mobile";
@@ -73,6 +78,7 @@ export default function EditNotesDialog({
   title = "Notes",
   fieldLabel = "Notes",
   toastSubject = '"Notes"',
+  errorTitle,
   optional = false,
   breakpoint = "auto",
 }: EditNotesDialogProps) {
@@ -89,7 +95,7 @@ export default function EditNotesDialog({
       toast({
         type: "error",
         variant: "detailed",
-        title: `Could not update ${toastSubject}`,
+        title: errorTitle ?? `Could not update ${toastSubject}`,
         caption: "Something went wrong. Please try again.",
       });
       return;
