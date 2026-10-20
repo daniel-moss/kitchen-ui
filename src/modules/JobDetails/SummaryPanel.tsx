@@ -52,6 +52,7 @@ export default function SummaryPanel({
   signature,
   onFormsLog,
   onTextLog,
+  isPublicView = false,
 }: {
   mobile?: boolean;
   /** The job's charges and their total — derived from the job (db/jobCharges). */
@@ -73,6 +74,14 @@ export default function SummaryPanel({
    * "{user} updated {property}" over the old → new diff.
    */
   onTextLog?: (property: string, oldValue: string, newValue: string) => void;
+  /**
+   * The job's PUBLIC view (Figma 27042-26755): Tech work + Signature only — no
+   * "Charges", which has no public design yet (Daniel, 2026-10-20). Tech work
+   * holds the public completed Forms and the Work summary when one was
+   * written, both read-only; no "Notes to dispatcher(s)". Signature is
+   * unchanged. Default false.
+   */
+  isPublicView?: boolean;
 }) {
   const [sub, setSub] = useState("tech-work");
 
@@ -158,7 +167,7 @@ export default function SummaryPanel({
           between views of the Summary itself. */}
       <SegmentedControl size="lg" isFullWidth value={sub} onChange={setSub}>
         <Segment value="tech-work">Tech work</Segment>
-        <Segment value="charges">Charges</Segment>
+        {!isPublicView && <Segment value="charges">Charges</Segment>}
         <Segment value="signature">Signature</Segment>
       </SegmentedControl>
 
@@ -177,10 +186,16 @@ export default function SummaryPanel({
             onCompletionChange={setFormsDone}
             onFormsRevision={handleFormsRevision}
             onLog={onFormsLog}
+            isPublicView={isPublicView}
           />
 
           {/* Work summary — 4 states (filled / generate / incomplete forms /
-              forms updated). The pencil always opens the edit form. */}
+              forms updated). The pencil always opens the edit form. Public
+              view: the saved paragraph only, no pencil — and no module while
+              nothing was written ("Only shown if work summary provided"). */}
+          {isPublicView ? (
+            summary !== "" && <DisplayModule title="Work summary" content={<p className={styles.paragraph}>{summary}</p>} />
+          ) : (
           <DisplayModule
             title="Work summary"
             slotRight={<EditButton label="Edit" onClick={() => setSummaryOpen(true)} />}
@@ -201,15 +216,19 @@ export default function SummaryPanel({
             bodyPadded={summary !== ""}
             content={summaryBody}
           />
+          )}
 
           {/* Notes to dispatcher(s) — filled paragraph or the empty state.
-              The pencil opens the edit form in both (Figma, 2026-08-06). */}
+              The pencil opens the edit form in both (Figma, 2026-08-06). Never
+              in the public view — the notes are internal. */}
+          {!isPublicView && (
           <DisplayModule
             title="Notes to dispatcher(s)"
             slotRight={<EditButton label="Edit" onClick={() => setNotesOpen(true)} />}
             bodyPadded={notes !== ""}
             content={notes !== "" ? <p className={styles.paragraph}>{notes}</p> : <EmptyState caption="No notes here yet" />}
           />
+          )}
 
           <WorkSummaryForm
             open={summaryOpen}

@@ -18,7 +18,7 @@ import { useCurrentJobId } from "./currentJob";
 // The upload cap is the module's default — the company setting — so this file
 // no longer keeps a 25 of its own.
 
-export default function FilesModule({ mobile = false }: { mobile?: boolean }) {
+export default function FilesModule({ mobile = false, isPublicView = false }: { mobile?: boolean; isPublicView?: boolean }) {
   const jobId = useCurrentJobId();
 
   const seeded = useMemo<ModuleFile[]>(() => {
@@ -58,9 +58,16 @@ export default function FilesModule({ mobile = false }: { mobile?: boolean }) {
   // afterwards, so this only has to remove the row (2026-10-06).
   const deleteFile = (file: ModuleFile) => setFiles((prev) => prev.filter((row) => row.id !== file.id));
 
+  // The job's PUBLIC view shows the module only when it holds public files
+  // ("Only shown if it contains files"); the shared module drops the private
+  // ones itself.
+  if (isPublicView && !files.some((file) => file.visibility === "public")) return null;
+
   return (
     <SharedFilesModule
       files={files}
+      isPublicView={isPublicView}
+      onDownload={(file) => toast({ type: "neutral", icon: "download", title: `Downloading "${file.name}"` })}
       showViewToggle
       mobile={mobile}
       onReorder={reorder}

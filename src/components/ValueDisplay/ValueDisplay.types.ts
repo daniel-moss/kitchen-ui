@@ -34,6 +34,7 @@ type ValueKey =
   | "valueColor"
   | "slotLeft"
   | "isWarning"
+  | "href"
   | "badge"
   | "link"
   | "lineLimit"
@@ -67,8 +68,15 @@ interface HorizontalBase extends ValueDisplayBase {
 
 /** Horizontal text value. It wraps when it does not fit one line, with or without a `slotLeft` (which stays on the first line). */
 export type ValueDisplayHorizontalTextProps = HorizontalBase &
-  Only<"value" | "valueColor" | "slotLeft" | "isWarning"> & {
+  Only<"value" | "valueColor" | "slotLeft" | "isWarning" | "href"> & {
     kind?: "text";
+    /**
+     * Makes the value a LINK — `mailto:` / `tel:` / a URL. It stays a wrapping
+     * text value (never truncates), drawn underlined like a LinkButton: the
+     * "Service company" module's email and phone (Figma 26990-60627, "Works as
+     * a link. Wraps. Never truncates"). A LinkButton value truncates instead.
+     */
+    href?: string;
     /** The value. Empty/undefined renders the "No [Label]" placeholder. */
     value?: string;
     /** Value text color (a CSS color, normally a token var like `var(--jade-11)`). */

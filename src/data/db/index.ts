@@ -124,6 +124,15 @@ export const subStatusOf = (job: Job): JobSubStatusRecord | undefined =>
  */
 export const recallOf = (jobId: string): Job | undefined => JOBS.find((job) => job.recallToId === jobId);
 
+/**
+ * The estimate a job was CREATED FROM — production `Job.estimate`. An
+ * estimate's `jobId` means either end ("turned into, or written for, a job"),
+ * so only a JOBBED one is the job's parent: an estimate still awaiting
+ * approval was written for the job, it did not create it.
+ */
+export const parentEstimateOf = (jobId: string): Estimate | undefined =>
+  ESTIMATES.find((estimate) => estimate.jobId === jobId && estimate.status === "jobbed");
+
 // ---- down the hierarchy ----------------------------------------------------
 
 export const locationsOf = (clientId: string) => LOCATIONS.filter((row) => row.clientId === clientId);

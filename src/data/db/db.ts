@@ -2166,6 +2166,8 @@ export const JOB_FORMS: JobForm[] = [
 export const COMPANY: CompanySettings = {
   name: "Roopairs",
   logo: { light: "roopairs-light.svg", dark: "roopairs-dark.svg" },
+  email: "service@roopairs.com",
+  phone: "(415) 555-0142",
   maxFileUploads: 25,
   maxFileUploadSizeMb: 100,
   jobCustomIdGenerationMode: "manual",

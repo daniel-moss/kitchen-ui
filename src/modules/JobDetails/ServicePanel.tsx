@@ -7,6 +7,7 @@ import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
 import LinkButton from "../../components/LinkButton/LinkButton";
 import ListItem from "../../components/ListItem/ListItem";
+import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import Menu from "../../components/Menu/Menu";
 import MenuItem from "../../components/Menu/MenuItem";
@@ -47,11 +48,14 @@ const EquipmentRow = ({
   mobile,
   onOpen,
   onRemove,
+  isPublicView = false,
 }: {
   equipment: Equipment;
   mobile: boolean;
   onOpen: () => void;
   onRemove: () => void;
+  /** Public view: no menu — the row ends with a chevron and only opens the panel. */
+  isPublicView?: boolean;
 }) => {
   const menu = useAnchoredMenu(!mobile);
 
@@ -79,6 +83,20 @@ const EquipmentRow = ({
       </MenuItemGroup>
     </>
   );
+
+  if (isPublicView) {
+    return (
+      <ListItem
+        variant="titleCaption"
+        title={equipmentTitle(equipment)}
+        caption={equipmentCaptionText(equipment)}
+        avatar={<EquipmentAvatar equipment={equipment} />}
+        isClickable
+        onClick={onOpen}
+        slotRight={<ListItemSlotIcon icon="angle-right" />}
+      />
+    );
+  }
 
   return (
     <>
@@ -172,6 +190,7 @@ export default function ServicePanel({
   onCreateEquipment,
   locationName,
   serviceLocked = false,
+  isPublicView = false,
   onOpenJob,
 }: {
   mobile?: boolean;
@@ -193,6 +212,14 @@ export default function ServicePanel({
   /** Hides the Service module's edit pencil (Concept 8 tech view — only the
    *  office edits). Equipment and Files stay editable. Default false. */
   serviceLocked?: boolean;
+  /**
+   * The job's PUBLIC view (Figma 26990-59021 / 59026 / 59038): nothing edits;
+   * the Service module drops "Priority" and "Tech instructions"; Equipment and
+   * Files show only when they hold something, Equipment rows open the
+   * Equipment side panel's public view and Files is the shared module's public
+   * mode. Default false.
+   */
+  isPublicView?: boolean;
   /** Opens the recalled job — the "Recall to" link navigates to it, same tab. */
   onOpenJob?: (id: string) => void;
 }) {
@@ -215,7 +242,8 @@ export default function ServicePanel({
   const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
   // "If at least one piece of equipment is missing key details, we show a
   // banner" (the Warning frame's annotation, node 24749-140737).
-  const equipmentWarning = jobEquipment.some(equipmentIncomplete);
+  // Never in the public view — the client cannot fix the details.
+  const equipmentWarning = !isPublicView && jobEquipment.some(equipmentIncomplete);
 
   // A row's "Remove" — the piece leaves the JOB, it is not deleted. It goes
   // through the same commit the form uses, so it lands in the activity log
@@ -233,7 +261,7 @@ export default function ServicePanel({
       <DisplayModule
         title="Service"
         slotRight={
-          serviceLocked ? undefined : (
+          serviceLocked || isPublicView ? undefined : (
             <HoverTooltip text="Edit">
               <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit service" onClick={() => setServiceOpen(true)} />
             </HoverTooltip>
@@ -268,6 +296,7 @@ export default function ServicePanel({
               />
             )}
             <ValueDisplay label="Service" value={service.service} />
+            {!isPublicView && (
             <ValueDisplay
               label="Priority"
               value={service.priority}
@@ -277,8 +306,9 @@ export default function ServicePanel({
                 </span>
               }
             />
+            )}
             <ValueDisplay label="Reason for call" orientation="vertical" value={service.reason} />
-            <ValueDisplay label="Tech instructions" orientation="vertical" value={service.tech} />
+            {!isPublicView && <ValueDisplay label="Tech instructions" orientation="vertical" value={service.tech} />}
           </ValueDisplayGroup>
         }
       />
@@ -296,15 +326,18 @@ export default function ServicePanel({
           into its WARNING state: an AlertBanner reading "Some details require
           your attention!" (node 24749-140737). The rows already show the amber
           avatar and the "No Manufacturer" placeholders. */}
+      {(!isPublicView || jobEquipment.length > 0) && (
       <DisplayModule
         title="Equipment"
         titleSlotRight={jobEquipment.length > 0 ? <Counter value={jobEquipment.length} /> : undefined}
         status={equipmentWarning ? "warning" : "none"}
         banner={equipmentWarning ? { children: "Some details require your attention!" } : undefined}
         slotRight={
-          <HoverTooltip text="Add equipment">
-            <IconButton icon="plus" variant="ghost" size="md" aria-label="Add equipment" onClick={() => setEquipmentOpen(true)} />
-          </HoverTooltip>
+          isPublicView ? undefined : (
+            <HoverTooltip text="Add equipment">
+              <IconButton icon="plus" variant="ghost" size="md" aria-label="Add equipment" onClick={() => setEquipmentOpen(true)} />
+            </HoverTooltip>
+          )
         }
         content={
           jobEquipment.length > 0 ? (
@@ -317,6 +350,7 @@ export default function ServicePanel({
                     mobile={mobile}
                     onOpen={() => openPanel(recordFor(e, jobById(jobId)?.locationId ?? ""))}
                     onRemove={() => removeEquipment(e)}
+                    isPublicView={isPublicView}
                   />
                 ))}
               </ItemGroup>
@@ -330,6 +364,7 @@ export default function ServicePanel({
           )
         }
       />
+      )}
 
       {/* The row's side panel. The equipment record is local state, so the
           panel's own edit forms show their result while it is open; writing
@@ -340,6 +375,7 @@ export default function ServicePanel({
           onClose={() => setPanelOpen(false)}
           equipment={previewed}
           breakpoint={mobile ? "mobile" : "desktop"}
+          isPublicView={isPublicView}
           onSaveDetails={(edits) => setPreviewed((prev) => (prev == null ? prev : { ...prev, ...edits }))}
           onSaveLabels={(labels) =>
             setPreviewed((prev) =>
@@ -363,7 +399,7 @@ export default function ServicePanel({
 
       {/* Files — list/cards toggle, Public/Private groups, per-file menus,
           empty states, and the file-limit banner (Figma "Files" doc). */}
-      <FilesModule mobile={mobile} />
+      <FilesModule mobile={mobile} isPublicView={isPublicView} />
     </div>
   );
 }

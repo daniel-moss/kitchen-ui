@@ -1587,6 +1587,14 @@ export interface CompanySettings {
   name: string;
   /** The company logo, per theme. Same shape as a job source's artwork. */
   logo: { light: string; dark: string };
+  /**
+   * The company's own contact details — production `ServiceCompany.email`
+   * (REQUIRED there) and `phone` / `phone_extension` (optional). A job's PUBLIC
+   * view shows them in its "Service company" module.
+   */
+  email: string;
+  phone?: string;
+  phoneExtension?: string;
   /** Max files per upload. Production default 25, absolute max 100. */
   maxFileUploads: number;
   /** Max file size in MB. Production default 100. */

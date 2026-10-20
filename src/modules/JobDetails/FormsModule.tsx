@@ -15,6 +15,7 @@ import GroupLabel from "../../components/GroupLabel/GroupLabel";
 import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
 import ListItem from "../../components/ListItem/ListItem";
+import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
 import ItemGroup from "../../components/ItemGroup/ItemGroup";
 import Menu from "../../components/Menu/Menu";
 import MenuItem from "../../components/Menu/MenuItem";
@@ -477,6 +478,7 @@ export default function FormsModule({
   onFormsChange,
   registerPreview,
   onLog,
+  isPublicView = false,
 }: {
   mobile?: boolean;
   /** The job's live Equipment-module list (the Service call form reads it). */
@@ -514,6 +516,14 @@ export default function FormsModule({
    * Duplicating a form has NO designed log, so it writes none — flagged.
    */
   onLog?: (log: FormsLog) => void;
+  /**
+   * The job's PUBLIC view (Figma 27042-26767): only the COMPLETED PUBLIC forms,
+   * one flat list with no group labels, no editing and no re-ordering. A row
+   * ends with a chevron and opens the read-only preview, whose header has no
+   * context menu. No such form → no module ("Only shown if it has completed
+   * forms"). Default false.
+   */
+  isPublicView?: boolean;
 }) {
   // The job's own techs and the day they were on site, stamped onto the two
   // forms that start completed.
@@ -825,6 +835,48 @@ export default function FormsModule({
       {group("private", privateForms, true)}
     </div>
   );
+
+  // ---- the public view --------------------------------------------------------
+  const publicCompleted = publicForms.filter((f) => f.state === "completed");
+  if (isPublicView) {
+    if (publicCompleted.length === 0) return null;
+    return (
+      <>
+        <DisplayModule
+          title="Forms"
+          titleSlotRight={<Counter value={publicCompleted.length} />}
+          content={
+            <div className={styles.listBody}>
+              <ItemGroup>
+                {publicCompleted.map((f) => (
+                  <ListItem
+                    key={f.id}
+                    variant="titleCaption"
+                    title={f.name}
+                    caption={caption(f)}
+                    avatar={<FormAvatar state={f.state} />}
+                    slotRight={<ListItemSlotIcon icon="angle-right" />}
+                    isClickable
+                    onClick={previewAnswersOf(f) != null ? () => setPreviewForm(f) : noop}
+                  />
+                ))}
+              </ItemGroup>
+            </div>
+          }
+        />
+        {preview != null && shownPreview != null && (
+          <FormPreviewPanel
+            open={previewForm != null}
+            onClose={() => setPreviewForm(null)}
+            title={shownPreview.name}
+            schema={preview.schema}
+            answers={preview.answers}
+            breakpoint={mobile ? "mobile" : "desktop"}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <>

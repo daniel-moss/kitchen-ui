@@ -120,6 +120,19 @@ export interface JobDetailsProps {
    * tooltips. Default false.
    */
   roundTo5min?: boolean;
+  /**
+   * The job's PUBLIC view (Figma 26990-56723) — the page a client opens from
+   * the job's link. The SAME page in a read-only mode, not a copy: the top bar
+   * has no back button and no live users, and its only actions are Copy URL
+   * and Download PDF; the tabs are Service and Summary; there is no time
+   * tracking; and every module follows its public rules. Default false.
+   */
+  isPublicView?: boolean;
+  /**
+   * Public view: the service company has a logo. Without one, its avatar shows
+   * the first letter of the company's name. Default true.
+   */
+  companyHasLogo?: boolean;
 }
 
 // Real photos from the shared demo-users fixture; ring colors auto-assign
@@ -149,10 +162,13 @@ const liveUsersFor = (record: ListJob): AvatarGroupItem[] =>
 // static for now.
 const Tabs = ({
   withDetails = false,
+  isPublicView = false,
   value,
   onChange,
 }: {
   withDetails?: boolean;
+  /** Public view: no Timesheet and no Activity (the node's annotation). */
+  isPublicView?: boolean;
   value?: string;
   onChange?: (value: string) => void;
 }) => (
@@ -162,9 +178,9 @@ const Tabs = ({
   <TabGroup variant="underlined" value={value} onChange={onChange} defaultValue={value == null ? "service" : undefined}>
     {withDetails && <TabItem value="details">Details</TabItem>}
     <TabItem value="service">Service</TabItem>
-    <TabItem value="timesheet">Timesheet</TabItem>
+    {!isPublicView && <TabItem value="timesheet">Timesheet</TabItem>}
     <TabItem value="summary">Summary</TabItem>
-    <TabItem value="activity">Activity</TabItem>
+    {!isPublicView && <TabItem value="activity">Activity</TabItem>}
   </TabGroup>
 );
 
@@ -177,11 +193,13 @@ const Tabs = ({
  */
 const SectionTabs = ({
   withDetails = false,
+  isPublicView = false,
   value,
   onChange,
   hideOnScroll = false,
 }: {
   withDetails?: boolean;
+  isPublicView?: boolean;
   value: string;
   onChange: (value: string) => void;
   /** Mobile: stick under the top bar and hide while scrolling DOWN (see below). */
@@ -195,7 +213,7 @@ const SectionTabs = ({
           redundant. */}
       <div className={styles.sectionTabsScroller}>
         <div className={styles.sectionTabsInner}>
-          <Tabs withDetails={withDetails} value={value} onChange={onChange} />
+          <Tabs withDetails={withDetails} isPublicView={isPublicView} value={value} onChange={onChange} />
         </div>
       </div>
     </div>
@@ -709,6 +727,25 @@ const jobActionMenuItems = ({
 // The mobile menu drawer's header: the JOB ID, and nothing else (Figma
 // 24049-13724, 2026-10-04). It used to carry an AvatarJob and the status
 // caption as well; the drawer only has to say which job it is acting on.
+/**
+ * The public view's only actions (Figma 26990-56727): Copy URL and Download
+ * PDF, the same two ghost buttons a cancelled job's bar carries and the same
+ * two functions. Download PDF opens no dialog yet (Daniel, 2026-10-20).
+ */
+const PublicActionButtons = ({ mobile = false }: { mobile?: boolean }) => {
+  const grow = mobile ? styles.grow : undefined;
+  return (
+    <>
+      <Button size="lg" variant="ghost" leftIcon="link" className={grow} onClick={copyJobUrl}>
+        Copy URL
+      </Button>
+      <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={downloadPdf}>
+        Download PDF
+      </Button>
+    </>
+  );
+};
+
 const JobMenuHeader = () => (
   <DrawerHeader>
     <PopoverHeaderContent>
@@ -2489,7 +2526,16 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
 
 // ---- layouts --------------------------------------------------------------
 
-const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: boolean; record: ListJob; onBack?: () => void; onOpenJob?: (id: string) => void }) => {
+interface ShellProps {
+  roundTo5min: boolean;
+  record: ListJob;
+  onBack?: () => void;
+  onOpenJob?: (id: string) => void;
+  isPublicView: boolean;
+  companyHasLogo: boolean;
+}
+
+const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, companyHasLogo }: ShellProps) => {
   const s = useJobShell(true, record);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
@@ -2499,9 +2545,13 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
         {/* The job's actions sit in the TOP BAR on desktop now — there is no
             action bar in the sidebar any more (Daniel, 2026-10-04). */}
         <TopBar
-          onBack={onBack}
-          liveUsers={liveUsersFor(record)}
+          // Public view: no back button and no live users (the node's annotation).
+          onBack={isPublicView ? undefined : onBack}
+          liveUsers={isPublicView ? [] : liveUsersFor(record)}
           actions={
+            isPublicView ? (
+              <PublicActionButtons />
+            ) : (
             <ActionButtons
               status={s.job.status}
               onMenu={s.actionMenu.onActions}
@@ -2510,19 +2560,20 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
               markAsMenu={s.markAsMenu}
               createMenu={s.createMenu}
             />
+            )
           }
         />
         <div className={styles.contentRow}>
           {/* The section tabs belong to the CONTENT AREA, so the bar stops at
               the sidebar's divider instead of running across it. */}
           <div className={styles.mainColumn}>
-          <SectionTabs value={tab} onChange={setTab} />
+          <SectionTabs isPublicView={isPublicView} value={tab} onChange={setTab} />
           <ScrollArea wrapperClassName={styles.mainArea} className={styles.mainAreaScroll}>
             {/* The main column is capped at 560px (Figma: never edge-to-edge) —
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+                <ServicePanel isPublicView={isPublicView} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
@@ -2545,6 +2596,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
             ) : tab === "summary" ? (
               <div className={styles.mainContent}>
                 <SummaryPanel
+                  isPublicView={isPublicView}
                   charges={s.charges}
                   chargesTotal={s.chargesSubtotal}
                   jobEquipment={s.jobEquipment}
@@ -2577,7 +2629,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
                 lifecycle: the bar shows on every status except Unscheduled /
                 Cancelled, in three states — running session, amber idle
                 (active job) or the neutral "Check in to track your time". */}
-            {!s.locked && s.canTrackTime && (
+            {!s.locked && !isPublicView && s.canTrackTime && (
               <div className={styles.sidebarHeader}>
                 {/* No Divider after it — the bar draws its own inner bottom
                     stroke (Daniel, 2026-10-04). */}
@@ -2592,7 +2644,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
                 />
               </div>
             )}
-            <DetailsPanel scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+            <DetailsPanel isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
@@ -2635,6 +2687,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min:
 // ---- mobile tab pager -------------------------------------------------------
 
 const MOBILE_TABS = ["details", "service", "timesheet", "summary", "activity"];
+const PUBLIC_MOBILE_TABS = ["details", "service", "summary"];
 const PAGER_SETTLE_MS = 240;
 
 // A real-time swipe pager (Daniel, 2026-07-22): dragging the content moves the
@@ -2643,10 +2696,13 @@ const PAGER_SETTLE_MS = 240;
 // taps reuse the same settle motion (the `tab` prop change starts a settle
 // toward the tapped tab). While idle only the current panel is mounted.
 const SwipePager = ({
+  tabs = MOBILE_TABS,
   tab,
   onTabChange,
   render,
 }: {
+  /** The tabs in their swipe order. Default every tab; the public view has three. */
+  tabs?: string[];
   tab: string;
   onTabChange: (t: string) => void;
   render: (t: string) => JSX.Element;
@@ -2659,9 +2715,9 @@ const SwipePager = ({
   const gesture = useRef<{ x: number; y: number; captured: boolean; skip: boolean } | null>(null);
   const settleTimer = useRef<number | undefined>(undefined);
 
-  const index = MOBILE_TABS.indexOf(shown);
-  const prevTab = index > 0 ? MOBILE_TABS[index - 1] : null;
-  const nextTab = index < MOBILE_TABS.length - 1 ? MOBILE_TABS[index + 1] : null;
+  const index = tabs.indexOf(shown);
+  const prevTab = index > 0 ? tabs[index - 1] : null;
+  const nextTab = index < tabs.length - 1 ? tabs[index + 1] : null;
 
   const beginSettle = (toTab: string, shift: -1 | 1, fromDx: number | null) => {
     window.clearTimeout(settleTimer.current);
@@ -2683,7 +2739,7 @@ const SwipePager = ({
   // An outside tab change (tab-bar tap) settles toward the new tab.
   useEffect(() => {
     if (tab === shown || settle != null) return;
-    const shift: -1 | 1 = MOBILE_TABS.indexOf(tab) > index ? 1 : -1;
+    const shift: -1 | 1 = tabs.indexOf(tab) > index ? 1 : -1;
     beginSettle(tab, shift, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
@@ -2788,7 +2844,7 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: boolean; record: ListJob; onBack?: () => void; onOpenJob?: (id: string) => void }) => {
+const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, companyHasLogo }: ShellProps) => {
   const s = useJobShell(false, record);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
@@ -2800,27 +2856,28 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
       {/* The top bar is OUTSIDE the scroller, so it stays fixed while the page
           scrolls (Daniel, 2026-10-04). The tabs bar is INSIDE it and scrolls
           away with the content. */}
-      <TopBar mobile onBack={onBack} liveUsers={liveUsersFor(record)} />
+      <TopBar mobile onBack={isPublicView ? undefined : onBack} liveUsers={isPublicView ? [] : liveUsersFor(record)} />
       <ScrollArea wrapperClassName={styles.mobileScroll} className={styles.mobileScrollInner}>
         {/* The tabs are their own bar here too — a row under the top bar, not
             a part of it (Daniel, 2026-10-04). The ActionBar still owns the
             job's actions at the bottom of the screen. */}
-        <SectionTabs withDetails hideOnScroll value={tab} onChange={setTab} />
+        <SectionTabs withDetails isPublicView={isPublicView} hideOnScroll value={tab} onChange={setTab} />
         {/* Swipe-to-switch-tabs listens ONLY here (the tab content) — not on
             the TopBarNav, the tabs bar or the ActionBar (Daniel, 2026-07-22). */}
         {/* Real-time swipe pager: drag the content to pull the next tab in. */}
         <SwipePager
+          tabs={isPublicView ? PUBLIC_MOBILE_TABS : MOBILE_TABS}
           tab={tab}
           onTabChange={setTab}
           render={(t) =>
             t === "details" ? (
 
-          <DetailsPanel mobile scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+          <DetailsPanel mobile isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
             ) : t === "service" ? (
-              <ServicePanel mobile serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+              <ServicePanel mobile isPublicView={isPublicView} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}
@@ -2840,6 +2897,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
           />
             ) : t === "summary" ? (
               <SummaryPanel
+                isPublicView={isPublicView}
                 charges={s.charges}
                 chargesTotal={s.chargesSubtotal}
                 mobile
@@ -2868,7 +2926,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
           otherwise: tap opens the Check in dialog. A zero-height anchor keeps
           it glued to the action bar's top edge regardless of the safe-area
           inset. */}
-      {s.canTrackTime && (
+      {s.canTrackTime && !isPublicView && (
         <div className={styles.pillAnchor}>
           <SessionPill
             checkedIn={s.checkedIn}
@@ -2883,6 +2941,9 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
           Copy URL / Download PDF ARE its two buttons now (Figma 24972-52200,
           2026-10-06), so nothing it can still do is hidden behind a menu. */}
       <ActionBar placement="bottom">
+        {isPublicView ? (
+          <PublicActionButtons mobile />
+        ) : (
         <ActionButtons
           status={s.job.status}
           onMenu={s.actionMenu.onActions}
@@ -2892,6 +2953,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
           createMenu={s.createMenu}
           mobile
         />
+        )}
       </ActionBar>
       <SessionDrawer
         open={sessionDrawerOpen && s.checkedIn}
@@ -2938,7 +3000,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob }: { roundTo5min: 
   );
 };
 
-export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob }: JobDetailsProps) {
+export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, isPublicView = false, companyHasLogo = true }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
   // Remounting on the job id is deliberate: every module seeds its state from
   // the record, so opening another job has to start those modules over rather
@@ -2946,9 +3008,9 @@ export default function JobDetails({ record, breakpoint = "auto", roundTo5min = 
   return (
     <CurrentJobIdProvider id={record.id}>
       {isDesktop ? (
-        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} />
+        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
       ) : (
-        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} />
+        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
       )}
     </CurrentJobIdProvider>
   );

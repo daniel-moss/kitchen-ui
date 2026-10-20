@@ -121,3 +121,19 @@
 .assigneeStatus.assigneeStatus {
   color: var(--text-error);
 }
+
+// ---- Service company (public view, Figma 26990-60627) ----
+// The module body: 16px padding, the header row and the values 16px apart.
+.companyBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+}
+
+// Logo (36px) + name / branch, 12px apart.
+.companyHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3);
+  min-width: 0;
+}

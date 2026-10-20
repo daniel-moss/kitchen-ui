@@ -32,10 +32,16 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { JOB_LABELS, clientContactById, jobById, jobLabelsOf, locationContactById, recallOf } from "../../data/db";
+import { COMPANY, JOB_LABELS, clientContactById, jobById, jobLabelsOf, locationContactById, parentEstimateOf, recallOf } from "../../data/db";
+import { AvatarEstimateStatus } from "../../components/Avatar/AvatarEstimate.types";
+import AvatarEstimate from "../../components/Avatar/AvatarEstimate";
+import SourceAvatar from "../../content/sources";
 
 /** A related job's avatar status — its real one, read from the database. */
 const jobAvatarStatus = (id: string) => jobById(id)?.status ?? "none";
+/** An estimate's avatar status. AvatarEstimate has no "lost" mark — it shares Cancelled's. */
+const estimateAvatarStatus = (status: string): AvatarEstimateStatus =>
+  (status === "lost" ? "cancelled" : status) as AvatarEstimateStatus;
 import { User, users } from "../../data/users";
 import { toast } from "../../components/Toast/Toaster";
 import { useCurrentJobId } from "./currentJob";
@@ -59,6 +65,7 @@ import JobPropertiesForm, { JobProperties, JobSource, MODULE_DATE, sourceAvatar,
 import { displayStatus, formatStatusTimestamp, JobState, STATUS_TS } from "./jobState";
 import SchedulingForm, { durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import AssigneesForm from "./AssigneesForm";
+import ItemText from "../../components/ItemText/ItemText/ItemText";
 import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
 import { categoryIcon, formatHrMin } from "./TimesheetPanel";
 import StatusModule from "./StatusModule";
@@ -89,6 +96,19 @@ interface DetailsPanelProps {
   job: JobState;
   /** Cancelled job → editing restricted: every edit affordance is hidden. */
   locked?: boolean;
+  /**
+   * The job's PUBLIC view (Figma 26990-56723) — what a client opening the job's
+   * link sees. Nothing is editable, internal fields drop out, a "Service
+   * company" module leads, and the modules come in the public ORDER (Service
+   * company, Service location, Status, Billing intention, Job contacts,
+   * Scheduling, Assignees, Job properties, Related). Default false.
+   */
+  isPublicView?: boolean;
+  /**
+   * Public view: the service company HAS a logo. Without one its avatar shows
+   * the company name's first letter (Daniel, 2026-10-20). Default true.
+   */
+  companyHasLogo?: boolean;
   /** The Service module's recall job — the Related "Recall to" row mirrors it. */
   recallTo?: string | null;
   /** Opens the recalled job — the Related row navigates to it in the same tab. */
@@ -152,18 +172,36 @@ interface ContactRowProps {
   onRemove: () => void;
   /** Locked (cancelled job) → hide the edit (ellipsis) menu. */
   locked?: boolean;
+  /**
+   * Public view (Figma 27028-9587 / 27028-9708): the menu is "Preview" — the
+   * same thing the row click does — over the two copy actions. Nothing edits.
+   */
+  isPublicView?: boolean;
 }
 
-const ContactRow = ({ contact, role, mobile, onChange, onOpen, onRemove, locked = false }: ContactRowProps) => {
+const ContactRow = ({ contact, role, mobile, onChange, onOpen, onRemove, locked = false, isPublicView = false }: ContactRowProps) => {
   const menu = useAnchoredMenu(!mobile);
   const { email, phone } = contact;
   // Locked (cancelled job): the menu stays, but the editing actions (Change /
   // Remove) drop out — only the copy actions remain.
   // THREE groups (Figma 21742-59757 / 21758-23070): "Change …" stands alone,
   // then the two copy actions, then Remove.
+  const editable = !locked && !isPublicView;
   const menuBody = (
     <>
-      {!locked && (
+      {isPublicView && (
+        <MenuItemGroup>
+          <MenuItem
+            label="Preview"
+            slotLeft={slot("eye")}
+            onClick={() => {
+              menu.close();
+              onOpen();
+            }}
+          />
+        </MenuItemGroup>
+      )}
+      {editable && (
         <MenuItemGroup>
           <MenuItem
             label={`Change ${role.toLowerCase()}`}
@@ -203,7 +241,7 @@ const ContactRow = ({ contact, role, mobile, onChange, onOpen, onRemove, locked 
           />
         )}
       </MenuItemGroup>
-      {!locked && (
+      {editable && (
         <MenuItemGroup>
           <MenuItem
             label="Remove"
@@ -358,7 +396,7 @@ const LABEL_POOL: string[] = JOB_LABELS.map((label) => label.name);
 
 // ---- the panel ---------------------------------------------------------------
 
-export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, assignees, onAssigneesChange, assigneeStats, job, locked = false, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
+export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, assignees, onAssigneesChange, assigneeStats, job, locked = false, isPublicView = false, companyHasLogo = true, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
   // ---- job contacts ----
   const [reporter, setReporter] = useState<JobContact | null>(INITIAL_REPORTER);
   const [supervisor, setSupervisor] = useState<JobContact | null>(INITIAL_SUPERVISOR);
@@ -446,11 +484,21 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
     ...(showBillingGroup ? [{ label: "Billing client", addLabel: "Add contact", contacts: BILLING_CLIENT_CONTACTS }] : []),
   ];
 
+  // Nothing is editable in a cancelled job or in the public view.
+  const readOnly = locked || isPublicView;
+
+  // The estimate this job was created from — the Related module's "Created
+  // from" row, and one of the parents that lock the location.
+  const jobId = useCurrentJobId();
+  const parentEstimate = parentEstimateOf(jobId);
+
   // ---- location editing ----
   // The rule (Figma 21834-92725): the location is editable only while the job
-  // was never started AND has no parent objects. The demo job's only possible
-  // parent is a "Recall to" pick in the Service module.
-  const locationEditable = !locked && !job.everStarted && recallTo == null;
+  // was never started AND has no parent objects — it is not a recall, it was
+  // not created from an estimate, and it does not belong to a series (Daniel,
+  // 2026-10-20). The demo db does not link jobs to their series yet, so that
+  // third parent cannot be checked here.
+  const locationEditable = !readOnly && !job.everStarted && recallTo == null && parentEstimate == null;
 
   const [locationOpen, setLocationOpen] = useState(false);
   // The "Service clients" list — opened by the Locations list's "Add location"
@@ -482,7 +530,6 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   // labels pinned in their own group on top (SelectList does that itself),
   // Cancel + Save in an action-bar footer. Picks are a DRAFT until Save.
   // The job's OWN labels, read from the database row it opened on.
-  const jobId = useCurrentJobId();
   // The other end of the recall: the job that recalls THIS one.
   const recalledBy = recallOf(jobId);
   const [labels, setLabels] = useState<string[]>(() => {
@@ -555,8 +602,557 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
     .map((id) => users.find((u) => u.id === id))
     .filter((u): u is User => u != null);
 
+  const schedulingBlock = (
+    <>
+      {/* Scheduling — editable via the pencil (opens SchedulingForm). */}
+      <DisplayModule
+        title="Scheduling"
+        slotRight={
+          readOnly ? undefined : (
+            <HoverTooltip text="Edit">
+              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit scheduling" onClick={() => setSchedulingOpen(true)} />
+            </HoverTooltip>
+          )
+        }
+        content={
+          <ValueDisplayGroup>
+            <ValueDisplay
+              label="Scheduled for"
+              value={scheduledForLabel(scheduling)}
+              valueColor={pastDue ? "var(--text-error)" : undefined}
+            />
+            {/* Public view: no "Est. duration" (the node's annotation). */}
+            {!isPublicView && <ValueDisplay label="Est. duration" value={durationLabel(scheduling.hours, scheduling.minutes)} />}
+          </ValueDisplayGroup>
+        }
+      />
+      <SchedulingForm
+        open={schedulingOpen}
+        onClose={() => setSchedulingOpen(false)}
+        initial={scheduling}
+        onSave={onSchedulingChange}
+        mobile={mobile}
+      />
+  
+      {/* Assignees — its own module since 2026-08-05 (Figma 24522-63729). Each
+          row shows the tech's total tracked time, and their current status in
+          red while they are checked in. */}
+      <DisplayModule
+        title="Assignees"
+        slotRight={
+          readOnly ? undefined : (
+            <HoverTooltip text="Edit">
+              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit assignees" onClick={() => setAssigneesOpen(true)} />
+            </HoverTooltip>
+          )
+        }
+        content={
+          <div className={styles.listBody}>
+            <ItemGroup truncateAfter={4}>
+              {schedulingUsers.length === 0 ? (
+                <ListItem
+                  variant="title"
+                  title="No assignees"
+                  titleClassName={styles.placeholderText}
+                  avatar={<AvatarUser size="xl" content="placeholder" />}
+                />
+              ) : (
+                schedulingUsers.map((u) => {
+                  // Public view: the name only — no total tracked time (the
+                  // node's annotation) and no live check-in status either.
+                  const stat = isPublicView ? undefined : assigneeStats?.[u.id];
+                  const tracked = stat?.trackedSec ?? 0;
+                  // Anything that rounds to under a minute reads "0 min", not
+                  // formatHrMin's "0 hr" (node 24522-64672), and keeps the gray
+                  // placeholder. Testing `tracked === 0` was not enough: a
+                  // just-started session already has a few seconds on it and
+                  // still rounds to zero.
+                  const trackedLabel = formatHrMin(tracked);
+                  const noneTracked = trackedLabel === "0 hr";
+                  return (
+                    <ListItem
+                      key={u.id}
+                      variant={stat?.status != null ? "titleCaption" : "title"}
+                      title={u.name}
+                      avatar={<AvatarUser size="xl" imageSrc={u.avatar} />}
+                      // Checked in → the status under the name, in red with its
+                      // own icon (Figma 24522-64690).
+                      caption={stat?.status}
+                      captionClassName={stat?.status != null ? styles.assigneeStatus : undefined}
+                      // The slot's icon color is the caller's call (the DS
+                      // leaves it undetermined), so it needs the red class too.
+                      captionSlotLeft={stat?.status != null ? <Icon icon={categoryIcon(stat.status)} size={14} className={styles.assigneeStatus} /> : undefined}
+                      // Caption over value (Figma 24522-64635): "Total tracked"
+                      // then the running total — placeholder gray at zero.
+                      right={isPublicView ? undefined : (
+                        <ItemTextBlock align="right"
+                          variant="captionTitle"
+                          caption="Total tracked"
+                          title={noneTracked ? "0 min" : trackedLabel}
+                          className={noneTracked ? styles.zeroTracked : undefined}
+                        />
+                      )}
+                    />
+                  );
+                })
+              )}
+            </ItemGroup>
+          </div>
+        }
+      />
+      <AssigneesForm
+        open={assigneesOpen}
+        onClose={() => setAssigneesOpen(false)}
+        value={assignees}
+        onSave={onAssigneesChange}
+        mobile={mobile}
+      />
+    </>
+  );
+
+  const billingBlock = (
+    <>
+      {/* Billing intention — editable via the pencil (opens BillingForm). */}
+      <DisplayModule
+        title="Billing intention"
+        slotRight={
+          readOnly ? undefined : (
+            <HoverTooltip text="Edit">
+              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit billing intention" onClick={() => setBillingOpen(true)} />
+            </HoverTooltip>
+          )
+        }
+        content={
+          <div className={styles.listBody}>
+            <ListItem
+              variant="titleCaption"
+              title={billingBiller.name}
+              caption={billingBiller.caption}
+              // Location intention → a location avatar; client intention → a
+              // client avatar (Figma: the module shows the resolved biller).
+              avatar={
+                billingBiller.kind === "location" ? (
+                  <AvatarLocation size="xl" />
+                ) : (
+                  <AvatarClient size="xl" type="business" />
+                )
+              }
+              slotRight={<ListItemSlotIcon icon="angle-right" />}
+              isClickable
+              onClick={noop}
+            />
+          </div>
+        }
+      />
+      <BillingForm
+        open={billingOpen}
+        onClose={() => setBillingOpen(false)}
+        initial={billing}
+        onSave={onBillingChange}
+        mobile={mobile}
+      />
+    </>
+  );
+
+  const jobPropertiesBlock = (
+    <>
+      {/* Job properties (Figma 21136-58170) — the pencil opens the edit form.
+          "Source ID" only shows when the source asks for one (node annotation
+          "Only shown, if exists"); Created at / by and Last modified are
+          system values and are not in the form. */}
+      <DisplayModule
+        title="Job properties"
+        slotRight={readOnly ? undefined : <EditButton label="Edit job properties" onClick={() => setJobPropertiesOpen(true)} />}
+        content={
+          <ValueDisplayGroup>
+            <ValueDisplay
+              label="Job ID"
+              value={jobProperties.jobId}
+              slotRight={
+                <HoverTooltip text="Copy">
+                  <IconButton
+                    icon="copy"
+                    variant="muted"
+                    size="lg"
+                    aria-label="Copy Job ID"
+                    onClick={() => void copyText(jobProperties.jobId, "Job ID")}
+                  />
+                </HoverTooltip>
+              }
+            />
+            <ValueDisplay
+              label="Source"
+              value={jobProperties.source}
+              // Integrations carry a logo; "Direct" and created sources do not.
+              slotLeft={sourceAvatar(jobSources, jobProperties.source)}
+            />
+            {sourceRequiresId(jobSources, jobProperties.source) && (
+              <ValueDisplay
+                label="Source ID"
+                value={jobProperties.sourceId}
+                slotRight={
+                  <HoverTooltip text="Copy">
+                    <IconButton
+                      icon="copy"
+                      variant="muted"
+                      size="lg"
+                      aria-label="Copy Source ID"
+                      onClick={() => void copyText(jobProperties.sourceId, "Source ID")}
+                    />
+                  </HoverTooltip>
+                }
+              />
+            )}
+            {/* Public view: "Branch" moves to the Service company module. */}
+            {!isPublicView && <ValueDisplay label="Branch" value={jobProperties.branch} />}
+            <ValueDisplay
+              label="Date received"
+              value={jobProperties.dateReceived != null ? MODULE_DATE.format(jobProperties.dateReceived) : undefined}
+            />
+            {/* Public view: no staff names and no system stamps — "Received by"
+                is dropped too, though the node still draws it (Daniel,
+                2026-10-20); Created at / by and Last modified per the node. */}
+            {!isPublicView && (
+              <>
+                <ValueDisplay
+                  label="Received by"
+                  value={receivedByUser?.name}
+                  slotLeft={receivedByUser != null ? <AvatarUser size="xs" imageSrc={receivedByUser.avatar} /> : undefined}
+                />
+                <ValueDisplay label="Created at" value={STATUS_TS} />
+                <ValueDisplay
+                  label="Created by"
+                  value={users[2].name}
+                  slotLeft={<AvatarUser size="xs" imageSrc={users[2].avatar} />}
+                />
+                <ValueDisplay label="Last modified" value={formatStatusTimestamp(lastModified)} />
+              </>
+            )}
+          </ValueDisplayGroup>
+        }
+      />
+      <JobPropertiesForm
+        open={jobPropertiesOpen}
+        onClose={() => setJobPropertiesOpen(false)}
+        initial={jobProperties}
+        onSave={onJobPropertiesChange}
+        sources={jobSources}
+        onCreateSource={onCreateJobSource}
+        takenJobIds={TAKEN_JOB_IDS}
+        mobile={mobile}
+      />
+    </>
+  );
+
+  const contactsBlock = (
+    <>
+      {/* Job contacts. Public view: only the contacts that exist, with no
+          empty-role rows — and no module at all without any (the node's
+          annotation). */}
+      {(!isPublicView || reporter != null || supervisor != null) && (
+      <DisplayModule
+        title="Job contacts"
+        content={
+          <div className={styles.listBody}>
+            {reporter != null ? (
+              <ContactRow
+                contact={reporter}
+                role="Job reporter"
+                mobile={mobile}
+                onChange={() => openPicker("reporter")}
+                onOpen={() => openPanel("reporter")}
+                onRemove={() => {
+                  setReporter(null);
+                  onContactChange("Job reporter", reporter, null);
+                }}
+                locked={locked}
+                isPublicView={isPublicView}
+              />
+            ) : isPublicView ? null : (
+              <EmptyContactRow label="No job reporter" onAdd={() => openPicker("reporter")} locked={locked} />
+            )}
+            {supervisor != null ? (
+              <ContactRow
+                contact={supervisor}
+                role="Site supervisor"
+                mobile={mobile}
+                onChange={() => openPicker("supervisor")}
+                onOpen={() => openPanel("supervisor")}
+                onRemove={() => {
+                  setSupervisor(null);
+                  onContactChange("Site supervisor", supervisor, null);
+                }}
+                locked={locked}
+                isPublicView={isPublicView}
+              />
+            ) : isPublicView ? null : (
+              <EmptyContactRow label="No site supervisor" onAdd={() => openPicker("supervisor")} locked={locked} />
+            )}
+          </div>
+        }
+      />
+      )}
+  
+      {panelContact != null && (
+        <ContactPanel
+          open={panelOpen}
+          onClose={() => setPanelOpen(false)}
+          contact={panelContact}
+          owner={panelOwner}
+          isPrimary={panelIsPrimary}
+          // A cancelled job cannot be edited, and neither can the job's public
+          // view — the panel keeps Copy, Call and Send email only (its
+          // public-view rules).
+          isPublicView={readOnly}
+          breakpoint={mobile ? "mobile" : "desktop"}
+          onSaveGeneral={(edits) => editRoleContact({ name: edits.name, position: edits.position })}
+          onSavePhone={(edits) => editRoleContact({ phone: edits.phone, phoneExtension: edits.phoneExtension })}
+          onDeletePhone={() => editRoleContact({ phone: undefined, phoneExtension: undefined })}
+          onSaveEmail={(email) => editRoleContact({ email })}
+          onDeleteEmail={() => editRoleContact({ email: undefined })}
+          onSaveReminders={(kind, channels) => editRoleContact(reminderFields(kind, channels))}
+          // Delete removes the contact (a saved one for good) — so it also
+          // leaves this job, and the role's row becomes its empty state.
+          onDelete={() => {
+            setPanelOpen(false);
+            onContactChange(panelLabel, roleContact, null);
+            setRoleContact(null);
+          }}
+        />
+      )}
+  
+      {/* The contact select list, opened by "Change …" in a contact's menu and
+          by the empty row's "Add" button. ONE list for both roles (Figma
+          24485-40395 / 24485-40467 are identical apart from the title):
+          desktop dialog / mobile drawer, searchable, single-select.
+          Every "Add … contact" action is DISPLAY-ONLY — the New-contact forms
+          live in their own Figma file and are not built yet. */}
+      <SelectList
+        variant="dialog"
+        breakpoint={mobile ? "mobile" : "desktop"}
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        title={pickerLabel}
+        searchable
+        searchPlaceholder="Contact..."
+        noResultsCaption="Try a different search or add a new contact"
+        emptyState={{
+          icon: "user",
+          title: "No contacts here yet",
+          caption: "Add a contact to see it here",
+          actionLabel: "Add contact",
+        }}
+        footer={
+          <SelectListFooter variant="menuItem">
+            <MenuItem label="Add job contact" slotLeft={slot("plus")} onClick={noop} />
+          </SelectListFooter>
+        }
+      >
+        {contactGroups.map((g) => (
+          <SelectListItemGroup
+            key={g.label}
+            emptyCaption="No contacts here yet"
+            label={
+              <GroupLabel
+                variant="primary"
+                label={g.label}
+                slotRight={
+                  <HoverTooltip text={g.addLabel}>
+                    <IconButton icon="plus" variant="ghost" size="md" aria-label={g.addLabel} onClick={noop} />
+                  </HoverTooltip>
+                }
+              />
+            }
+          >
+            {g.contacts.map((c, i) => (
+              <SelectListItem
+                key={c.id}
+                variant="object"
+                // The group's FIRST contact is its primary one — the crown.
+                avatar={<AvatarUser size="xl" imageSrc={c.avatar} isPrimary={i === 0} />}
+                label={c.name}
+                caption={contactCaption(c)}
+                searchText={`${c.name} ${c.phone ?? ""} ${c.email ?? ""}`}
+                selected={pickedContact?.id === c.id}
+                onClick={() => pickContact(c)}
+              />
+            ))}
+          </SelectListItemGroup>
+        ))}
+      </SelectList>
+    </>
+  );
+
+  const labelsBlock = (
+    <>
+      {/* Labels (Figma 21136-58216): the chips, or the caption-only empty state
+          when the job wears none. */}
+      <DisplayModule
+        title="Labels"
+        slotRight={readOnly ? undefined : <EditButton label="Edit labels" onClick={() => setLabelsOpen(true)} />}
+        content={
+          shownLabels.length > 0 ? (
+            <div className={styles.chips}>
+              {shownLabels.map((name) => (
+                <Badge key={name} size="lg">
+                  {name}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            // The design's module body has NO padding here — EmptyState's own
+            // 32px is the only padding (node 21136-58219).
+            <div className={styles.emptyBody}>
+              <EmptyState caption="No labels here yet" />
+            </div>
+          )
+        }
+      />
+  
+      {/* The Labels edit form (Figma 23863-17937) — the SHARED
+          `LabelsSelectList`, the same picker the Equipment side panel opens. */}
+      <LabelsSelectList
+        open={labelsOpen}
+        onClose={() => setLabelsOpen(false)}
+        labels={labels}
+        pool={LABEL_POOL}
+        onSave={saveLabels}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+    </>
+  );
+
+  // Public view: the client sees the job's PARENTS only — the estimate it was
+  // created from and the job it recalls — never "Recall", the job that
+  // recalls this one. With neither, there is no module (the node's annotation).
+  const shownRecalledBy = isPublicView ? undefined : recalledBy;
+  const hasRelated = parentEstimate != null || recallTo != null || shownRecalledBy != null;
+  const relatedBlock =
+    isPublicView && !hasRelated ? null : (
+    <>
+      {/* Related — each row shown only if it exists: "Created from" is the
+          estimate this job was made from (back on 2026-10-20 — Daniel: only
+          when there IS a parent estimate), "Recall to" is the job THIS one
+          recalls (it mirrors the Service module's pick), "Recall" is the job
+          that recalls THIS one (Figma 24735-109840). With none, the module is
+          the caption-only EmptyState (Figma 21136-58230). */}
+      <DisplayModule
+        title="Related"
+        content={
+          hasRelated ? (
+            <div className={styles.listBody}>
+              {parentEstimate != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={parentEstimate.id}
+                  caption="Created from"
+                  avatar={<AvatarEstimate size="xl" status={estimateAvatarStatus(parentEstimate.status)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  // The Estimate page is not built — the row opens nothing yet.
+                  onClick={noop}
+                />
+              )}
+              {recallTo != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={recallTo}
+                  caption="Recall to"
+                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recallTo)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={() => onOpenJob?.(recallTo)}
+                />
+              )}
+              {shownRecalledBy != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={shownRecalledBy.id}
+                  caption="Recall"
+                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(shownRecalledBy.id)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={() => onOpenJob?.(shownRecalledBy.id)}
+                />
+              )}
+            </div>
+          ) : (
+            <EmptyState caption="No related objects here yet" />
+          )
+        }
+      />
+    </>
+  );
+
+  // ---- Service company (public view only, Figma 26990-60627) ----
+  // The company's logo — or, without one, the FIRST letter of its name (Daniel,
+  // 2026-10-20) — over the job's branch when it has one ("Only shown if it
+  // exists. No placeholder needed."). Email is required on the company, so it
+  // is always there; the phone row only when there is a phone. Both are links
+  // that wrap, each with a Copy button.
+  const companyPhone =
+    COMPANY.phone == null ? undefined : COMPANY.phone + (COMPANY.phoneExtension != null ? ` ext. ${COMPANY.phoneExtension}` : "");
+  const companyBlock = isPublicView ? (
+    <DisplayModule
+      title="Service company"
+      content={
+        <div className={styles.companyBody}>
+          <div className={styles.companyHeader}>
+            {companyHasLogo ? (
+              <SourceAvatar source="roopairs" size="xl" showTooltip={false} />
+            ) : (
+              <Avatar size="xl" shape="square" content="letters" characters={COMPANY.name.slice(0, 1)} />
+            )}
+            <ItemText
+              variant={jobProperties.branch !== "" ? "titleCaption" : "title"}
+              title={COMPANY.name}
+              caption={jobProperties.branch !== "" ? jobProperties.branch : undefined}
+            />
+          </div>
+          <ValueDisplayGroup>
+            <ValueDisplay
+              label="Email address"
+              value={COMPANY.email}
+              href={`mailto:${COMPANY.email}`}
+              slotRight={
+                <HoverTooltip text="Copy">
+                  <IconButton
+                    icon="copy"
+                    variant="muted"
+                    size="lg"
+                    aria-label="Copy email address"
+                    onClick={() => void copyText(COMPANY.email, "Email address", "Email address copied")}
+                  />
+                </HoverTooltip>
+              }
+            />
+            {companyPhone != null && (
+              <ValueDisplay
+                label="Phone number"
+                value={companyPhone}
+                href={`tel:${companyPhone.replace(/[^+\d]/g, "")}`}
+                slotRight={
+                  <HoverTooltip text="Copy">
+                    <IconButton
+                      icon="copy"
+                      variant="muted"
+                      size="lg"
+                      aria-label="Copy phone number"
+                      onClick={() => void copyText(companyPhone, "Phone number", "Phone number copied")}
+                    />
+                  </HoverTooltip>
+                }
+              />
+            )}
+          </ValueDisplayGroup>
+        </div>
+      }
+    />
+  ) : null;
+
   return (
     <div className={styles.panel}>
+      {companyBlock}
       {/* Service location — editable via the pencil (opens the locations
           select list) only while the job was never started and has no parent
           objects. The row still shows both: the client on the title line, the
@@ -582,6 +1178,8 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               isClickable
               onClick={noop}
             />
+            {/* Public view: no "Open in maps" (the node draws only the row). */}
+            {!isPublicView && (
             <div className={styles.mapButton}>
               <Button
                 size="lg"
@@ -593,6 +1191,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                 Open in maps
               </Button>
             </div>
+            )}
           </div>
         }
       />
@@ -776,426 +1375,24 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
       {/* Status — content depends on the job's lifecycle state. */}
       <StatusModule job={job} scheduling={scheduling} />
 
-      {/* Scheduling — editable via the pencil (opens SchedulingForm). */}
-      <DisplayModule
-        title="Scheduling"
-        slotRight={
-          locked ? undefined : (
-            <HoverTooltip text="Edit">
-              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit scheduling" onClick={() => setSchedulingOpen(true)} />
-            </HoverTooltip>
-          )
-        }
-        content={
-          <ValueDisplayGroup>
-            <ValueDisplay
-              label="Scheduled for"
-              value={scheduledForLabel(scheduling)}
-              valueColor={pastDue ? "var(--text-error)" : undefined}
-            />
-            <ValueDisplay label="Est. duration" value={durationLabel(scheduling.hours, scheduling.minutes)} />
-          </ValueDisplayGroup>
-        }
-      />
-      <SchedulingForm
-        open={schedulingOpen}
-        onClose={() => setSchedulingOpen(false)}
-        initial={scheduling}
-        onSave={onSchedulingChange}
-        mobile={mobile}
-      />
-
-      {/* Assignees — its own module since 2026-08-05 (Figma 24522-63729). Each
-          row shows the tech's total tracked time, and their current status in
-          red while they are checked in. */}
-      <DisplayModule
-        title="Assignees"
-        slotRight={
-          locked ? undefined : (
-            <HoverTooltip text="Edit">
-              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit assignees" onClick={() => setAssigneesOpen(true)} />
-            </HoverTooltip>
-          )
-        }
-        content={
-          <div className={styles.listBody}>
-            <ItemGroup truncateAfter={4}>
-              {schedulingUsers.length === 0 ? (
-                <ListItem
-                  variant="title"
-                  title="No assignees"
-                  titleClassName={styles.placeholderText}
-                  avatar={<AvatarUser size="xl" content="placeholder" />}
-                />
-              ) : (
-                schedulingUsers.map((u) => {
-                  const stat = assigneeStats?.[u.id];
-                  const tracked = stat?.trackedSec ?? 0;
-                  // Anything that rounds to under a minute reads "0 min", not
-                  // formatHrMin's "0 hr" (node 24522-64672), and keeps the gray
-                  // placeholder. Testing `tracked === 0` was not enough: a
-                  // just-started session already has a few seconds on it and
-                  // still rounds to zero.
-                  const trackedLabel = formatHrMin(tracked);
-                  const noneTracked = trackedLabel === "0 hr";
-                  return (
-                    <ListItem
-                      key={u.id}
-                      variant={stat?.status != null ? "titleCaption" : "title"}
-                      title={u.name}
-                      avatar={<AvatarUser size="xl" imageSrc={u.avatar} />}
-                      // Checked in → the status under the name, in red with its
-                      // own icon (Figma 24522-64690).
-                      caption={stat?.status}
-                      captionClassName={stat?.status != null ? styles.assigneeStatus : undefined}
-                      // The slot's icon color is the caller's call (the DS
-                      // leaves it undetermined), so it needs the red class too.
-                      captionSlotLeft={stat?.status != null ? <Icon icon={categoryIcon(stat.status)} size={14} className={styles.assigneeStatus} /> : undefined}
-                      // Caption over value (Figma 24522-64635): "Total tracked"
-                      // then the running total — placeholder gray at zero.
-                      right={
-                        <ItemTextBlock align="right"
-                          variant="captionTitle"
-                          caption="Total tracked"
-                          title={noneTracked ? "0 min" : trackedLabel}
-                          className={noneTracked ? styles.zeroTracked : undefined}
-                        />
-                      }
-                    />
-                  );
-                })
-              )}
-            </ItemGroup>
-          </div>
-        }
-      />
-      <AssigneesForm
-        open={assigneesOpen}
-        onClose={() => setAssigneesOpen(false)}
-        value={assignees}
-        onSave={onAssigneesChange}
-        mobile={mobile}
-      />
-
-      {/* Billing intention — editable via the pencil (opens BillingForm). */}
-      <DisplayModule
-        title="Billing intention"
-        slotRight={
-          locked ? undefined : (
-            <HoverTooltip text="Edit">
-              <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit billing intention" onClick={() => setBillingOpen(true)} />
-            </HoverTooltip>
-          )
-        }
-        content={
-          <div className={styles.listBody}>
-            <ListItem
-              variant="titleCaption"
-              title={billingBiller.name}
-              caption={billingBiller.caption}
-              // Location intention → a location avatar; client intention → a
-              // client avatar (Figma: the module shows the resolved biller).
-              avatar={
-                billingBiller.kind === "location" ? (
-                  <AvatarLocation size="xl" />
-                ) : (
-                  <AvatarClient size="xl" type="business" />
-                )
-              }
-              slotRight={<ListItemSlotIcon icon="angle-right" />}
-              isClickable
-              onClick={noop}
-            />
-          </div>
-        }
-      />
-      <BillingForm
-        open={billingOpen}
-        onClose={() => setBillingOpen(false)}
-        initial={billing}
-        onSave={onBillingChange}
-        mobile={mobile}
-      />
-
-      {/* Job properties (Figma 21136-58170) — the pencil opens the edit form.
-          "Source ID" only shows when the source asks for one (node annotation
-          "Only shown, if exists"); Created at / by and Last modified are
-          system values and are not in the form. */}
-      <DisplayModule
-        title="Job properties"
-        slotRight={locked ? undefined : <EditButton label="Edit job properties" onClick={() => setJobPropertiesOpen(true)} />}
-        content={
-          <ValueDisplayGroup>
-            <ValueDisplay
-              label="Job ID"
-              value={jobProperties.jobId}
-              slotRight={
-                <HoverTooltip text="Copy">
-                  <IconButton
-                    icon="copy"
-                    variant="muted"
-                    size="lg"
-                    aria-label="Copy Job ID"
-                    onClick={() => void copyText(jobProperties.jobId, "Job ID")}
-                  />
-                </HoverTooltip>
-              }
-            />
-            <ValueDisplay
-              label="Source"
-              value={jobProperties.source}
-              // Integrations carry a logo; "Direct" and created sources do not.
-              slotLeft={sourceAvatar(jobSources, jobProperties.source)}
-            />
-            {sourceRequiresId(jobSources, jobProperties.source) && (
-              <ValueDisplay
-                label="Source ID"
-                value={jobProperties.sourceId}
-                slotRight={
-                  <HoverTooltip text="Copy">
-                    <IconButton
-                      icon="copy"
-                      variant="muted"
-                      size="lg"
-                      aria-label="Copy Source ID"
-                      onClick={() => void copyText(jobProperties.sourceId, "Source ID")}
-                    />
-                  </HoverTooltip>
-                }
-              />
-            )}
-            <ValueDisplay label="Branch" value={jobProperties.branch} />
-            <ValueDisplay
-              label="Date received"
-              value={jobProperties.dateReceived != null ? MODULE_DATE.format(jobProperties.dateReceived) : undefined}
-            />
-            <ValueDisplay
-              label="Received by"
-              value={receivedByUser?.name}
-              slotLeft={receivedByUser != null ? <AvatarUser size="xs" imageSrc={receivedByUser.avatar} /> : undefined}
-            />
-            <ValueDisplay label="Created at" value={STATUS_TS} />
-            <ValueDisplay
-              label="Created by"
-              value={users[2].name}
-              slotLeft={<AvatarUser size="xs" imageSrc={users[2].avatar} />}
-            />
-            <ValueDisplay label="Last modified" value={formatStatusTimestamp(lastModified)} />
-          </ValueDisplayGroup>
-        }
-      />
-      <JobPropertiesForm
-        open={jobPropertiesOpen}
-        onClose={() => setJobPropertiesOpen(false)}
-        initial={jobProperties}
-        onSave={onJobPropertiesChange}
-        sources={jobSources}
-        onCreateSource={onCreateJobSource}
-        takenJobIds={TAKEN_JOB_IDS}
-        mobile={mobile}
-      />
-
-      {/* Job contacts */}
-      <DisplayModule
-        title="Job contacts"
-        content={
-          <div className={styles.listBody}>
-            {reporter != null ? (
-              <ContactRow
-                contact={reporter}
-                role="Job reporter"
-                mobile={mobile}
-                onChange={() => openPicker("reporter")}
-                onOpen={() => openPanel("reporter")}
-                onRemove={() => {
-                  setReporter(null);
-                  onContactChange("Job reporter", reporter, null);
-                }}
-                locked={locked}
-              />
-            ) : (
-              <EmptyContactRow label="No job reporter" onAdd={() => openPicker("reporter")} locked={locked} />
-            )}
-            {supervisor != null ? (
-              <ContactRow
-                contact={supervisor}
-                role="Site supervisor"
-                mobile={mobile}
-                onChange={() => openPicker("supervisor")}
-                onOpen={() => openPanel("supervisor")}
-                onRemove={() => {
-                  setSupervisor(null);
-                  onContactChange("Site supervisor", supervisor, null);
-                }}
-                locked={locked}
-              />
-            ) : (
-              <EmptyContactRow label="No site supervisor" onAdd={() => openPicker("supervisor")} locked={locked} />
-            )}
-          </div>
-        }
-      />
-
-      {panelContact != null && (
-        <ContactPanel
-          open={panelOpen}
-          onClose={() => setPanelOpen(false)}
-          contact={panelContact}
-          owner={panelOwner}
-          isPrimary={panelIsPrimary}
-          // A cancelled job cannot be edited — the panel keeps Copy, Call and
-          // Send email only (its public-view rules).
-          isPublicView={locked}
-          breakpoint={mobile ? "mobile" : "desktop"}
-          onSaveGeneral={(edits) => editRoleContact({ name: edits.name, position: edits.position })}
-          onSavePhone={(edits) => editRoleContact({ phone: edits.phone, phoneExtension: edits.phoneExtension })}
-          onDeletePhone={() => editRoleContact({ phone: undefined, phoneExtension: undefined })}
-          onSaveEmail={(email) => editRoleContact({ email })}
-          onDeleteEmail={() => editRoleContact({ email: undefined })}
-          onSaveReminders={(kind, channels) => editRoleContact(reminderFields(kind, channels))}
-          // Delete removes the contact (a saved one for good) — so it also
-          // leaves this job, and the role's row becomes its empty state.
-          onDelete={() => {
-            setPanelOpen(false);
-            onContactChange(panelLabel, roleContact, null);
-            setRoleContact(null);
-          }}
-        />
+      {isPublicView ? (
+        <>
+          {billingBlock}
+          {contactsBlock}
+          {schedulingBlock}
+          {jobPropertiesBlock}
+          {relatedBlock}
+        </>
+      ) : (
+        <>
+          {schedulingBlock}
+          {billingBlock}
+          {jobPropertiesBlock}
+          {contactsBlock}
+          {labelsBlock}
+          {relatedBlock}
+        </>
       )}
-
-      {/* The contact select list, opened by "Change …" in a contact's menu and
-          by the empty row's "Add" button. ONE list for both roles (Figma
-          24485-40395 / 24485-40467 are identical apart from the title):
-          desktop dialog / mobile drawer, searchable, single-select.
-          Every "Add … contact" action is DISPLAY-ONLY — the New-contact forms
-          live in their own Figma file and are not built yet. */}
-      <SelectList
-        variant="dialog"
-        breakpoint={mobile ? "mobile" : "desktop"}
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        title={pickerLabel}
-        searchable
-        searchPlaceholder="Contact..."
-        noResultsCaption="Try a different search or add a new contact"
-        emptyState={{
-          icon: "user",
-          title: "No contacts here yet",
-          caption: "Add a contact to see it here",
-          actionLabel: "Add contact",
-        }}
-        footer={
-          <SelectListFooter variant="menuItem">
-            <MenuItem label="Add job contact" slotLeft={slot("plus")} onClick={noop} />
-          </SelectListFooter>
-        }
-      >
-        {contactGroups.map((g) => (
-          <SelectListItemGroup
-            key={g.label}
-            emptyCaption="No contacts here yet"
-            label={
-              <GroupLabel
-                variant="primary"
-                label={g.label}
-                slotRight={
-                  <HoverTooltip text={g.addLabel}>
-                    <IconButton icon="plus" variant="ghost" size="md" aria-label={g.addLabel} onClick={noop} />
-                  </HoverTooltip>
-                }
-              />
-            }
-          >
-            {g.contacts.map((c, i) => (
-              <SelectListItem
-                key={c.id}
-                variant="object"
-                // The group's FIRST contact is its primary one — the crown.
-                avatar={<AvatarUser size="xl" imageSrc={c.avatar} isPrimary={i === 0} />}
-                label={c.name}
-                caption={contactCaption(c)}
-                searchText={`${c.name} ${c.phone ?? ""} ${c.email ?? ""}`}
-                selected={pickedContact?.id === c.id}
-                onClick={() => pickContact(c)}
-              />
-            ))}
-          </SelectListItemGroup>
-        ))}
-      </SelectList>
-
-      {/* Labels (Figma 21136-58216): the chips, or the caption-only empty state
-          when the job wears none. */}
-      <DisplayModule
-        title="Labels"
-        slotRight={locked ? undefined : <EditButton label="Edit labels" onClick={() => setLabelsOpen(true)} />}
-        content={
-          shownLabels.length > 0 ? (
-            <div className={styles.chips}>
-              {shownLabels.map((name) => (
-                <Badge key={name} size="lg">
-                  {name}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            // The design's module body has NO padding here — EmptyState's own
-            // 32px is the only padding (node 21136-58219).
-            <div className={styles.emptyBody}>
-              <EmptyState caption="No labels here yet" />
-            </div>
-          )
-        }
-      />
-
-      {/* The Labels edit form (Figma 23863-17937) — the SHARED
-          `LabelsSelectList`, the same picker the Equipment side panel opens. */}
-      <LabelsSelectList
-        open={labelsOpen}
-        onClose={() => setLabelsOpen(false)}
-        labels={labels}
-        pool={LABEL_POOL}
-        onSave={saveLabels}
-        breakpoint={mobile ? "mobile" : "desktop"}
-      />
-
-      {/* Related — the two ends of a recall, each shown only if it exists:
-          "Recall to" is the job THIS one recalls (it mirrors the Service
-          module's pick), "Recall" is the job that recalls THIS one (Figma
-          24735-109840). A middle job in a chain shows both. With neither, the
-          module is the caption-only EmptyState (Figma 21136-58230). */}
-      <DisplayModule
-        title="Related"
-        content={
-          recallTo != null || recalledBy != null ? (
-            <div className={styles.listBody}>
-              {recallTo != null && (
-                <ListItem
-                  variant="titleCaptionReversed"
-                  title={recallTo}
-                  caption="Recall to"
-                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recallTo)} />}
-                  slotRight={<ListItemSlotIcon icon="angle-right" />}
-                  isClickable
-                  onClick={() => onOpenJob?.(recallTo)}
-                />
-              )}
-              {recalledBy != null && (
-                <ListItem
-                  variant="titleCaptionReversed"
-                  title={recalledBy.id}
-                  caption="Recall"
-                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recalledBy.id)} />}
-                  slotRight={<ListItemSlotIcon icon="angle-right" />}
-                  isClickable
-                  onClick={() => onOpenJob?.(recalledBy.id)}
-                />
-              )}
-            </div>
-          ) : (
-            <EmptyState caption="No related objects here yet" />
-          )
-        }
-      />
     </div>
   );
 }

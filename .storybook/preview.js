@@ -935,6 +935,8 @@ const preview = {
                 '"Send Summary" Form',
                 '"Download PDF" Form',
                 ["Parent / Desktop", "Parent / Mobile", "No Parent / Desktop", "No Parent / Mobile"],
+                "Public View",
+                ["Desktop", "Mobile"],
               ],
               '"Job Form" Preview',
               ["PanelDesktop", "PanelMobile", "Mapping", "ServiceCall", "HiddenAnswers", "HotSideRepair"],

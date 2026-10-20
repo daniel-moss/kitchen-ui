@@ -253,3 +253,32 @@ decision. Same situation as the active menu's "Change job active status".
 Production splits the whole completed phase on `is_job_walk` — see the
 `completed-job-billing-actions` memory. The demo's `Job.type` is only
 `"new" | "recall"`, so there is no job walk to split on.
+
+## The PUBLIC view (2026-10-20)
+
+Figma 26990-56723 — what a client sees from the job's link. It is the SAME page
+in a read-only mode (`isPublicView` on `JobDetails`, threaded into
+DetailsPanel / ServicePanel / SummaryPanel / FormsModule / FilesModule), not a
+copy. Story: **Modules/Job/Job Details/Public View** (Desktop, Mobile; the job
+and "Company has a logo" are controls). The action that opens it is not
+designed yet.
+
+| Area | Public rule |
+|---|---|
+| Top bar | no back, no live users; Copy URL + Download PDF only (the cancelled bar's two buttons) |
+| Tabs | Service, Summary (+ Details first on mobile) — no Timesheet, no Activity; no time tracking |
+| Sidebar ORDER | Service company · Service location · Status · Billing intention · Job contacts · Scheduling · Assignees · Job properties · Related |
+| Service company | NEW, public only: logo (or the name's first letter), branch caption if any, email (required) + phone (if any) as wrapping links with Copy — `ValueDisplay`'s new `href` |
+| Service location / Billing | no edit, no "Open in maps"; the rows open nothing yet (Location / Client panels are not designed) |
+| Scheduling / Assignees | no Est. duration; names only, no tracked time or status |
+| Job properties | Job ID, Source, Source ID, Date received — no Branch (moved), no Received by (Daniel, 2026-10-20 — the node still draws it), no Created / Last modified |
+| Job contacts | existing contacts only, no module without any; menu = Preview · Copy email · Copy phone; the Contact panel opens in its public view |
+| Related | Created from (jobbed parent estimate) + Recall to only; no module without either |
+| Service tab | no Priority, no Tech instructions; Equipment / Files only when not empty; Equipment rows end with a chevron and open the panel's public view |
+| Summary | Tech work + Signature — no Charges (not designed); Forms = public COMPLETED forms, flat, chevron, preview without a menu; Work summary only when written; no Notes to dispatcher(s) |
+
+Also on 2026-10-20, for BOTH views: Related shows **"Created from"** again
+when the job was made from an estimate (`parentEstimateOf` — only a JOBBED
+estimate is a parent; an estimate awaiting approval was written FOR the job),
+and a parent estimate LOCKS the service location. The third parent, a series,
+cannot be checked: the db does not link jobs to series yet.

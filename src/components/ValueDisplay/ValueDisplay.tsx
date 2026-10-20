@@ -259,7 +259,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
         </div>
       );
     } else {
-      const { value, valueColor, slotLeft, isWarning = false } = props;
+      const { value, valueColor, slotLeft, isWarning = false, href } = props;
       const color = isWarning ? "var(--text-warning)" : valueColor;
       const text = value == null || value === "" ? placeholder : value;
       content = (
@@ -273,7 +273,13 @@ export default function ValueDisplay(props: ValueDisplayProps) {
               The slot then sits on the FIRST line: the row top-aligns, which
               matches every node that pairs an icon with a wrapping value. */}
           {slotLeft != null && <span className={styles.slotLeft}>{slotLeft}</span>}
-          <span className={styles.text}>{text}</span>
+          {href != null && value != null && value !== "" ? (
+            <a className={clsx(styles.text, styles.textLink)} href={href}>
+              {text}
+            </a>
+          ) : (
+            <span className={styles.text}>{text}</span>
+          )}
           {isWarning && (
             <span className={styles.warningIcon}>
               <Icon icon="triangle-exclamation" pack="solid" size={14} />
