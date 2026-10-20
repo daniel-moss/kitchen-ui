@@ -1,0 +1,36 @@
+<style>
+  body { font: 12px/1.5 Inter, system-ui, sans-serif; margin: 0; padding: 16px; color: #1a1a1a; }
+  h1 { font-size: 14px; margin: 0 0 4px; }
+  p { margin: 0 0 12px; color: #555; }
+  .row { display: flex; gap: 8px; margin-bottom: 12px; }
+  button { font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc; background: #fff; cursor: pointer; }
+  button.primary { background: #0d99ff; border-color: #0d99ff; color: #fff; }
+  #out { white-space: pre-wrap; font: 11px/1.5 ui-monospace, Menlo, monospace; background: #f5f5f5; border-radius: 6px; padding: 8px; max-height: 340px; overflow: auto; }
+  .ok { color: #1a7f37; } .warn { color: #b35900; } .bad { color: #cf222e; }
+</style>
+<h1>DS Icon Fixer</h1>
+<p>Moves icon names and tokens from the glyph layer onto the Icon's <b>name</b> property. Works on the selection, or the whole page if nothing is selected.</p>
+<div class="row">
+  <button id="check">Check (no changes)</button>
+  <button id="fix" class="primary">Fix</button>
+  <button id="close">Close</button>
+</div>
+<div id="out">Press Check to see what would change.</div>
+<script>
+  const out = document.getElementById('out');
+  const send = type => { out.textContent = 'Working…'; parent.postMessage({ pluginMessage: { type } }, '*'); };
+  document.getElementById('check').onclick = () => send('check');
+  document.getElementById('fix').onclick = () => send('fix');
+  document.getElementById('close').onclick = () => parent.postMessage({ pluginMessage: { type: 'close' } }, '*');
+  const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  onmessage = e => {
+    const m = e.data.pluginMessage;
+    if (m.type === 'error') { out.innerHTML = '<span class="bad">' + esc(m.message) + '</span>'; return; }
+    let h = `Scope: ${esc(m.scope)}\nIcons found: ${m.icons} · already fine: ${m.healthy}\n\n`;
+    if (m.fix) h += `<span class="ok">Fixed: ${m.fixed}</span>\n`;
+    else h += `Would fix: ${m.todo.length}\n` + m.todo.map(l => '  ' + esc(l)).join('\n') + '\n';
+    if (m.skipped.length) h += `\n<span class="warn">Skipped (other edits — not touched): ${m.skipped.length}</span>\n` + m.skipped.map(l => '  ' + esc(l)).join('\n') + '\n';
+    if (m.failed.length) h += `\n<span class="bad">Failed: ${m.failed.length}</span>\n` + m.failed.map(l => '  ' + esc(l)).join('\n') + '\n';
+    out.innerHTML = h;
+  };
+</script>
