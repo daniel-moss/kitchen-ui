@@ -1483,6 +1483,13 @@ export interface QuickbooksAccount {
   name: string;
   /** QuickBooks' account number, when the company numbers its accounts. */
   number?: string;
+  /**
+   * The DIRECT parent, for a sub-account. Production stores no link — only
+   * `fully_qualified_name` ("Income:Service Revenue"), whose second-to-last
+   * part names the parent; QuickBooks keeps a sub-account in its parent's
+   * account type, so the parent is always in the same list.
+   */
+  parentId?: string;
 }
 
 /**

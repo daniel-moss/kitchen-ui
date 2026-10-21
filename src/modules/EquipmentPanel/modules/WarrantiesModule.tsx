@@ -152,7 +152,7 @@ export default function WarrantiesModule({
       ))}
     </ItemGroup>
   ) : warranties.length === 0 ? (
-    <EmptyState caption="No warranties here yet" />
+    <EmptyState caption="No warranties" />
   ) : (
     <ItemGroup>
       {warranties.map((warranty) =>

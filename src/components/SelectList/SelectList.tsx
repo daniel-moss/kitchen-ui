@@ -363,8 +363,8 @@ export default function SelectList({
         // offers to create the searched value instead of a dead end.
         <div className={styles.createRow}>
           <MenuItem
-            label={createFromSearch.label}
-            tag={`"${query.trim()}"`}
+            label={typeof createFromSearch.label === "function" ? createFromSearch.label(query.trim()) : createFromSearch.label}
+            tag={typeof createFromSearch.label === "function" ? undefined : `"${query.trim()}"`}
             slotLeft={<Icon icon="plus" pack="regular" size={14} container="square" />}
             onClick={() => {
               createFromSearch.onCreate(query.trim());

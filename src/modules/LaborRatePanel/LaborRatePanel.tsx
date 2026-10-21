@@ -1,6 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import AvatarLaborRate from "../../components/Avatar/AvatarLaborRate";
 import Button from "../../components/Button/Button";
 import IconButton from "../../components/IconButton/IconButton";
@@ -13,9 +12,12 @@ import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent"
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
 import Prompt from "../../components/Prompt/Prompt";
 import SidePanel from "../../components/SidePanel/SidePanel";
+import SidePanelNavigation from "../../components/SidePanel/SidePanelNavigation";
+import TabItem from "../../components/Tabs/TabItem";
 import { toast } from "../../components/Toast/Toaster";
 import { LABOR_LABELS, LaborItem } from "../../data/db";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import HistoryModule from "../EquipmentPanel/modules/HistoryModule";
 import { useAnchoredMenu } from "../shared/anchoredMenu";
 import EditNotesDialog from "../shared/EditNotesDialog";
 import { slot } from "../shared/helpers";
@@ -29,35 +31,44 @@ import EditPricingDialog from "./forms/EditPricingDialog";
 import AccountingModule from "./modules/AccountingModule";
 import GeneralModule from "./modules/GeneralModule";
 import PricingModule from "./modules/PricingModule";
-import { laborRateStatusOf } from "./laborRateData";
-import { LaborRateGeneral, LaborRatePanelProps, LaborRatePricing } from "./LaborRatePanel.types";
+import { laborRateHistoryRows, laborRateStatusOf, missingRequiredOf } from "./laborRateData";
+import { LaborRateGeneral, LaborRatePanelProps, LaborRatePanelTab, LaborRatePricing } from "./LaborRatePanel.types";
 
 import styles from "./LaborRatePanel.module.scss";
 
-// The "Labor rate" side panel (Figma file qhebbfbPHDVnv8IF1EC7Zg, page
-// "➡️ Designs"). ONE module for every labor rate; the record is a prop, so
-// nothing here is specific to one rate.
+// The "Labor rate" side panel (Figma file qhebbfbPHDVnv8IF1EC7Zg, page "Labor
+// Rate" → Side Panel; the Review state, Deactivate / Reactivate and the
+// Labels / Description / Internal notes modules are pricebook-wide, on the
+// "Shared Behavior" and "Shared Modules" pages). ONE module for every labor
+// rate; the record is a prop, so nothing here is specific to one rate.
 //
-// No navigation. Six display modules — General · Pricing · Labels ·
-// Description · Internal notes · Accounting — and a footer that exists ONLY in
-// Review. Accounting is last because it belongs to the integration rather than
-// to the rate (the same order the Tax rate panel moved to on 2026-10-08).
+// THREE TABS (2026-10-21):
+//   Details     General · Pricing · Labels · Description · Internal notes.
+//   Accounting  the "Accounting" module — only for QuickBooks Desktop with the
+//               "Detailed Split" setup, like the module itself.
+//   History     the Equipment panel's History module, jobs and invoices only.
+// A tab whose module warns (a required subtype or revenue account missing)
+// turns amber, so a disabled Confirm always has a visible reason. The panel
+// opens on Details. The footer — Review's Delete + Confirm, Inactive's
+// Reactivate — is "shown on all tabs".
 //
 // THE THREE STATES, which are production's `is_active` + `confirmed` folded
 // into one:
 //   Active    the full panel: pens everywhere, an ellipsis menu holding
 //             Deactivate, no footer.
 //   Review    the item arrived unvetted — the system mints one from any
-//             free-text line item a tech types. NOTHING is editable here
-//             (Daniel, 2026-10-08: the Review frames have no pens): production
-//             sets `confirmed = true` on every save, so an edit would silently
-//             accept the item and the Confirm button would vanish under the
-//             user. The footer's Delete + Confirm are the two ways out.
-//             The Accounting module also drops its sync rows, which could only
-//             say "Not synced" while the item is unconfirmed.
-//   Inactive  read-only. Every pen disappears, the menu with them, and a
-//             warning banner offers Reactivate. The two copy buttons stay —
-//             reading is not editing.
+//             free-text line item a tech types. Every module is EDITABLE here
+//             (Daniel, 2026-10-21), so the user can add what the item lacks;
+//             Confirm "stays disabled until all required values provided" and
+//             the General / Accounting "Warning" states say what is missing.
+//             BACKEND NOTE: production sets `confirmed = true` on every save,
+//             so a module save would confirm the item early — the devs are
+//             changing that. The footer's Delete + Confirm are the two ways
+//             out. Accounting drops its sync rows, and General its "Last
+//             modified".
+//   Inactive  read-only. Every pen disappears, the menu with them, and the
+//             footer offers Reactivate (it replaced the warning banner,
+//             2026-10-21). The two copy buttons stay — reading is not editing.
 //
 // Deactivating is NOT where production keeps it (an "Active Status" switch
 // inside the edit form); this design makes it a menu action with a Prompt.
@@ -88,6 +99,7 @@ export default function LaborRatePanel({
   onReactivate,
   onConfirm,
   onDelete,
+  onOpenHistory,
   isLoading = false,
   state = "content",
   onRetry,
@@ -103,6 +115,7 @@ export default function LaborRatePanel({
   const [editingNotes, setEditingNotes] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [tab, setTab] = useState<LaborRatePanelTab>("details");
 
   const menu = useAnchoredMenu(!mobile, "end");
 
@@ -112,6 +125,9 @@ export default function LaborRatePanel({
   // has not wired that one handler yet (the Equipment panel's rule).
   const [record, setRecord] = useState(rate);
   useEffect(() => setRecord(rate), [rate]);
+  // A different rate starts on Details, like every opening.
+  useEffect(() => setTab("details"), [rate.id]);
+  const history = useMemo(() => laborRateHistoryRows(record.id), [record.id]);
 
   // Labels are held by NAME: the picker can create one, which has no id yet.
   const [labels, setLabels] = useState<string[]>(() => labelNamesOf(rate));
@@ -130,6 +146,7 @@ export default function LaborRatePanel({
     setEditingNotes(false);
     setDeactivating(false);
     setDeleting(false);
+    setTab("details");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -141,14 +158,16 @@ export default function LaborRatePanel({
   const canDeactivate = permissions.deactivate !== false;
   const canDelete = permissions.remove !== false;
 
-  // The pens. An inactive rate is read-only ("Reactivate to edit details"), and
-  // so is one in Review — see the state notes above. Confirm is gated on the
-  // same permission but not on the state, because confirming IS the way out.
-  const canEditModules = canEdit && !inactive && !inReview;
+  // The pens. Only an inactive rate is read-only ("Reactivate to edit
+  // details").
+  const canEditModules = canEdit && !inactive;
+
+  // The required values the record lacks — the modules' "Warning" states, and
+  // in Review what keeps Confirm disabled.
+  const missing = missingRequiredOf(record, { requireSubtypes, hasAccounting: hasQuickbooksAccounting });
 
   // The ellipsis exists only in the Active state: Review and Inactive both say
-  // "No context menu button", and each has its own way out — the footer and the
-  // banner's link.
+  // "No context menu button", and each has its own way out in the footer.
   const showMenu = !isLoading && !inReview && !inactive && canDeactivate;
 
   const saveGeneral = async (edits: LaborRateGeneral) => {
@@ -172,7 +191,7 @@ export default function LaborRatePanel({
       toast({
         type: "error",
         variant: "detailed",
-        title: 'Could not update "Labels" module',
+        title: 'Couldn\'t update "Labels" module',
         caption: "Something went wrong. Please try again.",
       });
       return;
@@ -217,21 +236,21 @@ export default function LaborRatePanel({
       onDeactivate,
       (prev) => ({ ...prev, isActive: false }),
       "Labor rate deactivated",
-      "Could not deactivate the labor rate",
+      "Couldn't deactivate the labor rate",
     );
   };
 
   const reactivate = () =>
-    runAction(onReactivate, (prev) => ({ ...prev, isActive: true }), "Labor rate reactivated", "Could not reactivate the labor rate");
+    runAction(onReactivate, (prev) => ({ ...prev, isActive: true }), "Labor rate reactivated", "Couldn't reactivate the labor rate");
 
-  // "Accepts a labor rate. The status changes to Active and the item shows up
-  // on the Confirmed tab" (the Confirm button's annotation).
+  // "Confirms a pricebook item. The status changes to Active and the item
+  // shows up on the Confirmed tab" (the Confirm button's annotation).
   const confirm = () =>
-    runAction(onConfirm, (prev) => ({ ...prev, status: "active" }), "Labor rate confirmed", "Could not confirm the labor rate");
+    runAction(onConfirm, (prev) => ({ ...prev, status: "active" }), "Labor rate confirmed", "Couldn't confirm the labor rate");
 
   const remove = () => {
     setDeleting(false);
-    return runAction(onDelete, (prev) => prev, "Labor rate deleted", "Could not delete the labor rate");
+    return runAction(onDelete, (prev) => prev, "Labor rate deleted", "Couldn't delete the labor rate");
   };
 
   // ONE item: a danger "Deactivate" with the ban icon (node 1-6333).
@@ -272,8 +291,28 @@ export default function LaborRatePanel({
             />
           ) : undefined
         }
+        nav={
+          <SidePanelNavigation value={tab} onChange={(value) => setTab(value as LaborRatePanelTab)}>
+            <TabItem value="details" warning={!isLoading && missing.subtype}>
+              Details
+            </TabItem>
+            {hasQuickbooksAccounting && (
+              <TabItem value="accounting" warning={!isLoading && missing.account}>
+                Accounting
+              </TabItem>
+            )}
+            <TabItem value="history">History</TabItem>
+          </SidePanelNavigation>
+        }
         footer={
-          // Review's two actions. They share the width (ActionBar
+          // Inactive: "Reactivate", for a user who may reactivate.
+          !isLoading && inactive && canDeactivate ? (
+            <PopoverFooter stretch>
+              <Button size="lg" variant="solid" leftIcon="refresh" onClick={reactivate}>
+                Reactivate
+              </Button>
+            </PopoverFooter>
+          ) : // Review's two actions. They share the width (ActionBar
           // layout=fullWidth), Delete first — and each one can be missing on
           // its own, because production gates them on different permissions.
           !isLoading && inReview && (canDelete || canEdit) ? (
@@ -284,7 +323,14 @@ export default function LaborRatePanel({
                 </Button>
               ) : undefined}
               {canEdit ? (
-                <Button size="lg" variant="solid" leftIcon="circle-check" onClick={confirm}>
+                <Button
+                  size="lg"
+                  variant="solid"
+                  leftIcon="circle-check"
+                  // "Stays disabled until all required values provided."
+                  isDisabled={missing.subtype || missing.account}
+                  onClick={confirm}
+                >
                   Confirm
                 </Button>
               ) : undefined}
@@ -296,65 +342,77 @@ export default function LaborRatePanel({
         breakpoint={breakpoint}
       >
         <>
-          {/* The inactive banner. With no permission to reactivate there is
-              nothing to offer, so it drops to the vertical orientation — a
-              horizontal alert must have a CTA. */}
-          {!isLoading && inactive &&
-            (canDeactivate ? (
-              <AlertBanner status="warning" ctaLabel="Reactivate" ctaOnClick={reactivate}>
-                This labor rate is inactive. Reactivate to edit details.
-              </AlertBanner>
-            ) : (
-              <AlertBanner status="warning" orientation="vertical">
-                This labor rate is inactive. Reactivate to edit details.
-              </AlertBanner>
-            ))}
+          {tab === "details" && (
+            <>
+              <GeneralModule
+                rate={record}
+                onEdit={() => setEditingGeneral(true)}
+                canEdit={canEditModules}
+                missingSubtype={missing.subtype}
+                hideLastModified={inReview}
+                isLoading={isLoading}
+              />
 
-          <GeneralModule
-            rate={record}
-            onEdit={() => setEditingGeneral(true)}
-            canEdit={canEditModules}
-            isLoading={isLoading}
-          />
+              <PricingModule
+                rate={record}
+                onEdit={() => setEditingPricing(true)}
+                canEdit={canEditModules}
+                useTaxes={useTaxes}
+                isLoading={isLoading}
+              />
 
-          <PricingModule
-            rate={record}
-            onEdit={() => setEditingPricing(true)}
-            canEdit={canEditModules}
-            useTaxes={useTaxes}
-            isLoading={isLoading}
-          />
+              <LabelsModule
+                labels={labels}
+                emptyCaption="No labels"
+                onEdit={() => setPickingLabels(true)}
+                canEdit={canEditModules}
+                isLoading={isLoading}
+              />
 
-          <LabelsModule labels={labels} onEdit={() => setPickingLabels(true)} canEdit={canEditModules} isLoading={isLoading} />
+              {/* Both text modules keep their COPY button when editing is locked —
+                  reading is not editing. */}
+              {/* Production's `summary_template` — the summary every line item made
+                  from this rate starts with. */}
+              <NotesModule
+                title="Description"
+                emptyCaption="No description"
+                copyErrorTitle={'Couldn\'t copy "Description"'}
+                notes={record.summary}
+                onEdit={() => setEditingSummary(true)}
+                canEdit={canEditModules}
+                isLoading={isLoading}
+              />
 
-          {/* Both text modules keep their COPY button when editing is locked —
-              reading is not editing. */}
-          {/* Production's `summary_template` — the summary every line item made
-              from this rate starts with. */}
-          <NotesModule
-            title="Description"
-            emptyCaption="No description here yet"
-            notes={record.summary}
-            onEdit={() => setEditingSummary(true)}
-            canEdit={canEditModules}
-            isLoading={isLoading}
-          />
+              <NotesModule
+                title="Internal notes"
+                emptyCaption="No internal notes"
+                copyErrorTitle={'Couldn\'t copy "Internal notes"'}
+                notes={record.notes}
+                onEdit={() => setEditingNotes(true)}
+                canEdit={canEditModules}
+                isLoading={isLoading}
+              />
+            </>
+          )}
 
-          <NotesModule
-            title="Internal notes"
-            emptyCaption="No internal notes here yet"
-            notes={record.notes}
-            onEdit={() => setEditingNotes(true)}
-            canEdit={canEditModules}
-            isLoading={isLoading}
-          />
-
-          {hasQuickbooksAccounting && (
+          {tab === "accounting" && hasQuickbooksAccounting && (
             <AccountingModule
               rate={record}
               onEdit={() => setEditingAccounting(true)}
               canEdit={canEditModules}
               hideSyncStatus={inReview}
+              isLoading={isLoading}
+            />
+          )}
+
+          {/* "Only jobs and invoices" — otherwise the Equipment panel's
+              History module as it is (its empty, loading and mobile states). */}
+          {tab === "history" && (
+            <HistoryModule
+              rows={history}
+              kinds={["job", "invoice"]}
+              mobile={mobile}
+              onOpen={(row) => onOpenHistory?.(row)}
               isLoading={isLoading}
             />
           )}
@@ -437,9 +495,11 @@ export default function LaborRatePanel({
         notes={record.summary}
         onSave={saveSummary}
         title="Description"
+        titleHintContent="Copied to the line item when this labor rate is added, and customers see it"
         fieldLabel="Description"
+        showFieldLabel={false}
         toastSubject={'"Description" module'}
-        optional
+        errorTitle={'Couldn\'t update "Description" module'}
         breakpoint={breakpoint}
       />
       <EditNotesDialog
@@ -448,9 +508,11 @@ export default function LaborRatePanel({
         notes={record.notes}
         onSave={saveNotes}
         title="Internal notes"
+        titleHintContent="Only your team sees this, and it never goes on a line item"
         fieldLabel="Internal notes"
+        showFieldLabel={false}
         toastSubject={'"Internal notes" module'}
-        optional
+        errorTitle={'Couldn\'t update "Internal notes" module'}
         breakpoint={breakpoint}
       />
 

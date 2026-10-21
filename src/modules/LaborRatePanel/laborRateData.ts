@@ -1,6 +1,8 @@
-import { LABOR_SUBTYPES, LaborItem, QUICKBOOKS_ACCOUNTS } from "../../data/db";
+import { chargesOf, INVOICES, JOBS, LABOR_SUBTYPES, LaborItem, QUICKBOOKS_ACCOUNTS } from "../../data/db";
+import { HistoryRow, invoiceHistoryRow, jobHistoryRow } from "../EquipmentPanel/equipmentData";
 import { users } from "../../data/users";
 import { money } from "../NewLaborRateForm/rateMath";
+import { accountLabel } from "../Product/NewProductForm/AccountField";
 import { formatShortDateTime } from "../shared/dates";
 
 // The QuickBooks brand tile — the same raster the Tax rate panel's "Created
@@ -9,7 +11,7 @@ import { formatShortDateTime } from "../shared/dates";
 import quickbooks from "../../assets/integrations/quickbooks.jpg";
 
 // What the "Labor rate" side panel needs beyond the db record itself
-// (Figma file qhebbfbPHDVnv8IF1EC7Zg, page "➡️ Designs").
+// (Figma file qhebbfbPHDVnv8IF1EC7Zg, page "Labor Rate" → Side Panel).
 
 /**
  * The status the panel shows — `BadgePricebookStatus` / `AvatarLaborRate` take
@@ -29,8 +31,8 @@ export const laborRateStatusOf = (rate: LaborItem): LaborRateStatus =>
 export const subtypeNameOf = (rate: LaborItem) =>
   LABOR_SUBTYPES.find((subtype) => subtype.id === rate.subtypeId)?.name;
 
-/** "Hourly" / "Flat rate" — the unit type's own two option names. */
-export const unitTypeOf = (rate: LaborItem) => (rate.unitType === "hourly" ? "Hourly" : "Flat rate");
+/** "Hourly" / "Flat" — the Rate type's own two option names. */
+export const rateTypeOf = (rate: LaborItem) => (rate.unitType === "hourly" ? "Hourly" : "Flat");
 
 /**
  * The per-unit suffix on a money value: "/hr" on an hourly rate, nothing on a
@@ -43,26 +45,6 @@ export const perUnitSuffix = (rate: LaborItem) => (rate.unitType === "hourly" ? 
 
 /** "$100.00/hr", "$260.00" — a money field as the Pricing module prints it. */
 export const formatAmount = (value: number, rate: LaborItem) => `${money(value)}${perUnitSuffix(rate)}`;
-
-/** "20%", "7.125%" — a percent with its real decimals and no padding. */
-const formatPercent = (value: number) => `${Number(value.toFixed(3))}%`;
-
-/**
- * The markup row the Pricing module shows between Cost and Rate — one row, or
- * none at all under the manual strategy, where the rate is simply typed.
- *
- * Both values agree with Cost and Rate by construction: production derives the
- * rate in a database trigger (`cost + amount`, or `cost × (1 + percent/100)`),
- * so the module is showing the two halves of one sum.
- */
-export const markupRowOf = (rate: LaborItem) => {
-  if (rate.priceStrategy === "fixed") return { label: "Fixed markup", value: money(rate.priceAdjustmentAmount ?? 0) };
-  // A percent is printed as it was typed, up to its three decimals ("20%",
-  // "7.125%") — the same rule the tax rate's percentage row follows. Money is
-  // the one that keeps its two (`money` above).
-  if (rate.priceStrategy === "percent") return { label: "Percent markup", value: formatPercent(rate.priceAdjustmentPercent ?? 0) };
-  return undefined;
-};
 
 /** Production `default_is_taxable`, in the words the form's two options use. */
 export const taxabilityOf = (rate: LaborItem) => (rate.taxable ? "Taxable" : "Non-taxable");
@@ -101,11 +83,11 @@ export interface CreatedBy {
 export function createdByOf(rate: LaborItem): CreatedBy {
   const user = rate.createdById == null ? undefined : users.find((row) => row.id === rate.createdById);
   if (user != null) return { value: user.name, avatar: user.avatar, avatarShape: "circle" };
-  // Just the product's name, not "Imported from QuickBooks" (Daniel,
-  // 2026-10-08, the same decision as the Tax rate panel): it keeps the row on
-  // one line, and it makes the three values the same KIND of thing — a
-  // person's name, a system's name, or an absence.
-  if (rate.quickbooksId != null) return { value: "QuickBooks", avatar: quickbooks, avatarShape: "square" };
+  // The system's name, not "Imported from …": it keeps the row on one line,
+  // and makes the three values the same KIND of thing — a person, a system, or
+  // an absence. "QuickBooks Desktop", because only the Desktop integration
+  // imports pricebook items (Daniel, 2026-10-21; it was "QuickBooks").
+  if (rate.quickbooksId != null) return { value: "QuickBooks Desktop", avatar: quickbooks, avatarShape: "square" };
   return { value: "Unknown", color: "var(--text-placeholder)" };
 }
 
@@ -132,14 +114,62 @@ export const syncStatusOf = (rate: LaborItem) =>
 export const lastSyncOf = (rate: LaborItem) => (rate.syncedAt == null ? undefined : formatShortDateTime(rate.syncedAt));
 
 /**
- * "4010: Service Revenue" — an account with no number shows its name alone,
- * the way the picker and production's own option builder write it.
+ * The rate's revenue account as the shared field writes it ("4010 · Service
+ * Revenue", or the name alone), or undefined when it carries none — the row
+ * then reads "No Revenue account".
  */
-export const accountLabelOf = (account: { name: string; number?: string }) =>
-  account.number ? `${account.number}: ${account.name}` : account.name;
-
-/** The rate's QuickBooks revenue account, or undefined when it carries none. */
 export const accountNameOf = (rate: LaborItem) => {
   const account = QUICKBOOKS_ACCOUNTS.find((row) => row.id === rate.quickbooksAccountId);
-  return account == null ? undefined : accountLabelOf(account);
+  return account == null ? undefined : accountLabel(account);
 };
+
+/**
+ * The two "Warning" states (General and Accounting): a required value the
+ * record lacks. Not a Review rule — an ACTIVE item can lack them too (one
+ * created before the company required subtypes, or before QuickBooks was
+ * connected). In Review they also keep Confirm disabled.
+ */
+export const missingRequiredOf = (rate: LaborItem, { requireSubtypes, hasAccounting }: { requireSubtypes: boolean; hasAccounting: boolean }) => ({
+  subtype: requireSubtypes && LABOR_SUBTYPES.length > 0 && rate.subtypeId == null,
+  account: hasAccounting && rate.quickbooksAccountId == null,
+});
+
+/**
+ * The "History" tab's rows — where the labor rate was billed (the module's
+ * annotation): "Only jobs and invoices. Only completed jobs without an
+ * invoice — when an invoice is created out of that job, only the invoice is
+ * shown. Every non-draft invoice."
+ *
+ * A job "uses" the rate when its charges were billed on it (`laborRateId`);
+ * an invoice inherits its job's charges — the demo keeps no line items of its
+ * own, so an invoice without a job never lists. (Production matches by the
+ * line item's NAME instead of a link, so renaming a rate loses its history —
+ * flagged to the devs.) Newest first, like the Equipment panel's History.
+ */
+export function laborRateHistoryRows(rateId: string): HistoryRow[] {
+  const usesRate = new Set(
+    JOBS.filter((job) => chargesOf(job).some((group) => group.items.some((item) => item.laborRateId === rateId))).map((job) => job.id),
+  );
+  // A job is REPLACED by its invoice (Daniel, 2026-10-21) — so it leaves the
+  // list only once that invoice can show, i.e. is no longer a draft. A job
+  // whose invoice is still a draft stays listed. (Production drops the job as
+  // soon as any invoice exists, draft or not, which hides the work until the
+  // invoice is sent.) A job finalized WITHOUT an invoice — an estimate made
+  // from it, or "marked as invoiced" — stays listed too.
+  const invoiced = new Set(
+    INVOICES.filter((invoice) => invoice.jobId != null && invoice.status !== "draft").map((invoice) => invoice.jobId!),
+  );
+
+  const rows: HistoryRow[] = [];
+  for (const job of JOBS) {
+    if (!usesRate.has(job.id) || invoiced.has(job.id)) continue;
+    if (job.status !== "completed" && job.status !== "finalized") continue;
+    const row = jobHistoryRow(job);
+    if (row != null) rows.push(row);
+  }
+  for (const invoice of INVOICES) {
+    if (invoice.status === "draft" || invoice.jobId == null || !usesRate.has(invoice.jobId)) continue;
+    rows.push(invoiceHistoryRow(invoice));
+  }
+  return rows.sort((a, b) => b.changedAt - a.changedAt);
+}

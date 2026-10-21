@@ -21,17 +21,34 @@ import { createdByOf, laborRateStatusOf, subtypeNameOf } from "../laborRateData"
 interface GeneralModuleProps {
   rate: LaborItem;
   onEdit: () => void;
-  /** Hidden while the rate is inactive or in Review, or without the edit permission. */
+  /** Hidden while the rate is inactive, or without the edit permission. */
   canEdit?: boolean;
+  /**
+   * The company requires a subtype and the rate has none — the module's
+   * "Warning" state ("Only shown if Subtype is required and missing").
+   */
+  missingSubtype?: boolean;
+  /** Review drops "Last modified" (the Review frame: 'No "Last modified"'). */
+  hideLastModified?: boolean;
   isLoading?: boolean;
 }
 
-export default function GeneralModule({ rate, onEdit, canEdit = true, isLoading = false }: GeneralModuleProps) {
+export default function GeneralModule({
+  rate,
+  onEdit,
+  canEdit = true,
+  missingSubtype = false,
+  hideLastModified = false,
+  isLoading = false,
+}: GeneralModuleProps) {
   const createdBy = createdByOf(rate);
+  const warn = missingSubtype && !isLoading;
 
   return (
     <DisplayModule
       title="General"
+      status={warn ? "warning" : "none"}
+      banner={warn ? { children: "This labor rate needs a subtype" } : undefined}
       // While loading there is nothing to edit yet, so the header loses its
       // button (the Loading frame draws the header with no right slot).
       slotRight={
@@ -51,12 +68,12 @@ export default function GeneralModule({ rate, onEdit, canEdit = true, isLoading 
           {/* Nullable in production, and empty on every system-minted Review
               item. The row then draws ValueDisplay's own "No Subtype"
               placeholder — the empty-state convention (Daniel, 2026-10-08). */}
-          <ValueDisplay label="Subtype" value={subtypeNameOf(rate)} isLoading={isLoading} />
+          <ValueDisplay label="Subtype" value={subtypeNameOf(rate)} isWarning={warn} isLoading={isLoading} />
           {/* Created BY comes before created AT: who made the rate is the
               stronger fact, and the two timestamps then sit together.
 
               Three cases, one row (node 24-4654) — a user with their round
-              photo, "QuickBooks" with the square brand tile, or the
+              photo, "QuickBooks Desktop" with the square brand tile, or the
               placeholder-colored "Unknown" with no avatar at all. See
               `createdByOf`. */}
           <ValueDisplay
@@ -74,7 +91,9 @@ export default function GeneralModule({ rate, onEdit, canEdit = true, isLoading 
             isLoading={isLoading}
           />
           <ValueDisplay label="Created at" value={formatShortDateTime(rate.createdAt)} isLoading={isLoading} />
-          <ValueDisplay label="Last modified" value={formatShortDateTime(rate.lastModifiedAt)} isLoading={isLoading} />
+          {!hideLastModified && (
+            <ValueDisplay label="Last modified" value={formatShortDateTime(rate.lastModifiedAt)} isLoading={isLoading} />
+          )}
         </ValueDisplayGroup>
       }
     />

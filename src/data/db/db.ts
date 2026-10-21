@@ -1735,6 +1735,12 @@ export const QUICKBOOKS_ACCOUNTS: QuickbooksAccount[] = [
   { id: "qba-4030", number: "4030", name: "Parts & Materials" },
   { id: "qba-4040", number: "4040", name: "Preventive Maintenance" },
   { id: "qba-4100", number: "4100", name: "Emergency Service" },
+  // Sub-accounts (2026-10-21): the Revenue account list shows a sub-account's
+  // DIRECT parent as its caption. One numbered parent of each kind, and an
+  // unnumbered sub-account so the caption-under-a-bare-name case is drawn.
+  { id: "qba-4110", number: "4110", name: "After-Hours Service", parentId: "qba-4100" },
+  { id: "qba-4120", number: "4120", name: "Holiday Service", parentId: "qba-4100" },
+  { id: "qba-warranty-labor", name: "Warranty Labor", parentId: "qba-4020" },
   { id: "qba-consulting", name: "Consulting Income" },
   { id: "qba-misc", name: "Miscellaneous Income" },
 ];

@@ -77,7 +77,6 @@ const Demo = ({
   breakpoint,
   subtypes = PRODUCT_SUBTYPES,
   requireSubtypes = false,
-  cannotClassifySubtypes = false,
   useTaxes = true,
   vendors = VENDORS,
   canCreateVendor = true,
@@ -88,7 +87,6 @@ const Demo = ({
   breakpoint: "desktop" | "mobile";
   subtypes?: typeof PRODUCT_SUBTYPES;
   requireSubtypes?: boolean;
-  cannotClassifySubtypes?: boolean;
   useTaxes?: boolean;
   vendors?: typeof VENDORS;
   canCreateVendor?: boolean;
@@ -108,7 +106,6 @@ const Demo = ({
         onClose={() => setOpen(false)}
         subtypes={subtypes}
         requireSubtypes={requireSubtypes}
-        cannotClassifySubtypes={cannotClassifySubtypes}
         useTaxes={useTaxes}
         defaultIsTaxable={COMPANY.pricebookDefaultTaxableProduct}
         vendors={vendors}
@@ -207,20 +204,6 @@ export const NoVendorsNoPermission: Story = {
   name: "No Vendors, No Permission",
   parameters: { layout: "centered" },
   render: () => <Demo breakpoint="desktop" vendors={[]} canCreateVendor={false} />,
-};
-
-/** QuickBooks Desktop on Detailed Split, but no income account synced yet. */
-export const NoSyncedAccounts: Story = {
-  name: '"No Synced Accounts" Prompt',
-  parameters: { layout: "centered" },
-  render: () => <Demo breakpoint="desktop" quickbooks={{ ...QUICKBOOKS!, revenueAccounts: [] }} />,
-};
-
-/** A user who can not classify subtypes, in a company that requires one (2+ subtypes). */
-export const CantClassifySubtypes: Story = {
-  name: '"Can\'t Classify Subtypes" Prompt',
-  parameters: { layout: "centered" },
-  render: () => <Demo breakpoint="desktop" requireSubtypes cannotClassifySubtypes />,
 };
 
 /** Create reports failure: the error toast, and the form keeps every value. */

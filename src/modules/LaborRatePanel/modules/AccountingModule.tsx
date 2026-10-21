@@ -9,28 +9,23 @@ import { accountNameOf, lastSyncOf, syncStatusOf } from "../laborRateData";
 // The Labor rate panel's "Accounting" module (Figma 25-5031) — the QuickBooks
 // Desktop half of the record, and the last module in the panel.
 //
-// The whole module is conditional, on TWO company settings: "Only shown if the
-// QuickBooks Desktop integration is on and the company uses the detailed
-// line-item scheme" (the Overview frame's annotation). Only that scheme gives
-// an item its own revenue account — on the generic one the account lives in
-// the company's settings, and the item has nothing to show. The caller
-// decides, because only it knows the company.
+// The whole module is conditional: "Only shown when a service company uses
+// QuickBooks Desktop AND chose the 'Detailed Split' line-item setup" — the one
+// setup where an item carries its own revenue account. The caller decides,
+// because only it knows the company.
 //
-// Three rows, and only the first is unconditional:
-//   QuickBooks revenue account  always. Empty on a Review item: the system
-//                               mints those straight through the ORM, which
-//                               skips the check that would require one.
-//   Sync status                 hidden in REVIEW — production's export filters
-//                               `confirmed=True`, so an unvetted item is never
-//                               pushed and the row could only read "Not synced".
-//   Last sync                   hidden in Review, and "only shown if there is
-//                               value" — an item that has never reached
-//                               QuickBooks has no timestamp to report.
+//   Revenue account  always. Empty = "No Revenue account" with the module's
+//                    "Warning" state (any status — a Review item minted from a
+//                    line item has none, and so does an item older than the
+//                    integration).
+//   Sync status      hidden in Review — an unconfirmed item is never sent to
+//                    QuickBooks, so the row could only read "Not synced".
+//   Last sync        hidden in Review, and only shown if there is a value.
 
 interface AccountingModuleProps {
   rate: LaborItem;
   onEdit: () => void;
-  /** Hidden while the rate is inactive or in Review, or without the edit permission. */
+  /** Hidden while the rate is inactive, or without the edit permission. */
   canEdit?: boolean;
   /** Hide the "Sync status" and "Last sync" rows — true while in Review. */
   hideSyncStatus?: boolean;
@@ -46,10 +41,14 @@ export default function AccountingModule({
 }: AccountingModuleProps) {
   const sync = syncStatusOf(rate);
   const lastSync = lastSyncOf(rate);
+  const account = accountNameOf(rate);
+  const missing = !isLoading && account == null;
 
   return (
     <DisplayModule
       title="Accounting"
+      status={missing ? "warning" : "none"}
+      banner={missing ? { children: "This labor rate needs a revenue account" } : undefined}
       slotRight={
         isLoading || !canEdit ? undefined : (
           <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit accounting" onClick={onEdit} />
@@ -57,7 +56,7 @@ export default function AccountingModule({
       }
       content={
         <ValueDisplayGroup>
-          <ValueDisplay label="QuickBooks revenue account" value={accountNameOf(rate)} isLoading={isLoading} />
+          <ValueDisplay label="Revenue account" value={account} isWarning={missing} isLoading={isLoading} />
           {!hideSyncStatus && (
             <ValueDisplay
               label="Sync status"

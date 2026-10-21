@@ -169,7 +169,7 @@ export const Inactive: Story = {
 
 /**
  * The "General" module on its own, in its three "Created by" cases
- * (node 24-4654): a user with their round photo; "QuickBooks" with the square
+ * (node 24-4654): a user with their round photo; "QuickBooks Desktop" with the square
  * brand tile — no creator plus a QuickBooks key, which is how every imported
  * rate arrives; and the placeholder-colored "Unknown" with no avatar, for a
  * rate loaded during onboarding.

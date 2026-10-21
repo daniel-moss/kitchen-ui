@@ -47,6 +47,12 @@ const rowAvatar = (row: HistoryRow) => {
 
 interface HistoryModuleProps {
   rows: HistoryRow[];
+  /**
+   * The object kinds this History lists — the groups and the filter's
+   * options. Default all three; the Labor rate panel lists jobs and invoices
+   * only.
+   */
+  kinds?: HistoryKind[];
   mobile: boolean;
   /** Opens the object on a separate tab (the row's own annotation). */
   onOpen: (row: HistoryRow) => void;
@@ -58,7 +64,14 @@ interface HistoryModuleProps {
 /** The Loading frame shows five rows — the count is not known in advance. */
 const LOADING_ROWS = 5;
 
-export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "all", isLoading = false }: HistoryModuleProps) {
+export default function HistoryModule({
+  rows,
+  kinds = HISTORY_KINDS,
+  mobile,
+  onOpen,
+  defaultFilter = "all",
+  isLoading = false,
+}: HistoryModuleProps) {
   const [filter, setFilter] = useState<HistoryFilter>(defaultFilter);
   // "belowEnd": the trigger is a small ghost Button, so the list must hug its
   // own rows and hang from the button's RIGHT edge — "below" would size it to
@@ -76,7 +89,7 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
   const filterList = (
     <SelectPopoverList pop={filterPop} mobile={mobile} title="Filter">
       <SelectListItemGroup>
-        {(["all", ...HISTORY_KINDS] as HistoryFilter[]).map((option) => (
+        {(["all", ...kinds] as HistoryFilter[]).map((option) => (
           <SelectListItem
             key={option}
             label={FILTER_LABEL[option]}
@@ -91,7 +104,7 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
 
   // One group per object type, in the fixed Estimates → Jobs → Invoices order.
   // "Only shown, if there are related items" (the group's own annotation).
-  const groups = HISTORY_KINDS.map((kind) => ({ kind, rows: shown.filter((row) => row.kind === kind) })).filter((group) => group.rows.length > 0);
+  const groups = kinds.map((kind) => ({ kind, rows: shown.filter((row) => row.kind === kind) })).filter((group) => group.rows.length > 0);
 
   const content = isLoading ? (
     <div className={styles.listBody}>
@@ -106,7 +119,7 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
       </ItemGroup>
     </div>
   ) : rows.length === 0 ? (
-    <EmptyState caption="No history objects here yet" />
+    <EmptyState caption="No history" />
   ) : (
     <div className={styles.listBody}>
       {groups.map((group, index) => (
@@ -132,7 +145,7 @@ export default function HistoryModule({ rows, mobile, onOpen, defaultFilter = "a
       {/* "Only shown, if there are hidden objects" — the bar's annotation. */}
       {hidden > 0 && (
         <HiddenBar>
-          <HiddenBarGroup action={{ label: "Show objects", onClick: () => setFilter("all") }}>
+          <HiddenBarGroup action={{ label: "Show", onClick: () => setFilter("all") }}>
             <strong>
               {hidden} object{hidden === 1 ? "" : "s"}
             </strong>{" "}

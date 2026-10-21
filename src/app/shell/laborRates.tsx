@@ -77,7 +77,6 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
           useTaxes={COMPANY.useTaxes}
           defaultTaxable={COMPANY.pricebookDefaultTaxableLabor}
           quickbooks={ON_QUICKBOOKS_DETAILED ? { accounts: QUICKBOOKS_ACCOUNTS } : undefined}
-          labelPool={LABEL_POOL}
           // The duplicate-name check. Production's uniqueness spans every
           // pricebook item of the company; the app only has these rates, so
           // that is what it can offer.
@@ -85,11 +84,22 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
           onCreated={(input) => {
             // Remembered for "Preview" below: the form hands its own value to
             // that callback, but only the store knows the id it was given.
-            createdId.current = createLaborRate(input);
+            // The form asks only the required fields; the optional ones start
+            // empty (Manual pricing, no labels or notes) and are filled in
+            // from the panel.
+            const { rateType, ...rest } = input;
+            createdId.current = createLaborRate({
+              ...rest,
+              unitType: rateType,
+              priceStrategy: "manual",
+              labels: [],
+              description: "",
+              notes: "",
+            });
           }}
-          // The form's success toast offers "Preview"; it opens the panel on
-          // the rate that was just created, wherever the user happens to be.
-          onPreview={() => {
+          // Create "opens the SidePanel" on the rate it just made, wherever
+          // the user happens to be.
+          onOpenCreated={() => {
             if (createdId.current != null) openPanel(createdId.current);
           }}
           breakpoint={breakpoint}

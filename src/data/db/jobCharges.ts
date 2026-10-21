@@ -1,5 +1,6 @@
+import { LABOR_ITEMS } from "./db";
 import { historyOf } from "./jobHistory";
-import { Job } from "./types";
+import { Job, LaborItem } from "./types";
 
 // WHAT A JOB COST — its labour, its parts and its fees.
 //
@@ -13,11 +14,25 @@ import { Job } from "./types";
 // filter, a hood clean needs no parts at all), and the fees are the company's.
 // Deterministic, so a demo reads the same way every time.
 
-export type Charge = { id: string; title: string; caption: string; total: string; unit: string };
+export type Charge = {
+  id: string;
+  title: string;
+  caption: string;
+  total: string;
+  unit: string;
+  /**
+   * Labour lines only: the pricebook labor rate the line was billed from
+   * (→ LABOR_ITEMS). It is what the Charges module opens the "Labor rate"
+   * side panel on.
+   */
+  laborRateId?: string;
+};
 export type ChargeGroup = { key: string; label: string; icon: string; subtotal: string; items: Charge[] };
 
-/** The company's standard labour rate, per hour. */
-const LABOR_RATE = 110;
+/** The first hour of every visit is billed on the diagnostic rate. */
+const DIAGNOSTIC_RATE_ID = "diagnostic-labor";
+/** The work itself falls back to this rate when the service has none of its own. */
+const STANDARD_RATE_ID = "standard-labor";
 /** Dispatch fee for an on-site visit. */
 const TRIP_CHARGE = 75;
 
@@ -138,23 +153,30 @@ export function chargesOf(job: Job): ChargeGroup[] {
   const diagnostic = Math.min(1, hours);
   const remaining = Math.round((hours - diagnostic) * 4) / 4;
 
+  // Every labour line is billed from a REAL pricebook rate (2026-10-21), so a
+  // row can open that rate's side panel: the diagnostic rate for the first
+  // hour, then the service's own rate (every service has one, sharing its id),
+  // or the standard rate when it has none. A flat rate is billed once.
+  const rateLine = (id: string, rate: LaborItem, hours: number, caption: string): Charge => {
+    const qty = rate.unitType === "hourly" ? hours : 1;
+    return {
+      id,
+      title: rate.name,
+      caption: rate.summary !== "" ? rate.summary : caption,
+      total: money(qty * rate.rate),
+      unit: rate.unitType === "hourly" ? `${money(rate.rate)} x ${qty} hr` : `${money(rate.rate)} x 1`,
+      laborRateId: rate.id,
+    };
+  };
+  const rateById = (id: string) => LABOR_ITEMS.find((row) => row.id === id);
+  const diagnosticRate = rateById(DIAGNOSTIC_RATE_ID)!;
+  const workRate = (job.serviceId != null ? rateById(job.serviceId) : undefined) ?? rateById(STANDARD_RATE_ID)!;
+
   const labor: Charge[] = [
-    {
-      id: "l1",
-      title: "Diagnostic & inspection",
-      caption: `Inspected the unit and confirmed the fault before starting on the ${job.serviceName.toLowerCase()}.`,
-      total: money(diagnostic * LABOR_RATE),
-      unit: `${money(LABOR_RATE)} x ${diagnostic} hr`,
-    },
+    rateLine("l1", diagnosticRate, diagnostic, `Inspected the unit and confirmed the fault before starting on the ${job.serviceName.toLowerCase()}.`),
   ];
-  if (remaining > 0) {
-    labor.push({
-      id: "l2",
-      title: job.serviceName,
-      caption: "The work itself, as logged on the timesheet.",
-      total: money(remaining * LABOR_RATE),
-      unit: `${money(LABOR_RATE)} x ${remaining} hr`,
-    });
+  if (remaining > 0 || workRate.unitType === "flatRate") {
+    labor.push(rateLine("l2", workRate, remaining, "The work itself, as logged on the timesheet."));
   }
 
   const parts = PARTS_BY_SERVICE[job.serviceName] ?? [GENERIC_PART];

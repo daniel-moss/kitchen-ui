@@ -128,12 +128,6 @@ export interface NewProductFormProps {
   subtypes?: PricebookSubtype[];
   /** The company requires a subtype (`require_subtypes`). Default false. */
   requireSubtypes?: boolean;
-  /**
-   * The user has the "can't classify subtypes" flag. With `requireSubtypes`
-   * and 2+ subtypes such a user can not create a product at all, so the form
-   * opens as the "You can't create products" Prompt instead. Default false.
-   */
-  cannotClassifySubtypes?: boolean;
   /** The company uses taxes (`use_taxes`). False removes Taxability. Default true. */
   useTaxes?: boolean;
   /** What Taxability opens on — the company's product default. Default true (taxable). */

@@ -65,8 +65,19 @@ interface EditNotesDialogProps {
    * "Notes" module' (2026-10-19).
    */
   errorTitle?: string;
+  /**
+   * The info hint after the dialog title — what the text is for (the
+   * pricebook "Shared Modules": "Only your team sees this, …").
+   */
+  titleHintContent?: string;
   /** Show "(optional)" next to the field label. Default false. */
   optional?: boolean;
+  /**
+   * Draw the field's header (its label). Default true. The Equipment panel
+   * turns it off (Figma 2026-10-21: Input `header=false`) — its dialog title
+   * already names the field. The label then only reaches screen readers.
+   */
+  showFieldLabel?: boolean;
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
@@ -79,7 +90,9 @@ export default function EditNotesDialog({
   fieldLabel = "Notes",
   toastSubject = '"Notes"',
   errorTitle,
+  titleHintContent,
   optional = false,
+  showFieldLabel = true,
   breakpoint = "auto",
 }: EditNotesDialogProps) {
   const mobile = !useIsDesktop(breakpoint);
@@ -109,6 +122,7 @@ export default function EditNotesDialog({
       open={open}
       onClose={onClose}
       title={title}
+      titleHintContent={titleHintContent}
       breakpoint={breakpoint}
       // Mobile: the sheet takes the whole screen so the field can use it all.
       fillHeight
@@ -130,11 +144,15 @@ export default function EditNotesDialog({
       }
     >
       <Input
-        label={fieldLabel}
-        labelCondition={optional ? "optional" : undefined}
+        label={showFieldLabel ? fieldLabel : undefined}
+        labelCondition={showFieldLabel && optional ? "optional" : undefined}
         className={mobile ? styles.fillField : styles.tallField}
       >
-        <TextArea autoFocus value={value} onChange={(event) => setValue(event.target.value)} onClear={() => setValue("")} />
+        <TextArea
+          autoFocus
+          aria-label={showFieldLabel ? undefined : fieldLabel}
+          clearPromptLabel={showFieldLabel ? undefined : fieldLabel}
+          value={value} onChange={(event) => setValue(event.target.value)} onClear={() => setValue("")} />
       </Input>
     </Dialog>
   );

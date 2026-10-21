@@ -16,7 +16,6 @@ import FormModuleGroup from "../../../components/FormModule/FormModuleGroup";
 import IconButton from "../../../components/IconButton/IconButton";
 import Input from "../../../components/Input/Input";
 import PopoverFooter from "../../../components/Popover/PopoverFooter";
-import Prompt from "../../../components/Prompt/Prompt";
 import RadioGroup from "../../../components/Radio/RadioGroup";
 import RadioItem from "../../../components/Radio/RadioItem";
 import SelectListItem from "../../../components/SelectList/SelectListItem";
@@ -28,7 +27,7 @@ import { DimensionUnit, WeightUnit } from "../../../data/db/types";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
-import AccountField from "./AccountField";
+import AccountField, { accountValue } from "./AccountField";
 import InventoryLevelsField from "./InventoryLevelsField";
 import {
   computePrice,
@@ -93,16 +92,15 @@ import styles from "./NewProductForm.module.scss";
 //    `dimension_unit` — the server rejects a unit without a value.
 // 5. While a vendor or inventory card is open, Create does not create: it
 //    scrolls to that card.
-// 6. Two companies' users never see the form: with no synced QuickBooks income
-//    account, or a user who can not classify a required subtype (2+ subtypes),
-//    the form opens as an explaining Prompt with a single OK.
+// 6. No entry Prompts: "no synced QuickBooks accounts" and "can't classify
+//    subtypes" are left to the backend (Daniel + devs, 2026-10-21), so the
+//    form always opens.
 
 export default function NewProductForm({
   open,
   onClose,
   subtypes = [],
   requireSubtypes = false,
-  cannotClassifySubtypes = false,
   useTaxes = true,
   defaultIsTaxable = true,
   vendors = [],
@@ -118,10 +116,6 @@ export default function NewProductForm({
   breakpoint = "auto",
 }: NewProductFormProps) {
   const mobile = !useIsDesktop(breakpoint);
-
-  // ---- the two entry Prompts (rule 6) ----
-  const noSyncedAccounts = quickbooks != null && quickbooks.revenueAccounts.length === 0;
-  const cantClassify = cannotClassifySubtypes && requireSubtypes && subtypes.length >= 2;
 
   // ---- General ----
   const [name, setName] = useState("");
@@ -255,9 +249,13 @@ export default function NewProductForm({
 
   // Accounting: the revenue account always, the two inventory ones only for an
   // inventory product.
-  const hasAccounting = quickbooks != null && !noSyncedAccounts;
-  const missingRevenueAccount = hasAccounting && revenueAccountId == null;
-  const missingInventoryAccounts = hasAccounting && trackInventory && (cogsAccountId == null || assetAccountId == null);
+  const hasAccounting = quickbooks != null;
+  // A list with ONE account has that account as its value (shown read-only).
+  const revenueAccount = accountValue(quickbooks?.revenueAccounts ?? [], revenueAccountId);
+  const cogsAccount = accountValue(quickbooks?.cogsAccounts ?? [], cogsAccountId);
+  const assetAccount = accountValue(quickbooks?.assetAccounts ?? [], assetAccountId);
+  const missingRevenueAccount = hasAccounting && revenueAccount == null;
+  const missingInventoryAccounts = hasAccounting && trackInventory && (cogsAccount == null || assetAccount == null);
 
   // Cost is required under Manual — "Enter Cost" (Figma 4057-13777).
   const missingCost = costStrategy === "manual" && isBlank(cost);
@@ -391,9 +389,9 @@ export default function NewProductForm({
       isTaxable: useTaxes ? isTaxable : false,
       trackInventory,
       inventoryLevels: trackInventory ? inventoryLevels : [],
-      revenueAccountId: hasAccounting ? (revenueAccountId ?? undefined) : undefined,
-      cogsAccountId: hasAccounting && trackInventory ? (cogsAccountId ?? undefined) : undefined,
-      assetAccountId: hasAccounting && trackInventory ? (assetAccountId ?? undefined) : undefined,
+      revenueAccountId: hasAccounting ? (revenueAccount ?? undefined) : undefined,
+      cogsAccountId: hasAccounting && trackInventory ? (cogsAccount ?? undefined) : undefined,
+      assetAccountId: hasAccounting && trackInventory ? (assetAccount ?? undefined) : undefined,
       imageUrl: imageUrl.trim(),
       // The unit only travels with a value — see the header note.
       weight: isBlank(weight) ? undefined : numberOf(weight),
@@ -448,23 +446,6 @@ export default function NewProductForm({
     />
   );
 
-  if (noSyncedAccounts || cantClassify)
-    return (
-      <Prompt
-        open={open}
-        title={noSyncedAccounts ? "Sync QuickBooks accounts first" : "You can't create products"}
-        body={
-          noSyncedAccounts
-            ? "No QuickBooks accounts have been synced yet. Run a sync in the QuickBooks Web Connector, then create the product."
-            : "Every product needs a subtype, and your account can’t choose one. Ask an admin to create the product."
-        }
-        hasCancel={false}
-        actionLabel="OK"
-        onAction={onClose}
-        breakpoint={breakpoint}
-      />
-    );
-
   return (
     <>
       <Dialog
@@ -510,7 +491,9 @@ export default function NewProductForm({
 
               {subtypes.length > 0 &&
                 (lockedSubtype != null ? (
-                  <Input label="Subtype" labelCondition="readOnly">
+                  // Shared Fields → Subtype: the help line replaces the
+                  // "(read-only)" tag and says why the field is locked.
+                  <Input label="Subtype" helpText="The only subtype available">
                     <SelectField value={lockedSubtype.name} readOnly />
                   </Input>
                 ) : (

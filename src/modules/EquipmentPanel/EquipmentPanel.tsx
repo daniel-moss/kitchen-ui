@@ -287,9 +287,14 @@ export default function EquipmentPanel({
               isLoading={isLoading}
             />
             {/* Labels are internal — the public view has no Labels module. */}
-            {!isPublicView && <LabelsModule labels={data.labels} onEdit={() => setEditingLabels(true)} isLoading={isLoading} />}
+            {/* The short "No X" captions (Figma 2026-10-21) — the shared
+                defaults still say "No X here yet" for the other panels. */}
+            {!isPublicView && (
+              <LabelsModule labels={data.labels} onEdit={() => setEditingLabels(true)} isLoading={isLoading} emptyCaption="No labels" />
+            )}
             <NotesModule
               notes={record.notes}
+              emptyCaption="No notes"
               onEdit={() => setEditingNotes(true)}
               isLoading={isLoading}
               copyErrorTitle={'Couldn\'t copy "Notes"'}
@@ -383,7 +388,8 @@ export default function EquipmentPanel({
         open={editingNotes}
         onClose={() => setEditingNotes(false)}
         notes={record.notes}
-        optional
+        // The dialog title already says "Notes" — the field has no header.
+        showFieldLabel={false}
         toastSubject={'"Notes" module'}
         errorTitle={'Couldn\'t update "Notes" module'}
         onSave={async (notes) => {

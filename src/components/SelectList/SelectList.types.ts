@@ -113,7 +113,15 @@ interface SelectListBaseProps {
    * calls `onCreate` with the trimmed query and clears the search, returning
    * to the full list (the consumer adds the new option, usually selected).
    */
-  createFromSearch?: { label: string; onCreate: (query: string) => void };
+  createFromSearch?: {
+    /**
+     * The row's text. A string reads `<label> "query"`; a function writes the
+     * whole sentence itself, for copy where the query sits mid-sentence
+     * (Job Details' `Add "query" to Pricebook`, Figma 27083-31232).
+     */
+    label: string | ((query: string) => string);
+    onCreate: (query: string) => void;
+  };
   /** Presentation: auto (viewport) / desktop / mobile. Default "auto". */
   breakpoint?: Breakpoint;
   className?: string;

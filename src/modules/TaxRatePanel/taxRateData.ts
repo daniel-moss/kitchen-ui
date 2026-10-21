@@ -64,7 +64,7 @@ export function createdByOf(rate: TaxRateItem): CreatedBy {
   // Just the product's name, not "Imported from QuickBooks": it keeps the row
   // on one line, and it makes the three values the same KIND of thing — a
   // person's name, a system's name, or an absence (Daniel, 2026-10-05).
-  if (rate.quickbooksId != null) return { value: "QuickBooks", avatar: quickbooks, avatarShape: "square" };
+  if (rate.quickbooksId != null) return { value: "QuickBooks Desktop", avatar: quickbooks, avatarShape: "square" };
   return { value: "Unknown", color: "var(--text-placeholder)" };
 }
 

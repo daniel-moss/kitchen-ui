@@ -3,7 +3,8 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 import { semanticIcons } from "../../styles/semanticIcons";
 
 import { Page } from "../shell/appShell";
-import { useJob } from "../store/AppStore";
+import { useNewLaborRate } from "../shell/laborRates";
+import { useJob, useLaborRates } from "../store/AppStore";
 
 import JobDetails from "../../modules/JobDetails/JobDetails";
 
@@ -29,6 +30,12 @@ export interface JobDetailsRouteProps {
 export default function JobDetailsRoute({ id, breakpoint = "auto", onNavigate, onOpenJob }: JobDetailsRouteProps) {
   // From the STORE, so an edit made here is the one the list shows.
   const record = useJob(id);
+  // The Charges tab opens the app's ONE "New labor rate" form — the one the
+  // Labor rates list uses.
+  const openNewLaborRate = useNewLaborRate();
+  // The Charges "Labor rates" plus lists the store's rates, so one created a
+  // moment ago is already there.
+  const laborRates = useLaborRates();
 
   // A link can name a job that is not in the database — a stale bookmark, or a
   // hand-typed id. That is a normal state, not a crash.
@@ -43,5 +50,14 @@ export default function JobDetailsRoute({ id, breakpoint = "auto", onNavigate, o
     );
   }
 
-  return <JobDetails record={record} breakpoint={breakpoint} onBack={() => onNavigate("jobs")} onOpenJob={onOpenJob} />;
+  return (
+    <JobDetails
+      record={record}
+      breakpoint={breakpoint}
+      onBack={() => onNavigate("jobs")}
+      onOpenJob={onOpenJob}
+      onAddLaborRate={openNewLaborRate}
+      laborRates={laborRates}
+    />
+  );
 }

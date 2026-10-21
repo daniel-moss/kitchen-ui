@@ -1,0 +1,20 @@
+// The form body: the fields stacked straight in the Dialog, 24px apart — the
+// node's body frame (`gap: --size-6`), with no FormModules around them.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  align-items: stretch;
+}
+
+// Two fields side by side, sharing the width (Figma "Start Date, End Date" and
+// "Hours, Rate": 16px apart).
+.pair {
+  display: flex;
+  gap: var(--size-4); // 16px
+
+  > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}

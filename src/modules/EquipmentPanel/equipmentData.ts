@@ -124,6 +124,34 @@ function invoiceDisplayStatus(invoice: Invoice): keyof typeof INVOICE_STATUS {
 const estimateAvatarStatus = (status: keyof typeof ESTIMATE_STATUS): AvatarEstimateStatus =>
   status === "lost" ? "cancelled" : status;
 
+/**
+ * One job as a History row, or null for a job in its first status — it has no
+ * transition to report ("Pending state objects are not shown"). Shared with
+ * the Labor rate panel's History tab.
+ */
+export function jobHistoryRow(job: Job): HistoryRow | null {
+  if (job.statusChangedAt == null) return null;
+  return {
+    id: job.id,
+    kind: "job",
+    status: job.status,
+    caption: transitionCaption(JOB_STATUS[job.status].label, job.statusChangedAt, job.statusChangedById),
+    changedAt: new Date(job.statusChangedAt).getTime(),
+  };
+}
+
+/** One invoice as a History row. Shared with the Labor rate panel's History tab. */
+export function invoiceHistoryRow(invoice: Invoice): HistoryRow {
+  const status = invoiceDisplayStatus(invoice);
+  return {
+    id: invoice.id,
+    kind: "invoice",
+    status,
+    caption: transitionCaption(INVOICE_STATUS[status].label, invoice.statusChangedAt!, invoice.statusChangedById),
+    changedAt: new Date(invoice.statusChangedAt!).getTime(),
+  };
+}
+
 export function historyRows(equipmentId: string): HistoryRow[] {
   const rows: HistoryRow[] = [];
 
@@ -139,28 +167,11 @@ export function historyRows(equipmentId: string): HistoryRow[] {
   }
 
   for (const job of jobsForEquipment(equipmentId)) {
-    // A job in its first status has no transition to report, like the
-    // estimates and invoices above ("Pending state objects are not shown").
-    if (job.statusChangedAt == null) continue;
-    rows.push({
-      id: job.id,
-      kind: "job",
-      status: job.status,
-      caption: transitionCaption(JOB_STATUS[job.status].label, job.statusChangedAt, job.statusChangedById),
-      changedAt: new Date(job.statusChangedAt).getTime(),
-    });
+    const row = jobHistoryRow(job);
+    if (row != null) rows.push(row);
   }
 
-  for (const invoice of invoicesForEquipment(equipmentId)) {
-    const status = invoiceDisplayStatus(invoice);
-    rows.push({
-      id: invoice.id,
-      kind: "invoice",
-      status,
-      caption: transitionCaption(INVOICE_STATUS[status].label, invoice.statusChangedAt!, invoice.statusChangedById),
-      changedAt: new Date(invoice.statusChangedAt!).getTime(),
-    });
-  }
+  for (const invoice of invoicesForEquipment(equipmentId)) rows.push(invoiceHistoryRow(invoice));
 
   // "By status change date. The most recent go on top." (the module's own
   // annotation) — the groups keep their fixed order, this sorts inside them.

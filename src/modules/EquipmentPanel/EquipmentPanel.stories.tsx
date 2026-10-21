@@ -220,7 +220,7 @@ const NotesFormDemo = ({ breakpoint }: { breakpoint: "desktop" | "mobile" }) => 
         open={open}
         onClose={() => setOpen(false)}
         notes={notes}
-        optional
+        showFieldLabel={false}
         toastSubject={'"Notes" module'}
         errorTitle={'Couldn\'t update "Notes" module'}
         onSave={setNotes}

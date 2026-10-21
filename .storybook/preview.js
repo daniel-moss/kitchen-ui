@@ -945,7 +945,19 @@ const preview = {
             ],
             "Labor Rate",
             [
-              '"New Labor Rate" Form',
+              '"Create" Form',
+              [
+                "Desktop",
+                "Mobile",
+                "One Required Subtype",
+                "Subtype Not Required",
+                "No Subtypes",
+                "One QuickBooks Account",
+                "No QuickBooks",
+                "Creating",
+                "Create Fails",
+              ],
+              '[Archive] "Create" Form',
               [
                 "Desktop",
                 "Mobile",
@@ -963,6 +975,7 @@ const preview = {
                 "Mobile",
                 '"Review" Status',
                 '"Review" Status Mobile',
+                '"History" Tab',
                 '"Inactive" Status',
                 '"General" Module',
                 '"Pricing" Module',

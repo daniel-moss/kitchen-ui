@@ -13,20 +13,18 @@ import { laborRateStatusOf } from "./laborRateData";
 import LaborRatePanel from "./LaborRatePanel";
 import { LaborRatePermissions } from "./LaborRatePanel.types";
 
-// The "Labor rate" side panel (Figma '"Labor Rate" Side Panel — Next Update',
-// page "➡️ Designs"). One module every labor rate uses: the caller hands over
+// The "Labor rate" side panel (Figma file qhebbfbPHDVnv8IF1EC7Zg, page "Labor
+// Rate" → Side Panel). One module every labor rate uses: the caller hands over
 // the record, the panel renders the six display modules — General · Pricing ·
 // Labels · Description · Internal notes · Accounting.
 //
-// Eight demo rates out of the database, each one a case the panel draws:
+// Demo rates out of the database, each one a case the panel draws:
 //   after-hours-labor     ACTIVE and synced, every module filled.
 //   rev-walk-in-call      REVIEW — system-minted from a free-text line item,
-//                         so no creator, no subtype, no account and nothing
-//                         editable.
+//                         so no creator, no subtype and no account: the
+//                         modules warn, and Confirm waits for them.
 //   boiler-descale        INACTIVE — read-only, with the Reactivate banner.
-//   installation-labor    a FIXED markup ($50 + $100 = $150).
-//   refrigerant-recovery  a PERCENT markup ($80 × 2.75 = $220).
-//   standard-labor        imported from QuickBooks: no creator, no subtype.
+//   standard-labor        imported from QuickBooks Desktop: no creator.
 //   helper-labor          "Unknown" creator (an onboarding load), never synced.
 //   fryer-service         edited since its last sync — the "Not synced" case.
 const meta: Meta = {
@@ -41,11 +39,11 @@ type Story = StoryObj;
 const ACTIVE = laborItemById("after-hours-labor")!;
 const REVIEW = laborItemById("rev-walk-in-call")!;
 const INACTIVE = laborItemById("boiler-descale")!;
-const FIXED_MARKUP = laborItemById("installation-labor")!;
-const PERCENT_MARKUP = laborItemById("refrigerant-recovery")!;
 const IMPORTED = laborItemById("standard-labor")!;
 const UNKNOWN_CREATOR = laborItemById("helper-labor")!;
 const NOT_SYNCED = laborItemById("fryer-service")!;
+/** Billed on every visit's first hour — the rate with the longest History. */
+const DIAGNOSTIC = laborItemById("diagnostic-labor")!;
 /** A flat-rate item, so the "/hr" suffix has its counter-example. */
 const FLAT_RATE = laborItemById("emergency-call-out")!;
 
@@ -82,6 +80,7 @@ const Demo = ({
   isLoading,
   state,
   accounting = true,
+  requireSubtypes = false,
   permissions,
   fails = false,
 }: {
@@ -90,6 +89,8 @@ const Demo = ({
   isLoading?: boolean;
   state?: "content" | "error" | "offline";
   accounting?: boolean;
+  /** The company requires a subtype — a rate without one then warns. */
+  requireSubtypes?: boolean;
   permissions?: LaborRatePermissions;
   /** Every action reports failure — the designed error toasts. */
   fails?: boolean;
@@ -113,6 +114,7 @@ const Demo = ({
         labelPool={LABEL_POOL}
         existingNames={LABOR_ITEMS.map((row) => row.name)}
         hasQuickbooksAccounting={accounting}
+        requireSubtypes={requireSubtypes}
         permissions={permissions}
         isLoading={isLoading}
         state={state}
@@ -148,16 +150,18 @@ export const Mobile: Story = {
 };
 
 /**
- * An unvetted item: the amber Review status, no context menu, NO pens at all,
- * and a footer with Delete + Confirm. Production confirms an item on every
- * save, so editing one here would accept it silently — Confirm is the only way
- * in. The Accounting module drops its sync rows, and the item has neither a
- * creator nor a revenue account: the system minted it from a line item.
+ * An unvetted item: the amber Review status, no context menu, a footer with
+ * Delete + Confirm — and every module editable, so the user can add what the
+ * item lacks. The system minted it from a line item, so it has no creator, no
+ * subtype and no revenue account: General and Accounting show their "Warning"
+ * state, and Confirm "stays disabled until all required values provided". Add
+ * both through the pens and Confirm turns on. (Accounting drops its sync rows
+ * here, and General its "Last modified".)
  */
 export const Review: Story = {
   name: '"Review" Status',
   parameters: { layout: "centered" },
-  render: () => <Demo record={REVIEW} breakpoint="desktop" />,
+  render: () => <Demo record={REVIEW} breakpoint="desktop" requireSubtypes />,
 };
 
 export const ReviewMobile: Story = {
@@ -165,14 +169,24 @@ export const ReviewMobile: Story = {
   parameters: { layout: "centered" },
   render: () => (
     <DeviceFrame statusBar homeIndicator>
-      <Demo record={REVIEW} breakpoint="mobile" />
+      <Demo record={REVIEW} breakpoint="mobile" requireSubtypes />
     </DeviceFrame>
   ),
 };
 
 /**
- * Inactive: read-only. Every pen and the context menu are gone, the warning
- * banner offers Reactivate, and the two copy buttons stay.
+ * A rate billed on many jobs — open the "History" tab: completed jobs not yet
+ * invoiced, and every non-draft invoice, newest first, filterable to one kind.
+ */
+export const History: Story = {
+  name: '"History" Tab',
+  parameters: { layout: "centered" },
+  render: () => <Demo record={DIAGNOSTIC} breakpoint="desktop" />,
+};
+
+/**
+ * Inactive: read-only. Every pen and the context menu are gone, the footer
+ * offers Reactivate on every tab, and the two copy buttons stay.
  */
 export const Inactive: Story = {
   name: '"Inactive" Status',
@@ -182,7 +196,7 @@ export const Inactive: Story = {
 
 /**
  * The "General" module on its own, in its three "Created by" cases (node
- * 24-4654): a user with their round photo; "QuickBooks" with the square brand
+ * 24-4654): a user with their round photo; "QuickBooks Desktop" with the square brand
  * tile — no creator plus a QuickBooks key, which is how every imported item
  * arrives; and the placeholder-colored "Unknown" with no avatar, for an item
  * loaded during onboarding or minted by the system. The last two also show the
@@ -195,19 +209,18 @@ export const General: Story = {
     <ModuleColumn
       items={[
         ["Created by a user", ACTIVE],
-        ["Imported from QuickBooks", IMPORTED],
+        ["Imported from QuickBooks Desktop", IMPORTED],
         ["Unknown creator", UNKNOWN_CREATOR],
+        ["Warning — the company requires a subtype", REVIEW],
       ]}
-      render={(record) => <GeneralModule rate={record} onEdit={noop} />}
+      render={(record) => <GeneralModule rate={record} onEdit={noop} missingSubtype={record === REVIEW} />}
     />
   ),
 };
 
 /**
- * The "Pricing" module on its own (node 3015-4365). The markup row appears
- * only under its own strategy, and the Rate is then derived from Cost — the
- * same sum production's database trigger runs. An hourly item carries the
- * "/hr" suffix on both money rows; a flat-rate one carries none.
+ * The "Pricing" module on its own (node 3015-4365). An hourly item carries the
+ * "/hr" suffix on both money rows; a flat one carries none.
  */
 export const Pricing: Story = {
   name: '"Pricing" Module',
@@ -215,10 +228,8 @@ export const Pricing: Story = {
   render: () => (
     <ModuleColumn
       items={[
-        ["Manual price strategy", ACTIVE],
-        ["Fixed markup", FIXED_MARKUP],
-        ["Percent markup", PERCENT_MARKUP],
-        ["Flat rate — no suffix", FLAT_RATE],
+        ["Hourly", ACTIVE],
+        ["Flat — no suffix", FLAT_RATE],
       ]}
       render={(record) => <PricingModule rate={record} onEdit={noop} />}
     />
@@ -228,8 +239,8 @@ export const Pricing: Story = {
 /**
  * The "Accounting" module on its own (node 25-5031). Its last two rows are
  * conditional: "Last sync" needs a value, and both are dropped in Review —
- * production never pushes an unconfirmed item, so the status could only read
- * "Not synced". A Review item has no revenue account either.
+ * production never pushes an unconfirmed item. No revenue account is the
+ * module's "Warning" state, in any status.
  */
 export const Accounting: Story = {
   name: '"Accounting" Module',
@@ -240,7 +251,7 @@ export const Accounting: Story = {
         ["Synced", ACTIVE],
         ["Edited since the last sync", NOT_SYNCED],
         ["Never synced — no Last sync row", UNKNOWN_CREATOR],
-        ["Review — no account, neither sync row", REVIEW],
+        ["Review — no account: Warning, no sync rows", REVIEW],
       ]}
       render={(record) => (
         <AccountingModule rate={record} onEdit={noop} hideSyncStatus={laborRateStatusOf(record) === "review"} />
@@ -277,7 +288,7 @@ export const Loading: Story = {
   render: () => <Demo record={ACTIVE} breakpoint="desktop" isLoading />,
 };
 
-/** Every save and action reports failure — the designed "Could not …" toasts. */
+/** Every save and action reports failure — the designed "Couldn't …" toasts. */
 export const ActionsFail: Story = {
   name: "Actions Fail",
   parameters: { layout: "centered" },

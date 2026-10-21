@@ -62,10 +62,14 @@ export default function Input({
 
   // "(read-only)" on the label may ONLY come from the field's real readOnly
   // prop — a manually passed "readOnly" condition is ignored (the type
-  // discourages it, but ReactNode can not exclude the string).
+  // discourages it, but ReactNode can not exclude the string). A read-only
+  // field WITH help text drops the tag: the help line says why the field is
+  // locked ("The only subtype available"), which says more than the tag
+  // (Daniel, 2026-10-21 — the pricebook "Shared Fields" read-only states).
   const field = fields.length === 1 ? fields[0] : null;
   const readOnly = (field?.props as { readOnly?: boolean } | undefined)?.readOnly === true;
-  const effectiveCondition = readOnly ? "readOnly" : labelCondition === "readOnly" ? undefined : labelCondition;
+  const effectiveCondition =
+    readOnly && !hasHelp ? "readOnly" : labelCondition === "readOnly" || readOnly ? undefined : labelCondition;
 
   const context = useMemo(() => ({ label: typeof label === "string" ? label : undefined }), [label]);
 

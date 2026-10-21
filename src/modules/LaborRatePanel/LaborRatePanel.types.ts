@@ -1,4 +1,8 @@
 import { LaborItem } from "../../data/db";
+import { HistoryRow } from "../EquipmentPanel/equipmentData";
+
+/** The panel's three tabs. Accounting exists only with `hasQuickbooksAccounting`. */
+export type LaborRatePanelTab = "details" | "accounting" | "history";
 
 /** What the "General" form hands back — the editable half of that module. */
 export type LaborRateGeneral = Pick<LaborItem, "name" | "subtypeId">;
@@ -67,6 +71,11 @@ export interface LaborRatePanelActions {
    * go next.
    */
   onDelete?: () => void | boolean | Promise<void | boolean>;
+  /**
+   * A History row was clicked — open that job or invoice (the Equipment
+   * panel's rule: on a separate tab). With no handler the row does nothing.
+   */
+  onOpenHistory?: (row: HistoryRow) => void;
 }
 
 export interface LaborRatePanelProps extends LaborRatePanelActions {
@@ -101,7 +110,7 @@ export interface LaborRatePanelProps extends LaborRatePanelActions {
    */
   useTaxes?: boolean;
   /**
-   * Whether the whole "Accounting" module appears — true only when the company
+   * Whether the "Accounting" tab and its module appear — true only when the company
    * is on QuickBooks Desktop AND uses the DETAILED line-item scheme, the one
    * setup where a labor rate carries its own revenue account
    * (`PriceBookItem.clean`). Default true.

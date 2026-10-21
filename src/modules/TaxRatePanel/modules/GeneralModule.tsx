@@ -55,7 +55,7 @@ export default function GeneralModule({ rate, onEdit, canEdit = true, isLoading 
               together at the bottom.
 
               Three cases, one row (node 24-4654) — a user with their round
-              photo, "QuickBooks" with the square brand tile, or the
+              photo, "QuickBooks Desktop" with the square brand tile, or the
               placeholder-colored "Unknown" with no avatar at all. See
               `createdByOf`. */}
           <ValueDisplay

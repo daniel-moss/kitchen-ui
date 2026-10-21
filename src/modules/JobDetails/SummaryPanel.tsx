@@ -18,6 +18,7 @@ import useSummaryGenerator from "./summaryGenerator";
 
 import { jobById, workSummary } from "../../data/db";
 import type { ChargeGroup } from "../../data/db";
+import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId } from "./currentJob";
 
 import styles from "./SummaryPanel.module.scss";
@@ -55,6 +56,8 @@ export default function SummaryPanel({
   onFormsLog,
   onTextLog,
   isPublicView = false,
+  onAddLaborRate,
+  laborRates,
 }: {
   mobile?: boolean;
   /** The job's charges and their total — derived from the job (db/jobCharges). */
@@ -84,6 +87,10 @@ export default function SummaryPanel({
    * unchanged. Default false.
    */
   isPublicView?: boolean;
+  /** Charges: the "Labor rates" plus — the app's "New labor rate" form. */
+  onAddLaborRate?: () => void;
+  /** Charges: the pricebook rates the Labor rates plus lists (the app's store). */
+  laborRates?: LaborItem[];
 }) {
   const [sub, setSub] = useState("tech-work");
 
@@ -182,7 +189,13 @@ export default function SummaryPanel({
       </SegmentedControl>
 
       {sub === "charges" ? (
-        <ChargesTab mobile={mobile} groups={charges} subtotal={chargesTotal} />
+        <ChargesTab
+          groups={charges}
+          laborRates={laborRates}
+          jobEquipment={jobEquipment}
+          mobile={mobile}
+          onAddLaborRate={onAddLaborRate}
+        />
       ) : sub === "signature" ? (
         <SignatureModule {...signatureView(signature)} />
       ) : (

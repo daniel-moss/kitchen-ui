@@ -58,6 +58,7 @@ import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { JobLocation, LOCATIONS } from "./jobData";
 import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, jobById } from "../../data/db";
+import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
 import { Job as ListJob } from "../shared/jobRow";
@@ -112,6 +113,16 @@ export interface JobDetailsProps {
    * story (and then those rows are inert).
    */
   onOpenJob?: (id: string) => void;
+  /**
+   * The Charges tab's "Labor rates" plus — opens the "New labor rate" form.
+   * The app owns the form (shell/laborRates.tsx); unset in a standalone story.
+   */
+  onAddLaborRate?: () => void;
+  /**
+   * The pricebook labor rates the Charges "Labor rates" plus lists — the app
+   * passes its store; a standalone story falls back to the database.
+   */
+  laborRates?: LaborItem[];
   /**
    * The company setting that rounds logged time UP to the next 5 minutes.
    * A real setting would live in Settings, which this prototype does not have,
@@ -2531,11 +2542,13 @@ interface ShellProps {
   record: ListJob;
   onBack?: () => void;
   onOpenJob?: (id: string) => void;
+  onAddLaborRate?: () => void;
+  laborRates?: LaborItem[];
   isPublicView: boolean;
   companyHasLogo: boolean;
 }
 
-const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, companyHasLogo }: ShellProps) => {
+const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo }: ShellProps) => {
   const s = useJobShell(true, record);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
@@ -2599,6 +2612,9 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, co
                   isPublicView={isPublicView}
                   charges={s.charges}
                   chargesTotal={s.chargesSubtotal}
+                  onAddLaborRate={onAddLaborRate}
+                 
+                  laborRates={laborRates}
                   jobEquipment={s.jobEquipment}
                   signature={s.signature}
                   onFormsLog={s.logForms}
@@ -2844,7 +2860,7 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, companyHasLogo }: ShellProps) => {
+const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo }: ShellProps) => {
   const s = useJobShell(false, record);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
@@ -2900,6 +2916,9 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, com
                 isPublicView={isPublicView}
                 charges={s.charges}
                 chargesTotal={s.chargesSubtotal}
+                onAddLaborRate={onAddLaborRate}
+               
+                laborRates={laborRates}
                 mobile
                 jobEquipment={s.jobEquipment}
                 signature={s.signature}
@@ -3000,7 +3019,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, isPublicView, com
   );
 };
 
-export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, isPublicView = false, companyHasLogo = true }: JobDetailsProps) {
+export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView = false, companyHasLogo = true }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
   // Remounting on the job id is deliberate: every module seeds its state from
   // the record, so opening another job has to start those modules over rather
@@ -3008,9 +3027,9 @@ export default function JobDetails({ record, breakpoint = "auto", roundTo5min = 
   return (
     <CurrentJobIdProvider id={record.id}>
       {isDesktop ? (
-        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
+        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
       ) : (
-        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
+        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
       )}
     </CurrentJobIdProvider>
   );
