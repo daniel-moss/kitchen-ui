@@ -18,7 +18,7 @@ import { useCurrentJobId } from "./currentJob";
 // The upload cap is the module's default — the company setting — so this file
 // no longer keeps a 25 of its own.
 
-export default function FilesModule({ mobile = false, isPublicView = false }: { mobile?: boolean; isPublicView?: boolean }) {
+export default function FilesModule({ mobile = false, isPublicView = false, readOnly = false }: { mobile?: boolean; isPublicView?: boolean; readOnly?: boolean }) {
   const jobId = useCurrentJobId();
 
   const seeded = useMemo<ModuleFile[]>(() => {
@@ -67,6 +67,7 @@ export default function FilesModule({ mobile = false, isPublicView = false }: { 
     <SharedFilesModule
       files={files}
       isPublicView={isPublicView}
+      readOnly={readOnly}
       onDownload={(file) => toast({ type: "neutral", icon: "download", title: `Downloading "${file.name}"` })}
       showViewToggle
       mobile={mobile}

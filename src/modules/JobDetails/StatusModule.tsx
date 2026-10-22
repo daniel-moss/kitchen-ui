@@ -57,12 +57,27 @@ export default function StatusModule({ job, scheduling }: { job: JobState; sched
   }
 
   // The status message (start / cancel / pause reason) — a clamped vertical value.
+  // Its label is the reason it came from, written by the action that set it
+  // (`statusMessageLabel`): "Start reason" (Figma 24048-13283), "Cancel
+  // reason" (24047-12612), "Reschedule reason" (27091-45839), "Unschedule
+  // reason" (27154-49578). Actions with no named reason leave "Status message".
   if (
     job.statusMessage != null &&
-    (job.status === "active" || job.status === "cancelled" || job.status === "quickPaused" || job.status === "onHold")
+    (job.status === "active" ||
+      job.status === "cancelled" ||
+      job.status === "quickPaused" ||
+      job.status === "onHold" ||
+      job.status === "upcoming" ||
+      job.status === "unscheduled")
   ) {
     rows.push(
-      <ValueDisplay key="message" label="Status message" orientation="vertical" value={job.statusMessage} lineLimit={4} />,
+      <ValueDisplay
+        key="message"
+        label={job.statusMessageLabel ?? "Status message"}
+        orientation="vertical"
+        value={job.statusMessage}
+        lineLimit={4}
+      />,
     );
   }
 

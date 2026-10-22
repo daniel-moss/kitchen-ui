@@ -54,6 +54,12 @@
     width: max-content;
     min-width: auto;
   }
+  // …but the content may still GROW: when a consumer gives the hugging field
+  // a min-width wider than its value, the extra space goes to the value box,
+  // so the chevron stays at the right edge instead of right after the text.
+  .content {
+    flex-grow: 1;
+  }
 }
 
 .content {

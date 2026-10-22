@@ -330,3 +330,43 @@ export const PhoneViewport = ({ children }: { children: ReactNode }) => {
     </DrawerRootContext.Provider>
   );
 };
+
+// ---- press a dialog button once it is open --------------------------------
+
+/**
+ * Story-only: presses the button labelled `label` once, after the dialog it
+ * sits in has mounted. It is how a story shows a form's "missing value"
+ * errors — the same click a user makes — without the form growing a prop that
+ * exists only for Storybook. The LAST matching button wins, which is the
+ * dialog's own when a page button shares the label.
+ */
+export const PressOnOpen = ({ label }: { label: string }) => {
+  useEffect(() => {
+    // The dialog mounts after its open transition starts — not on this
+    // render — so watch the page and press the button the moment it appears.
+    const find = () => {
+      const buttons = [...document.querySelectorAll("button")].filter((button) => button.textContent?.trim() === label);
+      return buttons[buttons.length - 1];
+    };
+    let observer: MutationObserver | null = null;
+    const timer = window.setTimeout(() => {
+      const press = () => {
+        const button = find();
+        if (button == null) return false;
+        button.click();
+        observer?.disconnect();
+        return true;
+      };
+      if (press()) return;
+      observer = new MutationObserver(() => {
+        press();
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    }, 300);
+    return () => {
+      window.clearTimeout(timer);
+      observer?.disconnect();
+    };
+  }, [label]);
+  return null;
+};

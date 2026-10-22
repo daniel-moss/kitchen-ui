@@ -37,3 +37,11 @@
   flex-direction: column;
   margin: calc(-1 * var(--size-4)); // -16px
 }
+
+// The time select inside the "Schedule" card hugs its value but never goes
+// under 96px (Daniel, 2026-10-22 — Figma cannot draw a min width there).
+// Nested under .form on purpose: SelectField's own grouped rule resets
+// min-width with the same specificity, so a bare class can lose to it.
+.form .timeField {
+  min-width: var(--size-24); // 96px
+}

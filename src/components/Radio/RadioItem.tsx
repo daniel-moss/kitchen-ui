@@ -128,13 +128,21 @@ const RadioItem = forwardRef<HTMLInputElement, RadioItemProps>(function RadioIte
           {/* The reveal slot holds its OWN interactive content (e.g. a SelectField).
               It sits inside the <label>, so a click here would otherwise activate the
               radio and steal focus (e.g. from a SelectList search that just opened —
-              the "focuses only on the 2nd try" bug). Keep clicks out of the label. */}
+              the "focuses only on the 2nd try" bug). Keep clicks out of the label —
+              but preventDefault ONLY for non-interactive targets: a blanket one also
+              cancelled nested native controls, so a radio group inside the slot
+              (the Start form's "Check in" Status) could not be picked (2026-10-23).
+              The same guard CheckboxItem uses. */}
           <div
             className={clsx(styles.contentSlot, !contentPadded && styles.contentBare)}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               e.stopPropagation();
-              e.preventDefault();
+              // Nearest interactive ancestor — it must live INSIDE the slot to
+              // count (closest("label") otherwise always finds this RadioItem's
+              // own outer <label> and the guard never fires).
+              const interactive = (e.target as Element).closest("input, label, button, a");
+              if (interactive == null || !e.currentTarget.contains(interactive)) e.preventDefault();
             }}
           >
             {content}

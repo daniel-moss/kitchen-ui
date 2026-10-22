@@ -1,4 +1,4 @@
-import { LABOR_ITEMS } from "./db";
+import { ESTIMATES, LABOR_ITEMS, PRODUCT_ITEMS } from "./db";
 import { historyOf } from "./jobHistory";
 import { Job, LaborItem } from "./types";
 
@@ -26,6 +26,12 @@ export type Charge = {
    * side panel on.
    */
   laborRateId?: string;
+  /**
+   * Product lines only: the pricebook product the line was sold from
+   * (→ PRODUCT_ITEMS) and how many. A part with no pricebook match has none.
+   */
+  productId?: string;
+  qty?: number;
 };
 export type ChargeGroup = { key: string; label: string; icon: string; subtotal: string; items: Charge[] };
 
@@ -37,6 +43,7 @@ const STANDARD_RATE_ID = "standard-labor";
 const TRIP_CHARGE = 75;
 
 const money = (n: number) => `$${n.toFixed(2)}`;
+const sum = (items: Charge[]) => money(items.reduce((acc, item) => acc + Number(item.total.slice(1)), 0));
 
 /** A part the work needs, with what the company charges for it. */
 interface Part {
@@ -121,12 +128,50 @@ const PARTS_BY_SERVICE: Record<string, Part[]> = {
   "Kitchen build-out consultation": [],
 };
 
+// Which pricebook PRODUCT each part is sold from (2026-10-22) — it is what
+// tells whether the part is tracked in inventory (`trackInventory`). Parts
+// with no fitting product stay unlinked.
+const PART_PRODUCT: Record<string, string> = {
+  "R-404A refrigerant": "prod-r404a",
+  "Replacement compressor": "prod-compressor-2hp",
+  "Freezer door gasket": "prod-door-gasket-36",
+  "Hinge kit": "prod-door-hinge",
+  "Water filter cartridge": "prod-ice-water-filter",
+  "Descaling solution": "prod-descaler",
+  "Door seal": "prod-combi-door-gasket",
+  "Fryer filter pads": "prod-fryer-filter-paper",
+  "Thermocouple": "prod-thermocouple",
+};
+
 const GENERIC_PART: Part = {
   title: "Service parts",
   caption: "Parts used on the visit.",
   price: 68,
   qty: 1,
 };
+
+/** The job's parts as product lines, each linked to its pricebook product. */
+function productLines(job: Job): Charge[] {
+  const parts = PARTS_BY_SERVICE[job.serviceName] ?? [GENERIC_PART];
+  return parts.map((part, index) => ({
+    id: `p${index + 1}`,
+    title: part.title,
+    caption: part.caption,
+    total: money(part.price * part.qty),
+    unit: `${money(part.price)} x ${part.qty}`,
+    productId: PART_PRODUCT[part.title],
+    qty: part.qty,
+  }));
+}
+
+/**
+ * The product lines whose pricebook product is tracked in inventory — the
+ * ones cancelling the job returns to stock.
+ */
+export const inventoryProductsOf = (groups: ChargeGroup[]): Charge[] =>
+  (groups.find((group) => group.key === "products")?.items ?? []).filter(
+    (item) => item.productId != null && PRODUCT_ITEMS.find((product) => product.id === item.productId)?.trackInventory === true,
+  );
 
 /** Billable hours — the time actually tracked, or the estimate before any is. */
 function billableHours(job: Job): number {
@@ -146,7 +191,16 @@ function billableHours(job: Job): number {
  */
 export function chargesOf(job: Job): ChargeGroup[] {
   const worked = ["completed", "finalized", "active", "quickPaused", "onHoldExternal", "onHoldInternal"].includes(job.status);
-  if (!worked) return [];
+  if (!worked) {
+    // Line items can be on a job before the visit (Daniel, 2026-10-22): added
+    // by hand when it was booked, or carried over from the estimate it was
+    // made from. Before the visit that is only the PARTS — nothing has been
+    // worked or driven to yet.
+    const early = job.lineItemsAddedEarly === true || ESTIMATES.some((estimate) => estimate.jobId === job.id && estimate.status === "jobbed");
+    if (!early) return [];
+    const products = productLines(job);
+    return products.length > 0 ? [{ key: "products", label: "Products", icon: "box-taped", subtotal: sum(products), items: products }] : [];
+  }
 
   const hours = billableHours(job);
   // Every visit starts with an hour of diagnosis; the rest is the work itself.
@@ -179,14 +233,7 @@ export function chargesOf(job: Job): ChargeGroup[] {
     labor.push(rateLine("l2", workRate, remaining, "The work itself, as logged on the timesheet."));
   }
 
-  const parts = PARTS_BY_SERVICE[job.serviceName] ?? [GENERIC_PART];
-  const products: Charge[] = parts.map((part, index) => ({
-    id: `p${index + 1}`,
-    title: part.title,
-    caption: part.caption,
-    total: money(part.price * part.qty),
-    unit: `${money(part.price)} x ${part.qty}`,
-  }));
+  const products = productLines(job);
 
   const other: Charge[] = [
     {
@@ -198,7 +245,6 @@ export function chargesOf(job: Job): ChargeGroup[] {
     },
   ];
 
-  const sum = (items: Charge[]) => money(items.reduce((acc, item) => acc + Number(item.total.slice(1)), 0));
 
   const groups: ChargeGroup[] = [
     { key: "labor", label: "Labor rates", icon: "tag", subtotal: sum(labor), items: labor },

@@ -305,6 +305,7 @@ const FormRow = ({
   onDuplicate,
   onToggleVisibility,
   onRemove,
+  readOnly = false,
 }: {
   form: JobForm;
   mobile: boolean;
@@ -320,6 +321,12 @@ const FormRow = ({
   onDuplicate: () => void;
   onToggleVisibility: () => void;
   onRemove: () => void;
+  /**
+   * Finalized / Cancelled job: no menu and no drag. A completed form still
+   * opens its read-only preview (chevron, like the public row); any other
+   * form has nothing to show, so its row is static.
+   */
+  readOnly?: boolean;
 }) => {
   const menu = useAnchoredMenu(!mobile);
   const completed = form.state === "completed";
@@ -366,6 +373,15 @@ const FormRow = ({
   // A form someone else is editing is not clickable either — there is nothing
   // to open (Daniel, 2026-08-07). So the row stands alone, with no menu at all.
   if (inProgress) return <ListItem {...rowProps} />;
+
+  if (readOnly) {
+    const viewProps = { ...rowProps, isDraggable: false as const, isDragging: undefined };
+    return completed ? (
+      <ListItem {...viewProps} slotRight={<ListItemSlotIcon icon="angle-right" />} isClickable onClick={onPreview} />
+    ) : (
+      <ListItem {...viewProps} slotRight={undefined} />
+    );
+  }
 
   return (
     <>
@@ -479,6 +495,7 @@ export default function FormsModule({
   registerPreview,
   onLog,
   isPublicView = false,
+  readOnly = false,
 }: {
   mobile?: boolean;
   /** The job's live Equipment-module list (the Service call form reads it). */
@@ -524,6 +541,11 @@ export default function FormsModule({
    * forms"). Default false.
    */
   isPublicView?: boolean;
+  /**
+   * Finalized / Cancelled job: both groups stay, but no plus, no row menus and
+   * no re-ordering — a completed form still opens its preview. Default false.
+   */
+  readOnly?: boolean;
 }) {
   // The job's own techs and the day they were on site, stamped onto the two
   // forms that start completed.
@@ -796,7 +818,7 @@ export default function FormsModule({
   const group = (visibility: "public" | "private", items: JobForm[], last: boolean) => {
     // Drag is enabled ONLY when the group holds more than one row — the group
     // gets onReorder AND its rows get isDraggable together.
-    const canDrag = items.length > 1;
+    const canDrag = !readOnly && items.length > 1;
     return (
       <ItemGroup
         divider={!last}
@@ -809,15 +831,17 @@ export default function FormsModule({
             slotRight={
               // One shared tooltip for BOTH groups (Figma 21820-59251, Daniel
               // 2026-07-27) — the opened picker's title still says which group.
-              <HoverTooltip text="Add forms">
-                <IconButton icon="plus" variant="ghost" size="md" aria-label="Add forms" onClick={() => setAddTarget(visibility)} />
-              </HoverTooltip>
+              readOnly ? undefined : (
+                <HoverTooltip text="Add forms">
+                  <IconButton icon="plus" variant="ghost" size="md" aria-label="Add forms" onClick={() => setAddTarget(visibility)} />
+                </HoverTooltip>
+              )
             }
           />
         }
       >
         {items.length > 0 ? (
-          items.map((f) => <FormRow key={f.id} form={f} mobile={mobile} draggable={canDrag} {...rowActions(f)} />)
+          items.map((f) => <FormRow key={f.id} form={f} mobile={mobile} draggable={canDrag} readOnly={readOnly} {...rowActions(f)} />)
         ) : (
           <EmptyState caption={visibility === "public" ? "No public forms here yet" : "No private forms here yet"} />
         )}

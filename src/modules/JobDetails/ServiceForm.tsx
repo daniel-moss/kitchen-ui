@@ -107,7 +107,7 @@ const recallTargetsFor = (jobId: string) => {
 
 // Hint copies (doc nodes 23834:13338 / 23833:25459 — exact copy, incl. the
 // design's "priotity" typo in the pre-filled help text below).
-const TECH_INSTRUCTIONS_HINT =
+export const TECH_INSTRUCTIONS_HINT =
   "Notes specific to this service. e.g. 'Ask client about replacing the unit.' or 'Make sure to collect payment on site.'";
 const DEFAULT_PRIORITY_HINT =
   "When this service is selected, the priority is filled in with this value. It can still be changed.";

@@ -224,7 +224,7 @@ export { historyOf, JOB_HISTORY, trackedSecondsByUser } from "./jobHistory";
 export type { JobHistory, JobSession, JobTransition } from "./jobHistory";
 
 // What a job cost — labour, parts and fees, derived from the job (2026-09-28).
-export { chargesOf, chargesTotal } from "./jobCharges";
+export { chargesOf, chargesTotal, inventoryProductsOf } from "./jobCharges";
 export type { Charge, ChargeGroup } from "./jobCharges";
 
 // The files a visit produced (2026-09-28).

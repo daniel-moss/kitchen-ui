@@ -1,15 +1,22 @@
 import { useEffect, useState } from "react";
 
+import AvatarProduct from "../../components/Avatar/AvatarProduct";
 import Button from "../../components/Button/Button";
+import DisplayModule from "../../components/DisplayModule/DisplayModule";
 import Dialog from "../../components/Dialog/Dialog";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import Input from "../../components/Input/Input";
+import ItemGroup from "../../components/ItemGroup/ItemGroup";
+import ItemTextBlock from "../../components/ItemText/ItemText/ItemTextBlock";
+import ListItem from "../../components/ListItem/ListItem";
+import ListItemSlotIcon from "../../components/ListItem/ListItemSlotIcon";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import { toast } from "../../components/Toast/Toaster";
 
-import { Scheduling } from "./SchedulingForm";
+import { Charge } from "../../data/db";
 
-import { useCurrentJobId } from "./currentJob";
+import { Scheduling } from "./SchedulingForm";
+import styles from "./CancelJobForm.module.scss";
 
 import textDialog from "../shared/textDialog.module.scss";
 
@@ -20,6 +27,11 @@ interface CancelJobFormProps {
   scheduling: Scheduling;
   /** Cancels the job with the (required) reason. */
   onCancel: (reason: string) => void;
+  /**
+   * The job's product lines tracked in inventory (db `inventoryProductsOf`).
+   * Any → the "returned to stock" block above the reason. Default none.
+   */
+  inventoryProducts?: Charge[];
   mobile?: boolean;
 }
 
@@ -29,8 +41,8 @@ interface CancelJobFormProps {
 // `textDialog` rules, the same ones EditNotesDialog uses. Desktop keeps the DS
 // TextArea's own 4-row minimum (the node draws 88px). The destructive
 // "Cancel job" button confirms.
-export default function CancelJobForm({ open, onClose, onCancel, mobile = false }: CancelJobFormProps) {
-  const jobId = useCurrentJobId();
+export default function CancelJobForm({ open, onClose, onCancel, inventoryProducts = [], mobile = false }: CancelJobFormProps) {
+  const hasProducts = inventoryProducts.length > 0;
   const [reason, setReason] = useState("");
   // The cancel reason is mandatory — attempting to cancel while empty shows the
   // error; typing clears it.
@@ -48,9 +60,29 @@ export default function CancelJobForm({ open, onClose, onCancel, mobile = false 
       return;
     }
     onCancel(reason);
-    toast({ type: "success", title: `"${jobId}" cancelled` });
+    // "Job", not the id (Figma 24048-13258, re-read 2026-10-22).
+    toast({ type: "success", title: "Job cancelled" });
     onClose();
   };
+
+  const reasonField = (
+    <Input
+      label="Cancel reason"
+      helpText="Why was this job cancelled?"
+      className={mobile && !hasProducts ? textDialog.fillField : undefined}
+    >
+      <TextArea
+        value={reason}
+        onChange={(e) => {
+          setReason(e.target.value);
+          if (showError) setShowError(false);
+        }}
+        isValid={!showError}
+        // "Provide Cancel reason" — the Input's default, from its label
+        // (Figma 24048-13141).
+      />
+    </Input>
+  );
 
   return (
     <Dialog
@@ -58,7 +90,9 @@ export default function CancelJobForm({ open, onClose, onCancel, mobile = false 
       onClose={onClose}
       title="Cancel job"
       breakpoint={mobile ? "mobile" : "desktop"}
-      fillHeight
+      // A TEXT dialog only while the reason is its one field: with the products
+      // block above it, the drawer hugs its content (Figma 27154-49932).
+      fillHeight={!hasProducts}
       confirmOnDismiss={reason !== ""}
       footer={
         // The two buttons name the two OUTCOMES, not the dialog (Daniel,
@@ -77,21 +111,41 @@ export default function CancelJobForm({ open, onClose, onCancel, mobile = false 
         </PopoverFooter>
       }
     >
-      <Input
-        label="Cancel reason"
-        helpText="Why was this job cancelled?"
-        className={mobile ? textDialog.fillField : undefined}
-      >
-        <TextArea
-          value={reason}
-          onChange={(e) => {
-            setReason(e.target.value);
-            if (showError) setShowError(false);
-          }}
-          isValid={!showError}
-          errorMessage="Provide a cancel reason"
-        />
-      </Input>
+      {hasProducts ? (
+        <div className={styles.body}>
+          {/* Inventory products (Figma 27154-49934): only when the job uses
+              products tracked in inventory, only those, all of them. Each row
+              names the product, the quantity going back on the right, and will
+              open the product's page in a new tab — the click does nothing yet
+              (Daniel, 2026-10-22). */}
+          <DisplayModule
+            variant="bodyOnly"
+            status="info"
+            banner={{ children: "Products tracked in inventory will be returned to stock" }}
+            bodyPadded={false}
+            content={
+              <ItemGroup>
+                {inventoryProducts.map((product) => (
+                  <ListItem
+                    key={product.id}
+                    variant="titleCaption"
+                    title={product.title}
+                    caption={product.caption}
+                    avatar={<AvatarProduct size="xl" />}
+                    right={<ItemTextBlock align="right" variant="title" title={`+${product.qty ?? 1}`} />}
+                    slotRight={<ListItemSlotIcon icon="arrow-up-right" />}
+                    isClickable
+                    onClick={() => {}}
+                  />
+                ))}
+              </ItemGroup>
+            }
+          />
+          {reasonField}
+        </div>
+      ) : (
+        reasonField
+      )}
     </Dialog>
   );
 }

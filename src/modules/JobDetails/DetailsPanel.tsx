@@ -94,7 +94,7 @@ interface DetailsPanelProps {
   assigneeStats?: Record<number, { trackedSec: number; status?: string }>;
   /** The job lifecycle state — drives the Status module. */
   job: JobState;
-  /** Cancelled job → editing restricted: every edit affordance is hidden. */
+  /** Finalized or Cancelled job → read-only: every edit affordance is hidden. */
   locked?: boolean;
   /**
    * The job's PUBLIC view (Figma 26990-56723) — what a client opening the job's
@@ -1003,7 +1003,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
             // The design's module body has NO padding here — EmptyState's own
             // 32px is the only padding (node 21136-58219).
             <div className={styles.emptyBody}>
-              <EmptyState caption="No labels here yet" />
+              <EmptyState caption="No labels" />
             </div>
           )
         }
@@ -1077,7 +1077,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
               )}
             </div>
           ) : (
-            <EmptyState caption="No related objects here yet" />
+            <EmptyState caption="No related objects" />
           )
         }
       />

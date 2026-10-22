@@ -931,7 +931,6 @@ const preview = {
                   "5 Assignees / Desktop",
                   "5 Assignees / Mobile",
                 ],
-                '"Start Job" Form',
                 '"Send Summary" Form',
                 '"Download PDF" Form',
                 ["Parent / Desktop", "Parent / Mobile", "No Parent / Desktop", "No Parent / Mobile"],
@@ -942,6 +941,12 @@ const preview = {
               ["PanelDesktop", "PanelMobile", "Mapping", "ServiceCall", "HiddenAnswers", "HotSideRepair"],
               '"New Job ∕ Series" Form',
               ["Job", ["Desktop", "Mobile"], "Series", []],
+              // The job-action forms, in lifecycle order (Daniel, 2026-10-23).
+              '"Schedule Job" Form',
+              '"Start Job" Form',
+              '"Reschedule Job" Form',
+              '"Unschedule Job" Form',
+              '"Cancel Job" Form',
             ],
             "Labor Rate",
             [

@@ -28,6 +28,12 @@ export interface JobState {
   subStatus?: string;
   /** Active = the Start reason; Cancelled/paused = the corresponding reason. */
   statusMessage?: string;
+  /**
+   * What the Status module calls `statusMessage` — the reason it came from:
+   * "Start reason", "Cancel reason", "Reschedule reason"… Every action that
+   * writes the message writes this too. Unset → "Status message".
+   */
+  statusMessageLabel?: string;
   /** Has the job ever been started? Drives "Started on" in the cancelled module. */
   everStarted: boolean;
   /**

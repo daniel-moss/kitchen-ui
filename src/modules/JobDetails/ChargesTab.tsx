@@ -69,6 +69,8 @@ export interface ChargesTabProps {
   /** "Add labor rate" / `Add "…" to Pricebook` — the "New labor rate" form. */
   onAddLaborRate?: () => void;
   mobile?: boolean;
+  /** Finalized / Cancelled job: no plus, no row menu, no drag, rows do not open. */
+  readOnly?: boolean;
 }
 
 const money = (n: number) => `$${n.toFixed(2)}`;
@@ -101,13 +103,14 @@ interface GroupProps {
   onReorder?: (items: Charge[]) => void;
   onOpen?: (item: Charge) => void;
   isLast?: boolean;
+  readOnly?: boolean;
 }
 
 // One charges group: an open accordion with a plus, its rows or its empty
 // state. Drag reorder is on only when the group holds more than one line
 // (Daniel's rule) — a single row has nothing to reorder.
-function ChargesGroup({ label, addLabel, onAdd = noop, empty, avatar, items, onReorder, onOpen, isLast = false }: GroupProps) {
-  const draggable = items.length > 1 && onReorder != null;
+function ChargesGroup({ label, addLabel, onAdd = noop, empty, avatar, items, onReorder, onOpen, isLast = false, readOnly = false }: GroupProps) {
+  const draggable = !readOnly && items.length > 1 && onReorder != null;
   const reorder = (from: number, to: number) => {
     const next = [...items];
     const [moved] = next.splice(from, 1);
@@ -124,9 +127,11 @@ function ChargesGroup({ label, addLabel, onAdd = noop, empty, avatar, items, onR
           // The empty node shows no amount — a "$0.00" there says nothing.
           caption={items.length > 0 ? money(amountOf(items)) : undefined}
           slotRight={
-            <HoverTooltip text={addLabel}>
-              <IconButton icon="plus" variant="ghost" size="md" aria-label={addLabel} onClick={onAdd} />
-            </HoverTooltip>
+            readOnly ? undefined : (
+              <HoverTooltip text={addLabel}>
+                <IconButton icon="plus" variant="ghost" size="md" aria-label={addLabel} onClick={onAdd} />
+              </HoverTooltip>
+            )
           }
         />
       }
@@ -139,6 +144,21 @@ function ChargesGroup({ label, addLabel, onAdd = noop, empty, avatar, items, onR
         <EmptyState caption={empty} />
       ) : (
         items.map((item) => {
+          // Read-only: a plain static row — the line opens its EDIT dialog, so
+          // it does not open at all, and the menu goes with it.
+          if (readOnly) {
+            return (
+              <ListItem
+                key={item.id}
+                variant="titleCaption"
+                title={item.title}
+                caption={item.caption}
+                captionLines={1}
+                avatar={avatar}
+                right={<ItemTextBlock align="right" variant="titleCaption" title={item.total} caption={item.unit} />}
+              />
+            );
+          }
           const common = {
             isClickable: true as const,
             onClick: () => onOpen?.(item),
@@ -188,6 +208,7 @@ export default function ChargesTab({
   jobEquipment,
   onAddLaborRate = noop,
   mobile = false,
+  readOnly = false,
 }: ChargesTabProps) {
   const itemsOf = (key: string) => groups.find((group) => group.key === key)?.items ?? [];
   const [laborEntries, setLaborEntries] = useState(() => itemsOf("labor").map((charge) => entryOf(charge, laborRates)));
@@ -228,7 +249,7 @@ export default function ChargesTab({
         bodyPadded={false}
         content={
           <div className={styles.body}>
-            <ChargesGroup
+            <ChargesGroup readOnly={readOnly}
               label="Labor rates"
               addLabel="Add labor rate"
               onAdd={() => setListOpen(true)}
@@ -242,7 +263,7 @@ export default function ChargesTab({
                 setLineOpen(true);
               }}
             />
-            <ChargesGroup
+            <ChargesGroup readOnly={readOnly}
               label="Products"
               addLabel="Add product"
               empty="No products"
@@ -250,7 +271,7 @@ export default function ChargesTab({
               items={products}
               onReorder={setProducts}
             />
-            <ChargesGroup
+            <ChargesGroup readOnly={readOnly}
               label="Other charges"
               addLabel="Add other charge"
               empty="No other charges"
@@ -258,7 +279,7 @@ export default function ChargesTab({
               items={other}
               onReorder={setOther}
             />
-            <ChargesGroup label="Discounts" addLabel="Add discount" empty="No discounts" avatar={<AvatarDiscount size="xl" />} items={discounts} isLast />
+            <ChargesGroup readOnly={readOnly} label="Discounts" addLabel="Add discount" empty="No discounts" avatar={<AvatarDiscount size="xl" />} items={discounts} isLast />
 
             {/* Footer (Figma): a medium divider, then the subtotal row. Nothing
                 charged yet reads as a placeholder. */}

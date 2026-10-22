@@ -146,6 +146,7 @@ const FileEntry = ({
   isDragging,
   dragging,
   disabled,
+  readOnly = false,
   onToggleVisibility,
   onDelete,
   onPreview,
@@ -156,6 +157,8 @@ const FileEntry = ({
   isDragging?: boolean;
   dragging?: boolean;
   disabled?: boolean;
+  /** Read-only: the menu keeps Preview and Download, and the row cannot drag. */
+  readOnly?: boolean;
   onToggleVisibility?: (file: ModuleFile) => void;
   onDelete?: (file: ModuleFile) => void;
   onPreview?: (file: ModuleFile) => void;
@@ -175,7 +178,7 @@ const FileEntry = ({
             preview();
           }}
         />
-        {file.visibility === "private" ? (
+        {readOnly ? null : file.visibility === "private" ? (
           <MenuItem
             label="Make public"
             caption="Visible to your client"
@@ -203,17 +206,19 @@ const FileEntry = ({
           onClick={menu.close}
         />
       </MenuItemGroup>
-      <MenuItemGroup>
-        <MenuItem
-          danger
-          label="Delete"
-          slotLeft={slot("trash-can")}
-          onClick={() => {
-            menu.close();
-            onDelete?.(file);
-          }}
-        />
-      </MenuItemGroup>
+      {!readOnly && (
+        <MenuItemGroup>
+          <MenuItem
+            danger
+            label="Delete"
+            slotLeft={slot("trash-can")}
+            onClick={() => {
+              menu.close();
+              onDelete?.(file);
+            }}
+          />
+        </MenuItemGroup>
+      )}
     </>
   );
 
@@ -234,8 +239,9 @@ const FileEntry = ({
         caption={file.meta}
         avatar={<AvatarFile size="xl" type={file.type} />}
         isClickable
-        isDraggable
-        isDragging={isDragging}
+        // A union const, not a boolean — ListItem's draggable axis is a
+        // discriminated union, so TS must see the two branches apart.
+        {...(readOnly ? ({ isDraggable: false } as const) : ({ isDraggable: true, isDragging } as const))}
         disabled={disabled}
         onClick={preview}
         slotRight={
@@ -322,6 +328,7 @@ export default function FilesModule({
   isLoading = false,
   loadingCount = 5,
   isPublicView = false,
+  readOnly = false,
   onDownload,
   mobile = false,
   className,
@@ -383,7 +390,7 @@ export default function FilesModule({
       }
       divider={divider}
       onReorder={
-        groupFiles.length > 0 && onReorder != null
+        groupFiles.length > 0 && onReorder != null && !readOnly
           ? (from, to) => onReorder(visibility, from, to)
           : undefined
       }
@@ -395,6 +402,7 @@ export default function FilesModule({
             file={file}
             view={view}
             mobile={mobile}
+            readOnly={readOnly}
             onToggleVisibility={onToggleVisibility}
             // The row's Delete ASKS; `onDelete` runs from the Prompt below.
             onDelete={onDelete == null ? undefined : setDeleting}
@@ -519,9 +527,9 @@ export default function FilesModule({
         titleSlotRight={countShown === 0 ? undefined : <Counter value={countShown} />}
         // The limit banner needs the real files, so it waits for them. The
         // public view never uploads, so it never shows one.
-        status={isLoading || isPublicView ? "none" : full ? "warning" : approaching ? "info" : "none"}
+        status={isLoading || isPublicView || readOnly ? "none" : full ? "warning" : approaching ? "info" : "none"}
         banner={
-          isLoading || isPublicView
+          isLoading || isPublicView || readOnly
             ? undefined
             : full
             ? {
@@ -539,7 +547,7 @@ export default function FilesModule({
         // NO files has no switch either: there is nothing to view two ways
         // ("No Files" annotation, Figma 9801:10218).
         slotRight={
-          isLoading ? undefined : isPublicView ? (
+          isLoading ? undefined : isPublicView || readOnly ? (
             showViewToggle && count > 0 ? viewToggle : undefined
           ) : showViewToggle && count > 0 ? (
             <>

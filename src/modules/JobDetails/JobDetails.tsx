@@ -57,14 +57,14 @@ import { JobContact } from "./contacts";
 import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { JobLocation, LOCATIONS } from "./jobData";
-import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, jobById } from "../../data/db";
+import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, inventoryProductsOf, jobById, subStatusesFor } from "../../data/db";
 import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
 import { Job as ListJob } from "../shared/jobRow";
 import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel, useJobLifecycle } from "./jobState";
 import PauseJobForm from "./PauseJobForm";
-import SchedulingForm, { defaultScheduling, durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
+import { defaultScheduling, durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import { defaultServiceValues, ServiceValues } from "./ServiceForm";
 import ServicePanel from "./ServicePanel";
 import { Equipment } from "./equipment";
@@ -76,7 +76,9 @@ import TimesheetForm from "./TimesheetForm";
 import { FormsLog } from "./FormsModule";
 import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
+import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
+import UnscheduleJobForm from "./UnscheduleJobForm";
 import SubStatusForm from "./SubStatusForm";
 import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
@@ -684,7 +686,7 @@ const jobActionMenuItems = ({
               keeps the plain regular icon. */}
           {COMPANY.subStatuses.active && (
             <MenuItem
-              label="Change job active status"
+              label="Change active status"
               slotLeft={slot("circle-play", "solid", "var(--jade-a9)")}
               onClick={actions.onChangeActive}
             />
@@ -698,7 +700,9 @@ const jobActionMenuItems = ({
   }
   // Paused (Figma 24096-19267) and HELD (24970-48552) — the same shape, one
   // status action each, named for the status it changes. No Resume item:
-  // Resume is the bar's button. No Cancel item in this design.
+  // Resume is the bar's button. No Cancel item in this design. A PAUSED job
+  // can also go straight on hold (Figma 24096-19267, 2026-10-22): "Hold"
+  // opens the Pause form on its On hold type, the same as from Active.
   if (status === "quickPaused" || status === "onHold") {
     const held = status === "onHold";
     return (
@@ -706,7 +710,7 @@ const jobActionMenuItems = ({
         {links}
         <MenuItemGroup>
           <MenuItem
-            label={held ? "Change job on hold status" : "Change job pause status"}
+            label={held ? "Change job on hold status" : "Change pause status"}
             slotLeft={
               held
                 ? slot("circle-stop", "solid", "var(--crimson-a9)")
@@ -714,7 +718,11 @@ const jobActionMenuItems = ({
             }
             onClick={actions.onChangePause}
           />
+          {!held && (
+            <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />
+          )}
           <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
+
         </MenuItemGroup>
       </>
     );
@@ -917,6 +925,15 @@ const statusValueIcon = (status: string): ValueIcon => ({ icon: categoryIcon(sta
 // Each job status owns its activity-log glyph — solid, in its own color
 // (Figma 24512-62842).
 type JobGlyph = { icon: string; color: string };
+// The Start / Resume form's company + viewer rules (Figma 24048-13283): the
+// company's ACTIVE sub-statuses when it has them switched on (the demo does
+// not), whether it requires one, and the viewer's check in / out choice.
+const startFormRules = (showCheckIn: boolean) => ({
+  activeSubStatuses: COMPANY.subStatuses.active ? subStatusesFor("active") : [],
+  activeStatusRequired: COMPANY.subStatuses.activeRequired,
+  showCheckIn,
+});
+
 const JOB_GLYPH = {
   scheduled: { icon: "circle-half-stroke", color: "var(--blue-9)" },
   unscheduled: { icon: "circle-dashed", color: "var(--violet-9)" },
@@ -1385,14 +1402,12 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const lifecycle = useJobLifecycle(job, scheduling, seedLifecycle(record));
   const [startOpen, setStartOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
-  // Schedule flow: the "Schedule job" dialog (Figma 24222-20585 — the
-  // Scheduling form with schedule copy), the plain "Unschedule job?" prompt
-  // (unassigned job, Figma 24215-18742) and the assignees Unschedule dialog
-  // (assigned job, Figma 24215-18740 / 24221-19652).
+  // The schedule actions' dialogs: "Schedule job" (27163-54879) and
+  // "Reschedule job" (27091-45839) — one form, two modes — and "Unschedule
+  // job" (27154-49578).
   const [scheduleOpen, setScheduleOpen] = useState(false);
-  // Which radio the Scheduling form opens on — the actions pre-pick theirs
-  // (Daniel, 2026-08-05); the module pen leaves it to the job’s own state.
-  const [scheduleFormMode, setScheduleFormMode] = useState<"schedule" | "unschedule" | undefined>(undefined);
+  const [unscheduleOpen, setUnscheduleOpen] = useState(false);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
   // "Reschedule job" (paused/on-hold menu) — the same form again (24226-20672).
   // Lifecycle forms: Pause, Resume, Change active status, Change pause status,
   // and the "Time logged" (Complete) review.
@@ -1622,7 +1637,11 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
 
   const avatarStatus = displayStatus(job, scheduling);
   const caption = statusLabel(job, scheduling);
-  const locked = job.status === "cancelled"; // cancelled → editing restricted
+  const locked = job.status === "cancelled"; // cancelled → no time tracking
+  // Finalized and Cancelled jobs are read-only: no module on any tab can be
+  // edited, added to or removed from (Daniel, 2026-10-22). Narrower than
+  // `locked` on purpose — a finalized job still lets a tech check out.
+  const readOnly = job.status === "finalized" || job.status === "cancelled";
   // A tech can log time only while the job is actively being worked — NOT while
   // upcoming, unscheduled or cancelled (item 11).
   // Time tracking is SEPARATE from the job lifecycle (Daniel 2026-07-28,
@@ -1742,16 +1761,20 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // decides whether a session starts; the chosen status becomes its category.
   // No sub-status on an ACTIVE job (Daniel, 2026-09-28) — the check-in status
   // says what the tech is doing, so the job is simply "Active".
-  const startJob = (reason: string, checkIn: boolean, status: string) => {
+  const startJob = (reason: string, checkIn: boolean, status: string, subStatus = "") => {
     const ts = formatStatusTimestamp(new Date());
     setJob({
       status: "active",
+      // Only a company with active sub-statuses ON ever sends one.
+      subStatus: subStatus || undefined,
       statusMessage: reason || undefined,
+      // The Status module names it (Figma 24048-13283).
+      statusMessageLabel: "Start reason",
       everStarted: true,
       startedAt: ts,
       activeAt: ts,
     });
-    pushJobStatusWithSub(JOB_GLYPH.active, "started the job", "", reason, "Start reason");
+    pushJobStatusWithSub(JOB_GLYPH.active, "started the job", subStatus, reason, "Start reason");
     if (checkIn) {
       beginSession(status || undefined);
       pushEvent({ kind: "checkin", status });
@@ -1760,7 +1783,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const cancelJob = (reason: string) => {
     setCheckedIn(false);
     endActiveSession();
-    setJob((j) => ({ ...j, status: "cancelled", statusMessage: reason, cancelledAt: formatStatusTimestamp(new Date()) }));
+    setJob((j) => ({ ...j, status: "cancelled", statusMessage: reason, statusMessageLabel: "Cancel reason", cancelledAt: formatStatusTimestamp(new Date()) }));
     pushJobStatus(JOB_GLYPH.cancelled, { text: " cancelled the job", reason, reasonTitle: "Cancel reason" });
   };
   // Pause / hold: quick-pause or on-hold, with a sub-status + reason. The tech
@@ -1776,6 +1799,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       status: type === "quick-pause" ? "quickPaused" : "onHold",
       subStatus: subStatus || undefined,
       statusMessage: reason || undefined,
+      statusMessageLabel: undefined,
       pausedAt: formatStatusTimestamp(new Date()),
     }));
     // One wording for both types — the status names the sub-status, or the pause
@@ -1795,9 +1819,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // whether a session starts; the chosen status becomes its category.
   // Resuming returns the job to a plain "Active" — the pause reason goes with
   // the pause it belonged to.
-  const doResume = (reason: string, checkIn: boolean, status: string) => {
-    setJob((j) => ({ ...j, status: "active", subStatus: undefined, statusMessage: reason || undefined, activeAt: formatStatusTimestamp(new Date()) }));
-    pushJobStatusWithSub(JOB_GLYPH.active, "resumed the job", "", reason, "Resume reason");
+  const doResume = (reason: string, checkIn: boolean, status: string, subStatus = "") => {
+    setJob((j) => ({ ...j, status: "active", subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined, activeAt: formatStatusTimestamp(new Date()) }));
+    pushJobStatusWithSub(JOB_GLYPH.active, "resumed the job", subStatus, reason, "Resume reason");
     if (checkIn) {
       beginSession(status || undefined);
       pushEvent({ kind: "checkin", status });
@@ -1812,6 +1836,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       status: "completed",
       subStatus: undefined,
       statusMessage: undefined,
+      statusMessageLabel: undefined,
       completedAt: formatStatusTimestamp(new Date()),
     }));
     setSignature(result);
@@ -1894,7 +1919,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
 
   // Change the active sub-status / status message (stays active).
   const doChangeActive = (subStatus: string, reason: string) => {
-    setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined }));
+    setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined }));
     // A typed Status message rides along as the log's sub-log (Figma 24517-63481).
     if (subStatus !== "") {
       pushJobStatus(JOB_GLYPH.active, {
@@ -1907,7 +1932,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   };
   // Change the pause Type / sub-status / reason (stays paused; keeps "Paused on").
   const doChangePause = (type: string, subStatus: string, reason: string) => {
-    setJob((j) => ({ ...j, status: type === "quick-pause" ? "quickPaused" : "onHold", subStatus: subStatus || undefined, statusMessage: reason || undefined }));
+    setJob((j) => ({ ...j, status: type === "quick-pause" ? "quickPaused" : "onHold", subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined }));
     // The Pause reason is a NEW one each time, so it is this log's sub-log
     // (Figma 24517-63511).
     pushJobStatus(pauseGlyph(type), {
@@ -2145,6 +2170,57 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     logScheduling(was, next);
   };
 
+  // "Schedule job" (Figma 27163-54879): the slot through the one Scheduling
+  // save (an Unscheduled job becomes Upcoming and the slot is logged), plus
+  // the team and the job's details from the same form.
+  const scheduleJob = (result: RescheduleResult) => {
+    confirmSchedule(result.scheduling);
+    changeAssignees(result.assignees);
+    changeServiceValues({ ...serviceValues, reason: result.reason, tech: result.tech });
+  };
+
+  // "Unschedule job" (Figma 27154-49578): clears "Scheduled for" through the
+  // one Scheduling save (it moves the job to Unscheduled and logs the slot),
+  // then keeps the reason as the status message — the Status module labels it
+  // "Unschedule reason".
+  const unscheduleJob = (reason: string) => {
+    confirmSchedule({ ...scheduling, date: null, time: "" });
+    setJob((j) => ({ ...j, subStatus: undefined, statusMessage: reason, statusMessageLabel: "Unschedule reason" }));
+    pushJobStatus(JOB_GLYPH.unscheduled, { text: " unscheduled the job", reason, reasonTitle: "Unschedule reason" });
+  };
+
+  // "Reschedule job" (Figma 27091-45839): the new slot, the job's details and
+  // the team, then the job goes back to UPCOMING with the reschedule reason as
+  // its status message (the Status module labels it "Reschedule reason"). It
+  // keeps `everStarted` — the time already logged stays. The viewer's running
+  // session ends only when they picked "Check out".
+  const rescheduleJob = (result: RescheduleResult) => {
+    const was = scheduling;
+    setScheduling(result.scheduling);
+    logScheduling(was, result.scheduling);
+    changeAssignees(result.assignees);
+    changeServiceValues({ ...serviceValues, reason: result.reason, tech: result.tech });
+    setJob((j) => ({
+      ...j,
+      status: "upcoming",
+      subStatus: undefined,
+      statusMessage: result.rescheduleReason,
+      statusMessageLabel: "Reschedule reason",
+      // Booking the new visit NOW is this job's "Scheduled on".
+      scheduledAt: formatStatusTimestamp(new Date()),
+    }));
+    pushJobStatus(JOB_GLYPH.scheduled, {
+      text: " rescheduled the job",
+      reason: result.rescheduleReason,
+      reasonTitle: "Reschedule reason",
+    });
+    if (result.checkOut) {
+      setCheckedIn(false);
+      endActiveSession();
+      pushEvent({ kind: "checkout" });
+    }
+  };
+
   // A completed job's items live in THREE menus (the overflow + the two button
   // menus), so every one of its actions closes all three.
   const closeActionMenus = () => {
@@ -2160,7 +2236,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     },
     onSchedule: () => {
       actionMenu.close();
-      setScheduleFormMode("schedule");
       setScheduleOpen(true);
     },
     onPause: () => {
@@ -2193,18 +2268,16 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     },
     onCheckIn: checkIn,
     onCheckOut: checkOut,
-    // Reschedule and Unschedule open the SAME Scheduling form as Schedule
-    // (Daniel, 2026-08-05) — no separate dialogs, and no question about
-    // assignees any more.
+    // Reschedule has its OWN form now (Figma 27091-45839, 2026-10-22): a new
+    // slot, the job's details and a required reason. Unschedule is a Prompt.
     onReschedule: () => {
       actionMenu.close();
-      setScheduleFormMode("schedule");
-      setScheduleOpen(true);
+      setRescheduleOpen(true);
     },
+    // Unschedule opens its own dialog (Figma 27154-49578): a required reason.
     onUnschedule: () => {
       actionMenu.close();
-      setScheduleFormMode("unschedule");
-      setScheduleOpen(true);
+      setUnscheduleOpen(true);
     },
     onCancel: () => {
       actionMenu.close();
@@ -2278,10 +2351,23 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     setStartOpen,
     cancelOpen,
     setCancelOpen,
+    unscheduleOpen,
+    setUnscheduleOpen,
+    rescheduleOpen,
+    setRescheduleOpen,
+    rescheduleJob,
+    unscheduleJob,
+    // Start / Resume: the check in / out choice is for an ASSIGNEE who is not
+    // checked in yet (Figma 27163-52433).
+    showCheckIn: assignees.includes(viewer.id) && !checkedIn,
+    assigneeIds: assignees,
+    // Reschedule's clock choice: only for an ASSIGNEE whose clock runs
+    // (Figma 27163-54380) — its status and tracked time.
+    runningSession:
+      checkedIn && assignees.includes(viewer.id) ? `${activeCategory ?? "Working"}: ${formatElapsedFull(elapsed)}` : null,
     scheduleOpen,
     setScheduleOpen,
-    scheduleFormMode,
-    setScheduleFormMode,
+    scheduleJob,
     confirmSchedule,
     pauseOpen,
     setPauseOpen,
@@ -2333,6 +2419,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     avatarStatus,
     caption,
     locked,
+    readOnly,
     assigneeUsers,
     canTrackTime,
     canAddSessions,
@@ -2400,17 +2487,28 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       afterCompletion={s.sendSummaryAfterCompletion}
       mobile={mobile}
     />
-    {/* Schedule job dialog (Figma 24222-20585) — the Scheduling form with
-        schedule copy; its own toast is the scheduled one (24049-13916). */}
-    {/* Schedule / Reschedule / Unschedule job all open the SAME Scheduling form
-        now (Daniel, 2026-08-05) — it names the action on its own button and
-        writes the same logs as the module's pen. */}
-    <SchedulingForm
+    {/* "Schedule job" (Figma 27163-54879) and "Reschedule job" (27091-45839):
+        one form in two modes. */}
+    <RescheduleJobForm
+      mode="schedule"
       open={s.scheduleOpen}
       onClose={() => s.setScheduleOpen(false)}
-      initial={s.scheduling}
-      initialMode={s.scheduleFormMode}
-      onSave={s.confirmSchedule}
+      scheduling={s.scheduling}
+      assignees={s.assigneeIds}
+      reason={s.serviceValues.reason}
+      tech={s.serviceValues.tech}
+      onReschedule={s.scheduleJob}
+      mobile={mobile}
+    />
+    <RescheduleJobForm
+      open={s.rescheduleOpen}
+      onClose={() => s.setRescheduleOpen(false)}
+      scheduling={s.scheduling}
+      assignees={s.assigneeIds}
+      reason={s.serviceValues.reason}
+      tech={s.serviceValues.tech}
+      runningSession={s.runningSession}
+      onReschedule={s.rescheduleJob}
       mobile={mobile}
     />
     {/* Resume job (Figma 24096-19684): the Start-job form shape — sub-status,
@@ -2421,12 +2519,14 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.resumeOpen}
       onClose={() => s.setResumeOpen(false)}
       onStart={s.doResume}
+      {...startFormRules(s.showCheckIn)}
       title="Resume job"
       // "Resume", not "Resume job" (Daniel, 2026-10-05) — the dialog's title
       // already names the job, the same trim Start / Cancel / Schedule took.
       submitLabel="Resume"
       reasonLabel="Resume reason"
-      toastTitle={`"${s.jobId}" resumed`}
+      // No job ID in the toast (Figma 24096-19695, 2026-10-22).
+      toastTitle="Job resumed"
       banner={
         s.job.status === "completed"
           ? "Resuming this job will return it to Active status. A new signature will need to be collected to complete this job."
@@ -2438,6 +2538,15 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
         (Figma 24567-139607 / 24567-140732). The primary carries the SAME
         leading icon as its menu item, so the action is recognisable from the
         row you picked to the button you press (2026-10-06). */}
+    {/* "Unschedule job" (Figma 27154-49578) — the menu item's dialog: a
+        required reason, then the slot is cleared (the duration stays) and the
+        job is Unscheduled with that reason as its status message. */}
+    <UnscheduleJobForm
+      open={s.unscheduleOpen}
+      onClose={() => s.setUnscheduleOpen(false)}
+      onUnschedule={s.unscheduleJob}
+      mobile={mobile}
+    />
     <Prompt
       open={s.markInvoicedOpen}
       title="Mark the job as invoiced?"
@@ -2586,7 +2695,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel isPublicView={isPublicView} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+                <ServicePanel isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
@@ -2609,6 +2718,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
             ) : tab === "summary" ? (
               <div className={styles.mainContent}>
                 <SummaryPanel
+                  readOnly={s.readOnly}
                   isPublicView={isPublicView}
                   charges={s.charges}
                   chargesTotal={s.chargesSubtotal}
@@ -2663,7 +2773,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
             <DetailsPanel isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
           </ScrollArea>
         </div>
       {/* The actions overflow menu card — it leads with Copy URL / Download
@@ -2691,8 +2801,8 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
           </Menu>
         </div>
       )}
-      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} />
-      <CancelJobForm open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} />
+      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.showCheckIn)} />
+      <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} />
       <JobForms s={s} />
       <Toaster breakpoint="desktop" />
     </div>
@@ -2891,9 +3001,9 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
           <DetailsPanel mobile isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.locked} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
             ) : t === "service" ? (
-              <ServicePanel mobile isPublicView={isPublicView} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+              <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}
@@ -2913,6 +3023,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
           />
             ) : t === "summary" ? (
               <SummaryPanel
+                readOnly={s.readOnly}
                 isPublicView={isPublicView}
                 charges={s.charges}
                 chargesTotal={s.chargesSubtotal}
@@ -3011,8 +3122,8 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
       >
         {createMenuItems(s.actions)}
       </Menu>
-      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} mobile />
-      <CancelJobForm open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} mobile />
+      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.showCheckIn)} mobile />
+      <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} mobile />
       <JobForms s={s} mobile />
       <Toaster breakpoint="mobile" />
     </div>

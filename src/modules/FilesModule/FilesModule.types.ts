@@ -92,6 +92,12 @@ export interface FilesModuleProps {
    * its tooltip. The list / cards switch still works. Default false.
    */
   isPublicView?: boolean;
+  /**
+   * Read-only (a finalized or cancelled object): BOTH groups stay, but nothing
+   * changes them — no add button, no limit banner, no re-ordering, and each
+   * file's menu keeps only Preview and Download. Default false.
+   */
+  readOnly?: boolean;
   /** Download one file — the public view's row / card button. */
   onDownload?: (file: ModuleFile) => void;
   /** Mobile presentation for the per-file menus (drawer instead of a card). */

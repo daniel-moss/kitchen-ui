@@ -1,0 +1,15 @@
+// The "Reschedule job" body (inside the Dialog, which adds no padding).
+.form {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px between inputs
+  width: 100%;
+}
+
+// The time select hugs its value but never goes under 96px (New Job 17241-69326).
+// Nested under .form on purpose: SelectField's own grouped rule resets
+// min-width with the same specificity, so a bare class can lose to it.
+.form .timeField {
+  min-width: var(--size-24); // 96px
+}

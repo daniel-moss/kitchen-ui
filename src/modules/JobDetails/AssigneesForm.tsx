@@ -41,7 +41,8 @@ export default function AssigneesForm({ open, onClose, value, onSave, mobile = f
 
   const save = () => {
     onSave(picked);
-    toast({ type: "success", title: "Assignees updated" });
+    // The module-toast pattern the other Details forms use (Figma 24522-63750).
+    toast({ type: "success", title: '"Assignees" module updated' });
     onClose();
   };
 

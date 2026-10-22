@@ -56,6 +56,7 @@ export default function SummaryPanel({
   onFormsLog,
   onTextLog,
   isPublicView = false,
+  readOnly = false,
   onAddLaborRate,
   laborRates,
 }: {
@@ -87,6 +88,12 @@ export default function SummaryPanel({
    * unchanged. Default false.
    */
   isPublicView?: boolean;
+  /**
+   * Finalized / Cancelled job: every module stays, but nothing edits — no
+   * pencils, no plus buttons, no row menus that change anything, no Generate
+   * and no "Forms updated" banner. Default false.
+   */
+  readOnly?: boolean;
   /** Charges: the "Labor rates" plus — the app's "New labor rate" form. */
   onAddLaborRate?: () => void;
   /** Charges: the pricebook rates the Labor rates plus lists (the app's store). */
@@ -151,13 +158,17 @@ export default function SummaryPanel({
   }, [inlineGen.phase]);
 
   // The forms moved on after the summary was written (Figma 24268-68841).
-  const formsMovedOn = summary !== "" && formsRevision !== summaryRevision && !bannerDismissed;
+  const formsMovedOn = !readOnly && summary !== "" && formsRevision !== summaryRevision && !bannerDismissed;
 
   // The four Work summary bodies (Figma 21833-91133 / 23866-10982 /
   // 23867-11398 / 24268-68842).
   const summaryBody =
     summary !== "" ? (
       <p className={styles.paragraph}>{summary}</p>
+    ) : readOnly ? (
+      // Nothing was written and nothing can be any more — no Generate, no
+      // "complete the forms" hint (no Figma state yet — flagged).
+      <EmptyState caption="No work summary" />
     ) : formsDone.any ? (
       // ONE completed form is enough to generate from (Daniel, 2026-08-07).
       <div className={styles.generateBody}>
@@ -195,6 +206,7 @@ export default function SummaryPanel({
           jobEquipment={jobEquipment}
           mobile={mobile}
           onAddLaborRate={onAddLaborRate}
+          readOnly={readOnly}
         />
       ) : sub === "signature" ? (
         <SignatureModule {...signatureView(signature)} />
@@ -210,6 +222,7 @@ export default function SummaryPanel({
             onFormsRevision={handleFormsRevision}
             onLog={onFormsLog}
             isPublicView={isPublicView}
+            readOnly={readOnly}
           />
 
           {/* Work summary — 4 states (filled / generate / incomplete forms /
@@ -221,7 +234,7 @@ export default function SummaryPanel({
           ) : (
           <DisplayModule
             title="Work summary"
-            slotRight={<EditButton label="Edit" onClick={() => setSummaryOpen(true)} />}
+            slotRight={readOnly ? undefined : <EditButton label="Edit" onClick={() => setSummaryOpen(true)} />}
             status={formsMovedOn ? "warning" : "none"}
             banner={
               formsMovedOn
@@ -236,6 +249,7 @@ export default function SummaryPanel({
             }
             // Only the saved paragraph uses the module's 16px body padding —
             // the Generate block and the EmptyState bring their own.
+            // The EmptyStates and the Generate block bring their own padding.
             bodyPadded={summary !== ""}
             content={summaryBody}
           />
@@ -247,7 +261,7 @@ export default function SummaryPanel({
           {!isPublicView && (
           <DisplayModule
             title="Notes to dispatcher(s)"
-            slotRight={<EditButton label="Edit" onClick={() => setNotesOpen(true)} />}
+            slotRight={readOnly ? undefined : <EditButton label="Edit" onClick={() => setNotesOpen(true)} />}
             bodyPadded={notes !== ""}
             content={notes !== "" ? <p className={styles.paragraph}>{notes}</p> : <EmptyState caption="No notes here yet" />}
           />

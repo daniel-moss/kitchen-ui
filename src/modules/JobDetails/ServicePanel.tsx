@@ -191,6 +191,7 @@ export default function ServicePanel({
   locationName,
   serviceLocked = false,
   isPublicView = false,
+  readOnly = false,
   onOpenJob,
 }: {
   mobile?: boolean;
@@ -220,6 +221,12 @@ export default function ServicePanel({
    * mode. Default false.
    */
   isPublicView?: boolean;
+  /**
+   * Finalized / Cancelled job: every module is shown in full, but nothing can
+   * be edited, added or removed — no pencils or plus buttons, Equipment rows
+   * lose their menu, Files lose upload / visibility / delete. Default false.
+   */
+  readOnly?: boolean;
   /** Opens the recalled job — the "Recall to" link navigates to it, same tab. */
   onOpenJob?: (id: string) => void;
 }) {
@@ -261,7 +268,7 @@ export default function ServicePanel({
       <DisplayModule
         title="Service"
         slotRight={
-          serviceLocked || isPublicView ? undefined : (
+          serviceLocked || isPublicView || readOnly ? undefined : (
             <HoverTooltip text="Edit">
               <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit service" onClick={() => setServiceOpen(true)} />
             </HoverTooltip>
@@ -333,7 +340,7 @@ export default function ServicePanel({
         status={equipmentWarning ? "warning" : "none"}
         banner={equipmentWarning ? { children: "Some details require your attention!" } : undefined}
         slotRight={
-          isPublicView ? undefined : (
+          isPublicView || readOnly ? undefined : (
             <HoverTooltip text="Add equipment">
               <IconButton icon="plus" variant="ghost" size="md" aria-label="Add equipment" onClick={() => setEquipmentOpen(true)} />
             </HoverTooltip>
@@ -350,7 +357,9 @@ export default function ServicePanel({
                     mobile={mobile}
                     onOpen={() => openPanel(recordFor(e, jobById(jobId)?.locationId ?? ""))}
                     onRemove={() => removeEquipment(e)}
-                    isPublicView={isPublicView}
+                    // Read-only rows take the public row's shape: no menu, a
+                    // chevron, and a tap still opens the side panel.
+                    isPublicView={isPublicView || readOnly}
                   />
                 ))}
               </ItemGroup>
@@ -399,7 +408,7 @@ export default function ServicePanel({
 
       {/* Files — list/cards toggle, Public/Private groups, per-file menus,
           empty states, and the file-limit banner (Figma "Files" doc). */}
-      <FilesModule mobile={mobile} isPublicView={isPublicView} />
+      <FilesModule mobile={mobile} isPublicView={isPublicView} readOnly={readOnly} />
     </div>
   );
 }

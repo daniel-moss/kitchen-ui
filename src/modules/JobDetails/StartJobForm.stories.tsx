@@ -1,79 +1,119 @@
-import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
-import Button from "../../components/Button/Button";
-import Toaster from "../../components/Toast/Toaster";
-import { PhoneViewport } from "../../stories/helpers";
-import { CurrentJobIdProvider } from "./currentJob";
+import { COMPANY, subStatusesFor } from "../../data/db";
+import { JobSubStatusRecord } from "../../data/db/types";
+
+import FormStoryFrame from "./FormStoryFrame";
 import StartJobForm from "./StartJobForm";
 
-import styles from "./SendSummaryForm.module.scss";
-
-// The "Start job" form on its own — the one place the ACTIVE SUB-STATUS
-// feature can be seen.
-//
-// Sub-statuses are a per-company switch thrown on the backend
-// (`CompanySettings.subStatuses`): a status that has them configured REQUIRES
-// one, and the names are the company's own. Three statuses can carry them —
-// active, quick-paused and on hold. The demo company runs the two PAUSE ones
-// on and ACTIVE off, because the tech's check-in status ("Your status", in the
-// card below) already says what they are doing. So the page never draws the
-// "Active status" select, and these stories are where it lives: the same form,
-// handed a company's active sub-statuses.
-//
-// Figma: the field 24042-18897, its missing-value error 24422-26522, the
-// picker 24044-14180.
+// The "Start job" form (Figma 24048-13283) in every state. The demo company
+// has ACTIVE sub-statuses ON and REQUIRED (2026-10-23), so "Desktop" / "Mobile"
+// are what the Job Details page shows; the other stories hand the form a
+// different company setup or viewer. The same form is "Resume job".
 const meta: Meta = {
-  title: 'Modules/Job/Job Details/"Start Job" Form',
+  title: 'Modules/Job/"Start Job" Form',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 
 export default meta;
 type Story = StoryObj;
 
-// A company that has configured active sub-statuses. The names are the
-// company's own — these are the examples Daniel gave (2026-10-04).
-const ACTIVE_SUB_STATUSES = ["Working", "Travelling", "Preparing"];
+// The company's own active sub-statuses, from the database.
+const ACTIVE = subStatusesFor("active");
+const byId = (id: string) => ACTIVE.find((row) => row.id === id) as JobSubStatusRecord;
 
-const Harness = ({ mobile, activeSubStatuses }: { mobile: boolean; activeSubStatuses?: string[] }) => {
-  const [open, setOpen] = useState(true);
-  return (
-    <CurrentJobIdProvider id="JOB-1203">
-      <PhoneViewport>
-        <div className={styles.storyPage}>
-          <Button size="lg" variant="subtle" leftIcon="circle-play" onClick={() => setOpen(true)}>
-            Open the form
-          </Button>
-        </div>
-        <StartJobForm
-          open={open}
-          onClose={() => setOpen(false)}
-          onStart={() => setOpen(false)}
-          activeSubStatuses={activeSubStatuses}
-          mobile={mobile}
-        />
-        <Toaster breakpoint={mobile ? "mobile" : "desktop"} />
-      </PhoneViewport>
-    </CurrentJobIdProvider>
-  );
-};
+const Demo = ({
+  mobile = false,
+  activeSubStatuses = ACTIVE,
+  activeStatusRequired = COMPANY.subStatuses.activeRequired,
+  showCheckIn = true,
+  resume = false,
+  banner,
+  press,
+}: {
+  mobile?: boolean;
+  activeSubStatuses?: JobSubStatusRecord[];
+  activeStatusRequired?: boolean;
+  showCheckIn?: boolean;
+  resume?: boolean;
+  banner?: string;
+  press?: boolean;
+}) => (
+  <FormStoryFrame mobile={mobile} icon="circle-play" press={press ? (resume ? "Resume" : "Start") : undefined}>
+    {(open, close) => (
+      <StartJobForm
+        open={open}
+        onClose={close}
+        onStart={close}
+        activeSubStatuses={activeSubStatuses}
+        activeStatusRequired={activeStatusRequired}
+        showCheckIn={showCheckIn}
+        mobile={mobile}
+        {...(resume
+          ? { title: "Resume job", submitLabel: "Resume", reasonLabel: "Resume reason", toastTitle: "Job resumed", banner }
+          : {})}
+      />
+    )}
+  </FormStoryFrame>
+);
 
-/**
- * Active sub-statuses ON — the company configured them, so "Active status"
- * sits above the reason and starting the job requires a choice. Submit with it
- * empty to see the "Choose Active status" error.
- */
-export const ActiveSubStatuses: Story = {
-  render: () => <Harness mobile={false} activeSubStatuses={ACTIVE_SUB_STATUSES} />,
-};
+/** What the page shows: Active status required (5 to pick from), Start reason, Check in picked. */
+export const Desktop: Story = { render: () => <Demo /> };
 
 /** The same, as a mobile drawer. */
-export const ActiveSubStatusesMobile: Story = {
-  render: () => <Harness mobile activeSubStatuses={ACTIVE_SUB_STATUSES} />,
-};
+export const Mobile: Story = { render: () => <Demo mobile /> };
 
 /**
- * Active sub-statuses OFF — what the demo company (and the Job Details page)
- * actually shows: no "Active status" field, the check-in card alone.
+ * "Start" pressed with nothing filled: "Choose Active status" and "Choose
+ * Status". The Start reason stays optional until a sub-status asks for one.
  */
-export const NoSubStatuses: Story = { render: () => <Harness mobile={false} /> };
+export const MissingValues: Story = { name: "Missing values", render: () => <Demo press /> };
+
+/**
+ * Only ONE active sub-status, and the company requires one — the system picks
+ * it: read-only, "The only status available". This one ("Return visit")
+ * requires a reason, so the Start reason is required and shows the
+ * sub-status's help text.
+ */
+export const SingleSubStatusReasonRequired: Story = {
+  name: "Single sub-status, reason required",
+  render: () => <Demo activeSubStatuses={[byId("sub-return-visit")]} />,
+};
+
+/** The same, pressed empty: "Provide Start reason". */
+export const ReasonMissing: Story = {
+  name: "Reason missing",
+  render: () => <Demo activeSubStatuses={[byId("sub-return-visit")]} press />,
+};
+
+/** A single sub-status that does NOT require a reason and has no help text. */
+export const SingleSubStatus: Story = {
+  name: "Single sub-status",
+  render: () => <Demo activeSubStatuses={[byId("sub-diagnosing")]} />,
+};
+
+/** The company has active sub-statuses but does not require one — "(optional)". */
+export const ActiveStatusOptional: Story = {
+  name: "Active status optional",
+  render: () => <Demo activeStatusRequired={false} />,
+};
+
+/** The company has NO active sub-statuses — no field; the reason is optional. */
+export const NoSubStatuses: Story = { name: "No sub-statuses", render: () => <Demo activeSubStatuses={[]} /> };
+
+/** The viewer is not an assignee, or is already checked in — no check in / out choice. */
+export const NoCheckIn: Story = { name: "No check in", render: () => <Demo showCheckIn={false} /> };
+
+/** "Resume job" — the same form with the Resume copy. */
+export const Resume: Story = { render: () => <Demo resume /> };
+
+/** Resuming a COMPLETED job warns that the signature will be void (Figma 24567-140277). */
+export const ResumeCompletedJob: Story = {
+  name: "Resume completed job",
+  render: () => (
+    <Demo
+      resume
+      banner="Resuming this job will return it to Active status. A new signature will need to be collected to complete this job."
+    />
+  ),
+};

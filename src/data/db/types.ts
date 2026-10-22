@@ -191,6 +191,12 @@ export type SubStatusParent = Extract<JobStatus, "active" | "quickPaused" | "onH
  */
 export interface CompanySubStatusSettings {
   active: boolean;
+  /**
+   * The company REQUIRES an active sub-status to start / resume a job (Figma
+   * 27154-50245). Off → the "Active status" field is optional. Only matters
+   * when `active` is on.
+   */
+  activeRequired: boolean;
   quickPaused: boolean;
   onHold: boolean;
 }
@@ -217,6 +223,16 @@ export interface JobSubStatusRecord {
   name: string;
   /** The status this reason belongs to — production's `associated_status`. */
   status: SubStatusParent;
+  /**
+   * Production `reason_required`: picking this sub-status makes the form's
+   * reason field (Start / Resume / Pause reason) required. Default false.
+   */
+  reasonRequired?: boolean;
+  /**
+   * Production `reason_label`: the company's own wording for the reason. The
+   * field keeps its label and shows this as its help text (Figma 27154-51867).
+   */
+  reasonLabel?: string;
 }
 
 /**
@@ -560,6 +576,13 @@ export interface Job {
   /** Who to meet on site — the job's own contact. */
   pointOfContact?: JobContact;
   notes?: string;
+  /**
+   * Line items were put on the job BEFORE anyone worked it — added by hand
+   * when it was booked (production lets a line item be added on any status).
+   * Such a job carries its service's parts already (db/jobCharges). A job made
+   * from an estimate gets them through the estimate instead.
+   */
+  lineItemsAddedEarly?: boolean;
 }
 
 // (`EstimateConversionPath` is GONE with the state model, 2026-09-11: what an

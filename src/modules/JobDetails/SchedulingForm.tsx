@@ -7,8 +7,6 @@ import Dialog from "../../components/Dialog/Dialog";
 import Input from "../../components/Input/Input";
 import InputGroup from "../../components/Fields/InputGroup/InputGroup";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
@@ -17,7 +15,6 @@ import { toast } from "../../components/Toast/Toaster";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 
-import { useCurrentJobId } from "./currentJob";
 
 import styles from "./SchedulingForm.module.scss";
 
@@ -48,11 +45,11 @@ export const MINUTE_OPTIONS = ["00", "15", "30", "45"];
 // Exported for HvacPmStepForm — its "Estimated time to complete" uses the
 // same presets (verified identical in the stepper design 24337-41981).
 export const DURATION_PRESETS: { label: string; hours: string; minutes: string }[] = [
-  { label: "30 min", hours: "0", minutes: "30" },
-  { label: "1 hr", hours: "1", minutes: "00" },
-  { label: "1 hr 30 min", hours: "1", minutes: "30" },
-  { label: "2 hr", hours: "2", minutes: "00" },
-  { label: "2 hr 30 min", hours: "2", minutes: "30" },
+  { label: "30m", hours: "0", minutes: "30" },
+  { label: "1h", hours: "1", minutes: "00" },
+  { label: "1h 30m", hours: "1", minutes: "30" },
+  { label: "2h", hours: "2", minutes: "00" },
+  { label: "2h 30m", hours: "2", minutes: "30" },
 ];
 // "Mon, Jan 1" (+ ", YYYY" only when the year is not the current one — the
 // app-wide year rule). The COMPACT date: the edit field on mobile, where the
@@ -118,9 +115,6 @@ export const durationLabel = (hours: string, minutes: string) => {
 
 // ---- the form ---------------------------------------------------------------
 
-/** Which half of the "Date & time" choice is picked. */
-type ScheduleMode = "unschedule" | "schedule";
-
 interface SchedulingFormProps {
   open: boolean;
   onClose: () => void;
@@ -129,21 +123,13 @@ interface SchedulingFormProps {
   mobile?: boolean;
   /** Dialog title. Default "Scheduling". */
   title?: string;
-  /**
-   * Forces which half of the "Date & time" choice opens selected — the
-   * "Schedule job" / "Unschedule job" actions each pre-pick their own (Daniel,
-   * 2026-08-05). Left out (the module's pen), the form opens on the job's
-   * current state.
-   */
-  initialMode?: ScheduleMode;
 }
 
-// The Scheduling dialog (Figma 24522-84503). ONE form for all four entry
-// points — the module's pen, "Schedule job", "Reschedule job" and "Unschedule
-// job" (Daniel, 2026-08-05). "Date & time" is a radio: Unschedule clears the
-// slot, Schedule reveals the date + time pair. Duration always shows, with its
-// five presets. Assignees left this form on 2026-08-05 — they are their own
-// module now.
+// The Scheduling module's edit form (Figma 24522-84503, re-read 2026-10-22):
+// the date + time pair (no Unschedule / Schedule choice), the duration with
+// its five presets, a plain "Save" and the '"Scheduling" module updated'
+// toast. The Schedule / Reschedule / Unschedule ACTIONS have their own
+// dialogs now (RescheduleJobForm, UnscheduleJobForm).
 export default function SchedulingForm({
   open,
   onClose,
@@ -151,16 +137,11 @@ export default function SchedulingForm({
   onSave,
   mobile = false,
   title = "Scheduling",
-  initialMode,
 }: SchedulingFormProps) {
-  const jobId = useCurrentJobId();
   const [date, setDate] = useState<Date | null>(initial.date);
   const [time, setTime] = useState(initial.time);
   const [hours, setHours] = useState(initial.hours);
   const [minutes, setMinutes] = useState(initial.minutes);
-  // The form opens on the job's real state: a scheduled job on "Schedule", an
-  // unscheduled one on "Unschedule".
-  const [scheduleMode, setScheduleMode] = useState<ScheduleMode>(initialMode ?? (initial.date != null ? "schedule" : "unschedule"));
   const [showErrors, setShowErrors] = useState(false);
 
   // A fresh open resets the draft to the saved values.
@@ -170,7 +151,6 @@ export default function SchedulingForm({
     setTime(initial.time);
     setHours(initial.hours);
     setMinutes(initial.minutes);
-    setScheduleMode(initialMode ?? (initial.date != null ? "schedule" : "unschedule"));
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -194,45 +174,50 @@ export default function SchedulingForm({
 
   // "Dirty" = any value differs from the saved scheduling. When dirty, the
   // Dialog warns before discarding (close X / scrim).
-  const unscheduling = scheduleMode === "unschedule";
-  const sameDate = (unscheduling ? null : date?.getTime() ?? null) === (initial.date?.getTime() ?? null);
-  const dirty = !sameDate || (!unscheduling && time !== initial.time) || hours !== initial.hours || minutes !== initial.minutes;
+  const sameDate = (date?.getTime() ?? null) === (initial.date?.getTime() ?? null);
+  const dirty = !sameDate || time !== initial.time || hours !== initial.hours || minutes !== initial.minutes;
 
-  // The primary button names what saving will DO (Figma 24522-88085 / 88541 /
-  // 88893): Unschedule, or Schedule / Reschedule depending on whether the job
-  // already had a slot.
-  const submitLabel = unscheduling ? "Unschedule" : initial.date != null ? "Reschedule" : "Schedule";
-  // Each primary carries its action's calendar icon (Figma 24522-84503):
-  // unscheduling clears the slot, the other two set one.
-  const submitIcon = unscheduling ? "calendar-xmark" : "calendar-lines-pen";
-
-  // Scheduling requires the whole slot AND a duration; unscheduling requires
-  // nothing (the duration stays as it is).
-  const dateTimeBad = !unscheduling && (date == null || time === "");
-  const durationBad = !unscheduling && (parseInt(hours, 10) || 0) === 0 && (parseInt(minutes, 10) || 0) === 0;
+  // Saving requires the whole slot AND a duration.
+  const dateTimeBad = date == null || time === "";
+  const durationBad = (parseInt(hours, 10) || 0) === 0 && (parseInt(minutes, 10) || 0) === 0;
 
   const save = () => {
     if (dateTimeBad || durationBad) {
       setShowErrors(true);
       return;
     }
-    // Unscheduling clears the slot and keeps everything else.
-    const next: Scheduling = unscheduling
-      ? { ...initial, date: null, time: "", hours, minutes }
-      : { ...initial, date, time, hours, minutes };
-    onSave(next);
-    // The toasts name the JOB (Figma 24531-90433 / 24532-90489 / 24531-90463),
-    // in the double quotes every other id toast here uses. Scheduling and
-    // rescheduling are DETAILED — the caption is the slot the job landed on
-    // plus its duration; unscheduling has no slot left, so it stays title-only.
-    const title = `"${jobId}" ${unscheduling ? "unscheduled" : initial.date != null ? "rescheduled" : "scheduled"}`;
+    onSave({ ...initial, date, time, hours, minutes });
+    // DETAILED: the caption is the slot the job landed on plus its duration
+    // (Figma 24522-84503's "Update" toasts).
+    const title = '"Scheduling" module updated';
     toast(
-      unscheduling || date == null
+      date == null
         ? { type: "success", title }
         : { type: "success", variant: "detailed", title, caption: `${longDate(date)} at ${time} for ${durationLabel(hours, minutes)}` },
     );
     onClose();
   };
+
+  // The date + time pair. The DATE fills the row and the TIME hugs its value,
+  // so the full "Monday, January 1, 2027" has the space it needs — compact on
+  // mobile, where it does not.
+  const dateTimeGroup = (
+    <InputGroup isValid={!(showErrors && dateTimeBad)}>
+      <DateField
+        value={date}
+        onDateChange={setDate}
+        formatValue={mobile ? formatEditDate : formatFullDate}
+        breakpoint={mobile ? "mobile" : "desktop"}
+      />
+      <SelectField
+        value={time}
+        fitContent
+        className={styles.timeField}
+        open={timePop.open}
+        onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
+      />
+    </InputGroup>
+  );
 
   const activePreset = (p: (typeof DURATION_PRESETS)[number]) => p.hours === String(parseInt(hours, 10) || 0) && p.minutes === minutes;
 
@@ -251,48 +236,14 @@ export default function SchedulingForm({
             </Button>
           }
         >
-          <Button size="lg" variant="solid" leftIcon={submitIcon} onClick={save}>
-            {submitLabel}
+          <Button size="lg" variant="solid" onClick={save}>
+            Save
           </Button>
         </PopoverFooter>
       }
     >
       <div className={styles.form}>
-        {/* Date & time — a choice, not a plain field (Figma 24522-88085).
-            "Schedule" reveals the date + time pair inside its own card. */}
-        <Input label="Date & time">
-          <RadioGroup value={scheduleMode} onChange={(v) => setScheduleMode(v as ScheduleMode)}>
-            <RadioItem value="unschedule" variant="card" icon="calendar-xmark" iconPack="regular" label="Unschedule" />
-            <RadioItem
-              value="schedule"
-              variant="card"
-              icon="calendar-lines-pen"
-              iconPack="regular"
-              label="Schedule"
-              error={showErrors && dateTimeBad}
-              content={
-                // No label of its own (Figma 24522-88085): the choice above
-                // already says "Date & time". The DATE fills the row and the
-                // TIME hugs its value, so the full "Monday, January 1, 2027"
-                // has the space it needs — compact on mobile, where it does not.
-                <InputGroup isValid={!(showErrors && dateTimeBad)}>
-                  <DateField
-                    value={date}
-                    onDateChange={setDate}
-                    formatValue={mobile ? formatEditDate : formatFullDate}
-                    breakpoint={mobile ? "mobile" : "desktop"}
-                  />
-                  <SelectField
-                    value={time}
-                    fitContent
-                    open={timePop.open}
-                    onClick={(e: MouseEvent<HTMLDivElement>) => timePop.toggle(e.currentTarget)}
-                  />
-                </InputGroup>
-              }
-            />
-          </RadioGroup>
-        </Input>
+        <Input label="Date & time">{dateTimeGroup}</Input>
 
         {/* Est. duration ("Duration" until 2026-09-14 — Figma 24522-84487
             renames it in the Scheduling module and this, its edit form) */}

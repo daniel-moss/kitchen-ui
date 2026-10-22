@@ -14,7 +14,6 @@ import { toast } from "../../components/Toast/Toaster";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { PauseType, STATUS_GROUPS } from "./PauseJobForm";
 
-import { useCurrentJobId } from "./currentJob";
 
 import styles from "./jobForm.module.scss";
 
@@ -43,7 +42,6 @@ export default function ChangePauseStatusForm({
   onSubmit,
   mobile = false,
 }: ChangePauseStatusFormProps) {
-  const jobId = useCurrentJobId();
   // The job is paused OR held; the dialog never switches between them, so the
   // entry point's type simply decides the copy. NOT state: the form stays
   // mounted while the job's status changes underneath it, so `useState` would
@@ -78,7 +76,9 @@ export default function ChangePauseStatusForm({
       return;
     }
     onSubmit(type, subStatus, reason);
-    toast({ type: "success", title: `"${jobId}" status changed` });
+    // Names the status, not the job (Figma 24101-16162, 2026-10-22). The held
+    // wording mirrors it — Figma has no On hold toast board.
+    toast({ type: "success", title: held ? "On hold status changed" : "Pause status changed" });
     onClose();
   };
 
@@ -99,7 +99,8 @@ export default function ChangePauseStatusForm({
             </Button>
           }
         >
-          <Button size="lg" variant="solid" leftIcon={held ? "circle-stop" : "circle-pause"} onClick={submit}>
+          {/* No icon (Figma 24101-15725, 2026-10-22). */}
+          <Button size="lg" variant="solid" onClick={submit}>
             Change status
           </Button>
         </PopoverFooter>
