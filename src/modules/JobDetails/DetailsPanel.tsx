@@ -604,7 +604,10 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
 
   const schedulingBlock = (
     <>
-      {/* Scheduling — editable via the pencil (opens SchedulingForm). */}
+      {/* Scheduling — editable via the pencil (opens SchedulingForm). Hidden
+          on an Unscheduled job (Daniel, 2026-10-23): there is no slot to show,
+          and the job's own "Schedule" button is how it gets one. */}
+      {job.status !== "unscheduled" && (
       <DisplayModule
         title="Scheduling"
         slotRight={
@@ -626,6 +629,7 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
           </ValueDisplayGroup>
         }
       />
+      )}
       <SchedulingForm
         open={schedulingOpen}
         onClose={() => setSchedulingOpen(false)}
