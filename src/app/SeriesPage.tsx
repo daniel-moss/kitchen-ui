@@ -77,8 +77,17 @@ type SeriesPhase = SeriesBranch["id"];
 
 const branchById = (id: SeriesPhase) => BRANCHES.find((b) => b.id === id) ?? BRANCHES[0]!;
 
+// A branch's ROWS — the list's pipeline starts here, and the branch's one
+// view counts them: the tab's counter is the view's TOTAL, so the user's
+// filters and the search never change it.
+const branchRows = (branch: SeriesPhase) => SERIES_ROWS.filter((series) => isClosed(series) === (branch === "closed"));
+
 const branchViews = (branch: SeriesPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: branchRows(branch).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -548,7 +557,7 @@ const SeriesPage = ({ breakpoint = "auto", onNavigate }: SeriesPageProps) => {
   //   branch series (the DERIVED phase) → the USER's filters → the keyword
   //   search → the sort.
   const { seriesRows, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchSeries = SERIES_ROWS.filter((series) => isClosed(series) === (branch === "closed"));
+    const branchSeries = branchRows(branch);
     const filtered = applyFilters(branchSeries, SERIES_FILTERS, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((series) => searchHaystack(series).includes(query));

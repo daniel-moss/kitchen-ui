@@ -334,8 +334,23 @@ const branchStatuses = (branch: BranchId) => branchById(branch).tabs.flatMap((t)
 //   - the mobile view-selector list hugs its own content instead of the
 //     node's measured 137px floor.
 
-/** The status tabs as TopBarView views — one per tab of the given branch. */
-const branchViews = (branch: BranchId) => branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+// A view's ROWS — the branch's jobs, narrowed by the view's locked statuses.
+// The list's pipeline starts here, and the view's tab counts them: the counter
+// is the view's TOTAL, so the user's filters, the schedule horizon and the
+// search never change it.
+const viewRows = (jobs: Job[], branch: BranchId, tab: string) => {
+  const branchJobs = jobs.filter((job) => branchStatuses(branch).includes(job.status));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchJobs.filter((job) => locked.includes(job.status)) : branchJobs;
+};
+
+/** The status tabs as TopBarView views — one per tab of the given branch, each with its job count. */
+const branchViews = (branch: BranchId, jobs: Job[] = []) =>
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(jobs, branch, item.id).length,
+  }));
 
 /**
  * The view's schedule horizon, or null on "All dates" (nothing can conflict).
@@ -396,6 +411,8 @@ function DesktopViewBar({
   search,
   onSearchChange,
 }: ViewBarProps) {
+  // The tab counters read the store directly — the same jobs the table lists.
+  const allJobs = useJobs();
   const card = useAnchoredCard("right", "[data-concept-filters-sub]");
   // The View menu — the shared module, anchored under the bar's View button
   // exactly as the Filters menu is under its own. The module's dropdown lists
@@ -425,7 +442,7 @@ function DesktopViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch)}
+        views={branchViews(branch, allJobs)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -1073,9 +1090,7 @@ const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onVie
   // closed jobs are never "hidden" on the open page. A job hidden by two
   // counted layers is counted once, at the first.
   const { jobs, hidden, searchEmptied, searchHidden } = useMemo(() => {
-    const branchJobs = allJobs.filter((job) => branchStatuses(branch).includes(job.status));
-    const afterLocked =
-      lockedStatuses.length > 0 ? branchJobs.filter((job) => lockedStatuses.includes(job.status)) : branchJobs;
+    const afterLocked = viewRows(allJobs, branch, tab);
     const afterFilters = applyFilters(afterLocked, filters, selection);
     // The View menu's "Schedule horizon" window (jobs only). The Figma
     // annotation's rule: N days = through the end of that day, and only
@@ -1115,7 +1130,7 @@ const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onVie
     };
     // `allJobs` is in the deps since 2026-09-26: the rows come from the STORE
     // now, so an edit made on a details page has to re-run this.
-  }, [allJobs, selection, filters, lockedStatuses, branch, sort, settings.scheduledKey, deferredSearch]);
+  }, [allJobs, selection, filters, branch, tab, sort, settings.scheduledKey, deferredSearch]);
 
   // A stable reference, so the memoised table is not rebuilt every render.
   const openJob = useCallback((job: Job) => onOpenJob?.(job.id), [onOpenJob]);

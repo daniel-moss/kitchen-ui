@@ -133,8 +133,22 @@ const tabById = (branch: POsPhase, id: string) => {
  */
 const branchStatuses = (branch: POsPhase) => branchById(branch).tabs.flatMap((t) => t.statuses);
 
+// A view's ROWS — the branch's objects, narrowed by the view's locked
+// statuses. The list's pipeline starts here, and the view's tab counts them:
+// the counter is the view's TOTAL, so the user's filters and the search never
+// change it.
+const viewRows = (branch: POsPhase, tab: string) => {
+  const branchPOs = PO_ROWS.filter((po) => branchStatuses(branch).includes(po.status));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchPOs.filter((po) => locked.includes(po.status)) : branchPOs;
+};
+
 const branchViews = (branch: POsPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(branch, item.id).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -699,9 +713,7 @@ const POsPage = ({ breakpoint = "auto", onNavigate }: POsPageProps) => {
   // something else hides. The BRANCH is page context, not a filter, so closed
   // POs are never "hidden" on the open page.
   const { pos, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchPOs = PO_ROWS.filter((po) => branchStatuses(branch).includes(po.status));
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked = locked.length > 0 ? branchPOs.filter((po) => locked.includes(po.status)) : branchPOs;
+    const afterLocked = viewRows(branch, tab);
     const filtered = applyFilters(afterLocked, VIEW_FILTERS[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((po) => searchHaystack(po).includes(query));

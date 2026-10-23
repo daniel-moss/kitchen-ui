@@ -136,8 +136,24 @@ const tabById = (branch: CreditNotesPhase, id: string) => {
 /** The PHASE's whole status set — declared on the branch, see `CreditNoteBranch`. */
 const branchStatuses = (branch: CreditNotesPhase) => branchById(branch).statuses;
 
+// A view's ROWS — the branch's objects, narrowed by the view's locked
+// statuses. The list's pipeline starts here, and the view's tab counts them:
+// the counter is the view's TOTAL, so the user's filters and the search never
+// change it.
+const viewRows = (branch: CreditNotesPhase, tab: string) => {
+  const branchCreditNotes = CREDIT_NOTE_ROWS.filter((creditNote) => branchStatuses(branch).includes(creditNote.status));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0
+    ? branchCreditNotes.filter((creditNote) => locked.includes(creditNote.status))
+    : branchCreditNotes;
+};
+
 const branchViews = (branch: CreditNotesPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(branch, item.id).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -721,14 +737,7 @@ const CreditNotesPage = ({ breakpoint = "auto", onNavigate }: CreditNotesPagePro
   // than No Objects Match. The BRANCH is page context, not a filter, so
   // closed credit notes are never "hidden" on the open page.
   const { creditNotes, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchCreditNotes = CREDIT_NOTE_ROWS.filter((creditNote) =>
-      branchStatuses(branch).includes(creditNote.status),
-    );
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked =
-      locked.length > 0
-        ? branchCreditNotes.filter((creditNote) => locked.includes(creditNote.status))
-        : branchCreditNotes;
+    const afterLocked = viewRows(branch, tab);
     const filtered = applyFilters(afterLocked, VIEW_FILTERS[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched =

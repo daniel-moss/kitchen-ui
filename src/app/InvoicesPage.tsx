@@ -142,8 +142,22 @@ const tabById = (branch: InvoicesPhase, id: string) => {
  */
 const branchStatuses = (branch: InvoicesPhase) => branchById(branch).tabs.flatMap((t) => t.statuses);
 
+// A view's ROWS — the branch's objects, narrowed by the view's locked
+// statuses. The list's pipeline starts here, and the view's tab counts them:
+// the counter is the view's TOTAL, so the user's filters and the search never
+// change it.
+const viewRows = (branch: InvoicesPhase, tab: string) => {
+  const branchInvoices = INVOICE_ROWS.filter((inv) => branchStatuses(branch).includes(displayStatus(inv)));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchInvoices.filter((inv) => locked.includes(displayStatus(inv))) : branchInvoices;
+};
+
 const branchViews = (branch: InvoicesPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(branch, item.id).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -723,12 +737,7 @@ const InvoicesPage = ({ breakpoint = "auto", onNavigate }: InvoicesPageProps) =>
   // than No Objects Match. The BRANCH is page context, not a filter, so
   // closed invoices are never "hidden" on the open page.
   const { invoices, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchInvoices = INVOICE_ROWS.filter((inv) => branchStatuses(branch).includes(displayStatus(inv)));
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked =
-      locked.length > 0
-        ? branchInvoices.filter((inv) => locked.includes(displayStatus(inv)))
-        : branchInvoices;
+    const afterLocked = viewRows(branch, tab);
     const filtered = applyFilters(afterLocked, VIEW_FILTERS[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((inv) => searchHaystack(inv).includes(query));

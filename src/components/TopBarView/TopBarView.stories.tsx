@@ -53,10 +53,10 @@ const Stack = ({ children }: { children: ReactNode }) => (
 );
 
 const VIEWS = [
-  { value: "all", label: "All" },
-  { value: "my-jobs", label: "My jobs" },
-  { value: "office", label: "Office" },
-  { value: "recently-closed", label: "Recently closed" },
+  { value: "all", label: "All", count: 128 },
+  { value: "my-jobs", label: "My jobs", count: 12 },
+  { value: "office", label: "Office", count: 34 },
+  { value: "recently-closed", label: "Recently closed", count: 7 },
 ];
 
 const TWO_VIEWS = VIEWS.slice(0, 2);
@@ -113,9 +113,9 @@ export const WhenToUse: Story = {
           <div style={{ width: DESKTOP_BAR }}>
             <TopBarView
               views={[
-                { value: "all-open", label: "All open" },
-                { value: "pending", label: "Pending" },
-                { value: "scheduled", label: "Scheduled" },
+                { value: "all-open", label: "All open", count: 46 },
+                { value: "pending", label: "Pending", count: 9 },
+                { value: "scheduled", label: "Scheduled", count: 21 },
               ]}
               breakpoint="desktop"
               onFiltersClick={noop}
@@ -152,10 +152,45 @@ export const TabsScroll: Story = {
       <TopBarView
         views={[
           ...VIEWS,
-          { value: "unassigned", label: "Unassigned" },
-          { value: "overdue", label: "Overdue" },
-          { value: "this-week", label: "This week" },
+          { value: "unassigned", label: "Unassigned", count: 5 },
+          { value: "overdue", label: "Overdue", count: 3 },
+          { value: "this-week", label: "This week", count: 18 },
         ]}
+        breakpoint="desktop"
+        onFiltersClick={noop}
+        onViewMenuClick={noop}
+      />
+    </Hug>
+  ),
+};
+
+const STATUS_VIEWS = [
+  { value: "all", label: "All open", count: 36 },
+  { value: "pending", label: "Pending", count: 13 },
+  { value: "outstanding", label: "Outstanding", count: 14 },
+  { value: "overdue", label: "Overdue", count: 9 },
+];
+
+/**
+ * Tab counters: each view counts the records its locked "Status" filter
+ * matches, so the status views add up to "All open".
+ */
+export const TabCounters: Story = {
+  render: () => (
+    <Hug>
+      <TopBarView views={STATUS_VIEWS} breakpoint="desktop" onFiltersClick={noop} onViewMenuClick={noop} />
+    </Hug>
+  ),
+};
+
+/** The same views with a search in the field — the counters keep their totals. */
+export const TabCountersSearch: Story = {
+  render: () => (
+    <Hug>
+      <TopBarView
+        views={STATUS_VIEWS}
+        defaultView="pending"
+        defaultSearch="Wildwood"
         breakpoint="desktop"
         onFiltersClick={noop}
         onViewMenuClick={noop}

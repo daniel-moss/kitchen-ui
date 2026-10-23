@@ -24,8 +24,8 @@ the views here are always the ones inside the chosen phase.
 ```tsx
 <TopBarView
   views={[
-    { value: "all", label: "All" },
-    { value: "my-jobs", label: "My jobs" },
+    { value: "all", label: "All", count: 128 },
+    { value: "my-jobs", label: "My jobs", count: 12 },
   ]}
   view={view}
   onViewChange={setView}
@@ -115,6 +115,26 @@ scrolls the tabs sideways — no Shift needed.
 <DocCaption>The tabs scrolled to the start, part way, and to the end.</DocCaption>
 
 <Canvas of={TopBarViewStories.TabsScroll} />
+
+Each tab carries a counter: the number of records in that view, from the
+view's `count`. It sits `--size-1_5` (6px) after the label, in the label's
+text style and colour, with regular figures — not tabular. Locked filters
+affect the counter, because they build the view. Each tab counts only the
+records that match its locked filter, and "All" counts the whole phase.
+
+<DocCaption>Status views, each counting the records of its status.</DocCaption>
+
+<Canvas of={TopBarViewStories.TabCounters} />
+
+The filters the user adds and the search do not affect the counter. They
+narrow the list, but the counter always says how many records the view holds.
+The bar does not count anything by itself: the consumer computes each view's
+total and passes it in. The counter shows on the desktop tabs only — the
+mobile view selector shows the view name alone.
+
+<DocCaption>The same views with a search in the field. The counters do not change.</DocCaption>
+
+<Canvas of={TopBarViewStories.TabCountersSearch} />
 
 On mobile the view selector takes the tabs' place. Tapping it opens a
 <a href="/?path=/story/components-selectlist-selectlist--playground" target="_top">select list</a>

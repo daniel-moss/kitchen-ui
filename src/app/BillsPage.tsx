@@ -136,8 +136,22 @@ const tabById = (branch: BillsPhase, id: string) => {
  */
 const branchStatuses = (branch: BillsPhase) => branchById(branch).tabs.flatMap((t) => t.statuses);
 
+// A view's ROWS — the branch's objects, narrowed by the view's locked
+// statuses. The list's pipeline starts here, and the view's tab counts them:
+// the counter is the view's TOTAL, so the user's filters and the search never
+// change it.
+const viewRows = (branch: BillsPhase, tab: string) => {
+  const branchBills = BILL_ROWS.filter((bill) => branchStatuses(branch).includes(displayStatus(bill)));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchBills.filter((bill) => locked.includes(displayStatus(bill))) : branchBills;
+};
+
 const branchViews = (branch: BillsPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(branch, item.id).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -719,10 +733,7 @@ const BillsPage = ({ breakpoint = "auto", onNavigate }: BillsPageProps) => {
   // Bar until something else hides. The BRANCH is page context, not a filter,
   // so closed bills are never "hidden" on the open page.
   const { bills, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchBills = BILL_ROWS.filter((bill) => branchStatuses(branch).includes(displayStatus(bill)));
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked =
-      locked.length > 0 ? branchBills.filter((bill) => locked.includes(displayStatus(bill))) : branchBills;
+    const afterLocked = viewRows(branch, tab);
     const filtered = applyFilters(afterLocked, VIEW_FILTERS[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((bill) => searchHaystack(bill).includes(query));

@@ -7,6 +7,13 @@ export interface TopBarViewView {
   value: string;
   /** The view's visible name: a tab on desktop; the selector label and a select-list item on mobile. */
   label: string;
+  /**
+   * How many objects the view holds — the objects its locked filter matches
+   * (the whole phase for "All"). It is the view's TOTAL: the user's filters
+   * and the search never change it. Shown as the tab's counter on desktop
+   * only. Leave it out for a tab without a counter.
+   */
+  count?: number;
 }
 
 export interface TopBarViewProps {

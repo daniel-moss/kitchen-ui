@@ -79,8 +79,17 @@ type VendorsPhase = VendorsBranch["id"];
 
 const branchById = (id: VendorsPhase) => BRANCHES.find((b) => b.id === id) ?? BRANCHES[0]!;
 
+// A branch's ROWS — the list's pipeline starts here, and the branch's one
+// view counts them: the tab's counter is the view's TOTAL, so the user's
+// filters and the search never change it.
+const branchRows = (branch: VendorsPhase) => VENDOR_ROWS.filter((vendor) => vendor.isActive === (branch === "active"));
+
 const branchViews = (branch: VendorsPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: branchRows(branch).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -553,7 +562,7 @@ const VendorsPage = ({ breakpoint = "auto", onNavigate }: VendorsPageProps) => {
   //   branch vendors (the `isActive` flag) → the USER's filters → the
   //   keyword search → the sort.
   const { vendors, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchVendors = VENDOR_ROWS.filter((vendor) => vendor.isActive === (branch === "active"));
+    const branchVendors = branchRows(branch);
     const filtered = applyFilters(branchVendors, VENDOR_FILTERS, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((vendor) => searchHaystack(vendor).includes(query));

@@ -103,8 +103,22 @@ const tabById = (branch: PricebookPhase, id: string) => {
   return tabs.find((t) => t.id === id) ?? tabs[0]!;
 };
 
-const branchViews = (branch: PricebookPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+// A view's ROWS — the branch's items, narrowed by the view's locked statuses.
+// The list's pipeline starts here, and the view's tab counts them: the counter
+// is the view's TOTAL, so the user's filters and the search never change it.
+const viewRows = <TRow,>(config: PricebookListConfig<TRow>, rows: TRow[], branch: PricebookPhase, tab: string) => {
+  const branchItems = rows.filter((row) => config.isActive(row) === (branch === "active"));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchItems.filter((row) => locked.includes(config.statusOf(row))) : branchItems;
+};
+
+/** The branch's views as TopBarView views — each with its item count when the rows are given. */
+const branchViews = <TRow,>(branch: PricebookPhase, config?: PricebookListConfig<TRow>, rows?: TRow[]) =>
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: config && rows ? viewRows(config, rows, branch, item.id).length : undefined,
+  }));
 
 /** Every view of either branch, in one flat list — view ids are unique. */
 const ALL_VIEWS = BRANCHES.flatMap((branch) => branch.tabs.map((tab) => ({ branch, tab })));
@@ -363,10 +377,7 @@ export function PricebookPage<TRow>({
   // the locked layer reads it directly. Only the FILTERS layer is counted (a
   // locked chip hides nothing that counts, the standing rule).
   const { items, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchItems = rows.filter((row) => config.isActive(row) === (branch === "active"));
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked =
-      locked.length > 0 ? branchItems.filter((row) => locked.includes(config.statusOf(row))) : branchItems;
+    const afterLocked = viewRows(config, rows, branch, tab);
     const filtered = applyFilters(afterLocked, viewFilters[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((row) => config.search(row).includes(query));
@@ -461,6 +472,7 @@ export function PricebookPage<TRow>({
   return isDesktop ? (
     <DesktopShell
       config={config}
+      rows={rows}
       branch={branch}
       onBranchChange={setBranch}
       tab={tab}
@@ -505,6 +517,8 @@ export function PricebookPage<TRow>({
 
 interface ShellProps<TRow> {
   config: PricebookListConfig<TRow>;
+  /** Every row of the list — the desktop tabs count them per view. */
+  rows?: TRow[];
   branch: PricebookPhase;
   onBranchChange: (next: PricebookPhase) => void;
   tab: string;
@@ -526,6 +540,7 @@ interface ShellProps<TRow> {
 
 function DesktopShell<TRow>({
   config,
+  rows,
   branch,
   onBranchChange,
   tab,
@@ -551,7 +566,7 @@ function DesktopShell<TRow>({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch)}
+        views={branchViews(branch, config, rows)}
         view={tab}
         onViewChange={onTabChange}
         search={search}

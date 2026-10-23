@@ -171,7 +171,7 @@ export default function TopBarView({
                 is not known yet, so nothing can be the current view. */}
             <TabGroup variant="underlined" value={isLoading ? "" : selectedView} onChange={setSelectedView}>
               {views.map((v) => (
-                <TabItem key={v.value} value={v.value} loading={isLoading}>
+                <TabItem key={v.value} value={v.value} loading={isLoading} counter={v.count}>
                   {v.label}
                 </TabItem>
               ))}

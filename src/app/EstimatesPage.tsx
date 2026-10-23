@@ -151,8 +151,22 @@ const tabById = (branch: EstimatesPhase, id: string) => {
  */
 const branchStatuses = (branch: EstimatesPhase) => branchById(branch).tabs.flatMap((t) => t.statuses);
 
+// A view's ROWS — the branch's objects, narrowed by the view's locked
+// statuses. The list's pipeline starts here, and the view's tab counts them:
+// the counter is the view's TOTAL, so the user's filters and the search never
+// change it.
+const viewRows = (branch: EstimatesPhase, tab: string) => {
+  const branchEstimates = ESTIMATES.filter((est) => branchStatuses(branch).includes(displayStatus(est)));
+  const locked = tabById(branch, tab).statuses;
+  return locked.length > 0 ? branchEstimates.filter((est) => locked.includes(displayStatus(est))) : branchEstimates;
+};
+
 const branchViews = (branch: EstimatesPhase) =>
-  branchById(branch).tabs.map((item) => ({ value: item.id, label: item.label }));
+  branchById(branch).tabs.map((item) => ({
+    value: item.id,
+    label: item.label,
+    count: viewRows(branch, item.id).length,
+  }));
 
 // ---- the list top bar ------------------------------------------------------
 
@@ -747,12 +761,7 @@ const EstimatesPage = ({ breakpoint = "auto", onNavigate }: EstimatesPageProps) 
   // The BRANCH is page context, not a filter, so closed estimates are never
   // "hidden" on the open page.
   const { estimates, searchEmptied, hidden, searchHidden } = useMemo(() => {
-    const branchEstimates = ESTIMATES.filter((est) => branchStatuses(branch).includes(displayStatus(est)));
-    const locked = tabById(branch, tab).statuses;
-    const afterLocked =
-      locked.length > 0
-        ? branchEstimates.filter((est) => locked.includes(displayStatus(est)))
-        : branchEstimates;
+    const afterLocked = viewRows(branch, tab);
     const filtered = applyFilters(afterLocked, VIEW_FILTERS[tab]!, selection);
     const query = deferredSearch.trim().toLowerCase();
     const searched = query === "" ? filtered : filtered.filter((est) => searchHaystack(est).includes(query));
