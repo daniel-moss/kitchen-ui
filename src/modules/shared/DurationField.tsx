@@ -14,7 +14,8 @@ import styles from "./DurationField.module.scss";
 // The duration widget shared by the "New Service" form and the Schedule
 // step's Details module (Figma 17205-69539 / 17241-70803): an InputGroup of
 // an hours TextField ("hr") and a minutes SelectField ("min"), plus the
-// quick-pick chips of the most frequent durations. The value is total
+// quick-pick lg chips of the most frequent durations (lg everywhere — Figma
+// 27163-54879). The value is total
 // minutes; null = untouched.
 
 const MINUTE_OPTIONS = [0, 15, 30, 45];
@@ -69,7 +70,7 @@ export default function DurationField({ value, onChange, mobile, isValid = true 
       </InputGroup>
       <ChipGroup>
         {PRESETS.map((preset) => (
-          <Chip key={preset} isSelected={value === preset} onClick={() => onChange(preset)}>
+          <Chip key={preset} size="lg" isSelected={value === preset} onClick={() => onChange(preset)}>
             {presetLabel(preset)}
           </Chip>
         ))}

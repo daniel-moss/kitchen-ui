@@ -710,7 +710,7 @@ const jobActionMenuItems = ({
         {links}
         <MenuItemGroup>
           <MenuItem
-            label={held ? "Change job on hold status" : "Change pause status"}
+            label={held ? "Change hold status" : "Change pause status"}
             slotLeft={
               held
                 ? slot("circle-stop", "solid", "var(--crimson-a9)")
@@ -2176,7 +2176,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const scheduleJob = (result: RescheduleResult) => {
     confirmSchedule(result.scheduling);
     changeAssignees(result.assignees);
-    changeServiceValues({ ...serviceValues, reason: result.reason, tech: result.tech });
   };
 
   // "Unschedule job" (Figma 27154-49578): clears "Scheduled for" through the
@@ -2199,7 +2198,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     setScheduling(result.scheduling);
     logScheduling(was, result.scheduling);
     changeAssignees(result.assignees);
-    changeServiceValues({ ...serviceValues, reason: result.reason, tech: result.tech });
     setJob((j) => ({
       ...j,
       status: "upcoming",
@@ -2445,7 +2443,7 @@ type ShellState = ReturnType<typeof useJobShell>;
 // only by the mobile flag / Prompt breakpoint). Rendered once per shell.
 const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) => (
   <>
-    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} mobile={mobile} />
+    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} runningSession={s.runningSession} mobile={mobile} />
     {/* Complete job — the 5-step flow (Equipment shares the live equipment list;
         the rest is a snapshot). Figma section 24106-16424. */}
     <CompleteJobForm
@@ -2495,8 +2493,6 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onClose={() => s.setScheduleOpen(false)}
       scheduling={s.scheduling}
       assignees={s.assigneeIds}
-      reason={s.serviceValues.reason}
-      tech={s.serviceValues.tech}
       onReschedule={s.scheduleJob}
       mobile={mobile}
     />
@@ -2505,8 +2501,6 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onClose={() => s.setRescheduleOpen(false)}
       scheduling={s.scheduling}
       assignees={s.assigneeIds}
-      reason={s.serviceValues.reason}
-      tech={s.serviceValues.tech}
       runningSession={s.runningSession}
       onReschedule={s.rescheduleJob}
       mobile={mobile}
@@ -2770,7 +2764,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
                 />
               </div>
             )}
-            <DetailsPanel isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+            <DetailsPanel isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule} onReschedule={() => s.setRescheduleOpen(true)}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
@@ -2998,7 +2992,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
           render={(t) =>
             t === "details" ? (
 
-          <DetailsPanel mobile isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule}
+          <DetailsPanel mobile isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule} onReschedule={() => s.setRescheduleOpen(true)}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />

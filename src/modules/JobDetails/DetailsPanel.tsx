@@ -87,6 +87,8 @@ interface DetailsPanelProps {
   /** Scheduling is owned by the shell (the avatar + Start/Cancel forms read it too). */
   scheduling: Scheduling;
   onSchedulingChange: (next: Scheduling) => void;
+  /** Opens the "Reschedule job" dialog — the Scheduling form's way out once the job has started. */
+  onReschedule?: () => void;
   /** The job’s assignees — their own module (and own state) since 2026-08-05. */
   assignees: number[];
   onAssigneesChange: (ids: number[]) => void;
@@ -396,7 +398,7 @@ const LABEL_POOL: string[] = JOB_LABELS.map((label) => label.name);
 
 // ---- the panel ---------------------------------------------------------------
 
-export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, assignees, onAssigneesChange, assigneeStats, job, locked = false, isPublicView = false, companyHasLogo = true, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
+export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, onReschedule, assignees, onAssigneesChange, assigneeStats, job, locked = false, isPublicView = false, companyHasLogo = true, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
   // ---- job contacts ----
   const [reporter, setReporter] = useState<JobContact | null>(INITIAL_REPORTER);
   const [supervisor, setSupervisor] = useState<JobContact | null>(INITIAL_SUPERVISOR);
@@ -611,7 +613,8 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
       <DisplayModule
         title="Scheduling"
         slotRight={
-          readOnly ? undefined : (
+          // Not editable on Completed either (Daniel, 2026-10-23).
+          readOnly || job.status === "completed" ? undefined : (
             <HoverTooltip text="Edit">
               <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit scheduling" onClick={() => setSchedulingOpen(true)} />
             </HoverTooltip>
@@ -635,6 +638,10 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
         onClose={() => setSchedulingOpen(false)}
         initial={scheduling}
         onSave={onSchedulingChange}
+        // Date & time are editable only before the job starts — Upcoming and
+        // Past due (a late Upcoming). After that, "Reschedule" is the way.
+        dateLocked={job.status !== "upcoming"}
+        onReschedule={onReschedule}
         mobile={mobile}
       />
   

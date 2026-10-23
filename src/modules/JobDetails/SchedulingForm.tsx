@@ -123,6 +123,17 @@ interface SchedulingFormProps {
   mobile?: boolean;
   /** Dialog title. Default "Scheduling". */
   title?: string;
+  /**
+   * The job has STARTED (any status but Upcoming / Past due — Figma
+   * 27167-55588): Date & time are read-only, with help text saying why, and
+   * only the duration can be saved here.
+   */
+  dateLocked?: boolean;
+  /**
+   * Opens the "Reschedule job" dialog — the ghost "Reschedule" button shown
+   * next to "Save" while the date is locked. The form closes first.
+   */
+  onReschedule?: () => void;
 }
 
 // The Scheduling module's edit form (Figma 24522-84503, re-read 2026-10-22):
@@ -137,6 +148,8 @@ export default function SchedulingForm({
   onSave,
   mobile = false,
   title = "Scheduling",
+  dateLocked = false,
+  onReschedule,
 }: SchedulingFormProps) {
   const [date, setDate] = useState<Date | null>(initial.date);
   const [time, setTime] = useState(initial.time);
@@ -177,8 +190,9 @@ export default function SchedulingForm({
   const sameDate = (date?.getTime() ?? null) === (initial.date?.getTime() ?? null);
   const dirty = !sameDate || time !== initial.time || hours !== initial.hours || minutes !== initial.minutes;
 
-  // Saving requires the whole slot AND a duration.
-  const dateTimeBad = date == null || time === "";
+  // Saving requires the whole slot AND a duration. A locked slot is the job's
+  // own and is not checked.
+  const dateTimeBad = !dateLocked && (date == null || time === "");
   const durationBad = (parseInt(hours, 10) || 0) === 0 && (parseInt(minutes, 10) || 0) === 0;
 
   const save = () => {
@@ -202,7 +216,7 @@ export default function SchedulingForm({
   // so the full "Monday, January 1, 2027" has the space it needs — compact on
   // mobile, where it does not.
   const dateTimeGroup = (
-    <InputGroup isValid={!(showErrors && dateTimeBad)}>
+    <InputGroup isValid={!(showErrors && dateTimeBad)} readOnly={dateLocked}>
       <DateField
         value={date}
         onDateChange={setDate}
@@ -236,6 +250,19 @@ export default function SchedulingForm({
             </Button>
           }
         >
+          {dateLocked && onReschedule != null && (
+            <Button
+              size="lg"
+              variant="ghost"
+              leftIcon="calendar-lines-pen"
+              onClick={() => {
+                onClose();
+                onReschedule();
+              }}
+            >
+              Reschedule
+            </Button>
+          )}
           <Button size="lg" variant="solid" onClick={save}>
             Save
           </Button>
@@ -243,7 +270,12 @@ export default function SchedulingForm({
       }
     >
       <div className={styles.form}>
-        <Input label="Date & time">{dateTimeGroup}</Input>
+        <Input
+          label="Date & time"
+          helpText={dateLocked ? "The job has started. Reschedule it to change the date and time." : undefined}
+        >
+          {dateTimeGroup}
+        </Input>
 
         {/* Est. duration ("Duration" until 2026-09-14 — Figma 24522-84487
             renames it in the Scheduling module and this, its edit form) */}

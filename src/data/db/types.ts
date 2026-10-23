@@ -198,7 +198,15 @@ export interface CompanySubStatusSettings {
    */
   activeRequired: boolean;
   quickPaused: boolean;
+  /**
+   * The company REQUIRES a pause sub-status to pause a job (Figma 27189-56150).
+   * Off → the "Pause status" field is optional. Only matters when
+   * `quickPaused` is on.
+   */
+  quickPausedRequired: boolean;
   onHold: boolean;
+  /** The same rule for the "Hold job" dialog's "On hold status". */
+  onHoldRequired: boolean;
 }
 
 /**

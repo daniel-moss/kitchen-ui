@@ -19,15 +19,12 @@ import DurationField from "../shared/DurationField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import { formatEditDate, formatFullDate, Scheduling, TIME_OPTIONS } from "./SchedulingForm";
-import { TECH_INSTRUCTIONS_HINT } from "./ServiceForm";
 import styles from "./RescheduleJobForm.module.scss";
 
 /** What the "Schedule" / "Reschedule" button commits. */
 export interface RescheduleResult {
   scheduling: Scheduling;
   assignees: number[];
-  reason: string;
-  tech: string;
   /** The required "Reschedule reason" — the Status module's message ("" when scheduling). */
   rescheduleReason: string;
   /** The viewer's running session ends with the reschedule. */
@@ -48,9 +45,6 @@ export interface RescheduleJobFormProps {
   scheduling: Scheduling;
   /** The job's current assignees (pre-filled). */
   assignees: number[];
-  /** The job's current Reason for call / Tech instructions (pre-filled). */
-  reason: string;
-  tech: string;
   /**
    * The viewer's running time session, e.g. "Working: 01:30:05" — shows the
    * clock choice. Null when the viewer is not an ASSIGNEE who is checked in
@@ -66,9 +60,9 @@ const toMinutes = (s: Scheduling) => (parseInt(s.hours, 10) || 0) * 60 + (parseI
 // "Reschedule job" (Figma 27091-45839) — opened by the "Reschedule" menu item
 // of an Active / Paused / On hold job. The fields are the New Job form's own
 // (their docs live there): Date & time (EMPTY — a new slot must be picked),
-// Est. duration, Assignees (optional), Reason for call and Tech instructions
-// (optional) — all pre-filled but the date — then the required "Reschedule
-// reason". A viewer whose clock is running also chooses whether to stay
+// Est. duration and Assignees (optional), both pre-filled, then the required
+// "Reschedule reason". Reason for call and Tech instructions left the form on
+// 2026-10-23 — they are the Service module's to edit. A viewer whose clock is running also chooses whether to stay
 // checked in. "Reschedule" applies it all, sets the job to Upcoming and toasts
 // "Job rescheduled".
 //
@@ -81,8 +75,6 @@ export default function RescheduleJobForm({
   onClose,
   scheduling,
   assignees: initialAssignees,
-  reason: initialReason,
-  tech: initialTech,
   runningSession = null,
   onReschedule,
   mobile = false,
@@ -94,8 +86,6 @@ export default function RescheduleJobForm({
   const [time, setTime] = useState("");
   const [duration, setDuration] = useState<number | null>(toMinutes(scheduling) || null);
   const [assignees, setAssignees] = useState(initialAssignees);
-  const [reason, setReason] = useState(initialReason);
-  const [tech, setTech] = useState(initialTech);
   const [rescheduleReason, setRescheduleReason] = useState("");
   // No company setting exists for the default yet, so it is "Check out" (the
   // block's annotation: the company default when there is one, else Check out).
@@ -113,8 +103,6 @@ export default function RescheduleJobForm({
     setTime("");
     setDuration(toMinutes(scheduling) || null);
     setAssignees(initialAssignees);
-    setReason(initialReason);
-    setTech(initialTech);
     setRescheduleReason("");
     setSession("checkOut");
     setShowErrors(false);
@@ -126,17 +114,14 @@ export default function RescheduleJobForm({
     time !== "" ||
     duration !== (toMinutes(scheduling) || null) ||
     assignees.join() !== initialAssignees.join() ||
-    reason !== initialReason ||
-    tech !== initialTech ||
     rescheduleReason !== "";
 
   const dateTimeBad = date == null || time === "";
   const durationBad = duration == null || duration === 0;
-  const reasonBad = reason.trim() === "";
   const rescheduleReasonBad = rescheduling && rescheduleReason.trim() === "";
 
   const submit = () => {
-    if (dateTimeBad || durationBad || reasonBad || rescheduleReasonBad) {
+    if (dateTimeBad || durationBad || rescheduleReasonBad) {
       setShowErrors(true);
       return;
     }
@@ -150,8 +135,6 @@ export default function RescheduleJobForm({
         minutes: String(minutes % 60).padStart(2, "0"),
       },
       assignees,
-      reason,
-      tech,
       rescheduleReason: rescheduleReason.trim(),
       checkOut: clock != null && session === "checkOut",
     });
@@ -206,14 +189,6 @@ export default function RescheduleJobForm({
         </Input>
 
         <AssigneesField value={assignees} onChange={setAssignees} mobile={mobile} showLabel />
-
-        <Input label="Reason for call">
-          <TextArea value={reason} onChange={(event) => setReason(event.target.value)} isValid={!(showErrors && reasonBad)} />
-        </Input>
-
-        <Input label="Tech instructions" labelCondition="optional" labelHintContent={TECH_INSTRUCTIONS_HINT}>
-          <TextArea value={tech} onChange={(event) => setTech(event.target.value)} />
-        </Input>
 
         {/* Shows in the Status module as the status message, under its own
             label (Figma 27146-48368). Required; no character limit. */}

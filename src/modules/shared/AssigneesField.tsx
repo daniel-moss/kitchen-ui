@@ -1,9 +1,12 @@
-import { MouseEvent } from "react";
+import { MouseEvent, useEffect, useState } from "react";
 
-import Badge from "../../components/Badge/Badge";
 import AvatarUser from "../../components/Avatar/AvatarUser";
+import Badge from "../../components/Badge/Badge";
+import Button from "../../components/Button/Button";
+import EmptyState from "../../components/EmptyState/EmptyState";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import Input from "../../components/Input/Input";
+import SelectListFooter from "../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { users } from "../../data/users";
@@ -17,6 +20,12 @@ import styles from "./AssigneesField.module.scss";
 // dismissable lg Badges with the tech's avatar — in the order they were added,
 // LATEST FIRST, every one of them (no truncation). A badge's × removes the
 // pick and unticks it in the list.
+//
+// The list (Figma 23858-13516): multi-select CHECKBOX rows with the tech's
+// avatar, A→Z, a search ("Assignee..."). On DESKTOP every tick applies at
+// once; on MOBILE the ticks are held until the full-width "Apply" (always
+// shown) — closing the drawer any other way drops them. Empty: "No assignees";
+// no match: "No assignees match".
 
 const pool = () => [...users].sort((a, b) => a.name.localeCompare(b.name));
 
@@ -36,8 +45,24 @@ export default function AssigneesField({ value, onChange, mobile, showLabel = fa
   const pop = useSelectPopover(mobile);
   const techs = pool();
 
-  const toggle = (id: number) =>
-    onChange(value.includes(id) ? value.filter((row) => row !== id) : [id, ...value]);
+  // Mobile holds the ticks here until "Apply"; every open starts from the
+  // field's own value.
+  const [draft, setDraft] = useState(value);
+  useEffect(() => {
+    if (pop.open) setDraft(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pop.open]);
+  const ticked = mobile ? draft : value;
+
+  const toggle = (id: number) => {
+    const next = ticked.includes(id) ? ticked.filter((row) => row !== id) : [id, ...ticked];
+    if (mobile) setDraft(next);
+    else onChange(next);
+  };
+  const apply = () => {
+    onChange(draft);
+    pop.close();
+  };
 
   // The badges grow BELOW the trigger — the layout-freeze rule: they hold
   // still while the list is open and sync when it closes. The field's own
@@ -93,16 +118,27 @@ export default function AssigneesField({ value, onChange, mobile, showLabel = fa
         searchable
         searchPlaceholder="Assignee..."
         state={techs.length === 0 ? "empty" : undefined}
-        emptyState={{ icon: "user", title: "No team members here yet" }}
+        emptyState={{ caption: "No assignees" }}
+        noResultsState={<EmptyState caption="No assignees match" />}
+        footer={
+          mobile && techs.length > 0 ? (
+            <SelectListFooter variant="actionBar" stretch>
+              <Button size="lg" variant="solid" onClick={apply}>
+                Apply
+              </Button>
+            </SelectListFooter>
+          ) : undefined
+        }
       >
         <SelectListItemGroup>
           {techs.map((user) => (
             <SelectListItem
               key={user.id}
               variant="default"
+              select="multi"
               label={user.name}
               slotLeft={<AvatarUser size="xs" imageSrc={user.avatar} />}
-              selected={value.includes(user.id)}
+              selected={ticked.includes(user.id)}
               onClick={() => toggle(user.id)}
             />
           ))}

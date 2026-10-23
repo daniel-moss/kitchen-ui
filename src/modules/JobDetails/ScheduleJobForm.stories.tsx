@@ -15,11 +15,9 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj;
 
-// An Unscheduled job: no slot yet, its duration, one tech, its details.
+// An Unscheduled job: no slot yet, its duration, one tech.
 const SCHEDULING: Scheduling = { date: null, time: "", hours: "1", minutes: "30" };
 const ASSIGNEES = [3];
-const REASON = "Ice machine is producing small, cloudy cubes and the bin fills slowly.";
-const TECH = "";
 
 const Demo = ({ mobile = false, press = false }: { mobile?: boolean; press?: boolean }) => (
   <FormStoryFrame mobile={mobile} icon="calendar-lines-pen" press={press ? "Schedule" : undefined}>
@@ -30,8 +28,6 @@ const Demo = ({ mobile = false, press = false }: { mobile?: boolean; press?: boo
         onClose={close}
         scheduling={SCHEDULING}
         assignees={ASSIGNEES}
-        reason={REASON}
-        tech={TECH}
         onReschedule={close}
         mobile={mobile}
       />
@@ -39,7 +35,7 @@ const Demo = ({ mobile = false, press = false }: { mobile?: boolean; press?: boo
   </FormStoryFrame>
 );
 
-/** Date & time empty; duration, assignees and the job's details pre-filled. */
+/** Date & time empty; duration and assignees pre-filled. */
 export const Desktop: Story = { render: () => <Demo /> };
 
 /** The same, as a mobile drawer. */

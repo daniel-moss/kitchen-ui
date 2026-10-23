@@ -14,14 +14,10 @@ const meta: Meta = {
 export default meta;
 type Story = StoryObj;
 
-// The job being rescheduled (JOB-1201's own values): 2 hours, two techs, its
-// reason for call and tech instructions. Only the duration pre-fills from the
-// slot — the date and time start empty.
+// The job being rescheduled (JOB-1201's own values): 2 hours and two techs.
+// Only the duration pre-fills from the slot — the date and time start empty.
 const SCHEDULING: Scheduling = { date: new Date(2026, 9, 22, 8), time: "8:00 AM", hours: "2", minutes: "00" };
 const ASSIGNEES = [1, 2];
-const REASON =
-  "Walk-in cooler is not holding temperature. Kitchen staff reported it climbing above 45°F overnight, and product is at risk of spoiling.";
-const TECH = "Check in with the kitchen manager at the back entrance before starting. Bring a spare door gasket for a 48-inch walk-in.";
 
 const Demo = ({ mobile = false, running = false, press = false }: { mobile?: boolean; running?: boolean; press?: boolean }) => (
   <FormStoryFrame mobile={mobile} icon="calendar-lines-pen" press={press ? "Reschedule" : undefined}>
@@ -31,8 +27,6 @@ const Demo = ({ mobile = false, running = false, press = false }: { mobile?: boo
         onClose={close}
         scheduling={SCHEDULING}
         assignees={ASSIGNEES}
-        reason={REASON}
-        tech={TECH}
         runningSession={running ? "Working: 01:12:45" : null}
         onReschedule={close}
         mobile={mobile}

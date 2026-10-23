@@ -893,6 +893,28 @@ const JOBS_AT_ANCHOR: Job[] = [
     lastModifiedAt: "2026-08-29T09:00:00",
   },
   {
+    // An Upcoming job for the viewer (Lorne Riddle) — tomorrow morning.
+    id: "JOB-1215",
+    locationId: "wildwood-downtown",
+    serviceId: "range-burner",
+    serviceName: "Range burner repair",
+    status: "upcoming",
+    priority: 3,
+    scheduledFor: "2026-09-05T10:00:00",
+    durationMinutes: 90,
+    assigneeIds: [1],
+    equipmentIds: ["eq-wd-range"],
+    labelIds: ["cooking"],
+    type: "new",
+    branchId: "san-francisco",
+    sourceId: "direct",
+    receivedAt: "2026-09-03T11:20:00",
+    statusChangedAt: "2026-09-03T14:00:00",
+    statusChangedById: 1,
+    lastModifiedAt: "2026-09-03T14:00:00",
+    notes: "Two burners light slowly. Check the pilot assembly.",
+  },
+  {
     // The job's OWN contact: a night porter who is nobody's saved contact —
     // `isEphemeral` keeps him off the location's contact list.
     id: "JOB-1203",
@@ -2073,9 +2095,9 @@ export const JOB_SUB_STATUSES: JobSubStatusRecord[] = [
   { id: "sub-break", name: "Break", status: "quickPaused" },
   { id: "sub-lunch", name: "Lunch break", status: "quickPaused" },
   { id: "sub-another-call", name: "Pulled to another call", status: "quickPaused" },
-  { id: "sub-getting-parts", name: "Collecting parts", status: "quickPaused" },
+  { id: "sub-getting-parts", name: "Collecting parts", status: "quickPaused", reasonRequired: true, reasonLabel: "Which parts are you collecting?" },
 
-  { id: "sub-parts", name: "Waiting for parts", status: "onHoldExternal" },
+  { id: "sub-parts", name: "Waiting for parts", status: "onHoldExternal", reasonRequired: true, reasonLabel: "Which parts are you waiting for?" },
   { id: "sub-client-approval", name: "Waiting for client approval", status: "onHoldExternal" },
   { id: "sub-access", name: "Waiting for site access", status: "onHoldExternal" },
 
@@ -2193,7 +2215,7 @@ export const COMPANY: CompanySettings = {
   // asks for one when a job is paused or on hold, and NOT when it is active —
   // the tech's check-in status stands in for that (Daniel, 2026-10-04). The
   // active half of the feature is still built; it is simply off here.
-  subStatuses: { active: true, activeRequired: true, quickPaused: true, onHold: true },
+  subStatuses: { active: true, activeRequired: true, quickPaused: true, quickPausedRequired: true, onHold: true, onHoldRequired: true },
   // This company rounds logged time UP to the next 5 minutes (Daniel,
   // 2026-10-06 — he asked for the Timesheet's exact-time tooltips, and the
   // design only shows them for a company that rounds). Every duration on the

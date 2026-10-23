@@ -2,6 +2,7 @@ import { MouseEvent, useEffect, useState } from "react";
 
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
+import EmptyState from "../../components/EmptyState/EmptyState";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import Input from "../../components/Input/Input";
@@ -12,7 +13,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
-import { PauseType, STATUS_GROUPS } from "./PauseJobForm";
+import { PauseType, REASON_LIMIT, STATUS_ROWS } from "./PauseJobForm";
 
 
 import styles from "./jobForm.module.scss";
@@ -69,16 +70,35 @@ export default function ChangePauseStatusForm({
 
   const dirty = subStatus !== initialSubStatus || reason !== "";
 
-  // Sub-status is required (Type is always set — pre-selected).
+  // The reason follows the PICKED sub-status, the same rules as "Pause job" /
+  // "Hold job" (Daniel, 2026-10-23): required when it requires a reason, its
+  // own label replaces the default help text, and past 60 characters a warning
+  // replaces either — it never blocks the form.
+  const groups = STATUS_ROWS[type];
+  const picked = groups.flatMap((group) => group.rows).find((row) => row.name === subStatus);
+  const reasonRequired = picked?.reasonRequired === true;
+  const customHelp = picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : undefined;
+  const defaultHelp = held ? "Why do you need to hold this job?" : "Why do you need to pause this job?";
+  const tooLong = reason.length > REASON_LIMIT;
+  const reasonHelp = tooLong
+    ? `${reason.length} / ${REASON_LIMIT} characters. Keep it short. Add details to the job summary.`
+    : customHelp ?? defaultHelp;
+
+  // Sub-status stays required here, unlike the company setting the Pause /
+  // Hold dialogs follow: the job already carries one, so the field is never
+  // empty unless it was cleared.
+  const statusBad = subStatus === "";
+  const reasonBad = reasonRequired && reason.trim() === "";
+
   const submit = () => {
-    if (subStatus === "") {
+    if (statusBad || reasonBad) {
       setShowError(true);
       return;
     }
     onSubmit(type, subStatus, reason);
-    // Names the status, not the job (Figma 24101-16162, 2026-10-22). The held
-    // wording mirrors it — Figma has no On hold toast board.
-    toast({ type: "success", title: held ? "On hold status changed" : "Pause status changed" });
+    // Names the status, not the job (Figma 24101-16162 / held 24970-48577,
+    // 2026-10-23).
+    toast({ type: "success", title: held ? "Hold status changed" : "Pause status changed" });
     onClose();
   };
 
@@ -88,7 +108,7 @@ export default function ChangePauseStatusForm({
     <Dialog
       open={open}
       onClose={onClose}
-      title={held ? "Change job on hold status" : "Change job pause status"}
+      title={held ? "Change hold status" : "Change job pause status"}
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
@@ -110,35 +130,44 @@ export default function ChangePauseStatusForm({
         {/* No Pause-type RadioGroup (Daniel, 2026-10-05; Figma 24101-15722 /
             24970-48572): the job is already paused OR held, so the dialog
             changes the status WITHIN that — it does not switch between them. */}
-        <Input label={held ? "On hold status" : "Pause status"}>
+        <Input label={held ? "Hold status" : "Pause status"}>
           <SelectField
             value={subStatus || undefined}
-            isValid={!(showError && subStatus === "")}
-            errorMessage={held ? "Choose On hold status" : "Choose Pause status"}
+            isValid={!(showError && statusBad)}
+            errorMessage={held ? "Choose Hold status" : "Choose Pause status"}
             open={subStatusPop.open}
             onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
           />
         </Input>
 
         <Input
-          label={held ? "On hold reason" : "Pause reason"}
-          labelCondition="optional"
-          helpText={held ? "Why do you need to hold this job?" : "Why do you need to pause this job?"}
+          label={held ? "Hold reason" : "Pause reason"}
+          labelCondition={reasonRequired ? undefined : "optional"}
+          helpText={reasonHelp}
+          helpTextStatus={tooLong ? "warning" : undefined}
         >
-          <TextArea value={reason} onChange={(e) => setReason(e.target.value)} />
+          <TextArea value={reason} onChange={(e) => setReason(e.target.value)} isValid={!(showError && reasonBad)} />
         </Input>
       </div>
 
-      <SelectPopoverList pop={subStatusPop} mobile={mobile} title={held ? "On hold status" : "Pause status"} searchable searchPlaceholder="Status...">
+      <SelectPopoverList
+        pop={subStatusPop}
+        mobile={mobile}
+        title={held ? "Hold status" : "Pause status"}
+        searchable
+        searchPlaceholder="Status..."
+        noResultsState={<EmptyState caption="No statuses match" />}
+      >
         {/* The SAME grouping the "Pause job" / "Hold job" dialogs use (Daniel,
             2026-10-05) — one plain list for a quick-pause, two labelled groups
-            for on hold: "External" waits on the client, "Internal" on us. */}
-        {STATUS_GROUPS[type].map((group) => (
+            for on hold: "External" waits on the client, "Internal" on us. A
+            group shows only when it holds a status. */}
+        {groups.filter((group) => group.rows.length > 0).map((group) => (
           <SelectListItemGroup
             key={group.label ?? "all"}
             label={group.label == null ? undefined : <GroupLabel variant="secondary" label={group.label} />}
           >
-            {group.names.map((name) => (
+            {group.rows.map(({ name }) => (
               <SelectListItem
                 key={name}
                 label={name}
