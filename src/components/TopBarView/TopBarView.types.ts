@@ -10,8 +10,9 @@ export interface TopBarViewView {
   /**
    * How many objects the view holds — the objects its locked filter matches
    * (the whole phase for "All"). It is the view's TOTAL: the user's filters
-   * and the search never change it. Shown as the tab's counter on desktop
-   * only. Leave it out for a tab without a counter.
+   * and the search never change it. Desktop shows it as the tab's counter;
+   * mobile adds it to the end of the view name in the selector (the open list
+   * shows the names alone). Leave it out for a view without a counter.
    */
   count?: number;
 }

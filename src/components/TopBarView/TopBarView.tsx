@@ -196,7 +196,10 @@ export default function TopBarView({
     );
   }
 
-  const selectedLabel = views.find((v) => v.value === selectedView)?.label ?? "";
+  // The selector shows the counter as part of the view name — at its end, in
+  // the same text (Figma "All open 36"). The open list shows the names alone.
+  const selected = views.find((v) => v.value === selectedView);
+  const selectedLabel = selected == null ? "" : selected.count == null ? selected.label : `${selected.label} ${selected.count}`;
 
   return (
     <div className={clsx(styles.bar, className)}>
