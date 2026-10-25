@@ -2,11 +2,11 @@ import { useState } from "react";
 
 import Button from "../../components/Button/Button";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import { useDismiss } from "../../components/Popover/DismissContext";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import DismissCancelButton from "./DismissCancelButton";
 import { SelectPopover, SelectPopoverList } from "./selectPopover";
 
 // The "Labels" picker — THE one build of the "Labels" SelectList (Figma file
@@ -81,16 +81,6 @@ const EMPTY_CAPTION = (
   </>
 );
 
-/** The dialog's Cancel — asks through the overlay's own dismiss path, so it gets the same Prompt as the ×. */
-function CancelButton() {
-  const dismiss = useDismiss();
-  return (
-    <Button size="lg" variant="ghost" onClick={() => dismiss?.()}>
-      Cancel
-    </Button>
-  );
-}
-
 export default function LabelsSelectList({
   open,
   onClose,
@@ -158,7 +148,7 @@ export default function LabelsSelectList({
     inline || empty ? undefined : mobile ? (
       <PopoverFooter stretch>{apply}</PopoverFooter>
     ) : (
-      <PopoverFooter slotLeft={<CancelButton />}>{apply}</PopoverFooter>
+      <PopoverFooter slotLeft={<DismissCancelButton />}>{apply}</PopoverFooter>
     );
 
   const items = (

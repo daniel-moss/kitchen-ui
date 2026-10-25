@@ -2182,11 +2182,20 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // one Scheduling save (it moves the job to Unscheduled and logs the slot),
   // then keeps the reason as the status message — the Status module labels it
   // "Unschedule reason".
+  // Unscheduling checks out every assignee who is checked in (Figma
+  // 27245-62594) — the form's warning banner names them first.
   const unscheduleJob = (reason: string) => {
     confirmSchedule({ ...scheduling, date: null, time: "" });
     setJob((j) => ({ ...j, subStatus: undefined, statusMessage: reason, statusMessageLabel: "Unschedule reason" }));
     pushJobStatus(JOB_GLYPH.unscheduled, { text: " unscheduled the job", reason, reasonTitle: "Unschedule reason" });
+    if (checkedIn) {
+      setCheckedIn(false);
+      endActiveSession();
+      pushEvent({ kind: "checkout" });
+    }
   };
+  // Who the "Unschedule job" banner names: assignees with a running session.
+  const checkedInNames = assigneeUsers.filter((u) => (sessionsByUser[u.id] ?? []).some((s) => s.active)).map((u) => u.name);
 
   // "Reschedule job" (Figma 27091-45839): the new slot, the job's details and
   // the team, then the job goes back to UPCOMING with the reschedule reason as
@@ -2355,6 +2364,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     setRescheduleOpen,
     rescheduleJob,
     unscheduleJob,
+    checkedInNames,
     // Start / Resume: the check in / out choice is for an ASSIGNEE who is not
     // checked in yet (Figma 27163-52433).
     showCheckIn: assignees.includes(viewer.id) && !checkedIn,
@@ -2539,6 +2549,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.unscheduleOpen}
       onClose={() => s.setUnscheduleOpen(false)}
       onUnschedule={s.unscheduleJob}
+      checkedIn={s.checkedInNames}
       mobile={mobile}
     />
     <Prompt

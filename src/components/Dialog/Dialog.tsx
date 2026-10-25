@@ -349,7 +349,11 @@ export default function Dialog(props: DialogProps) {
             fillHeight={fillHeight}
             open={visible}
             onClose={attemptDismiss}
-            dismissible={!requireConfirm}
+            // Unsaved changes do not lock the swipe: the sheet springs back
+            // and the swipe ASKS through attemptDismiss, like the scrim and
+            // Cancel (Daniel, 2026-10-25 — same as the Labels list). While an
+            // action runs it springs back too, since attemptDismiss refuses.
+            swipeAsks={requireConfirm || isProcessing}
             header={header}
             footer={footerRegion}
           >

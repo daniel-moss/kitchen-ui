@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import TextArea from "../../components/Fields/TextArea/TextArea";
@@ -7,23 +8,42 @@ import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import { toast } from "../../components/Toast/Toaster";
 
-import textDialog from "../shared/textDialog.module.scss";
+import DismissCancelButton from "../shared/DismissCancelButton";
 
 interface UnscheduleJobFormProps {
   open: boolean;
   onClose: () => void;
   /** Unschedules the job with the (required) reason. */
   onUnschedule: (reason: string) => void;
+  /**
+   * Names of the assignees who are checked in right now. Unscheduling checks
+   * them all out, so a non-empty list shows the warning banner naming them.
+   */
+  checkedIn?: string[];
   mobile?: boolean;
 }
+
+// "Ann", "Ann and Bo", "Ann, Bo, and Cy" — US serial comma (Daniel, 2026-10-25).
+const nameList = (names: string[]) =>
+  names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
 
 // "Unschedule job" (Figma 27154-49578) — opened by the "Unschedule" menu item.
 // It replaced the "Unschedule job?" Prompt on 2026-10-22: the user now says
 // WHY, and the reason becomes the Status module's message ("Unschedule
-// reason"). Its body is ONE required TextArea, so it is a TEXT DIALOG like
-// "Cancel job": on mobile the drawer fills the screen and the field with it.
+// reason"). Its body is ONE required TextArea — but NOT a text dialog: on
+// mobile the drawer hugs its content and the field keeps its default size,
+// and the drawer has a drag handle instead of the close button (Daniel,
+// 2026-10-25, Figma DrawerHeader dragHandle on, close off). Below the field, a warning AlertBanner (Figma 27245-62594, added 2026-10-25)
+// names whoever is still checked in — unscheduling checks them out, which
+// stops their time. No cap on the names: Daniel, a job rarely has many.
 // "Unschedule" clears "Scheduled for", closes, and toasts "Job unscheduled".
-export default function UnscheduleJobForm({ open, onClose, onUnschedule, mobile = false }: UnscheduleJobFormProps) {
+export default function UnscheduleJobForm({
+  open,
+  onClose,
+  onUnschedule,
+  checkedIn = [],
+  mobile = false,
+}: UnscheduleJobFormProps) {
   const [reason, setReason] = useState("");
   // Validated on the "Unschedule" click; typing clears the error.
   const [showError, setShowError] = useState(false);
@@ -50,15 +70,11 @@ export default function UnscheduleJobForm({ open, onClose, onUnschedule, mobile 
       onClose={onClose}
       title="Unschedule job"
       breakpoint={mobile ? "mobile" : "desktop"}
-      fillHeight
+      drawerHeader="default"
       confirmOnDismiss={reason !== ""}
       footer={
         <PopoverFooter
-          leadingButton={
-            <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          }
+          leadingButton={<DismissCancelButton />}
         >
           <Button size="lg" variant="solid" leftIcon="calendar-xmark" onClick={unschedule}>
             Unschedule
@@ -66,13 +82,10 @@ export default function UnscheduleJobForm({ open, onClose, onUnschedule, mobile 
         </PopoverFooter>
       }
     >
-      {/* The help text follows the field's own doc (27154-49599): "…to be
-          unscheduled?" — the dialog frames still say "rescheduled". The error
-          is the Input's default, "Provide Unschedule reason". */}
+      {/* The error is the Input's default, "Provide Unschedule reason". */}
       <Input
         label="Unschedule reason"
         helpText="Why does this job need to be unscheduled?"
-        className={mobile ? textDialog.fillField : undefined}
       >
         <TextArea
           value={reason}
@@ -83,6 +96,11 @@ export default function UnscheduleJobForm({ open, onClose, onUnschedule, mobile 
           isValid={!showError}
         />
       </Input>
+      {checkedIn.length > 0 && (
+        <AlertBanner type="card" status="warning" orientation="vertical">
+          {`${nameList(checkedIn)} ${checkedIn.length === 1 ? "is" : "are"} checked in. Unscheduling will check them out.`}
+        </AlertBanner>
+      )}
     </Dialog>
   );
 }
