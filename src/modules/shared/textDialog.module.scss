@@ -1,6 +1,6 @@
-// The "text dialog" — a Dialog whose body is ONE TextArea. Shared by
-// EditNotesDialog and the Job Details "Cancel job" form (Figma 24047-12610),
-// which is the same shape. The Text-Area form's two height rules (its Figma
+// The "text dialog" — a Dialog whose body is ONE TextArea, e.g.
+// EditNotesDialog. (The Job Details "Cancel job" and "Unschedule job" forms
+// left it on 2026-10-25: their mobile drawers hug their content.) The Text-Area form's two height rules (its Figma
 // doc):
 //
 //   Desktop — "Minimum text area height on desktop is 12 rows." The DS

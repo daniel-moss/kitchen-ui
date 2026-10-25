@@ -1,4 +1,4 @@
-// The Cancel job body when the products block sits above the reason.
+// The Cancel job body: the reason, then the products block when there is one.
 .body {
   display: flex;
   flex-direction: column;

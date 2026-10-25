@@ -918,6 +918,9 @@ const JOBS_AT_ANCHOR: Job[] = [
     // The job's OWN contact: a night porter who is nobody's saved contact —
     // `isEphemeral` keeps him off the location's contact list.
     id: "JOB-1203",
+    // Gasket + hinge kit quoted up front: two inventory products, and the
+    // hinge's product has no description (the Cancel job "No Description" row).
+    lineItemsAddedEarly: true,
     locationId: "northpoint-hotel",
     serviceId: "freezer-seal",
     serviceName: "Walk-in freezer door repair",
