@@ -8,8 +8,8 @@ export interface SelectListEmptyState {
   icon?: string;
   /** e.g. "No clients here yet". Omit for a caption-only state. */
   title?: string;
-  /** e.g. "Add a client to see it here". */
-  caption?: string;
+  /** e.g. "Add a client to see it here". A node, so a two-line caption can break where the design breaks it. */
+  caption?: ReactNode;
   /** Optional "Add …" action — a subtle button with a plus icon. */
   actionLabel?: string;
   onAction?: () => void;
@@ -108,20 +108,40 @@ interface SelectListBaseProps {
    */
   autoFocusSearch?: boolean;
   /**
-   * Turn the searchable "no results" state into a create action — a MenuItem
-   * `<label> "query"` with a plus icon (Figma "Create new label"). Clicking
-   * calls `onCreate` with the trimmed query and clears the search, returning
-   * to the full list (the consumer adds the new option, usually selected).
+   * Turn the searchable "no results" state into a create action (Figma
+   * "Labels" SelectList, No Match, 12921-7071 — redesigned 2026-10-25): the
+   * body shows a caption-only EmptyState (`noMatchCaption`) and the FOOTER is
+   * replaced by a menuItem SelectListFooter whose MenuItem — plus icon, shown
+   * hovered from the start — reads `<label> <query>`, updating as you type.
+   * Clicking it (or Enter in the search) calls `onCreate` with the trimmed
+   * query and clears the search, returning to the full list (the consumer
+   * adds the new option, usually selected). The consumer's `footer` returns
+   * with the list.
    */
   createFromSearch?: {
     /**
-     * The row's text. A string reads `<label> "query"`; a function writes the
-     * whole sentence itself, for copy where the query sits mid-sentence
-     * (Job Details' `Add "query" to Pricebook`, Figma 27083-31232).
+     * The row's text. A string reads `<label> <query>` ("Create new label:
+     * Fryer"); a function writes the whole sentence itself, for copy where the
+     * query sits mid-sentence (Job Details' `Add "query" to Pricebook`, Figma
+     * 27083-31232).
      */
     label: string | ((query: string) => string);
     onCreate: (query: string) => void;
+    /** The body caption above the create row, e.g. "No labels match". Default "No matches". */
+    noMatchCaption?: string;
   };
+  /**
+   * Dismissing (close ×, scrim, Escape, a Cancel that uses `useDismiss`)
+   * shows the "Discard changes?" Prompt instead of closing — pass it only
+   * while there ARE unsaved picks, like Dialog's prop of the same name. In
+   * the drawer a swipe down asks too: the sheet springs back and the Prompt
+   * shows (Popover `swipeAsks`; Figma "Labels" SelectList, Daniel
+   * 2026-10-25). Ignored by the inline card,
+   * which applies its picks on close. Default false.
+   */
+  confirmOnDismiss?: boolean;
+  /** Copy overrides for the dismiss Prompt. */
+  dismissPrompt?: { title?: string; body?: string; cancelLabel?: string; actionLabel?: string };
   /** Presentation: auto (viewport) / desktop / mobile. Default "auto". */
   breakpoint?: Breakpoint;
   className?: string;

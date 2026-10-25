@@ -1,7 +1,6 @@
 import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import AlertBanner from "../../components/AlertBanner/AlertBanner";
-import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import EmptyState from "../../components/EmptyState/EmptyState";
@@ -19,6 +18,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import LabelsField from "../shared/LabelsField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import {
@@ -121,11 +121,8 @@ export default function NewLaborRateFormArchive({
   // the dialog ignores every dismissal until the request answers.
   const [submitting, setSubmitting] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  // Local so a label created in the flow can join it; re-seeded on every open.
-  const [pool, setPool] = useState<string[]>(labelPool);
 
   const subtypePop = useSelectPopover(mobile);
-  const labelsPop = useSelectPopover(mobile);
   const accountPop = useSelectPopover(mobile);
 
   // A fresh form every time it opens — this one creates a record, it does not
@@ -150,7 +147,6 @@ export default function NewLaborRateFormArchive({
     setTouched({ rate: false, fixed: false, percent: false });
     setSubmitAttempt(0);
     setSubmitting(false);
-    setPool(labelPool);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -240,20 +236,6 @@ export default function NewLaborRateFormArchive({
     labels.length > 0 ||
     description.trim() !== "" ||
     notes.trim() !== "";
-
-  // THE LAYOUT-FREEZE RULE: the badge row grows BELOW the field, which would
-  // push the field out from under the open card.
-  const shownLabels = labelsPop.freeze(labels);
-
-  const toggleLabel = (label: string) =>
-    setLabels((prev) => (prev.includes(label) ? prev.filter((row) => row !== label) : [...prev, label]));
-
-  const createLabel = (query: string) => {
-    const label = query.trim();
-    if (label === "" || pool.includes(label)) return;
-    setPool((prev) => [...prev, label]);
-    setLabels((prev) => [...prev, label]);
-  };
 
   const create = async () => {
     if (blocked) {
@@ -545,26 +527,7 @@ export default function NewLaborRateFormArchive({
 
           <FormModule title="Additional">
             <Input label="Labels" labelCondition="optional">
-              <>
-                <SelectField
-                  value={labels.length === 1 ? labels[0] : undefined}
-                  multiSelect
-                  count={labels.length}
-                  multiSelectLabel="Labels selected"
-                  onClearSelection={() => setLabels([])}
-                  open={labelsPop.open}
-                  onClick={(event: MouseEvent<HTMLDivElement>) => labelsPop.toggle(event.currentTarget)}
-                />
-                {shownLabels.length > 0 && (
-                  <div className={styles.labelRow}>
-                    {shownLabels.map((label) => (
-                      <Badge key={label} size="lg" isDismissable onDismiss={() => toggleLabel(label)}>
-                        {label}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </>
+              <LabelsField value={labels} onChange={setLabels} pool={labelPool} mobile={mobile} />
             </Input>
 
             {/* Production's `summary_template` — the summary every line item
@@ -701,24 +664,6 @@ export default function NewLaborRateFormArchive({
         </SelectPopoverList>
       )}
 
-      {/* The shared Labels picker — header, create-from-search, no footer. */}
-      <SelectPopoverList
-        pop={labelsPop}
-        mobile={mobile}
-        title="Labels"
-        multiSelect
-        searchable
-        searchPlaceholder="Label..."
-        createFromSearch={{ label: "Create new label:", onCreate: createLabel }}
-        state={pool.length === 0 ? "empty" : "default"}
-        emptyState={{ icon: "tag", title: "No labels here yet", caption: "Start typing to create a new label" }}
-      >
-        <SelectListItemGroup>
-          {pool.map((label) => (
-            <SelectListItem key={label} label={label} multiSelect selected={labels.includes(label)} onClick={() => toggleLabel(label)} />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
     </>
   );
 }

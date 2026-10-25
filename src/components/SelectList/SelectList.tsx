@@ -25,6 +25,9 @@ import PopoverHeaderText from "../Popover/PopoverHeaderText";
 import EmptyState from "../EmptyState/EmptyState";
 import { Icon } from "../Icon/Icon";
 import MenuItem from "../Menu/MenuItem";
+import Prompt from "../Prompt/Prompt";
+import { DismissContext } from "../Popover/DismissContext";
+import SelectListFooter from "./SelectListFooter";
 import ScrollArea from "../ScrollArea/ScrollArea";
 import SelectListHeader from "./SelectListHeader";
 import { withGroupDividers } from "../../utils/groupDividers";
@@ -127,6 +130,8 @@ export default function SelectList({
   noResultsState,
   autoFocusSearch = false,
   createFromSearch,
+  confirmOnDismiss = false,
+  dismissPrompt,
   breakpoint = "auto",
   className,
   style,
@@ -281,10 +286,55 @@ export default function SelectList({
     return () => clearInterval(timer);
   }, [open, hasHeader, isDrawer, autoFocusSearch]);
 
+  // ---- create-from-search: the row replaces the footer while nothing matches ----
+  // (Figma "Labels" SelectList, No Match 12921-7071, 2026-10-25). The MenuItem
+  // is drawn hovered from the start — it is the one thing Enter will do.
+  const showCreate = createFromSearch != null && searchable && count === 0 && query.trim() !== "";
+  const create = () => {
+    if (createFromSearch == null) return;
+    createFromSearch.onCreate(query.trim());
+    setQuery("");
+  };
+  const effectiveFooter = showCreate ? (
+    <SelectListFooter>
+      <MenuItem
+        className={styles.createItem}
+        // A string label is split in two colors (Daniel, 2026-10-25): the
+        // prompt in --text-subtle, the typed value in --text-strong.
+        label={
+          typeof createFromSearch.label === "function" ? (
+            createFromSearch.label(query.trim())
+          ) : (
+            <>
+              <span className={styles.createPrompt}>{createFromSearch.label}</span>{" "}
+              <span className={styles.createValue}>{query.trim()}</span>
+            </>
+          )
+        }
+        slotLeft={<Icon icon="plus" pack="regular" size={14} container="square" />}
+        onClick={create}
+      />
+    </SelectListFooter>
+  ) : (
+    footer
+  );
+
+  // ---- the "Discard changes?" guard (drawer; the dialog delegates to Dialog) ----
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => {
+    if (!open) setConfirming(false);
+  }, [open]);
+  // Only the drawer asks here: the dialog hands the flag to Dialog, and the
+  // inline card applies its picks on close, so it never asks.
+  const attemptDismiss = () => {
+    if (confirmOnDismiss && isDrawer) setConfirming(true);
+    else onClose?.();
+  };
+
   // Escape closes the list; focus returns to the trigger. The dialog variant
   // gets both from Dialog itself, so it is excluded here.
   const usesDialog = variant === "dialog" && isDesktop;
-  useEscapeKey(open && !usesDialog, onClose);
+  useEscapeKey(open && !usesDialog && !confirming, attemptDismiss);
   useRestoreFocus(open && !usesDialog && restoreFocus);
 
   // Arrow keys (plus Home/End) move focus through the options, skipping
@@ -301,6 +351,12 @@ export default function SelectList({
     // Enter while the search (not an option) has focus selects the highlighted
     // first result (item 1). A focused option handles its own Enter.
     if (e.key === "Enter") {
+      // No match + a create action: Enter creates, like clicking the row.
+      if (showCreate) {
+        e.preventDefault();
+        create();
+        return;
+      }
       if (options.some((o) => o === document.activeElement)) return;
       const hl = options.find((o) => o.getAttribute("data-highlight") === "true");
       if (hl != null) {
@@ -359,19 +415,9 @@ export default function SelectList({
       />
     ) : effectiveState === "noResults" ? (
       createFromSearch != null ? (
-        // The creatable variant (Figma "Create new label"): the no-match state
-        // offers to create the searched value instead of a dead end.
-        <div className={styles.createRow}>
-          <MenuItem
-            label={typeof createFromSearch.label === "function" ? createFromSearch.label(query.trim()) : createFromSearch.label}
-            tag={typeof createFromSearch.label === "function" ? undefined : `"${query.trim()}"`}
-            slotLeft={<Icon icon="plus" pack="regular" size={14} container="square" />}
-            onClick={() => {
-              createFromSearch.onCreate(query.trim());
-              setQuery("");
-            }}
-          />
-        </div>
+        // The creatable variant: a caption-only "no match" body — the create
+        // row itself takes the FOOTER's place (see `effectiveFooter`).
+        <EmptyState caption={createFromSearch.noMatchCaption ?? "No matches"} />
       ) : (
         // A consumer-supplied block wins over the built-in one — see
         // `noResultsState`.
@@ -405,12 +451,14 @@ export default function SelectList({
         <Dialog
           open={open}
           onClose={onClose ?? noop}
+          confirmOnDismiss={confirmOnDismiss}
+          dismissPrompt={dismissPrompt}
           title={title ?? ""}
           caption={caption}
           breakpoint="desktop"
           bodyPadded={false}
           subHeader={searchHeader != null ? <div ref={headerRef} onKeyDown={handleListKeyDown}>{searchHeader}</div> : undefined}
-          footer={footer}
+          footer={effectiveFooter}
           cardStyle={{ maxHeight: "min(1000px, 80vh)" }}
           className={className}
         >
@@ -425,6 +473,7 @@ export default function SelectList({
     if (!mounted) return null;
     return (
       <SelectListContext.Provider value={context}>
+        <DismissContext.Provider value={onClose ?? noop}>
         <div
           ref={cardRef}
           className={clsx(styles.card, visible && styles.cardOpen, className)}
@@ -437,8 +486,9 @@ export default function SelectList({
             </div>
           )}
           <ScrollArea wrapperClassName={styles.body}>{body}</ScrollArea>
-          {footer != null && <div className={styles.footer}>{footer}</div>}
+          {effectiveFooter != null && <div className={styles.footer}>{effectiveFooter}</div>}
         </div>
+        </DismissContext.Provider>
       </SelectListContext.Provider>
     );
   }
@@ -465,17 +515,34 @@ export default function SelectList({
 
   return (
     <SelectListContext.Provider value={context}>
+      <DismissContext.Provider value={attemptDismiss}>
       <Popover
         drawer
         open={open}
-        onClose={onClose}
+        onClose={attemptDismiss}
+        swipeAsks={confirmOnDismiss}
         header={drawerHeader}
-        footer={footer}
+        footer={effectiveFooter}
         className={clsx(className, hasHeader && styles.drawerFull)}
         style={style}
       >
         {body}
       </Popover>
+      </DismissContext.Provider>
+      <Prompt
+        open={confirming}
+        title={dismissPrompt?.title ?? "Discard changes?"}
+        body={dismissPrompt?.body ?? "Your changes will be lost if you leave now."}
+        cancelLabel={dismissPrompt?.cancelLabel ?? "Keep editing"}
+        onCancel={() => setConfirming(false)}
+        actionLabel={dismissPrompt?.actionLabel ?? "Discard"}
+        actionVariant="danger"
+        onAction={() => {
+          setConfirming(false);
+          onClose?.();
+        }}
+        breakpoint={breakpoint}
+      />
     </SelectListContext.Provider>
   );
 }

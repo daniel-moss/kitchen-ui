@@ -26,7 +26,9 @@ const textFieldFocused = (node: Element | null) =>
 // compatibility mouse events altogether — including the click we need.
 // The option rows need none of this; SelectListItem already activates on
 // pointerup, which is why they keep working while this button did not.
-const keepFocusThroughTap = (e: ReactMouseEvent<HTMLDivElement>) => {
+// Exported for the other footer that sits under a search field — the
+// SelectListFooter menuItem variant (the "Create new label" row).
+export const keepFocusThroughTap = (e: ReactMouseEvent<HTMLDivElement>) => {
   // Only while a keyboard is actually up, so ordinary footers behave as before.
   if (!textFieldFocused(document.activeElement)) return;
   // …and never swallow a tap meant to focus a field inside the footer itself.

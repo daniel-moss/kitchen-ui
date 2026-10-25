@@ -32,7 +32,7 @@ import HistoryModule from "./modules/HistoryModule";
 import LocationModule from "./modules/LocationModule";
 import WarrantiesModule from "./modules/WarrantiesModule";
 import { EquipmentPanelProps, EquipmentPanelTab } from "./EquipmentPanel.types";
-import { EQUIPMENT_LABELS, Warranty, warrantyCoverageOf } from "../../data/db";
+import { addEquipmentLabel, EQUIPMENT_LABELS, Warranty, warrantyCoverageOf } from "../../data/db";
 
 import styles from "./EquipmentPanel.module.scss";
 
@@ -373,6 +373,10 @@ export default function EquipmentPanel({
         labels={data.labels}
         pool={EQUIPMENT_LABELS.map((label) => label.name)}
         onSave={async (labels) => {
+          // A label created in the picker becomes a real label of the
+          // workspace: the record keeps label IDS, so a name the table does
+          // not know would be dropped on save (Daniel, 2026-10-25).
+          labels.forEach(addEquipmentLabel);
           // A failed save keeps the list open with the picks intact.
           if ((await onSaveLabels?.(labels)) === false) {
             toast({ type: "error", variant: "detailed", title: 'Couldn\'t update "Labels" module', caption: SOMETHING_WENT_WRONG });

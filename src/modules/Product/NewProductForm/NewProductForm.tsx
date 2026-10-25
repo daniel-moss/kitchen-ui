@@ -3,7 +3,6 @@ import { MouseEvent, useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 
 import AlertBanner from "../../../components/AlertBanner/AlertBanner";
-import Badge from "../../../components/Badge/Badge";
 import Button from "../../../components/Button/Button";
 import Dialog from "../../../components/Dialog/Dialog";
 import EmptyState from "../../../components/EmptyState/EmptyState";
@@ -25,6 +24,7 @@ import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import { DimensionUnit, WeightUnit } from "../../../data/db/types";
 import useIsDesktop from "../../../hooks/useIsDesktop";
+import LabelsField from "../../shared/LabelsField";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
 import AccountField, { accountValue } from "./AccountField";
@@ -194,20 +194,13 @@ export default function NewProductForm({
   const [submitAttempt, setSubmitAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  const [pool, setPool] = useState<string[]>(labelPool);
 
   const subtypePop = useSelectPopover(mobile);
-  const labelsPop = useSelectPopover(mobile);
   // "Hugs the content" — a 59px trigger must not squeeze the list, so the
   // card takes its natural width and hangs from the trigger's right edge.
   const dimensionUnitPop = useSelectPopover(mobile, "belowEnd");
   const weightUnitPop = useSelectPopover(mobile, "belowEnd");
 
-  useEffect(() => {
-    if (!open) return;
-    setPool(labelPool);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
 
   // Scroll to the first thing that blocked Create.
   useEffect(() => {
@@ -324,20 +317,6 @@ export default function NewProductForm({
     !isBlank(weight) ||
     description.trim() !== "" ||
     notes.trim() !== "";
-
-  // THE LAYOUT-FREEZE RULE: the badge row grows BELOW the field, which would
-  // push it out from under the open card.
-  const shownLabels = labelsPop.freeze(labels);
-
-  const toggleLabel = (label: string) =>
-    setLabels((prev) => (prev.includes(label) ? prev.filter((row) => row !== label) : [...prev, label]));
-
-  const createLabel = (query: string) => {
-    const label = query.trim();
-    if (label === "" || pool.includes(label)) return;
-    setPool((prev) => [...prev, label]);
-    setLabels((prev) => [...prev, label]);
-  };
 
   const subtypeName = subtypes.find((row) => row.id === subtypeId)?.name;
   // Required + exactly one option: it is chosen for the user, read-only.
@@ -508,26 +487,7 @@ export default function NewProductForm({
                 ))}
 
               <Input label="Labels" labelCondition="optional">
-                <>
-                  <SelectField
-                    value={labels.length === 1 ? labels[0] : undefined}
-                    multiSelect
-                    count={labels.length}
-                    multiSelectLabel="Labels selected"
-                    onClearSelection={() => setLabels([])}
-                    open={labelsPop.open}
-                    onClick={(event: MouseEvent<HTMLDivElement>) => labelsPop.toggle(event.currentTarget)}
-                  />
-                  {shownLabels.length > 0 && (
-                    <div className={styles.labelRow}>
-                      {shownLabels.map((label) => (
-                        <Badge key={label} size="lg" isDismissable onDismiss={() => toggleLabel(label)}>
-                          {label}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </>
+                <LabelsField value={labels} onChange={setLabels} pool={labelPool} mobile={mobile} />
               </Input>
 
               {/* One row on desktop (280 + 16 + 280 in the node), stacked on a phone. */}
@@ -968,23 +928,6 @@ export default function NewProductForm({
         </SelectListItemGroup>
       </SelectPopoverList>
 
-      <SelectPopoverList
-        pop={labelsPop}
-        mobile={mobile}
-        title="Labels"
-        multiSelect
-        searchable
-        searchPlaceholder="Label..."
-        createFromSearch={{ label: "Create new label:", onCreate: createLabel }}
-        state={pool.length === 0 ? "empty" : "default"}
-        emptyState={{ icon: "tag", title: "No labels here yet", caption: "Start typing to create a new label" }}
-      >
-        <SelectListItemGroup>
-          {pool.map((label) => (
-            <SelectListItem key={label} label={label} multiSelect selected={labels.includes(label)} onClick={() => toggleLabel(label)} />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
 
       <SelectPopoverList pop={dimensionUnitPop} mobile={mobile} title="Dimensions unit">
         <SelectListItemGroup>

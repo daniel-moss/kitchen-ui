@@ -1,7 +1,6 @@
 import { MouseEvent, useEffect, useRef, useState } from "react";
 
 import AlertBanner from "../../components/AlertBanner/AlertBanner";
-import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import EmptyState from "../../components/EmptyState/EmptyState";
@@ -16,12 +15,11 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import LabelsField from "../shared/LabelsField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import { isRateText, MAX_NAME, NAME_COUNTER_FROM, rateIssue } from "./rateRules";
 import { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateForm.types";
-
-import styles from "./NewTaxRateForm.module.scss";
 
 // The reusable "New tax rate" form (Figma file dxBs07gWILPa0dhg04fjDR, section
 // 1-7817 — Desktop 1-7818 / Mobile 1-7826): a Dialog titled "New tax rate"
@@ -77,14 +75,10 @@ export default function NewTaxRateForm({
   // dialog ignores every dismissal until the request answers.
   const [submitting, setSubmitting] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
-  // Local so a label created in the flow can join it; re-seeded on every open.
-  const [pool, setPool] = useState<string[]>(labelPool);
 
-  // Both pickers are anchored lists under their field (desktop) / drawers
-  // (mobile), per the "Labels" Select List documentation: header=true,
-  // footer=FALSE. Picks apply live — there is nothing to confirm.
+  // The vendor picker is an anchored list under its field (desktop) / a
+  // drawer (mobile). Labels bring their own (the shared LabelsField).
   const vendorPop = useSelectPopover(mobile);
-  const labelsPop = useSelectPopover(mobile);
 
   // A fresh form every time it opens — this one creates a record, it does not
   // edit one, so there is nothing to re-read.
@@ -101,7 +95,6 @@ export default function NewTaxRateForm({
     setRateTouched(false);
     setSubmitAttempt(0);
     setSubmitting(false);
-    setPool(labelPool);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -136,22 +129,6 @@ export default function NewTaxRateForm({
   // into state, so the field cannot hold a value the rules could not judge.
   const changeRate = (value: string) => {
     if (isRateText(value)) setRate(value);
-  };
-
-  // THE LAYOUT-FREEZE RULE: the badge row grows BELOW the field, which would
-  // push the field out from under the open card. The frozen copy syncs when the
-  // list closes.
-  const shownLabels = labelsPop.freeze(labels);
-
-  const toggleLabel = (label: string) =>
-    setLabels((prev) => (prev.includes(label) ? prev.filter((row) => row !== label) : [...prev, label]));
-
-  // Create-from-search: the new label joins the pool AND becomes selected.
-  const createLabel = (query: string) => {
-    const label = query.trim();
-    if (label === "" || pool.includes(label)) return;
-    setPool((prev) => [...prev, label]);
-    setLabels((prev) => [...prev, label]);
   };
 
   const create = async () => {
@@ -255,28 +232,7 @@ export default function NewTaxRateForm({
 
             <FormModule title="Additional">
               <Input label="Labels" labelCondition="optional">
-                <>
-                  <SelectField
-                    value={labels.length === 1 ? labels[0] : undefined}
-                    multiSelect
-                    count={labels.length}
-                    multiSelectLabel="Labels selected"
-                    onClearSelection={() => setLabels([])}
-                    open={labelsPop.open}
-                    onClick={(event: MouseEvent<HTMLDivElement>) => labelsPop.toggle(event.currentTarget)}
-                  />
-                  {/* The picked labels, as dismissible lg badges under the
-                      field (the doc's "Selected Labels" frame). */}
-                  {shownLabels.length > 0 && (
-                    <div className={styles.labelRow}>
-                      {shownLabels.map((label) => (
-                        <Badge key={label} size="lg" isDismissable onDismiss={() => toggleLabel(label)}>
-                          {label}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </>
+                <LabelsField value={labels} onChange={setLabels} pool={labelPool} mobile={mobile} />
               </Input>
 
               {/* RENAMED from "Summary template" 2026-10-07, and the label hint
@@ -377,28 +333,6 @@ export default function NewTaxRateForm({
         </SelectPopoverList>
       )}
 
-      {/* The Labels picker, exactly as the "Labels" Select List file documents
-          it: inline under the field on desktop, a drawer on mobile, a search
-          header, create-from-search, and NO footer — every tick applies at
-          once. (The side panel's module opens the DIALOG version instead; that
-          one saves to a record, so it has Cancel / Save.) */}
-      <SelectPopoverList
-        pop={labelsPop}
-        mobile={mobile}
-        title="Labels"
-        multiSelect
-        searchable
-        searchPlaceholder="Label..."
-        createFromSearch={{ label: "Create new label:", onCreate: createLabel }}
-        state={pool.length === 0 ? "empty" : "default"}
-        emptyState={{ icon: "tag", title: "No labels here yet", caption: "Start typing to create a new label" }}
-      >
-        <SelectListItemGroup>
-          {pool.map((label) => (
-            <SelectListItem key={label} label={label} multiSelect selected={labels.includes(label)} onClick={() => toggleLabel(label)} />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
     </>
   );
 }

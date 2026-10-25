@@ -1,6 +1,6 @@
 import clsx from "clsx";
 
-import PopoverFooter from "../Popover/PopoverFooter";
+import PopoverFooter, { keepFocusThroughTap } from "../Popover/PopoverFooter";
 import { Divider } from "../Divider/Divider";
 
 import styles from "./SelectListFooter.module.scss";
@@ -23,7 +23,10 @@ export default function SelectListFooter(props: SelectListFooterProps) {
 
   const { children, className } = props;
   return (
-    <div className={clsx(styles.footer, className)}>
+    // Same keyboard guard as PopoverFooter: a tap while the search keyboard is
+    // up must hit the row, not just close the keyboard (Daniel, 2026-10-25 —
+    // "Create new label" needed two taps in the drawer).
+    <div className={clsx(styles.footer, className)} onMouseDown={keepFocusThroughTap}>
       <Divider contrast="medium" />
       <div className={styles.items}>{children}</div>
     </div>

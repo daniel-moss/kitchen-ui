@@ -1,6 +1,5 @@
 import { MouseEvent, useEffect, useState } from "react";
 
-import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import DateField from "../../components/Fields/DateField/DateField";
@@ -16,11 +15,10 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import LabelsField from "../shared/LabelsField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { EQUIPMENT_CATEGORIES, EQUIPMENT_TYPES, LABEL_POOL, OWNERSHIP_TYPES } from "./data";
 import { NewEquipmentFormProps } from "./NewEquipmentForm.types";
-
-import styles from "./NewEquipmentForm.module.scss";
 
 // NewEquipmentForm — the reusable "New equipment" form (Figma 21897-7658):
 // a Dialog titled "New equipment" with the owning location in the header
@@ -30,9 +28,8 @@ import styles from "./NewEquipmentForm.module.scss";
 // Category, Type and Ownership are single-select lists anchored under their
 // field (mobile: drawer). The TYPE list follows the chosen CATEGORY — every
 // type belongs to one category — so changing the category clears the type.
-// Labels are the same multi-select list as the New-location form (search +
-// "Create new label"), opened under the Label field, and the picked labels are
-// also shown as dismissible badges below it.
+// Labels are the shared LabelsField (field + dismissible badges + the shared
+// "Labels" SelectList), like every other form.
 export default function NewEquipmentForm({
   open,
   onClose,
@@ -53,14 +50,12 @@ export default function NewEquipmentForm({
   const [area, setArea] = useState("");
   const [installDate, setInstallDate] = useState<Date | null>(null);
   const [labels, setLabels] = useState<string[]>([]);
-  const [labelPool, setLabelPool] = useState<string[]>(LABEL_POOL);
   const [notes, setNotes] = useState("");
   const [showErrors, setShowErrors] = useState(false);
 
   const categoryPop = useSelectPopover(mobile);
   const typePop = useSelectPopover(mobile);
   const ownershipPop = useSelectPopover(mobile);
-  const labelsPop = useSelectPopover(mobile);
 
   // Fresh form every open.
   useEffect(() => {
@@ -75,7 +70,6 @@ export default function NewEquipmentForm({
     setArea("");
     setInstallDate(null);
     setLabels([]);
-    setLabelPool(LABEL_POOL);
     setNotes("");
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,7 +80,6 @@ export default function NewEquipmentForm({
     categoryPop.close();
     typePop.close();
     ownershipPop.close();
-    labelsPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -99,24 +92,6 @@ export default function NewEquipmentForm({
   };
 
   const categoryTypes = category === "" ? [] : (EQUIPMENT_TYPES[category] ?? []);
-
-  // Picks apply LIVE (the field's counter updates as you tick), but the CHIPS
-  // row follows the shared layout-freeze rule — it syncs when the list closes,
-  // so a growing chips row never moves the field out from under the open card.
-  const shownLabels = labelsPop.freeze(labels);
-
-  const openLabels = (e: MouseEvent<HTMLDivElement>) => labelsPop.toggle(e.currentTarget);
-
-  const toggleLabel = (label: string) =>
-    setLabels((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
-
-  // Create-from-search (Figma "Create new label"): the new label joins the pool
-  // AND becomes selected; the list returns to its full state.
-  const createLabel = (query: string) => {
-    if (query === "" || labelPool.includes(query)) return;
-    setLabelPool((prev) => [...prev, query]);
-    setLabels((prev) => [...prev, query]);
-  };
 
   // Only Name and Category are required (Figma 23824-9178: "These fields can
   // not be empty"); "Enter Name" / "Choose Category" are the field defaults.
@@ -240,26 +215,7 @@ export default function NewEquipmentForm({
             field with its counter, and the picked labels as dismissible
             badges below it. */}
         <FormModule title="Label" titleCondition="optional">
-          <div className={styles.labelBlock}>
-            <SelectField
-              multiSelect
-              count={labels.length}
-              value={labels.length === 1 ? labels[0] : undefined}
-              multiSelectLabel="Labels selected"
-              onClearSelection={() => setLabels([])}
-              open={labelsPop.open}
-              onClick={openLabels}
-            />
-            {shownLabels.length > 0 && (
-              <div className={styles.chips}>
-                {shownLabels.map((l) => (
-                  <Badge key={l} size="lg" isDismissable onDismiss={() => toggleLabel(l)}>
-                    {l}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
+          <LabelsField value={labels} onChange={setLabels} pool={LABEL_POOL} mobile={mobile} />
         </FormModule>
 
         <FormModule title="Notes" titleCondition="optional">
@@ -324,31 +280,6 @@ export default function NewEquipmentForm({
         </SelectListItemGroup>
       </SelectPopoverList>
 
-      {/* The Labels multi-select — the New-location form's list, anchored
-          under the Label field (mobile: drawer). */}
-      <SelectPopoverList
-        pop={labelsPop}
-        mobile={mobile}
-        title="Equipment labels"
-        multiSelect
-        searchable
-        searchPlaceholder="Search by label name..."
-        createFromSearch={{ label: "Create new label:", onCreate: createLabel }}
-        state={labelPool.length === 0 ? "empty" : "default"}
-        emptyState={{ icon: "tag", title: "No labels here yet", caption: "Start typing to create a new label" }}
-      >
-        <SelectListItemGroup>
-          {labelPool.map((l) => (
-            <SelectListItem
-              key={l}
-              label={l}
-              select="multi"
-              selected={labels.includes(l)}
-              onClick={() => toggleLabel(l)}
-            />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
     </Dialog>
   );
 }

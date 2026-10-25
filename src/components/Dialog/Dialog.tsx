@@ -9,6 +9,7 @@ import useRestoreFocus from "../../hooks/useRestoreFocus";
 import useFocusTrap from "../../hooks/useFocusTrap";
 import Popover from "../Popover/Popover";
 import { DrawerRootContext } from "../Popover/DrawerRootContext";
+import { DismissContext } from "../Popover/DismissContext";
 import PopoverHeader from "../Popover/PopoverHeader";
 import DrawerHeader from "../Popover/DrawerHeader";
 import PopoverHeaderContent from "../Popover/PopoverHeaderContent";
@@ -391,7 +392,7 @@ export default function Dialog(props: DialogProps) {
   // that root is the frame, so the whole stack stays in the mock phone.
   return (
     <DrawerRootContext.Provider value={root}>
-      {dialogPortal}
+      <DismissContext.Provider value={attemptDismiss}>{dialogPortal}</DismissContext.Provider>
       {dismissPromptNode}
     </DrawerRootContext.Provider>
   );

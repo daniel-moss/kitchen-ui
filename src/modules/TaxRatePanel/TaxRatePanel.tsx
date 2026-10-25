@@ -391,8 +391,8 @@ export default function TaxRatePanel({
         onSave={saveAccounting}
         breakpoint={breakpoint}
       />
-      {/* The SHARED Labels picker — "Save" here, because a panel module saves
-          straight to the record. */}
+      {/* The SHARED Labels picker — the dialog/drawer version with "Apply",
+          because a panel module saves straight to the record. */}
       <LabelsSelectList
         open={pickingLabels}
         onClose={() => setPickingLabels(false)}

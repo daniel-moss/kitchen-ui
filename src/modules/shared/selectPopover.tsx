@@ -2,7 +2,7 @@ import { ReactNode, RefObject, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import SelectList from "../../components/SelectList/SelectList";
-import { SelectListEmptyState } from "../../components/SelectList/SelectList.types";
+import { SelectListEmptyState, SelectListProps } from "../../components/SelectList/SelectList.types";
 
 import styles from "./selectPopover.module.scss";
 
@@ -184,6 +184,8 @@ export function SelectPopoverList({
   state,
   emptyState,
   footer,
+  onClose,
+  confirmOnDismiss,
   children,
 }: {
   pop: SelectPopover;
@@ -197,10 +199,14 @@ export function SelectPopoverList({
   noResultsAction?: { label: string; icon?: string; onClick: () => void };
   /** Replaces the built-in no-match block entirely (SelectList's own prop). */
   noResultsState?: ReactNode;
-  createFromSearch?: { label: string; onCreate: (query: string) => void };
+  createFromSearch?: SelectListProps["createFromSearch"];
   state?: "default" | "empty" | "noResults";
   emptyState?: SelectListEmptyState;
   footer?: ReactNode;
+  /** Dismissal (scrim / swipe / Escape). Default `pop.close`. */
+  onClose?: () => void;
+  /** SelectList's "Discard changes?" guard — the mobile drawer only (the inline card never asks). */
+  confirmOnDismiss?: boolean;
   children: ReactNode;
 }) {
   const list = (
@@ -208,7 +214,8 @@ export function SelectPopoverList({
       variant={mobile ? "drawer" : "inline"}
       breakpoint={mobile ? "mobile" : "desktop"}
       open={pop.open}
-      onClose={pop.close}
+      onClose={onClose ?? pop.close}
+      confirmOnDismiss={confirmOnDismiss}
       title={title}
       caption={caption}
       multiSelect={multiSelect}

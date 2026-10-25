@@ -1,13 +1,3 @@
-// The picked labels, under their field. The layout-freeze rule keeps this row
-// still while the list is open — see `labelsPop.freeze`.
-.labelRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--size-2);
-
-  margin-top: var(--size-2);
-}
-
 // Barcode: the field fills the row and the scan button hugs the end, bottom
 // aligned so the icon sits on the field, not on its label (the node's 8px gap).
 .barcodeRow {

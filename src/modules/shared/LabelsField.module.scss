@@ -1,0 +1,15 @@
+// The "Labels" field — the SelectField, then the picked-label badges
+// --size-3 (12px) below it (Figma "Gap: SelectField <> Badge Group"), 8px
+// apart both ways, wrapping when they do not fit the width.
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-2); // 8px
+}

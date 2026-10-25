@@ -541,7 +541,8 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
   const [labelsOpen, setLabelsOpen] = useState(false);
   // The module renders in POOL order, not pick order, so ticking a label does
   // not shuffle the badges that are already there.
-  const shownLabels = LABEL_POOL.filter((name) => labels.includes(name));
+  // A label created from the picker is not in the pool — it follows the pool's.
+  const shownLabels = [...LABEL_POOL.filter((name) => labels.includes(name)), ...labels.filter((name) => !LABEL_POOL.includes(name))];
 
   // The picker itself is the SHARED `LabelsSelectList` (2026-09-28) — it owns
   // the draft, the search and create-from-search; this only applies the result.

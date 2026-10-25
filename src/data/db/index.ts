@@ -241,6 +241,20 @@ const JOB_LABEL_BY_ID = index(JOB_LABELS);
 export const jobLabelsOf = (job: Job): JobLabel[] =>
   job.labelIds.map((id) => JOB_LABEL_BY_ID.get(id)).filter((row): row is JobLabel => row != null);
 
+/**
+ * A label created from the Labels picker joins the workspace's table (and the
+ * id lookup) for the rest of the session, so a record can keep it by id.
+ * Returns the label — the existing one when the name is already taken.
+ */
+export const addEquipmentLabel = (name: string): EquipmentLabel => {
+  const existing = EQUIPMENT_LABELS.find((label) => label.name === name);
+  if (existing != null) return existing;
+  const label = { id: `equipment-label-${name.toLowerCase().replace(/\W+/g, "-")}`, name };
+  EQUIPMENT_LABELS.push(label);
+  EQUIPMENT_LABEL_BY_ID.set(label.id, label);
+  return label;
+};
+
 export const equipmentLabelsOf = (equipment: Equipment): EquipmentLabel[] =>
   equipment.labelIds.map((id) => EQUIPMENT_LABEL_BY_ID.get(id)).filter((row): row is EquipmentLabel => row != null);
 

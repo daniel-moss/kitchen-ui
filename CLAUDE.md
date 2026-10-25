@@ -700,13 +700,28 @@ One folder per module, same file conventions as components; stories under the
   for EVERY multi-select whose picks render below the field — do not hand-roll a
   snapshot. Do NOT freeze the field's own value/counter: the field does not
   change size, so it must keep updating live as you tick.
+- **"Labels" — ONE build, used everywhere (Daniel, 2026-10-25; Figma file
+  XBFKW2ThcuVxPbQQHw1XY2, node 1950-34790).** `shared/LabelsSelectList` is the
+  picker: dialog (Cancel + "Apply N") on desktop / drawer (full-width "Apply
+  N") on mobile for the side panels' Labels modules; with a `pop` it opens
+  inline under a form field (no footer, picks apply live). A–Z, selected-on-top
+  group, caption-only empty state, "Create new label: <query>" in the footer
+  on no match (prompt --text-subtle, value --text-strong), "Apply 0" when
+  nothing is ticked, "Discard changes?" on ×/Cancel/scrim/Escape/swipe when
+  dirty (the swipe springs the sheet back — Popover `swipeAsks`).
+  `shared/LabelsField` = the form field (SelectField counter + dismissible lg
+  badges 12px below + the picker) — every form's Labels input uses it. Never
+  build a Labels list or field locally again.
+- DS support added for it: SelectList `createFromSearch` now shows a
+  caption-only body (`noMatchCaption`) and puts the hovered create MenuItem in
+  the FOOTER (no quotes around the query); SelectList `confirmOnDismiss` /
+  `dismissPrompt`; `Popover/DismissContext` (`useDismiss`) — Dialog and
+  SelectList provide their dismiss attempt, so a consumer's Cancel can ask
+  like the ×.
 - Built so far: **NewLocationForm** (Figma 23805-13764: header caption =
   client, Service address module with the mock-Google address autocomplete +
-  "Enter manually", Labels = chips row ending with a plus IconButton that
-  opens the multi-select list to its LEFT (create-from-search; the chips row
-  is FROZEN while the list is open — badges sync when it closes, the
-  layout-freeze rule), Notes with title hint, "Location created" toast). Used by the
-  Job Details Location flow.
+  "Enter manually", Labels = the shared LabelsField, Notes with title hint,
+  "Location created" toast). Used by the Job Details Location flow.
 
 ## Demo database (`src/data/db/`) — started 2026-09-04
 

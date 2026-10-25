@@ -1,3 +1,5 @@
+@use "../../styles/mixins/interaction" as *;
+
 // SelectList — the inline card presentation. (dialog is built on Dialog;
 // drawer on the Popover drawer — both bring their own chrome.)
 // Same surface chrome as the Menu card, but WITHOUT Menu's 160px floor: the
@@ -66,7 +68,16 @@
   height: calc(100% - var(--popover-drawer-top-inset, env(safe-area-inset-top, 0px)));
 }
 
-// The createFromSearch MenuItem sits in the standard 4px item container.
-.createRow {
-  padding: var(--size-1);
+// The create row in the footer is drawn HOVERED from the start (Figma "Labels"
+// SelectList, No Match: MenuItem state = hovered) — it is what Enter does.
+.createItem {
+  @include row-hover-fill;
+}
+
+// The create row's copy: "Create new label:" subtle, the typed value strong.
+.createPrompt {
+  color: var(--text-subtle);
+}
+.createValue {
+  color: var(--text-strong);
 }

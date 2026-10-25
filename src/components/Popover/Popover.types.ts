@@ -42,6 +42,13 @@ export interface PopoverProps {
    * sheet like a Prompt.) Default true.
    */
   dismissible?: boolean;
+  /**
+   * Drawer only. A swipe past the dismiss threshold springs the sheet BACK and
+   * calls `onClose`, instead of closing it — for a caller that asks first
+   * ("Discard changes?") while there are unsaved changes. The caller closes the
+   * sheet itself (via `open`) once the user confirms. Default false.
+   */
+  swipeAsks?: boolean;
   className?: string;
   style?: CSSProperties;
 }

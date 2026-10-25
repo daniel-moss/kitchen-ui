@@ -35,6 +35,7 @@ export default function Popover({
   open = true,
   onClose,
   dismissible = true,
+  swipeAsks = false,
   className,
   style,
 }: PopoverProps) {
@@ -65,6 +66,7 @@ export default function Popover({
       footer={footer}
       onClose={onClose}
       dismissible={dismissible}
+      swipeAsks={swipeAsks}
       fillHeight={fillHeight}
       className={className}
       style={style}
@@ -76,7 +78,7 @@ export default function Popover({
 
 type DrawerProps = Pick<
   PopoverProps,
-  "children" | "header" | "footer" | "onClose" | "dismissible" | "fillHeight" | "className" | "style"
+  "children" | "header" | "footer" | "onClose" | "dismissible" | "swipeAsks" | "fillHeight" | "className" | "style"
 > & {
   visible: boolean;
   setVisible: (v: boolean) => void;
@@ -90,6 +92,7 @@ function Drawer({
   footer,
   onClose,
   dismissible = true,
+  swipeAsks = false,
   fillHeight = false,
   className,
   style,
@@ -352,7 +355,11 @@ function Drawer({
 
     const height = sheetRef.current?.offsetHeight ?? 0;
     const threshold = Math.min(height * 0.25, 160);
-    if (dragYRef.current > threshold) {
+    if (dragYRef.current > threshold && swipeAsks) {
+      // The caller asks first: spring back and let it decide (its Prompt).
+      dragYRef.current = 0;
+      onClose?.();
+    } else if (dragYRef.current > threshold) {
       // dragYRef keeps the release position: the exit continues from there
       setVisible(false);
       onClose?.();

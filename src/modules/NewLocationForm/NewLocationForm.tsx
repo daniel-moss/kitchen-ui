@@ -1,10 +1,8 @@
-import { ChangeEvent, MouseEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
-import Badge from "../../components/Badge/Badge";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import TextArea from "../../components/Fields/TextArea/TextArea";
-import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextField from "../../components/Fields/TextField/TextField";
 import FormModule from "../../components/FormModule/FormModule";
 import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
@@ -17,6 +15,7 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
+import LabelsField from "../shared/LabelsField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { AddressSuggestion, ADDRESS_SUGGESTIONS, LABEL_POOL, suggestionLabel } from "./data";
 import { NewLocationFormProps } from "./NewLocationForm.types";
@@ -35,11 +34,9 @@ const NOTES_HINT =
 // desktop in a list anchored under it, mobile in a drawer whose search is the
 // field itself. Picking one — or "Enter manually" in the list's no-results
 // state — reveals the remaining fields.
-// Labels are a multi-select SelectField with the selected labels as
-// dismissible badges below it — the New-equipment form's pattern, chosen over
-// the chips-row trigger and over a list dialog (Daniel, 2026-08-03). The field
-// opens the labels list anchored under it (mobile: drawer), picks apply live,
-// and the chips row is frozen while the list is open (see below).
+// Labels are the shared LabelsField — a multi-select SelectField with the
+// selected labels as dismissible badges below it, chosen over the chips-row
+// trigger and over a list dialog (Daniel, 2026-08-03).
 export default function NewLocationForm({
   open,
   onClose,
@@ -59,7 +56,6 @@ export default function NewLocationForm({
   // "Enter manually" — the doc's collapsed → expanded flow.
   const [expanded, setExpanded] = useState(false);
   const [labels, setLabels] = useState<string[]>([]);
-  const [labelPool, setLabelPool] = useState<string[]>(LABEL_POOL);
   const [notes, setNotes] = useState("");
   const [showErrors, setShowErrors] = useState(false);
 
@@ -74,7 +70,6 @@ export default function NewLocationForm({
     setPostal("");
     setExpanded(false);
     setLabels([]);
-    setLabelPool(LABEL_POOL);
     setNotes("");
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,13 +81,10 @@ export default function NewLocationForm({
   // opens the drawer, so the keyboard belongs to one input at a time).
   const addressPop = useSelectPopover(false);
   const [addressDrawerOpen, setAddressDrawerOpen] = useState(false);
-  // The labels list is anchored UNDER the field (desktop) / a drawer (mobile).
-  const labelsPop = useSelectPopover(!isDesktop);
   useEffect(() => {
     if (open) return;
     addressPop.close();
     setAddressDrawerOpen(false);
-    labelsPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -141,24 +133,6 @@ export default function NewLocationForm({
   const enterManually = () => {
     setExpanded(true);
     closeAddressList();
-  };
-
-  // Picks apply LIVE (the field's counter updates as you tick), but the CHIPS
-  // row follows the shared layout-freeze rule — it syncs when the list closes,
-  // so the growing dialog never moves the field out from under the open card.
-  const shownLabels = labelsPop.freeze(labels);
-
-  const openLabels = (e: MouseEvent<HTMLDivElement>) => labelsPop.toggle(e.currentTarget);
-
-  const toggleLabel = (label: string) =>
-    setLabels((prev) => (prev.includes(label) ? prev.filter((l) => l !== label) : [...prev, label]));
-
-  // Create-from-search (Figma "Create new label"): the new label joins the
-  // pool AND becomes selected; the list returns to its full state.
-  const createLabel = (query: string) => {
-    if (query === "" || labelPool.includes(query)) return;
-    setLabelPool((prev) => [...prev, query]);
-    setLabels((prev) => [...prev, query]);
   };
 
   // Required: Street address always; City / State / Postal once expanded
@@ -278,28 +252,7 @@ export default function NewLocationForm({
         </FormModule>
 
         <FormModule title="Labels" titleCondition="optional">
-          {/* The multi-select field with its counter, and the selected labels
-              as dismissible badges 12px below it. */}
-          <div className={styles.labelBlock}>
-            <SelectField
-              multiSelect
-              count={labels.length}
-              value={labels.length === 1 ? labels[0] : undefined}
-              multiSelectLabel="Labels selected"
-              onClearSelection={() => setLabels([])}
-              open={labelsPop.open}
-              onClick={openLabels}
-            />
-            {shownLabels.length > 0 && (
-              <div className={styles.chips}>
-                {shownLabels.map((l) => (
-                  <Badge key={l} size="lg" isDismissable onDismiss={() => toggleLabel(l)}>
-                    {l}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </div>
+          <LabelsField value={labels} onChange={setLabels} pool={LABEL_POOL} mobile={!isDesktop} />
         </FormModule>
 
         <FormModule title="Notes" titleCondition="optional" titleHintContent={NOTES_HINT}>
@@ -357,31 +310,6 @@ export default function NewLocationForm({
         </SelectListItemGroup>
       </SelectList>
 
-      {/* The Labels multi-select list — anchored under the field on desktop,
-          a drawer on mobile. Picks apply live. */}
-      <SelectPopoverList
-        pop={labelsPop}
-        mobile={!isDesktop}
-        title="Labels"
-        multiSelect
-        searchable
-        searchPlaceholder="Search by label name..."
-        createFromSearch={{ label: "Create new label:", onCreate: createLabel }}
-        state={labelPool.length === 0 ? "empty" : "default"}
-        emptyState={{ icon: "tag", title: "No labels here yet", caption: "Start typing to create a new label" }}
-      >
-        <SelectListItemGroup>
-          {labelPool.map((l) => (
-            <SelectListItem
-              key={l}
-              label={l}
-              select="multi"
-              selected={labels.includes(l)}
-              onClick={() => toggleLabel(l)}
-            />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
     </Dialog>
   );
 }
