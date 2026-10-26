@@ -200,6 +200,9 @@ export default function TopBarView({
   // the same text (Figma "All open 36"). The open list shows the names alone.
   const selected = views.find((v) => v.value === selectedView);
   const selectedLabel = selected == null ? "" : selected.count == null ? selected.label : `${selected.label} ${selected.count}`;
+  // ONE view leaves nothing to pick (Daniel, 2026-10-26): the name is plain
+  // text — no angles icon, no tap, no select list.
+  const isSingleView = views.length <= 1;
 
   return (
     <div className={clsx(styles.bar, className)}>
@@ -210,6 +213,10 @@ export default function TopBarView({
           {isLoading ? (
             <span className={styles.selectorLoading}>
               <SkeletonTypography variant="bodyCompact" width="var(--size-24)" />
+            </span>
+          ) : isSingleView ? (
+            <span className={styles.selectorStatic}>
+              <span className={styles.selectorLabel}>{selectedLabel}</span>
             </span>
           ) : (
             <button
@@ -225,25 +232,27 @@ export default function TopBarView({
               </span>
             </button>
           )}
-          <div className={styles.listAnchor}>
-            {/* breakpoint="desktop" keeps the INLINE list on mobile — the
-                doc's rule: "The select list opens inline on mobile." */}
-            <SelectList variant="inline" breakpoint="desktop" open={listOpen} onClose={() => setListOpenState(false)}>
-              <SelectListItemGroup>
-                {views.map((v) => (
-                  <SelectListItem
-                    key={v.value}
-                    label={v.label}
-                    selected={v.value === selectedView}
-                    onClick={() => {
-                      setSelectedView(v.value);
-                      setListOpenState(false);
-                    }}
-                  />
-                ))}
-              </SelectListItemGroup>
-            </SelectList>
-          </div>
+          {!isSingleView && (
+            <div className={styles.listAnchor}>
+              {/* breakpoint="desktop" keeps the INLINE list on mobile — the
+                  doc's rule: "The select list opens inline on mobile." */}
+              <SelectList variant="inline" breakpoint="desktop" open={listOpen} onClose={() => setListOpenState(false)}>
+                <SelectListItemGroup>
+                  {views.map((v) => (
+                    <SelectListItem
+                      key={v.value}
+                      label={v.label}
+                      selected={v.value === selectedView}
+                      onClick={() => {
+                        setSelectedView(v.value);
+                        setListOpenState(false);
+                      }}
+                    />
+                  ))}
+                </SelectListItemGroup>
+              </SelectList>
+            </div>
+          )}
         </div>
         <div className={styles.controls}>
           {/* The search button HIDES while the search bar is shown (the doc). */}

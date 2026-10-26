@@ -8,9 +8,10 @@ export interface TopBarViewView {
   /** The view's visible name: a tab on desktop; the selector label and a select-list item on mobile. */
   label: string;
   /**
-   * How many objects the view holds — the objects its locked filter matches
-   * (the whole phase for "All"). It is the view's TOTAL: the user's filters
-   * and the search never change it. Desktop shows it as the tab's counter;
+   * How many objects the view shows — the objects its locked filter matches
+   * (the whole phase for "All"), narrowed by the filters the user applied to
+   * that view and by its search. The consumer computes it; the bar does not
+   * count. Desktop shows it as the tab's counter;
    * mobile adds it to the end of the view name in the selector (the open list
    * shows the names alone). Leave it out for a view without a counter.
    */

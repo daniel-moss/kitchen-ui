@@ -335,21 +335,25 @@ const branchStatuses = (branch: BranchId) => branchById(branch).tabs.flatMap((t)
 //     node's measured 137px floor.
 
 // A view's ROWS — the branch's jobs, narrowed by the view's locked statuses.
-// The list's pipeline starts here, and the view's tab counts them: the counter
-// is the view's TOTAL, so the user's filters, the schedule horizon and the
-// search never change it.
+// The list's pipeline starts here.
 const viewRows = (jobs: Job[], branch: BranchId, tab: string) => {
   const branchJobs = jobs.filter((job) => branchStatuses(branch).includes(job.status));
   const locked = tabById(branch, tab).statuses;
   return locked.length > 0 ? branchJobs.filter((job) => locked.includes(job.status)) : branchJobs;
 };
 
-/** The status tabs as TopBarView views — one per tab of the given branch, each with its job count. */
-const branchViews = (branch: BranchId, jobs: Job[] = []) =>
+/**
+ * The status tabs as TopBarView views — one per tab of the given branch, each
+ * with its counter. The counter is what the view SHOWS (Daniel, 2026-10-26 —
+ * it was the view's total before): its rows after its own filters, its
+ * schedule horizon and its own search. A view owns those, so changing them on
+ * one tab moves that tab's counter only. `JobsPage` counts (`viewCounts`).
+ */
+const branchViews = (branch: BranchId, counts: Record<string, number>) =>
   branchById(branch).tabs.map((item) => ({
     value: item.id,
     label: item.label,
-    count: viewRows(jobs, branch, item.id).length,
+    count: counts[item.id] ?? 0,
   }));
 
 /**
@@ -370,6 +374,8 @@ interface ViewBarProps {
   branch: BranchId;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   selection: FilterSelection;
   onSelectionChange: (next: FilterSelection) => void;
   /** The view's View-menu settings, and the shared per-view sort it edits. */
@@ -401,6 +407,7 @@ function DesktopViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   selection,
   onSelectionChange,
   viewSettings,
@@ -411,8 +418,6 @@ function DesktopViewBar({
   search,
   onSearchChange,
 }: ViewBarProps) {
-  // The tab counters read the store directly — the same jobs the table lists.
-  const allJobs = useJobs();
   const card = useAnchoredCard("right", "[data-concept-filters-sub]");
   // The View menu — the shared module, anchored under the bar's View button
   // exactly as the Filters menu is under its own. The module's dropdown lists
@@ -442,7 +447,7 @@ function DesktopViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch, allJobs)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -491,6 +496,7 @@ function MobileViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   selection,
   onSelectionChange,
   viewSettings,
@@ -525,7 +531,7 @@ function MobileViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -710,6 +716,8 @@ interface ShellProps {
   onBranchChange: (next: BranchId) => void;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   /**
    * The current view's locked Status filter — the filter bar's first chip.
    *
@@ -747,6 +755,7 @@ const DesktopShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   lockedStatuses,
   selection,
   onSelectionChange,
@@ -775,6 +784,7 @@ const DesktopShell = ({
           branch={branch}
           tab={tab}
           onTabChange={onTabChange}
+          viewCounts={viewCounts}
           selection={selection}
           onSelectionChange={onSelectionChange}
           viewSettings={viewSettings}
@@ -862,6 +872,7 @@ const MobileShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   lockedStatuses,
   selection,
   onSelectionChange,
@@ -887,6 +898,7 @@ const MobileShell = ({
         branch={branch}
         tab={tab}
         onTabChange={onTabChange}
+        viewCounts={viewCounts}
         selection={selection}
         onSelectionChange={onSelectionChange}
         viewSettings={viewSettings}
@@ -956,6 +968,16 @@ const EMPTY_SELECTION: FilterSelection = [];
 // (name + address), source (name + reference) and the assignees' names — as a
 // case-insensitive substring. FLAGGED: the field set is my choice, no node
 // names one.
+// The View menu's "Schedule horizon" window (jobs only). The Figma
+// annotation's rule: N days = through the end of that day, and only
+// FUTURE-scheduled jobs are hidden — unscheduled and past ones stay.
+const inHorizon = (jobs: Job[], settings: ViewSettings) => {
+  const windowDays = SCHEDULED_WINDOW_DAYS[settings.scheduledKey] ?? null;
+  return windowDays == null
+    ? jobs
+    : jobs.filter((job) => job.scheduledFor == null || dayOffset(job.scheduledFor) <= windowDays);
+};
+
 const searchHaystack = (job: Job) => {
   const location = locationOf(job);
   return [
@@ -1092,14 +1114,7 @@ const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onVie
   const { jobs, hidden, searchEmptied, searchHidden } = useMemo(() => {
     const afterLocked = viewRows(allJobs, branch, tab);
     const afterFilters = applyFilters(afterLocked, filters, selection);
-    // The View menu's "Schedule horizon" window (jobs only). The Figma
-    // annotation's rule: N days = through the end of that day, and only
-    // FUTURE-scheduled jobs are hidden — unscheduled and past ones stay.
-    const windowDays = SCHEDULED_WINDOW_DAYS[settings.scheduledKey] ?? null;
-    const afterWindow =
-      windowDays == null
-        ? afterFilters
-        : afterFilters.filter((job) => job.scheduledFor == null || dayOffset(job.scheduledFor) <= windowDays);
+    const afterWindow = inHorizon(afterFilters, settings);
     // The keyword SEARCH is the LAST layer. It narrows the table but not the
     // Hidden Data Bar — the bar attributes hiding to filters and view
     // settings, and a search is neither. When the search leaves NOTHING, the
@@ -1132,6 +1147,28 @@ const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onVie
     // now, so an edit made on a details page has to re-run this.
   }, [allJobs, selection, filters, branch, tab, sort, settings.scheduledKey, deferredSearch]);
 
+  // The TAB COUNTERS (Daniel, 2026-10-26): every view of the branch, run
+  // through the same layers as the table — with THAT view's own filters,
+  // schedule horizon and search, since a view owns them. So editing the
+  // current view moves its counter only. The current view reads the DEFERRED
+  // search, so its counter settles with the table, not ahead of it.
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        branchById(branch).tabs.map(({ id }) => {
+          const afterFilters = applyFilters(
+            viewRows(allJobs, branch, id),
+            VIEW_FILTERS[id]!,
+            selections[id] ?? EMPTY_SELECTION,
+          );
+          const shown = inHorizon(afterFilters, viewSettings[id] ?? DEFAULT_VIEW_SETTINGS[id]!);
+          const query = (id === tab ? deferredSearch : (searches[id] ?? "")).trim().toLowerCase();
+          return [id, query === "" ? shown.length : shown.filter((job) => searchHaystack(job).includes(query)).length];
+        }),
+      ),
+    [allJobs, branch, tab, selections, viewSettings, searches, deferredSearch],
+  );
+
   // A stable reference, so the memoised table is not rebuilt every render.
   const openJob = useCallback((job: Job) => onOpenJob?.(job.id), [onOpenJob]);
 
@@ -1147,6 +1184,7 @@ const JobsPage = ({ breakpoint = "auto", onNavigate, onOpenJob, viewState, onVie
     onBranchChange: setBranch,
     tab,
     onTabChange: setTab,
+    viewCounts,
     lockedStatuses: lockedStatusIds,
     selection,
     onSelectionChange: setSelection,

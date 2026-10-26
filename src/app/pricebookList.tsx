@@ -104,20 +104,25 @@ const tabById = (branch: PricebookPhase, id: string) => {
 };
 
 // A view's ROWS — the branch's items, narrowed by the view's locked statuses.
-// The list's pipeline starts here, and the view's tab counts them: the counter
-// is the view's TOTAL, so the user's filters and the search never change it.
+// The list's pipeline starts here.
 const viewRows = <TRow,>(config: PricebookListConfig<TRow>, rows: TRow[], branch: PricebookPhase, tab: string) => {
   const branchItems = rows.filter((row) => config.isActive(row) === (branch === "active"));
   const locked = tabById(branch, tab).statuses;
   return locked.length > 0 ? branchItems.filter((row) => locked.includes(config.statusOf(row))) : branchItems;
 };
 
-/** The branch's views as TopBarView views — each with its item count when the rows are given. */
-const branchViews = <TRow,>(branch: PricebookPhase, config?: PricebookListConfig<TRow>, rows?: TRow[]) =>
+/**
+ * The branch's views as TopBarView views, each with its counter. The counter
+ * is what the view SHOWS (Daniel, 2026-10-26 — it was the view's total
+ * before): its rows after its own filters and its own search. A view owns
+ * those, so changing them moves that view's counter only. The list counts
+ * (`viewCounts`); see JobsPage.tsx.
+ */
+const branchViews = (branch: PricebookPhase, counts: Record<string, number>) =>
   branchById(branch).tabs.map((item) => ({
     value: item.id,
     label: item.label,
-    count: config && rows ? viewRows(config, rows, branch, item.id).length : undefined,
+    count: counts[item.id] ?? 0,
   }));
 
 /** Every view of either branch, in one flat list — view ids are unique. */
@@ -396,6 +401,26 @@ export function PricebookPage<TRow>({
     };
   }, [config, rows, viewFilters, branch, tab, deferredSearch, sort, selection]);
 
+  // The TAB COUNTERS (Daniel, 2026-10-26): every view of the branch, run
+  // through the table's layers with THAT view's own filters and search. The
+  // current view reads the DEFERRED search, so its counter settles with the
+  // table. See JobsPage.tsx.
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        branchById(branch).tabs.map(({ id }) => {
+          const filtered = applyFilters(
+            viewRows(config, rows, branch, id),
+            viewFilters[id]!,
+            selections[id] ?? EMPTY_SELECTION,
+          );
+          const query = (id === tab ? deferredSearch : (searches[id] ?? "")).trim().toLowerCase();
+          return [id, query === "" ? filtered.length : filtered.filter((row) => config.search(row).includes(query)).length];
+        }),
+      ),
+    [config, rows, viewFilters, branch, tab, selections, searches, deferredSearch],
+  );
+
   const lockedStatuses = tabById(branch, tab).statuses;
   const defs = viewFilters[tab]!;
 
@@ -472,11 +497,11 @@ export function PricebookPage<TRow>({
   return isDesktop ? (
     <DesktopShell
       config={config}
-      rows={rows}
       branch={branch}
       onBranchChange={setBranch}
       tab={tab}
       onTabChange={setTab}
+      viewCounts={viewCounts}
       search={search}
       onSearchChange={setSearch}
       selection={selection}
@@ -497,6 +522,7 @@ export function PricebookPage<TRow>({
       onBranchChange={setBranch}
       tab={tab}
       onTabChange={setTab}
+      viewCounts={viewCounts}
       search={search}
       onSearchChange={setSearch}
       selection={selection}
@@ -517,12 +543,12 @@ export function PricebookPage<TRow>({
 
 interface ShellProps<TRow> {
   config: PricebookListConfig<TRow>;
-  /** Every row of the list — the desktop tabs count them per view. */
-  rows?: TRow[];
   branch: PricebookPhase;
   onBranchChange: (next: PricebookPhase) => void;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   search: string;
   onSearchChange: (next: string) => void;
   selection: FilterSelection;
@@ -540,11 +566,11 @@ interface ShellProps<TRow> {
 
 function DesktopShell<TRow>({
   config,
-  rows,
   branch,
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   search,
   onSearchChange,
   selection,
@@ -566,7 +592,7 @@ function DesktopShell<TRow>({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch, config, rows)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -615,6 +641,7 @@ function MobileShell<TRow>({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   search,
   onSearchChange,
   selection,
@@ -640,7 +667,7 @@ function MobileShell<TRow>({
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}

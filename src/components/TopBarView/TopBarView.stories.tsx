@@ -183,12 +183,16 @@ export const TabCounters: Story = {
   ),
 };
 
-/** The same views with a search in the field — the counters keep their totals. */
+/**
+ * The same views with a search in the field. The search belongs to the
+ * selected view, so only its counter drops (Pending 13 → 4); the other views
+ * keep their own numbers.
+ */
 export const TabCountersSearch: Story = {
   render: () => (
     <Hug>
       <TopBarView
-        views={STATUS_VIEWS}
+        views={STATUS_VIEWS.map((view) => (view.value === "pending" ? { ...view, count: 4 } : view))}
         defaultView="pending"
         defaultSearch="Wildwood"
         breakpoint="desktop"
@@ -223,6 +227,20 @@ export const ViewNameTruncation: Story = {
           onViewMenuClick={noop}
         />
       </div>
+    </DocsFrame>
+  ),
+};
+
+/** One view: the name is plain text — no angles icon, no select list. */
+export const SingleViewMobile: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarView
+        views={[{ value: "all", label: "All active", count: 11 }]}
+        breakpoint="mobile"
+        onFiltersClick={noop}
+        onViewMenuClick={noop}
+      />
     </DocsFrame>
   ),
 };

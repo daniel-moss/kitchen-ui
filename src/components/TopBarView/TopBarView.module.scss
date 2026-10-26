@@ -133,8 +133,10 @@
 }
 
 // Loading: the skeleton stands in the selector's place, so the row keeps its
-// height and nothing shifts when the view name arrives.
-.selectorLoading {
+// height and nothing shifts when the view name arrives. A SINGLE view's name
+// sits in the same box — plain text, nothing to open.
+.selectorLoading,
+.selectorStatic {
   display: flex;
   min-width: 0;
   align-items: center;

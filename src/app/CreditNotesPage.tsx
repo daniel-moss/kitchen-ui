@@ -137,9 +137,7 @@ const tabById = (branch: CreditNotesPhase, id: string) => {
 const branchStatuses = (branch: CreditNotesPhase) => branchById(branch).statuses;
 
 // A view's ROWS — the branch's objects, narrowed by the view's locked
-// statuses. The list's pipeline starts here, and the view's tab counts them:
-// the counter is the view's TOTAL, so the user's filters and the search never
-// change it.
+// statuses. The list's pipeline starts here.
 const viewRows = (branch: CreditNotesPhase, tab: string) => {
   const branchCreditNotes = CREDIT_NOTE_ROWS.filter((creditNote) => branchStatuses(branch).includes(creditNote.status));
   const locked = tabById(branch, tab).statuses;
@@ -148,11 +146,15 @@ const viewRows = (branch: CreditNotesPhase, tab: string) => {
     : branchCreditNotes;
 };
 
-const branchViews = (branch: CreditNotesPhase) =>
+// The tab counter is what the view SHOWS (Daniel, 2026-10-26 — it was the
+// view's total before): its rows after its own filters and its own search.
+// A view owns those, so changing them moves that view's counter only. The
+// page counts (`viewCounts`); see JobsPage.tsx.
+const branchViews = (branch: CreditNotesPhase, counts: Record<string, number>) =>
   branchById(branch).tabs.map((item) => ({
     value: item.id,
     label: item.label,
-    count: viewRows(branch, item.id).length,
+    count: counts[item.id] ?? 0,
   }));
 
 // ---- the list top bar ------------------------------------------------------
@@ -295,6 +297,8 @@ interface ViewBarProps {
   branch: CreditNotesPhase;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   viewSettings: ViewSettings;
   onViewSettingsChange: (next: ViewSettings) => void;
   sort: TableSort;
@@ -316,6 +320,7 @@ function DesktopViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   viewSettings,
   onViewSettingsChange,
   sort,
@@ -336,7 +341,7 @@ function DesktopViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -383,6 +388,7 @@ function MobileViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   viewSettings,
   onViewSettingsChange,
   sort,
@@ -405,7 +411,7 @@ function MobileViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -449,6 +455,8 @@ interface ShellProps {
   onBranchChange: (next: CreditNotesPhase) => void;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   sort: TableSort;
   /** A header click. The registry has more column keys than `SortColumn`, so
    *  the shared table hands back a plain string and this narrows it. */
@@ -481,6 +489,7 @@ const DesktopShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   sort,
   onSortChange,
   onSortSet,
@@ -501,6 +510,7 @@ const DesktopShell = ({
       branch={branch}
       tab={tab}
       onTabChange={onTabChange}
+      viewCounts={viewCounts}
       viewSettings={viewSettings}
       onViewSettingsChange={onViewSettingsChange}
       sort={sort}
@@ -571,6 +581,7 @@ const MobileShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   sort,
   onSortChange,
   onSortSet,
@@ -592,6 +603,7 @@ const MobileShell = ({
         branch={branch}
         tab={tab}
         onTabChange={onTabChange}
+        viewCounts={viewCounts}
         viewSettings={viewSettings}
         onViewSettingsChange={onViewSettingsChange}
         sort={sort}
@@ -761,6 +773,22 @@ const CreditNotesPage = ({ breakpoint = "auto", onNavigate }: CreditNotesPagePro
     };
   }, [branch, tab, deferredSearch, sort, selection]);
 
+  // The TAB COUNTERS (Daniel, 2026-10-26): every view of the branch, run
+  // through the table's layers with THAT view's own filters and search. The
+  // current view reads the DEFERRED search, so its counter settles with the
+  // table. See JobsPage.tsx.
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        branchById(branch).tabs.map(({ id }) => {
+          const filtered = applyFilters(viewRows(branch, id), VIEW_FILTERS[id]!, selections[id] ?? EMPTY_SELECTION);
+          const query = (id === tab ? deferredSearch : (searches[id] ?? "")).trim().toLowerCase();
+          return [id, query === "" ? filtered.length : filtered.filter((row) => searchHaystack(row).includes(query)).length];
+        }),
+      ),
+    [branch, tab, selections, searches, deferredSearch],
+  );
+
   const shellProps: ShellProps = {
     creditNotes,
     searchEmptied,
@@ -770,6 +798,7 @@ const CreditNotesPage = ({ breakpoint = "auto", onNavigate }: CreditNotesPagePro
     onBranchChange: setBranch,
     tab,
     onTabChange: setTab,
+    viewCounts,
     sort,
     onSortChange: changeSort,
     onSortSet: (next: TableSort) => setSorts((current) => ({ ...current, [tab]: next })),

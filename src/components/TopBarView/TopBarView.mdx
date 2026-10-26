@@ -116,22 +116,23 @@ scrolls the tabs sideways — no Shift needed.
 
 <Canvas of={TopBarViewStories.TabsScroll} />
 
-Each tab carries a counter: the number of records in that view, from the
-view's `count`. It sits `--size-1_5` (6px) after the label, in the label's
-text style and colour, with regular figures — not tabular. Locked filters
-affect the counter, because they build the view. Each tab counts only the
-records that match its locked filter, and "All" counts the whole phase.
+Each tab carries a counter: the number of records the view lists right now,
+from the view's `count`. It sits `--size-1_5` (6px) after the label, in the
+label's text style and colour, with regular figures — not tabular. Each tab
+counts the records that match its locked filter, and "All" counts the whole
+phase.
 
 <DocCaption>Status views, each counting the records of its status.</DocCaption>
 
 <Canvas of={TopBarViewStories.TabCounters} />
 
-The filters the user adds and the search do not affect the counter. They
-narrow the list, but the counter always says how many records the view holds.
-The bar does not count anything by itself: the consumer computes each view's
-total and passes it in.
+The filters the user adds and the search also affect the counter, so it always
+matches the list below. Each view keeps its own filters and search, so each
+tab counts with its own: changing them on one view changes only that view's
+counter. The bar does not count anything by itself: the consumer computes
+each view's number and passes it in.
 
-<DocCaption>The same views with a search in the field. The counters do not change.</DocCaption>
+<DocCaption>The same views with a search in the field. Only the selected view's counter changes</DocCaption>
 
 <Canvas of={TopBarViewStories.TabCountersSearch} />
 
@@ -154,6 +155,13 @@ long name never pushes the IconButtons out of the row.
 <DocCaption>A view name too long for one line.</DocCaption>
 
 <Canvas of={TopBarViewStories.ViewNameTruncation} />
+
+When the page has only one view, there is nothing to pick. The view name is
+plain text: it has no angles icon and does not open a list.
+
+<DocCaption>A page with one view</DocCaption>
+
+<Canvas of={TopBarViewStories.SingleViewMobile} />
 
 ## Search
 

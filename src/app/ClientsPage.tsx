@@ -87,16 +87,18 @@ type ClientsPhase = ClientsBranch["id"];
 
 const branchById = (id: ClientsPhase) => BRANCHES.find((b) => b.id === id) ?? BRANCHES[0]!;
 
-// A branch's ROWS — the list's pipeline starts here, and the branch's one
-// view counts them: the tab's counter is the view's TOTAL, so the user's
-// filters and the search never change it.
+// A branch's ROWS — the list's pipeline starts here.
 const branchRows = (branch: ClientsPhase) => CLIENT_ROWS.filter((client) => client.isActive === (branch === "active"));
 
-const branchViews = (branch: ClientsPhase) =>
+// The tab counter is what the view SHOWS (Daniel, 2026-10-26 — it was the
+// view's total before): its rows after its own filters and its own search.
+// A view owns those, so changing them moves that view's counter only. The
+// page counts (`viewCounts`); see JobsPage.tsx.
+const branchViews = (branch: ClientsPhase, counts: Record<string, number>) =>
   branchById(branch).tabs.map((item) => ({
     value: item.id,
     label: item.label,
-    count: branchRows(branch).length,
+    count: counts[item.id] ?? 0,
   }));
 
 // ---- the list top bar ------------------------------------------------------
@@ -211,6 +213,8 @@ interface ViewBarProps {
   branch: ClientsPhase;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   viewSettings: ViewSettings;
   onViewSettingsChange: (next: ViewSettings) => void;
   sort: TableSort;
@@ -227,6 +231,7 @@ function DesktopViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   viewSettings,
   onViewSettingsChange,
   sort,
@@ -243,7 +248,7 @@ function DesktopViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="desktop"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -291,6 +296,7 @@ function MobileViewBar({
   branch,
   tab,
   onTabChange,
+  viewCounts,
   viewSettings,
   onViewSettingsChange,
   sort,
@@ -307,7 +313,7 @@ function MobileViewBar({
       <TopBarView
         className={styles.viewBar}
         breakpoint="mobile"
-        views={branchViews(branch)}
+        views={branchViews(branch, viewCounts)}
         view={tab}
         onViewChange={onTabChange}
         search={search}
@@ -349,6 +355,8 @@ interface ShellProps {
   onBranchChange: (next: ClientsPhase) => void;
   tab: string;
   onTabChange: (next: string) => void;
+  /** Each view's tab counter, keyed by view id — see `branchViews`. */
+  viewCounts: Record<string, number>;
   sort: TableSort;
   onSortChange: (column: string) => void;
   onSortSet: (next: TableSort) => void;
@@ -370,6 +378,7 @@ const DesktopShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   sort,
   onSortChange,
   onSortSet,
@@ -386,6 +395,7 @@ const DesktopShell = ({
       branch={branch}
       tab={tab}
       onTabChange={onTabChange}
+      viewCounts={viewCounts}
       viewSettings={viewSettings}
       onViewSettingsChange={onViewSettingsChange}
       sort={sort}
@@ -434,6 +444,7 @@ const MobileShell = ({
   onBranchChange,
   tab,
   onTabChange,
+  viewCounts,
   sort,
   onSortChange,
   onSortSet,
@@ -453,6 +464,7 @@ const MobileShell = ({
         branch={branch}
         tab={tab}
         onTabChange={onTabChange}
+        viewCounts={viewCounts}
         viewSettings={viewSettings}
         onViewSettingsChange={onViewSettingsChange}
         sort={sort}
@@ -588,6 +600,22 @@ const ClientsPage = ({ breakpoint = "auto", onNavigate }: ClientsPageProps) => {
     };
   }, [branch, tab, deferredSearch, sort, selection]);
 
+  // The TAB COUNTERS (Daniel, 2026-10-26): every view of the branch, run
+  // through the table's layers with THAT view's own filters and search. The
+  // current view reads the DEFERRED search, so its counter settles with the
+  // table. See JobsPage.tsx.
+  const viewCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        branchById(branch).tabs.map(({ id }) => {
+          const filtered = applyFilters(branchRows(branch), CLIENT_FILTERS, selections[id] ?? EMPTY_SELECTION);
+          const query = (id === tab ? deferredSearch : (searches[id] ?? "")).trim().toLowerCase();
+          return [id, query === "" ? filtered.length : filtered.filter((row) => searchHaystack(row).includes(query)).length];
+        }),
+      ),
+    [branch, tab, selections, searches, deferredSearch],
+  );
+
   const shellProps: ShellProps = {
     clients,
     searchEmptied,
@@ -597,6 +625,7 @@ const ClientsPage = ({ breakpoint = "auto", onNavigate }: ClientsPageProps) => {
     onBranchChange: setBranch,
     tab,
     onTabChange: setTab,
+    viewCounts,
     sort,
     onSortChange: changeSort,
     onSortSet: (next: TableSort) => setSorts((current) => ({ ...current, [tab]: next })),
