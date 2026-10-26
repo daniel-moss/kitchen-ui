@@ -102,6 +102,7 @@ export default function NewJobForm({
   const [jobProps, setJobProps] = useState<JobProperties>(defaultJobProps);
   const [labels, setLabels] = useState<string[]>([]);
   const [equipmentIds, setEquipmentIds] = useState<string[]>([]);
+  const [isEquipmentRequired, setIsEquipmentRequired] = useState(false);
   const [jobType, setJobType] = useState<JobTypeSelection>({ type: null, recallJobId: null });
   const [contacts, setContacts] = useState<JobContactsSelection>(NO_CONTACTS);
   const [formPicks, setFormPicks] = useState<FormPick[]>([]);
@@ -151,6 +152,7 @@ export default function NewJobForm({
       setJobProps(defaultJobProps());
       setLabels([]);
       setEquipmentIds([]);
+      setIsEquipmentRequired(false);
       setJobType({ type: null, recallJobId: null });
       setContacts(NO_CONTACTS);
       setFormPicks([]);
@@ -353,6 +355,8 @@ export default function NewJobForm({
             <EquipmentModule
               value={equipmentIds}
               onChange={setEquipmentIds}
+              isEquipmentRequired={isEquipmentRequired}
+              onEquipmentRequiredChange={setIsEquipmentRequired}
               locationId={location?.id}
               locationLabel={location ? (location.name ?? location.address) : undefined}
               mobile={!isDesktop}

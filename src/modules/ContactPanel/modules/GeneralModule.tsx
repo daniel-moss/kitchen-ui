@@ -7,7 +7,7 @@ import { PanelContact } from "../ContactPanel.types";
 
 // The "General" module (Figma section 17002-47705): Name and Position, plus the
 // edit button. A missing NAME is the module's warning state ("Shown if contact
-// name is missing", 23815-12735): amber ring, "Key details missing!" banner
+// name is missing", 23815-12735): amber ring, "Key details are missing" banner
 // whose Edit opens the form, and the Name value in its warning look. A missing
 // Position is only the plain "No Position" placeholder.
 
@@ -31,7 +31,7 @@ export default function GeneralModule({ contact, onEdit, isLoading = false, canE
     <DisplayModule
       title="General"
       status={warning ? "warning" : "none"}
-      banner={warning ? { children: "Key details missing!", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
+      banner={warning ? { children: "Key details are missing", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
       // While loading there is nothing to edit yet (the Loading frame draws the
       // header with no right slot).
       slotRight={isLoading || !canEdit ? undefined : <IconButton icon={semanticIcons.edit} variant="ghost" size="md" aria-label="Edit general" onClick={onEdit} />}

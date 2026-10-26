@@ -68,7 +68,7 @@ export default function GeneralDetailsModule({
     <DisplayModule
       title="General"
       status={warning ? "warning" : "none"}
-      banner={warning ? { children: "Key details missing!", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
+      banner={warning ? { children: "Key details are missing", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
       // While loading there is nothing to edit yet, so the header loses its
       // button (Figma's Loading frame draws the header with no right slot).
       slotRight={

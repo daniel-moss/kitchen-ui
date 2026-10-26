@@ -54,8 +54,17 @@
 // that container, so its layer is positioned against it instead of the
 // viewport — otherwise `fixed` would ignore the frame and fill the screen.
 // Applied to both the scrim and the drawer layer.
+//
+// Z-INDEX 100, the drawer layer — not --z-modal (fixed 2026-10-26). Popover's
+// drawer scrim inside a drawer root is z-index 100 too, so with both on ONE
+// layer, DOM order decides and whatever opened LAST is on top — exactly what
+// happens on <body> (Dialog and `.scrimFixed` both 1000). At --z-modal the
+// focus Dialog covered every SelectList drawer opened from it: on the phone
+// the New Job form's Location list opened invisibly behind the form, so the
+// field looked dead (Daniel, real iPhone).
 .containedLayer {
   position: absolute;
+  z-index: 100;
 }
 
 // The content slot — the fields / form modules sit here. Content-slot defaults

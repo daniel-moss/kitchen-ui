@@ -169,7 +169,7 @@ export default function ChannelModule({
       <DisplayModule
         title={config.title}
         status={showWarning ? "warning" : "none"}
-        banner={showWarning ? { children: "Key details missing!", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
+        banner={showWarning ? { children: "Key details are missing", ctaLabel: "Edit", ctaOnClick: onEdit } : undefined}
         // "Add" only over the plain empty state; the warning frame drops it —
         // its banner's Edit opens the same form.
         slotRight={
