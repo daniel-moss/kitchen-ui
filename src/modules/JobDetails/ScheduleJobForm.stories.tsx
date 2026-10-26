@@ -8,7 +8,7 @@ import { Scheduling } from "./SchedulingForm";
 // "Reschedule job" form in its "schedule" mode: no Reschedule reason, no clock
 // choice, a "Schedule" button and the "Job scheduled" toast.
 const meta: Meta = {
-  title: 'Modules/Job/"Schedule Job" Form',
+  title: 'Modules/Job/Details/Forms/Schedule Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

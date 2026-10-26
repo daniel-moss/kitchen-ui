@@ -38,6 +38,7 @@ import { semanticIcons } from "../../styles/semanticIcons";
 import { User, users, usersById } from "../../data/users";
 import ActionBar from "./ActionBar";
 import CancelJobForm from "./CancelJobForm";
+import ChangeActiveStatusForm, { ChangeActiveStatusResult } from "./ChangeActiveStatusForm";
 import ChangePauseStatusForm from "./ChangePauseStatusForm";
 import CompleteJobForm from "./CompleteJobForm";
 import SendSummaryForm from "./SendSummaryForm";
@@ -79,7 +80,6 @@ import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
 import UnscheduleJobForm from "./UnscheduleJobForm";
-import SubStatusForm from "./SubStatusForm";
 import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
@@ -1918,16 +1918,27 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     pushEvent({ kind: "updated", changes: [{ label, oldValue, newValue, longText: true }] });
 
   // Change the active sub-status / status message (stays active).
-  const doChangeActive = (subStatus: string, reason: string) => {
-    setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined }));
-    // A typed Status message rides along as the log's sub-log (Figma 24517-63481).
+  // "Change job active status" (Figma 24101-15203): the sub-status, its
+  // reason as the status message, and the viewer's Check In / Out choice.
+  const doChangeActive = ({ subStatus, reason, checkIn, checkOut, status }: ChangeActiveStatusResult) => {
+    setJob((j) => ({ ...j, subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: reason ? "Status change reason" : undefined }));
+    // A typed reason rides along as the log's sub-log (Figma 24517-63481).
     if (subStatus !== "") {
       pushJobStatus(JOB_GLYPH.active, {
         text: " changed active status to ",
         value: subStatus,
         reason,
-        reasonTitle: "Status message",
+        reasonTitle: "Status change reason",
       });
+    }
+    if (checkIn) {
+      beginSession(status || undefined);
+      pushEvent({ kind: "checkin", status });
+    }
+    if (checkOut) {
+      setCheckedIn(false);
+      endActiveSession();
+      pushEvent({ kind: "checkout" });
     }
   };
   // Change the pause Type / sub-status / reason (stays paused; keeps "Paused on").
@@ -2368,6 +2379,8 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     // Start / Resume: the check in / out choice is for an ASSIGNEE who is not
     // checked in yet (Figma 27163-52433).
     showCheckIn: assignees.includes(viewer.id) && !checkedIn,
+    // Change active status shows the Check In / Out control in BOTH states.
+    viewerIsAssignee: assignees.includes(viewer.id),
     assigneeIds: assignees,
     // Reschedule's clock choice: only for an ASSIGNEE whose clock runs
     // (Figma 27163-54380) — its status and tracked time.
@@ -2578,16 +2591,15 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       onCancel={() => s.setMarkEstimatedOpen(false)}
       breakpoint={mobile ? "mobile" : "desktop"}
     />
-    <SubStatusForm
+    <ChangeActiveStatusForm
       open={s.changeActiveOpen}
       onClose={() => s.setChangeActiveOpen(false)}
-      title="Change active status"
-      submitLabel="Change status"
-      reasonLabel="Status message"
-      toastTitle={`"${s.jobId}" status changed`}
       initialSubStatus={s.job.subStatus ?? ""}
-      initialReason={s.job.statusMessage ?? ""}
       onSubmit={s.doChangeActive}
+      activeSubStatuses={subStatusesFor("active")}
+      activeStatusRequired={COMPANY.subStatuses.activeRequired}
+      showCheckIn={s.viewerIsAssignee}
+      runningSession={s.runningSession}
       mobile={mobile}
     />
     <ChangePauseStatusForm

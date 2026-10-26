@@ -10,7 +10,7 @@ import { defaultScheduling } from "./SchedulingForm";
 // the inventory-products block (one product / several, one with no
 // description), and the missing reason.
 const meta: Meta = {
-  title: 'Modules/Job/"Cancel Job" Form',
+  title: 'Modules/Job/Details/Forms/Cancel Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

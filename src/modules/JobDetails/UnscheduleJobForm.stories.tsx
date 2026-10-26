@@ -7,7 +7,7 @@ import UnscheduleJobForm from "./UnscheduleJobForm";
 // "Unschedule reason", the reason missing, and the warning banner for
 // assignees who are still checked in (Figma 27245-62594).
 const meta: Meta = {
-  title: 'Modules/Job/"Unschedule Job" Form',
+  title: 'Modules/Job/Details/Forms/Unschedule Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

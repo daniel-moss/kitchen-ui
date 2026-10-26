@@ -4,8 +4,6 @@ import AlertBanner from "../../components/AlertBanner/AlertBanner";
 import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import EmptyState from "../../components/EmptyState/EmptyState";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import { Icon } from "../../components/Icon/Icon";
@@ -16,8 +14,9 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { toast } from "../../components/Toast/Toaster";
 
 import { JobSubStatusRecord } from "../../data/db/types";
+import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
-import { TECH_STATUSES } from "./TimesheetPanel";
+import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
 
 import styles from "./jobForm.module.scss";
 
@@ -79,10 +78,9 @@ interface StartJobFormProps {
   showCheckIn?: boolean;
 }
 
-// The "Start job" form (Figma 24048-13283, re-read 2026-10-23): Active status
-// select + Start reason + the "Your clock is not running" choice — "Stay
-// checked out" or "Check in" (picked by default), whose content is a VERTICAL
-// stack of card radios over the four tech statuses (error "Choose Status").
+// The "Start job" form (Figma 24048-13283, re-read 2026-10-25): Active status
+// select + Start reason + the shared Check In / Out control (checked-out state,
+// "Check in" picked by default).
 // The SAME form serves "Resume job"
 // (Figma 24096-19684) via the copy props — resuming a PAUSED job has no banner,
 // resuming a COMPLETED one passes `banner` (Figma 24567-140277).
@@ -112,8 +110,8 @@ export default function StartJobForm({
 
   const [reason, setReason] = useState("");
   // "Check in" is picked by default — no company preference exists in the demo.
-  const [checkIn, setCheckIn] = useState(true);
-  const [status, setStatus] = useState("");
+  // Start never meets a running session (`showCheckIn` is false then).
+  const clock = useCheckInOut({ open, shown: showCheckIn, checkedIn: false, defaults: { checkedIn: "stay", checkedOut: "change" } });
   const [showError, setShowError] = useState(false);
   const [bannerShown, setBannerShown] = useState(true);
   const [subStatus, setSubStatus] = useState(onlyStatus);
@@ -123,8 +121,6 @@ export default function StartJobForm({
   useEffect(() => {
     if (open) return;
     setReason("");
-    setCheckIn(true);
-    setStatus("");
     setShowError(false);
     setBannerShown(true);
     setSubStatus(onlyStatus);
@@ -138,21 +134,17 @@ export default function StartJobForm({
   const reasonRequired = picked?.reasonRequired === true;
   const reasonHelp = picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : undefined;
 
-  // The check-in card counts only while it is shown.
-  const checkingIn = showCheckIn && checkIn;
-
-  const dirty = reason !== "" || (showCheckIn && !checkIn) || status !== "" || subStatus !== onlyStatus;
+  const dirty = reason !== "" || clock.dirty || subStatus !== onlyStatus;
 
   const subStatusBad = subStatusRequired && subStatus === "";
   const reasonBad = reasonRequired && reason.trim() === "";
-  const statusBad = checkingIn && status === "";
 
   const start = () => {
-    if (subStatusBad || reasonBad || statusBad) {
+    if (subStatusBad || reasonBad || clock.statusBad) {
       setShowError(true);
       return;
     }
-    onStart(reason, checkingIn, checkingIn ? status : "", subStatus);
+    onStart(reason, clock.checkIn, clock.checkIn ? clock.status : "", subStatus);
     toast({ type: "success", title: toastTitle_ });
     onClose();
   };
@@ -165,13 +157,7 @@ export default function StartJobForm({
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
-        <PopoverFooter
-          leadingButton={
-            <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          }
-        >
+        <PopoverFooter leadingButton={<DismissCancelButton />}>
           <Button size="lg" variant="solid" leftIcon={submitIcon === "" ? undefined : submitIcon} onClick={start}>
             {submitLabel}
           </Button>
@@ -212,60 +198,24 @@ export default function StartJobForm({
           />
         </Input>
 
-        {/* Check in — selected by default; its content holds the status pair.
-            A missing status puts the WHOLE card in error, not just the radios. */}
-        {/* Check in / out (Figma 27163-52433): only for an assignee who is not
-            checked in yet. A required choice — "Check in" by default, with no
-            company preference in the demo. "Check in" reveals the required
-            Status; "Stay checked out" starts the job without a time session. */}
+        {/* Check In / Out (Figma 27163-52433): only for an assignee who is
+            not checked in yet. */}
         {showCheckIn && (
-          <Input label="Your clock is not running">
-            <RadioGroup
-              value={checkIn ? "checkIn" : "stayOut"}
-              onChange={(value) => {
-                setCheckIn(value === "checkIn");
-                // Leaving "Check in" resets the status choice (Daniel).
-                if (value !== "checkIn") setStatus("");
-                setShowError(false);
-              }}
-            >
-              <RadioItem
-                value="stayOut"
-                variant="card"
-                icon="arrow-left-from-arc"
-                iconPack="solid"
-                label="Stay checked out"
-                caption="Don't track time"
-              />
-              <RadioItem
-                value="checkIn"
-                variant="card"
-                icon="arrow-right-to-arc"
-                iconPack="solid"
-                label="Check in"
-                caption="Start tracking time"
-                error={showError && statusBad}
-                content={
-                  // The tech statuses — a VERTICAL stack of card radios.
-                  <Input label="Status">
-                    <RadioGroup
-                      value={status}
-                      onChange={(v) => {
-                        setStatus(v);
-                        setShowError(false);
-                      }}
-                      isValid={!(showError && statusBad)}
-                      errorMessage="Choose Status"
-                    >
-                      {TECH_STATUSES.map((s) => (
-                        <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
-                      ))}
-                    </RadioGroup>
-                  </Input>
-                }
-              />
-            </RadioGroup>
-          </Input>
+          <CheckInOutField
+            runningSession={null}
+            choice={clock.choice}
+            onChoiceChange={(choice) => {
+              clock.setChoice(choice);
+              setShowError(false);
+            }}
+            status={clock.status}
+            onStatusChange={(status) => {
+              clock.setStatus(status);
+              setShowError(false);
+            }}
+            showError={showError}
+            mobile={mobile}
+          />
         )}
       </div>
 

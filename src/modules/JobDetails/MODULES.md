@@ -259,7 +259,7 @@ Production splits the whole completed phase on `is_job_walk` — see the
 Figma 26990-56723 — what a client sees from the job's link. It is the SAME page
 in a read-only mode (`isPublicView` on `JobDetails`, threaded into
 DetailsPanel / ServicePanel / SummaryPanel / FormsModule / FilesModule), not a
-copy. Story: **Modules/Job/Job Details/Public View** (Desktop, Mobile; the job
+copy. Story: **Modules/Job/Details/Public View** (Desktop, Mobile; the job
 and "Company has a logo" are controls). The action that opens it is not
 designed yet.
 

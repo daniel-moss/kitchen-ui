@@ -7,7 +7,7 @@ import { Scheduling } from "./SchedulingForm";
 // The "Reschedule job" form (Figma 27091-45839) in every state: pre-filled
 // from the job, with and without a running time session, and pressed empty.
 const meta: Meta = {
-  title: 'Modules/Job/"Reschedule Job" Form',
+  title: 'Modules/Job/Details/Forms/Reschedule Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

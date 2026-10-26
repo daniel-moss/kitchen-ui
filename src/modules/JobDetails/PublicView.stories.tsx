@@ -37,7 +37,7 @@ interface PublicViewArgs {
 }
 
 const meta: Meta<PublicViewArgs> = {
-  title: "Modules/Job/Job Details/Public View",
+  title: "Modules/Job/Details/Public View",
   parameters: { layout: "fullscreen" },
   args: { jobId: "JOB-1209", companyHasLogo: true },
   argTypes: {

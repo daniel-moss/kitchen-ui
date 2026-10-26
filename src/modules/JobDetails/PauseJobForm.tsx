@@ -8,19 +8,18 @@ import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 
-import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
+import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import { COMPANY, subStatusesFor } from "../../data/db";
 import type { JobSubStatusRecord } from "../../data/db/types";
 
+import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
 import styles from "./jobForm.module.scss";
 
 // The sub-statuses available per pause Type (placeholder demo values).
@@ -153,9 +152,15 @@ export default function PauseJobForm({
 
   const [subStatus, setSubStatus] = useState(onlyStatus);
   const [reason, setReason] = useState("");
-  // "Check out" by default (Figma 24058-15849) — pausing usually means the
-  // tech stops working, but they can keep their time running.
-  const [session, setSession] = useState<"stay" | "checkOut">("checkOut");
+  // The Check In / Out control, checked-in state only: "Check out" by default
+  // (Figma 24058-15849) — pausing usually means the tech stops working, but
+  // they can keep their time running.
+  const clock = useCheckInOut({
+    open,
+    shown: runningSession != null,
+    checkedIn: true,
+    defaults: { checkedIn: "change", checkedOut: "stay" },
+  });
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
 
@@ -163,7 +168,6 @@ export default function PauseJobForm({
     if (open) return;
     setSubStatus(onlyStatus);
     setReason("");
-    setSession("checkOut");
     setShowError(false);
     subStatusPop.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,7 +185,7 @@ export default function PauseJobForm({
     ? `${reason.length} / ${REASON_LIMIT} characters. Keep it short. Add details to the job summary.`
     : customHelp ?? copy.reasonHelp;
 
-  const dirty = subStatus !== onlyStatus || reason !== "" || session !== "checkOut";
+  const dirty = subStatus !== onlyStatus || reason !== "" || clock.dirty;
 
   const statusBad = statusRequired && subStatus === "";
   const reasonBad = reasonRequired && reason.trim() === "";
@@ -191,7 +195,7 @@ export default function PauseJobForm({
       setShowError(true);
       return;
     }
-    onPause(type, subStatus, reason, runningSession != null && session === "checkOut");
+    onPause(type, subStatus, reason, clock.checkOut);
     toast({ type: "success", title: copy.toast });
     onClose();
   };
@@ -204,13 +208,7 @@ export default function PauseJobForm({
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
-        <PopoverFooter
-          leadingButton={
-            <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          }
-        >
+        <PopoverFooter leadingButton={<DismissCancelButton />}>
           <Button size="lg" variant="solid" leftIcon={copy.submitIcon} onClick={pause}>
             {copy.submit}
           </Button>
@@ -246,15 +244,16 @@ export default function PauseJobForm({
           <TextArea value={reason} onChange={(e) => setReason(e.target.value)} isValid={!(showError && reasonBad)} />
         </Input>
 
-        {/* Check in / out: only for a viewer whose clock runs. The label names
-            the running session; "Check out" by default. */}
+        {/* Check In / Out (Figma 27163-52433): only for a viewer whose clock runs. */}
         {runningSession != null && (
-          <Input label={`Your clock is running${TEXT_SEPARATOR}${runningSession}`}>
-            <RadioGroup orientation="horizontal" value={session} onChange={(value) => setSession(value as "stay" | "checkOut")}>
-              <RadioItem value="stay" variant="card" icon="arrow-right-to-arc" iconPack="solid" label="Stay checked in" />
-              <RadioItem value="checkOut" variant="card" icon="arrow-left-from-arc" iconPack="solid" label="Check out" />
-            </RadioGroup>
-          </Input>
+          <CheckInOutField
+            runningSession={runningSession}
+            choice={clock.choice}
+            onChoiceChange={clock.setChoice}
+            status={clock.status}
+            onStatusChange={clock.setStatus}
+            mobile={mobile}
+          />
         )}
       </div>
 

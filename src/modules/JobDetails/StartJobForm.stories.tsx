@@ -11,7 +11,7 @@ import StartJobForm from "./StartJobForm";
 // are what the Job Details page shows; the other stories hand the form a
 // different company setup or viewer. The same form is "Resume job".
 const meta: Meta = {
-  title: 'Modules/Job/"Start Job" Form',
+  title: 'Modules/Job/Details/Forms/Start Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
 };
 

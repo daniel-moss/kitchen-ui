@@ -8,17 +8,16 @@ import SelectField from "../../components/Fields/SelectField/SelectField";
 import TextArea from "../../components/Fields/TextArea/TextArea";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
-import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 import AssigneesField from "../shared/AssigneesField";
+import DismissCancelButton from "../shared/DismissCancelButton";
 import DurationField from "../shared/DurationField";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
 import { formatEditDate, formatFullDate, Scheduling, TIME_OPTIONS } from "./SchedulingForm";
+import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
 import styles from "./RescheduleJobForm.module.scss";
 
 /** What the "Schedule" / "Reschedule" button commits. */
@@ -87,9 +86,10 @@ export default function RescheduleJobForm({
   const [duration, setDuration] = useState<number | null>(toMinutes(scheduling) || null);
   const [assignees, setAssignees] = useState(initialAssignees);
   const [rescheduleReason, setRescheduleReason] = useState("");
-  // No company setting exists for the default yet, so it is "Check out" (the
-  // block's annotation: the company default when there is one, else Check out).
-  const [session, setSession] = useState<"stay" | "checkOut">("checkOut");
+  // The Check In / Out control, checked-in state only. No company setting
+  // exists for the default yet, so it is "Check out" (the block's annotation:
+  // the company default when there is one, else Check out).
+  const session = useCheckInOut({ open, shown: clock != null, checkedIn: true, defaults: { checkedIn: "change", checkedOut: "stay" } });
   const [showErrors, setShowErrors] = useState(false);
   const timePop = useSelectPopover(mobile, "belowEnd");
 
@@ -104,7 +104,6 @@ export default function RescheduleJobForm({
     setDuration(toMinutes(scheduling) || null);
     setAssignees(initialAssignees);
     setRescheduleReason("");
-    setSession("checkOut");
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -114,7 +113,8 @@ export default function RescheduleJobForm({
     time !== "" ||
     duration !== (toMinutes(scheduling) || null) ||
     assignees.join() !== initialAssignees.join() ||
-    rescheduleReason !== "";
+    rescheduleReason !== "" ||
+    session.dirty;
 
   const dateTimeBad = date == null || time === "";
   const durationBad = duration == null || duration === 0;
@@ -136,7 +136,7 @@ export default function RescheduleJobForm({
       },
       assignees,
       rescheduleReason: rescheduleReason.trim(),
-      checkOut: clock != null && session === "checkOut",
+      checkOut: session.checkOut,
     });
     toast({ type: "success", title: rescheduling ? "Job rescheduled" : "Job scheduled" });
     onClose();
@@ -150,13 +150,7 @@ export default function RescheduleJobForm({
       breakpoint={mobile ? "mobile" : "desktop"}
       confirmOnDismiss={dirty}
       footer={
-        <PopoverFooter
-          leadingButton={
-            <Button size="lg" variant="ghost" onClick={onClose}>
-              Cancel
-            </Button>
-          }
-        >
+        <PopoverFooter leadingButton={<DismissCancelButton />}>
           <Button size="lg" variant="solid" leftIcon="calendar-lines-pen" onClick={submit}>
             {rescheduling ? "Reschedule" : "Schedule"}
           </Button>
@@ -207,12 +201,14 @@ export default function RescheduleJobForm({
             time — and the choice is required; "Check out" by default (no
             company preference in the demo). */}
         {clock != null && (
-          <Input label={`Your clock is running${TEXT_SEPARATOR}${clock}`}>
-            <RadioGroup orientation="horizontal" value={session} onChange={(value) => setSession(value as "stay" | "checkOut")}>
-              <RadioItem value="stay" variant="card" icon="arrow-right-to-arc" iconPack="solid" label="Stay checked in" />
-              <RadioItem value="checkOut" variant="card" icon="arrow-left-from-arc" iconPack="solid" label="Check out" />
-            </RadioGroup>
-          </Input>
+          <CheckInOutField
+            runningSession={clock}
+            choice={session.choice}
+            onChoiceChange={session.setChoice}
+            status={session.status}
+            onStatusChange={session.setStatus}
+            mobile={mobile}
+          />
         )}
       </div>
 

@@ -7,11 +7,10 @@ import Toaster from "../../../components/Toast/Toaster";
 import { PhoneViewport } from "../../../stories/helpers";
 import NewJobForm from "./NewJobForm";
 
-// The "New Job" flow of the «"New Job / Series" Form» module family (the
-// series flow is deferred). The sidebar group name uses "∕" (U+2215) instead
-// of "/" — a real slash would split the Storybook level.
+// The "New Job" flow of the «"Create" Form» module family (renamed from
+// "New Job ∕ Series" on 2026-10-26; the series flow is deferred).
 const meta: Meta = {
-  title: 'Modules/Job/"New Job ∕ Series" Form/Job',
+  title: 'Modules/Job/"Create" Form/Job',
   // Explicit ASCII id: the auto id inherits the title's "∕" (U+2215), and
   // messengers/keyboards silently turn it into "/" when the story URL is
   // shared — the link then 404s (Daniel hit this, 2026-09-08).
