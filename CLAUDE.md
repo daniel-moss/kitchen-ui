@@ -529,7 +529,7 @@ is why raw `.tsx` uploads there did nothing).
   on the Filters prototype: a 1000px Location list in a 533px window, 475px of
   it off-screen). The anchoring code is the other half of the rule: it must
   slide a card up so its bottom clears the screen — see `useAnchoredCard` and
-  `placeSub` in `src/prototypes/Filters/`.
+  `placeSub` in `src/app/`.
 - **Card WIDTHS are the components', not the consumer's** (Daniel, 2026-09-17,
   after a three-way comparison on the Filters prototype): `Menu` min 160 /
   max 384; `SelectList` NO minimum / max 384 — a list is as wide as its rows
@@ -798,17 +798,12 @@ so it cannot drift.
 
 ## Prototypes (`src/prototypes/`)
 
-> **Filters prototype — read `src/prototypes/Filters/MODULES.md` before touching
-> it.** The folder was RE-ORGANISED on 2026-09-11 to mirror Daniel's Figma
-> taxonomy: shared modules (`viewStates` / `filterUI` / `filterKinds` /
-> `filterTemplates` / `filterDefs`) owned by neither object, then a per-object
-> set each (`JobsPage` + `jobsTable` + `jobsFilters` + `jobsData`, and the
-> estimates twin). MODULES.md is the map: which Figma node each file is, which
-> way the imports point, the INVARIANTS that each cost a round of rework when
-> broken (width floors, the freeze-on-open, the import cycle, the un-animated
-> sub-list, memoised tables), what is still not built, and the open flags.
-> Verify any change with `npx tsc --noEmit` and
-> `node scripts/measure-filters.mjs` (Storybook must be on :6006).
+> **The Filters prototype is GONE (deleted 2026-10-26, when its user test
+> ended)** — with its frozen database copy and `scripts/measure-filters.mjs`.
+> Its list pages live on in the demo app, `src/app/`: read
+> `src/app/MODULES.md` (the module map, the invariants, the open flags) before
+> touching them. `src/prototypes/` is currently empty; mentions of the Filters
+> prototype elsewhere in this file are history.
 
 
 The point of the DS: **assemble working feature prototypes Daniel can share

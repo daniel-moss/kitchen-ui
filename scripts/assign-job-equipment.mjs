@@ -15,8 +15,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-// --db=<path> targets another copy (the Filters prototype keeps its own,
-// frozen, and is NOT maintained by this script).
+// --db=<path> targets another copy of the database.
 const dbArg = process.argv.find((a) => a.startsWith("--db="));
 const DB = dbArg ? dbArg.slice(5) : fileURLToPath(new URL("../src/data/db/db.ts", import.meta.url));
 const dryRun = process.argv.includes("--dry-run");

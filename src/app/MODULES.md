@@ -1,15 +1,13 @@
 # The demo app — the module map
 
 > **This folder began 2026-09-26 as a verbatim copy of
-> `src/prototypes/Filters/`.** The Filters prototype is under live user
-> testing on the main Storybook, so it is FROZEN — no change may touch it
-> until testing ends. All new work happens here instead.
->
-> The copy is temporary and ONE-DIRECTIONAL: nothing is back-ported to
-> Filters, and when testing ends `src/prototypes/Filters/` is deleted rather
-> than merged. From here the app grows — the shell and routing come out into
-> their own folders, object-details pages arrive, and the database becomes a
-> writable store — so this stops being a copy very quickly.
+> `src/prototypes/Filters/`**, made so that prototype could stay frozen during
+> its live user test. The test ENDED and the prototype was DELETED on
+> 2026-10-26, together with its frozen database copy, the old `labor` icon
+> alias and `scripts/measure-filters.mjs` (which drove the Filters stories
+> against that frozen data). This folder is the only home of those pages now.
+> Older sections below still mention the prototype and the measure script —
+> they are history, not instructions.
 >
 > ONE story, `App/Demo` (`app--demo`): the shell follows the viewport, so
 > there is no Desktop/Mobile split. A new page never adds a story.

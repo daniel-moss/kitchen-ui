@@ -4,11 +4,6 @@
 // Import from here:
 //
 //   import { CLIENTS, locationsOf, warrantiesOf } from "../../data/db";
-//
-// ONE EXCEPTION (2026-09-28, Daniel): the Filters prototype keeps its own
-// frozen copy in src/prototypes/Filters/db while customers test it. Nothing
-// else may read that copy, and both it and the prototype are deleted when the
-// test is over.
 
 import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
 import { Bill, Client, ClientContact, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, LocationContact, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";

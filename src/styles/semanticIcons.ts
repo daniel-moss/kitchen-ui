@@ -60,13 +60,6 @@ export const semanticIcons = {
   pricebook: "tag",
   /** The pricebook's service type. RENAMED from `labor` on 2026-10-06. */
   laborRate: "tag",
-  /**
-   * The old `labor` name, kept ONLY because the frozen Filters prototype still
-   * reads it (src/prototypes/Filters/listData.ts + appShell.tsx). NOT a token —
-   * `--labor` no longer exists in icons-semantic.css. Delete this line when
-   * src/prototypes/Filters/ is deleted.
-   */
-  labor: "tag",
   product: "box-taped",
   other: "tag",
   discount: "tag",

@@ -1066,15 +1066,9 @@ const preview = {
             '"View" Menu',
             ["Docs", "Desktop", "Mobile", "Jobs"],
           ],
-          // Filters is the ONLY prototype left: the Job Details page became a
-          // shared module on 2026-09-28 (src/modules/JobDetails) and its
-          // stories moved to the Modules section with it. Filters goes too,
-          // together with its own database copy, when its user test ends.
-          "Prototypes",
-          [
-            "Filters",
-            ["Desktop", "Mobile"],
-          ],
+          // No "Prototypes" section any more: Job Details became a module
+          // (2026-09-28) and the Filters prototype was deleted when its user
+          // test ended (2026-10-26) — the App/Demo story carries its pages.
           // The demo database (src/data/db) — its browser page lives last.
           "Data",
           ["Database"],
