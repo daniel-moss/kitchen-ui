@@ -4,6 +4,7 @@ import Button from "../components/Button/Button";
 import { Divider } from "../components/Divider/Divider";
 import EmptyState from "../components/EmptyState/EmptyState";
 import { noop } from "../stories/helpers";
+import { TEXT_SEPARATOR } from "../utils/textSeparator";
 
 import { ObjectNoun, countOf } from "./listData";
 
@@ -107,7 +108,8 @@ export const NoObjectsExist = ({ noun }: { noun: ObjectNoun }) => (
 //           fall inside or outside it);
 //   caption the counts — "N jobs" strong, the words subtle: "N jobs hidden by
 //           filters", "N jobs hidden by schedule horizon", or the combined
-//           "N jobs hidden by filters + N by schedule horizon";
+//           "N jobs hidden by filters · N by schedule horizon" (TEXT_SEPARATOR,
+//           was "+" until 2026-10-26);
 //   actions subtle/lg — "Clear filters", or "Reset filters" when the view has
 //           locked filters ("Depends if the view has locked filters"), and
 //           "Show settings" (opens the View menu). The combined state shows
@@ -159,8 +161,8 @@ export const NoObjectsMatch = ({
             </>
           ) : horizon > 0 ? (
             <>
-              <strong>{countOf(noun, hidden.filters)}</strong> hidden by filters + <strong>{horizon}</strong> by
-              schedule horizon
+              <strong>{countOf(noun, hidden.filters)}</strong> hidden by filters{TEXT_SEPARATOR}
+              <strong>{horizon}</strong> by schedule horizon
             </>
           ) : (
             <>
@@ -186,7 +188,7 @@ export const NoObjectsMatch = ({
 //   MATCHING SEARCH (frames 14238-36927 / 37395 / 14205-65622 + mobile twins)
 //     — the search DOES match objects, but the filters and/or schedule horizon
 //     hide them. The caption is a full sentence now — "N jobs match the search
-//     but are hidden by filters + N by schedule horizon" (it replaced "N
+//     but are hidden by filters · N by schedule horizon" (it replaced "N
 //     matching jobs hidden by …"; Daniel's fix for the title saying "no jobs
 //     match" while the caption counted matches) — and each part shows ONLY
 //     when that layer hides matches. Only the Ns are strong here (the nodes
@@ -240,7 +242,7 @@ export const NoSearchResults = ({
         caption={
           byFilters && byHorizon ? (
             <>
-              <strong>{hidden.filters}</strong> {matchPhrase(hidden.filters)} hidden by filters +{" "}
+              <strong>{hidden.filters}</strong> {matchPhrase(hidden.filters)} hidden by filters{TEXT_SEPARATOR}
               <strong>{horizon}</strong> by schedule horizon
             </>
           ) : byFilters ? (
@@ -294,11 +296,13 @@ export const NoSearchResults = ({
 //   schedule horizon only  "N jobs hidden by schedule horizon" + "Show
 //                          settings" (14186-48783; the button "Opens the
 //                          'View' menu". "Relevant to 'Jobs' only");
-//   filters + horizon      DESKTOP (14186-49251): both groups side by side,
-//                          16px apart — "N jobs hidden by filters" + its button
-//                          and "+N by schedule horizon" + "Show settings".
-//                          MOBILE (14186-49261): ONE compact line, no buttons —
-//                          "N jobs hidden by filters + N by schedule horizon".
+//   filters + horizon      DESKTOP (14186-49251): both groups side by side —
+//                          "N jobs hidden by filters" + its button, the text
+//                          separator (its own caption-500 subtle node), then
+//                          "N by schedule horizon" + "Show settings", all 4px
+//                          apart. MOBILE (14186-49261): ONE compact line, no
+//                          buttons — "N jobs hidden by filters · N by schedule
+//                          horizon". (The separator replaced a "+" 2026-10-26.)
 //
 // "Reset filters" and "Clear filters" are the same write — the selection
 // empties; the locked filter never lives in the selection, so it survives by
@@ -360,15 +364,17 @@ export const HiddenDataBar = ({
           mobile ? (
             // The compact combined line — "no buttons" is its annotation.
             <p className={styles.hiddenBarText}>
-              <strong>{countOf(noun, hidden.filters)}</strong> hidden by filters + <strong>{horizon}</strong> by
-              schedule horizon
+              <strong>{countOf(noun, hidden.filters)}</strong> hidden by filters{TEXT_SEPARATOR}
+              <strong>{horizon}</strong> by schedule horizon
             </p>
           ) : (
             <>
               {filtersGroup}
+              {/* Its own text node between the groups, caption 500 subtle (node 15759-6524). */}
+              <span className={styles.hiddenBarSeparator}>{TEXT_SEPARATOR}</span>
               <span className={styles.hiddenBarGroup}>
                 <p className={styles.hiddenBarText}>
-                  <strong>+{horizon}</strong> by schedule horizon
+                  <strong>{horizon}</strong> by schedule horizon
                 </p>
                 {showButton}
               </span>

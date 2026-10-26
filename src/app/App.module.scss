@@ -496,7 +496,7 @@
 }
 .hiddenBarRow {
   display: flex;
-  gap: var(--size-4); // 16px — between the combined state's two groups
+  gap: var(--size-1); // 4px — the combined state's groups and the separator between them
   align-items: center;
   justify-content: center;
   height: var(--size-10); // 40px
@@ -507,6 +507,11 @@
   display: flex;
   gap: var(--size-1); // 4px — text to its button
   align-items: center;
+}
+.hiddenBarSeparator {
+  @include font("caption-medium-500"); // 13/20
+  color: var(--text-subtle);
+  white-space: nowrap;
 }
 .hiddenBarText {
   @include font("caption-medium-400"); // 13/20
