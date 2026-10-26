@@ -704,6 +704,9 @@ const jobActionMenuItems = ({
   // Resume is the bar's button. No Cancel item in this design. A PAUSED job
   // can also go straight on hold (Figma 24096-19267, 2026-10-22): "Hold"
   // opens the Pause form on its On hold type, the same as from Active.
+  // A HELD job can also send its summary (Figma 24970-48552, 2026-10-26):
+  // "Send summary" closes the group and opens the same Send-summary form as
+  // "Resend summary" on a completed job.
   if (status === "quickPaused" || status === "onHold") {
     const held = status === "onHold";
     return (
@@ -723,7 +726,9 @@ const jobActionMenuItems = ({
             <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />
           )}
           <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
-
+          {held && (
+            <MenuItem label="Send summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
+          )}
         </MenuItemGroup>
       </>
     );

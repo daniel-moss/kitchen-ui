@@ -62,6 +62,7 @@ Read off Figma 24567-138760 (Completed), 24568-141430 (Finalized) and
 | Completed | ghost **Actions** · solid **Mark as ⌄** · solid **Create ⌄** — all three share the mobile row equally | Copy URL · Download PDF ⟋ Create recall · Resend summary · **Resume job** (solid jade `circle-play`) |
 | Finalized | ghost **Actions** · ghost **Resend summary** (desktop only) · ghost **Create recall** | Copy URL · Download PDF ⟋ **Resend summary** (mobile only) |
 | Cancelled | ghost **Copy URL** · ghost **Download PDF** | — none: the job has no "Actions" button |
+| On hold (Figma 24970-48552) | ghost **Actions** · solid **Resume** | Copy URL · Download PDF ⟋ Change hold status · Reschedule · **Send summary** (`paper-plane`, opens the same Send-summary form as Resend summary; added 2026-10-26) |
 
 Three rules worth keeping:
 
