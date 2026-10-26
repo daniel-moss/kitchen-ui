@@ -11,6 +11,13 @@ import styles from "./CheckInOutField.module.scss";
 /** "stay" keeps the viewer's clock as it is; "change" checks in or out. */
 export type CheckInOutChoice = "stay" | "change";
 
+/** What a form hands the page: start a session under `status`, or end the running one. */
+export interface CheckInOutResult {
+  checkIn: boolean;
+  checkOut: boolean;
+  status: string;
+}
+
 interface CheckInOutFieldProps {
   /**
    * The viewer's running session, e.g. "Working: 01:30:05" (it keeps ticking
@@ -28,8 +35,8 @@ interface CheckInOutFieldProps {
 }
 
 // The "Check In / Out" control (Figma 27163-52433) — ONE build for every job
-// form that can start or stop the viewer's time: Start / Resume, Pause,
-// Reschedule and Change active status. The form shows it only to an ASSIGNEE.
+// form that can start or stop the viewer's time: Start / Resume, Pause / Hold,
+// Change pause status, Reschedule and Change active status. The form shows it only to an ASSIGNEE.
 //
 //   Checked out — "You're checked out": "Stay checked out" or "Check in"; "Check
 //     in" opens the required "Your status" (the four tech statuses). Always
@@ -162,5 +169,11 @@ export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOu
     checkIn: changing && !checkedIn,
     /** End the running session. */
     checkOut: changing && checkedIn,
+    /** The three together, for the form's submit. */
+    result: (): CheckInOutResult => ({
+      checkIn: changing && !checkedIn,
+      checkOut: changing && checkedIn,
+      status: changing && !checkedIn ? status : "",
+    }),
   };
 }

@@ -19,7 +19,7 @@ import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { COMPANY, subStatusesFor } from "../../data/db";
 import type { JobSubStatusRecord } from "../../data/db/types";
 
-import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
+import CheckInOutField, { CheckInOutResult, useCheckInOut } from "./CheckInOutField";
 import styles from "./jobForm.module.scss";
 
 // The sub-statuses available per pause Type (placeholder demo values).
@@ -69,15 +69,13 @@ interface PauseJobFormProps {
   open: boolean;
   onClose: () => void;
   /**
-   * Pauses with the chosen Type (quick-pause | on-hold), sub-status and reason.
-   * `checkOut` = the tech's time stops with the job; "Stay checked in" keeps
-   * the running session going.
+   * Pauses with the chosen Type (quick-pause | on-hold), sub-status and reason,
+   * plus the viewer's Check In / Out outcome.
    */
-  onPause: (type: string, subStatus: string, reason: string, checkOut: boolean) => void;
-  /**
-   * The viewer's running time session, e.g. "Working: 01:30:05" — shows the
-   * clock choice. Null when the viewer's clock is not running: no choice.
-   */
+  onPause: (type: string, subStatus: string, reason: string, clock: CheckInOutResult) => void;
+  /** The viewer is an ASSIGNEE: the Check In / Out control shows. Default true. */
+  showCheckIn?: boolean;
+  /** The viewer's running session ("Working: 01:30:05"); null = checked out. */
   runningSession?: string | null;
   mobile?: boolean;
   /**
@@ -91,7 +89,7 @@ interface PauseJobFormProps {
 export type PauseType = "quick-pause" | "on-hold";
 
 /** The copy each dialog carries. Everything else about them is identical. */
-const COPY: Record<PauseType, {
+export const PAUSE_COPY: Record<PauseType, {
   title: string;
   submit: string;
   /** The primary button's left icon — its status icon (Figma 24058-15850 / 24963-43688). */
@@ -129,18 +127,21 @@ const COPY: Record<PauseType, {
   },
 };
 
-// "Pause job" form (Figma 24058-15840): the Pause status select (only where
-// the company has pause sub-statuses), the Pause reason, and — for a viewer
-// whose clock runs — the "Stay checked in" / "Check out" choice.
+// "Pause job" form (Figma 24058-15840, re-read 2026-10-26): the Pause status
+// select (only where the company has pause sub-statuses), the Pause reason, and
+// — for an assignee — the shared Check In / Out control. Its default (Figma
+// annotation): "Check out" when checked in, "Stay checked out" when checked
+// out. "Hold job" is the same build with the Hold copy.
 export default function PauseJobForm({
   open,
   onClose,
   onPause,
+  showCheckIn = true,
   runningSession = null,
   mobile = false,
   type = "quick-pause",
 }: PauseJobFormProps) {
-  const copy = COPY[type];
+  const copy = PAUSE_COPY[type];
   // Pause status (Figma 27189-56150): shown when the company has sub-statuses
   // for this status; required when it requires them AND there are 2+ to
   // choose from; with exactly one required, the system picks it (read-only).
@@ -152,13 +153,12 @@ export default function PauseJobForm({
 
   const [subStatus, setSubStatus] = useState(onlyStatus);
   const [reason, setReason] = useState("");
-  // The Check In / Out control, checked-in state only: "Check out" by default
-  // (Figma 24058-15849) — pausing usually means the tech stops working, but
-  // they can keep their time running.
+  // Pausing usually means the tech stops working, so the default leaves them
+  // checked out — but they can keep their time running, or check in.
   const clock = useCheckInOut({
     open,
-    shown: runningSession != null,
-    checkedIn: true,
+    shown: showCheckIn,
+    checkedIn: runningSession != null,
     defaults: { checkedIn: "change", checkedOut: "stay" },
   });
   const [showError, setShowError] = useState(false);
@@ -191,11 +191,11 @@ export default function PauseJobForm({
   const reasonBad = reasonRequired && reason.trim() === "";
 
   const pause = () => {
-    if (statusBad || reasonBad) {
+    if (statusBad || reasonBad || clock.statusBad) {
       setShowError(true);
       return;
     }
-    onPause(type, subStatus, reason, clock.checkOut);
+    onPause(type, subStatus, reason, clock.result());
     toast({ type: "success", title: copy.toast });
     onClose();
   };
@@ -209,7 +209,8 @@ export default function PauseJobForm({
       confirmOnDismiss={dirty}
       footer={
         <PopoverFooter leadingButton={<DismissCancelButton />}>
-          <Button size="lg" variant="solid" leftIcon={copy.submitIcon} onClick={pause}>
+          {/* Solid, like the Figma buttons (24058-15849 / 24963-43684). */}
+          <Button size="lg" variant="solid" leftIcon={copy.submitIcon} leftIconPack="solid" onClick={pause}>
             {copy.submit}
           </Button>
         </PopoverFooter>
@@ -244,14 +245,21 @@ export default function PauseJobForm({
           <TextArea value={reason} onChange={(e) => setReason(e.target.value)} isValid={!(showError && reasonBad)} />
         </Input>
 
-        {/* Check In / Out (Figma 27163-52433): only for a viewer whose clock runs. */}
-        {runningSession != null && (
+        {/* Check In / Out (Figma 27163-52433): only for an assignee. */}
+        {showCheckIn && (
           <CheckInOutField
             runningSession={runningSession}
             choice={clock.choice}
-            onChoiceChange={clock.setChoice}
+            onChoiceChange={(choice) => {
+              clock.setChoice(choice);
+              setShowError(false);
+            }}
             status={clock.status}
-            onStatusChange={clock.setStatus}
+            onStatusChange={(status) => {
+              clock.setStatus(status);
+              setShowError(false);
+            }}
+            showError={showError}
             mobile={mobile}
           />
         )}

@@ -40,6 +40,7 @@ import ActionBar from "./ActionBar";
 import CancelJobForm from "./CancelJobForm";
 import ChangeActiveStatusForm, { ChangeActiveStatusResult } from "./ChangeActiveStatusForm";
 import ChangePauseStatusForm from "./ChangePauseStatusForm";
+import { CheckInOutResult } from "./CheckInOutField";
 import CompleteJobForm from "./CompleteJobForm";
 import SendSummaryForm from "./SendSummaryForm";
 import Dialog from "../../components/Dialog/Dialog";
@@ -1799,11 +1800,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // Pause / hold: quick-pause or on-hold, with a sub-status + reason. The tech
   // is checked out only when the form's "Check out" box is ticked (Figma
   // 24512-62825) — otherwise the job pauses and their session keeps running.
-  const pauseJob = (type: string, subStatus: string, reason: string, checkOut: boolean) => {
-    if (checkOut) {
-      setCheckedIn(false);
-      endActiveSession();
-    }
+  const pauseJob = (type: string, subStatus: string, reason: string, clock: CheckInOutResult) => {
     setJob((j) => ({
       ...j,
       status: type === "quick-pause" ? "quickPaused" : "onHold",
@@ -1814,15 +1811,15 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     }));
     // One wording for both types — the status names the sub-status, or the pause
     // type itself when the company has none (Figma 24512-62842). The glyph is
-    // what tells quick-pause from on-hold. Pausing with "Check out" ticked
-    // writes TWO logs, like starting a job with "Check in" — job action first.
+    // what tells quick-pause from on-hold. Pausing with "Check out" (or "Check
+    // in") writes TWO logs, like starting a job — job action first.
     pushJobStatus(pauseGlyph(type), {
       text: " paused the job with status ",
       value: pauseStatusName(type, subStatus),
       reason,
       reasonTitle: "Pause reason",
     });
-    if (checkOut) pushEvent({ kind: "checkout" });
+    applyCheckInOut(clock.checkIn, clock.checkOut, clock.status);
   };
   // Resume back to active with a fresh sub-status (updates "Active on").
   // Like startJob (Figma 24096-19684): the form's "Check in" card decides
@@ -1941,7 +1938,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     applyCheckInOut(checkIn, checkOut, status);
   };
   // Change the pause Type / sub-status / reason (stays paused; keeps "Paused on").
-  const doChangePause = (type: string, subStatus: string, reason: string) => {
+  const doChangePause = (type: string, subStatus: string, reason: string, clock: CheckInOutResult) => {
     setJob((j) => ({ ...j, status: type === "quick-pause" ? "quickPaused" : "onHold", subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined }));
     // The Pause reason is a NEW one each time, so it is this log's sub-log
     // (Figma 24517-63511).
@@ -1951,6 +1948,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       reason,
       reasonTitle: "Pause reason",
     });
+    applyCheckInOut(clock.checkIn, clock.checkOut, clock.status);
   };
 
   // Check-in — opens the Check in dialog (Figma 24194-74433); confirming
@@ -2467,7 +2465,7 @@ type ShellState = ReturnType<typeof useJobShell>;
 // only by the mobile flag / Prompt breakpoint). Rendered once per shell.
 const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) => (
   <>
-    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} runningSession={s.runningSession} mobile={mobile} />
+    <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} showCheckIn={s.viewerIsAssignee} runningSession={s.runningSession} mobile={mobile} />
     {/* Complete job — the 5-step flow (Equipment shares the live equipment list;
         the rest is a snapshot). Figma section 24106-16424. */}
     <CompleteJobForm
@@ -2609,6 +2607,8 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       initialType={s.job.status === "onHold" ? "on-hold" : "quick-pause"}
       initialSubStatus={s.job.subStatus ?? ""}
       onSubmit={s.doChangePause}
+      showCheckIn={s.viewerIsAssignee}
+      runningSession={s.runningSession}
       mobile={mobile}
     />
     <SessionForm
