@@ -691,6 +691,23 @@ One folder per module, same file conventions as components; stories under the
   re-measures.
   JobDetails imports it; the other prototypes still carry local copies
   (consolidation pending).
+- **THE STANDARD MULTI-SELECT SELECTLIST (Daniel, 2026-10-26; Figma "Labels"
+  SelectList 12921-10208, "New Job" Equipment 17189-78623).** Ticks change a
+  DRAFT (the field behind does not move); the draft APPLIES when the list
+  closes. Desktop card under a field: no apply button — any close applies
+  (outside click, Escape, the field, a footer action); a footer is a MenuItem.
+  Mobile drawer: a visible solid **"Select N"** (`SelectListSelectFooter` —
+  full width, or with ONE ghost action on its left such as "Add equipment");
+  swiping the drawer down applies too. No Cancel, no "Discard changes?".
+  Wire it with `components/SelectList/useSelectionDraft` (it watches `open`,
+  so every way of closing applies). Documented on the `multiSelect` prop and
+  the SelectList `ApplyOnClose` / `ApplyOnCloseMobile` stories. Used by the
+  Equipment picker (`shared/EquipmentPicker`) and the Labels list
+  (`shared/LabelsSelectList`, mobile + field). A DESKTOP list that is its own
+  edit form (the side panels' Labels dialog: Cancel + "Select N") keeps the
+  Dialog rules — Cancel / × drop the picks after a prompt. Because the value
+  does not change while the list is open, the freeze rule below is not
+  needed for these lists.
 - **LAYOUT-FREEZE RULE — `pop.freeze(value)` (Daniel, 2026-08-03).** Because the
   card is fixed once open, anything the picks GROW below the trigger (a badge
   row, the picked items' list) would push the trigger down and the card would
@@ -702,13 +719,14 @@ One folder per module, same file conventions as components; stories under the
   change size, so it must keep updating live as you tick.
 - **"Labels" — ONE build, used everywhere (Daniel, 2026-10-25; Figma file
   XBFKW2ThcuVxPbQQHw1XY2, node 1950-34790).** `shared/LabelsSelectList` is the
-  picker: dialog (Cancel + "Apply N") on desktop / drawer (full-width "Apply
-  N") on mobile for the side panels' Labels modules; with a `pop` it opens
-  inline under a form field (no footer, picks apply live). A–Z, selected-on-top
+  picker: dialog (Cancel + "Select N") on desktop / drawer (full-width
+  "Select N", swipe applies) on mobile for the side panels' Labels modules; with a `pop` it opens
+  under a form field — inline card on desktop (no footer button), drawer on
+  mobile — following the standard multi-select rule above (2026-10-26). A–Z, selected-on-top
   group, caption-only empty state, "Create new label: <query>" in the footer
-  on no match (prompt --text-subtle, value --text-strong), "Apply 0" when
-  nothing is ticked, "Discard changes?" on ×/Cancel/scrim/Escape/swipe when
-  dirty (the swipe springs the sheet back — Popover `swipeAsks`).
+  on no match (prompt --text-subtle, value --text-strong), "Select 0" when
+  nothing is ticked, "Discard changes?" on ×/Cancel/scrim/Escape when dirty —
+  the DESKTOP DIALOG only; every drawer applies on swipe without asking.
   `shared/LabelsField` = the form field (SelectField counter + dismissible lg
   badges 12px below + the picker) — every form's Labels input uses it. Never
   build a Labels list or field locally again.

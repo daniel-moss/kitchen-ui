@@ -1361,9 +1361,12 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // The job's equipment (ids into the location's pool) — lifted here so the
   // Service call form (Summary tab) reads the live Equipment-module list.
   const [equipmentIds, setEquipmentIds] = useState<string[]>(() => seedEquipmentIds(record));
+  // "Make equipment required" (the Equipment edit Dialog) — the job's own
+  // flag; it shows as the module's "Required" tag.
+  const [isEquipmentRequired, setIsEquipmentRequired] = useState<boolean>(() => jobById(record.id)?.isEquipmentRequired ?? false);
   // Whether equipment is involved is DERIVED from the list since 2026-09-28
   // (the updated Equipment module has no "Is equipment involved?" question):
-  // no equipment means the module reads "Equipment is not involved".
+  // no equipment means the module reads "No equipment".
   // The Job-properties module's values (Job ID, Branch, Source, Source ID,
   // Date received, Received by) — edited by JobPropertiesForm.
   const [jobProperties, setJobProperties] = useState<JobProperties>(() => defaultJobProperties(record));
@@ -1532,7 +1535,10 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
 
   // Saving the Equipment form (Figma 24465-35321) — the picked equipment. The
   // FORM shows the '"Equipment" module updated' toast.
-  const saveEquipment = ({ equipmentIds: next }: EquipmentFormValues) => changeEquipmentIds(next);
+  const saveEquipment = ({ equipmentIds: next, isEquipmentRequired: required }: EquipmentFormValues) => {
+    changeEquipmentIds(next);
+    setIsEquipmentRequired(required);
+  };
 
   // The New-equipment form (Figma 21897-7658), opened from the Equipment form's
   // picker. The created piece joins the location's POOL here and is returned so
@@ -2341,6 +2347,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     serviceValues,
     setServiceValues,
     equipmentIds,
+    isEquipmentRequired,
     setEquipmentIds,
     changeEquipmentIds,
     saveEquipment,
@@ -2713,7 +2720,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+                <ServicePanel isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
@@ -3021,7 +3028,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
             ) : t === "service" ? (
-              <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+              <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}

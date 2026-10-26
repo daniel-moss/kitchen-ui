@@ -1,6 +1,7 @@
 import { Children, cloneElement, Fragment, isValidElement, KeyboardEvent, MouseEvent, ReactElement, ReactNode } from "react";
 import clsx from "clsx";
 
+import ItemText from "../ItemText/ItemText/ItemText";
 import ItemTextBlock from "../ItemText/ItemText/ItemTextBlock";
 import useControllableState from "../../hooks/useControllableState";
 import { Icon } from "../Icon/Icon";
@@ -56,6 +57,7 @@ function withHeaderTooltips(slot: ReactNode): ReactNode {
 export default function DisplayModule({
   variant = "default",
   title,
+  tag,
   titleSlotRight,
   caption,
   slotLeft,
@@ -93,13 +95,16 @@ export default function DisplayModule({
       <div className={styles.copy}>
         {/* The copy is ItemText — the title truncates with a full-text hover
             tooltip, and caption and the title badge stay mutually exclusive
-            (the badge wins). */}
-        <ItemTextBlock
+            (the badge wins). With a `tag`, the full ItemText carries it as its
+            right block (hugs, never truncates). */}
+        <ItemText
+          className={styles.copyText}
           variant={caption != null && titleSlotRight == null ? "titleCaption" : "title"}
           title={title}
           titleSlotRight={titleSlotRight}
           caption={caption != null && titleSlotRight == null ? caption : undefined}
           captionLines="wrap"
+          right={tag != null ? <ItemTextBlock align="right" variant="tag" tag={tag} /> : undefined}
         />
       </div>
       {slotRight != null && (

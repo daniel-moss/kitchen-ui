@@ -5,34 +5,35 @@ import PopoverFooter from "../../components/Popover/PopoverFooter";
 import SelectList from "../../components/SelectList/SelectList";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
+import SelectListSelectFooter from "../../components/SelectList/SelectListSelectFooter";
+import { useSelectionDraft } from "../../components/SelectList/useSelectionDraft";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import DismissCancelButton from "./DismissCancelButton";
 import { SelectPopover, SelectPopoverList } from "./selectPopover";
 
 // The "Labels" picker — THE one build of the "Labels" SelectList (Figma file
-// XBFKW2ThcuVxPbQQHw1XY2, node 1950-34790; redesigned 2026-10-25). Every place
+// XBFKW2ThcuVxPbQQHw1XY2, node 12921-10208; reworked 2026-10-26). Every place
 // that edits labels opens it: the side panels' "Labels" modules (dialog on
 // desktop / drawer on mobile) and every form's Labels field through
 // `LabelsField` (inline under the field on desktop / drawer on mobile).
 //
-// The design, by presentation:
-// - dialog: Cancel + "Apply N" footer. The close ×, the scrim, Escape and
-//   Cancel drop the picks — after a "Discard changes?" Prompt when anything
-//   changed.
-// - drawer: one full-width "Apply N"; swipe / scrim drop the picks, with the
-//   same Prompt (a swipe springs the sheet back while it asks).
-// - inline: NO footer — the picks apply as you tick, so whatever closes the
-//   card (outside click, Escape, the field) leaves them applied. Same result
-//   as Figma's "applied when closing": the badges under the field are frozen
-//   while it is open, and only the field's counter moves live (the layout-
-//   freeze rule).
+// The design, by presentation — the STANDARD multi-select SelectList
+// behaviour (`useSelectionDraft`, Daniel 2026-10-26) everywhere except the
+// desktop dialog:
+// - mobile drawer (from a field OR a side panel): ticks are a draft; a
+//   full-width solid "Select N" or swiping the drawer down applies them. No
+//   Cancel, no "Discard changes?".
+// - desktop card under a FIELD (`pop` — LabelsField): no footer button;
+//   closing the list (outside click, Escape, the field) applies.
+// - desktop DIALOG (side panels): the list is the edit form — Cancel +
+//   "Select N". The close ×, the scrim, Escape and Cancel drop the picks,
+//   after a "Discard changes?" Prompt when anything changed.
 // Everywhere: options A→Z; labels already on the object open in their own
 // group on top (SelectList's "selected on top" — re-sorted only on reopen);
-// "Apply" always carries the count — "Apply 0" too (Daniel, 2026-10-25,
-// overriding the Figma note "no counter without a selection"); no labels
-// at all = the caption-only empty state and no footer; an unmatched search
-// offers "Create new label: <query>" in the footer, which creates, ticks and
-// clears the search.
+// "Select" always carries the count — "Select 0" too; no labels at all = the
+// caption-only empty state and no footer; an unmatched search replaces the
+// footer with "Create new label: <query>", which creates, ticks and clears
+// the search.
 //
 // It does NOT toast: the callers word their own ('"Labels" module updated'),
 // and only the caller knows whether anything actually changed.
@@ -46,8 +47,9 @@ interface LabelsSelectListProps {
   /** The workspace's label pool, by name. A created label joins it. */
   pool: string[];
   /**
-   * Apply — the picked names, in pick order. The dialog/drawer caller closes
-   * and toasts. Inline (with `pop`), it fires on EVERY tick and on create.
+   * Apply — the picked names, in pick order. The caller closes and toasts.
+   * The desktop dialog fires it from "Select N"; everywhere else it fires
+   * once, when the list closes, and only if the picks changed.
    */
   onSave: (labels: string[]) => void;
   /** A label was created from the search — for a caller that keeps it in its pool beyond this opening. */
@@ -93,7 +95,11 @@ export default function LabelsSelectList({
   breakpoint = "auto",
 }: LabelsSelectListProps) {
   const mobile = !useIsDesktop(breakpoint);
-  const inline = pop != null && !mobile;
+  // The standard apply-on-close draft — every presentation but the desktop
+  // dialog, which is an edit form with Cancel.
+  const fromField = pop != null;
+  const appliesOnClose = mobile || fromField;
+  const closeDraft = useSelectionDraft(open, labels, onSave);
 
   const [picked, setPicked] = useState<string[]>(labels);
   // The pool is local so a label created in the flow can join it. Re-seeded on
@@ -113,14 +119,13 @@ export default function LabelsSelectList({
       setPicked(labels);
       // Every label already ON the object is an option, even when the caller's
       // pool does not know it yet (one created in an earlier opening) —
-      // otherwise it is counted in "Apply N" but never shown.
+      // otherwise it is counted in "Select N" but never shown.
       setOptions([...pool, ...labels.filter((name) => !pool.includes(name))]);
     }
   }
 
-  // Inline has no draft: the object's own labels are the selection.
-  const selection = inline ? labels : picked;
-  const change = (next: string[]) => (inline ? onSave(next) : setPicked(next));
+  const selection = appliesOnClose ? closeDraft.selection : picked;
+  const change = (next: string[]) => (appliesOnClose ? closeDraft.setDraft(next) : setPicked(next));
 
   const toggle = (label: string) =>
     change(selection.includes(label) ? selection.filter((row) => row !== label) : [...selection, label]);
@@ -136,20 +141,19 @@ export default function LabelsSelectList({
     if (!selection.includes(name)) change([...selection, name]);
   };
 
-  const dirty = !inline && !sameSet(picked, labels);
+  const dirty = !appliesOnClose && !sameSet(picked, labels);
   const empty = options.length === 0;
 
-  const apply = (
-    <Button size="lg" variant="solid" onClick={() => onSave(picked)}>
-      {`Apply ${picked.length}`}
-    </Button>
+  // Mobile: "Select N" closes the list, and closing applies the draft.
+  const footer = empty ? undefined : mobile ? (
+    <SelectListSelectFooter count={selection.length} onSelect={onClose} />
+  ) : fromField ? undefined : (
+    <PopoverFooter slotLeft={<DismissCancelButton />}>
+      <Button size="lg" variant="solid" onClick={() => onSave(picked)}>
+        {`Select ${picked.length}`}
+      </Button>
+    </PopoverFooter>
   );
-  const footer =
-    inline || empty ? undefined : mobile ? (
-      <PopoverFooter stretch>{apply}</PopoverFooter>
-    ) : (
-      <PopoverFooter slotLeft={<DismissCancelButton />}>{apply}</PopoverFooter>
-    );
 
   const items = (
     <SelectListItemGroup>

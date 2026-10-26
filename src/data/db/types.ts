@@ -530,6 +530,13 @@ export interface Job {
   assigneeIds: number[];
   /** The equipment this job services, from the same location. */
   equipmentIds: string[];
+  /**
+   * "Make equipment required" — the "Complete job" form's Equipment step
+   * needs at least one piece (2026-10-26, Figma "New Job" 17189-78592 /
+   * "Job Details" 21760-11304). NOT in production yet: a new backend field.
+   * Absent = false.
+   */
+  isEquipmentRequired?: boolean;
   /** JOB_LABELS ids — free-form tags (production `JobLabel`). */
   labelIds: string[];
   /** The Service module's "Type": a fresh request, or a recall of old work. */

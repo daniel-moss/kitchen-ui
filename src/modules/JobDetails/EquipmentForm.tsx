@@ -1,34 +1,34 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Button from "../../components/Button/Button";
+import Dialog from "../../components/Dialog/Dialog";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import SelectList from "../../components/SelectList/SelectList";
-import SelectListItem from "../../components/SelectList/SelectListItem";
-import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
-import NewEquipmentForm from "../NewEquipmentForm/NewEquipmentForm";
 import { NewEquipment } from "../NewEquipmentForm/NewEquipmentForm.types";
-import { Equipment, EquipmentAvatar, equipmentCaption, equipmentLabel } from "./equipment";
+import DismissCancelButton from "../shared/DismissCancelButton";
+import EquipmentPicker from "../shared/EquipmentPicker";
+import { Equipment } from "./equipment";
 
 /**
- * The "Equipment" edit form — REBUILT 2026-09-28 to the updated design (Figma
- * 24465-35321, desktop 24737-112875 / mobile 24737-112866).
+ * The "Equipment" edit form — REBUILT 2026-10-26 to the "Next Update" design
+ * (Figma 21760-11304, "Edit" section). Opened by the module's pen ("Opens the
+ * Dialog").
  *
- * It is a multi-select **SelectList** over the location's equipment: a dialog
- * on desktop, a drawer on mobile, with a "Equipment..." search, object rows
- * (avatar + "Name · Manufacturer" over "Serial: … · Model: …") and a footer of
- * Cancel · "Add equipment" · Save.
+ * A default Dialog (desktop card / mobile drawer) whose content is the SHARED
+ * EquipmentPicker — the same build as the "New Job" form's Equipment module:
+ * the "Make equipment required" checkbox, the optional equipment field with
+ * its list, and the picked rows. Cancel / Save; Save toasts '"Equipment"
+ * module updated'. Everything is a DRAFT until Save, and leaving with changes
+ * asks "Discard changes?".
  *
- * WHAT WENT (Daniel, 2026-09-28: "it's an outdated version"): the
- * "Is equipment involved?" No/Yes radio pair, the SelectField + the list of
- * picked rows below it, and the whole `Dialog` wrapper. Involvement is DERIVED
- * now — no equipment means "Equipment is not involved", which is exactly what
- * the module's empty state says (node 21760-11307).
+ * WHAT WENT: the 2026-09-28 version was a bare SelectList (dialog / drawer)
+ * with a Cancel · "Add equipment" · Save footer.
  */
 
-/** What Save hands back — just the job's equipment, by pool id. */
+/** What Save hands back. */
 export interface EquipmentFormValues {
   equipmentIds: string[];
+  isEquipmentRequired: boolean;
 }
 
 interface EquipmentFormProps {
@@ -41,16 +41,16 @@ interface EquipmentFormProps {
   /** Commits the draft — the Equipment module re-renders from it. */
   onSave: (next: EquipmentFormValues) => void;
   /**
-   * Creates a piece in the location's pool and RETURNS it, so the form can tick
-   * it in the draft (the "Add equipment" annotation: "creating the equipment
-   * from here brings the user back to the SelectList with the equipment being
-   * selected"). It lands on the job only when the form is saved.
+   * Creates a piece in the location's pool and RETURNS it, so the picker can
+   * tick it in the draft. It lands on the job only when the form is saved.
    */
   onCreateEquipment: (values: NewEquipment) => Equipment;
   /** The job's service location — the New-equipment form's header caption. */
   locationName: string;
   mobile?: boolean;
 }
+
+const sameIds = (a: string[], b: string[]) => a.length === b.length && a.every((id) => b.includes(id));
 
 export default function EquipmentForm({
   open,
@@ -62,92 +62,52 @@ export default function EquipmentForm({
   locationName,
   mobile = false,
 }: EquipmentFormProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>(initial.equipmentIds);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [draft, setDraft] = useState<EquipmentFormValues>(initial);
 
-  // A fresh open resets the draft to the saved values.
-  useEffect(() => {
-    if (!open) return;
-    setSelectedIds(initial.equipmentIds);
-    setCreateOpen(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // A fresh open resets the draft to the saved values — seeded on the
+  // closed→open transition, never keyed on `initial` (callers rebuild it).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setDraft(initial);
+  }
 
-  // The list shows the whole pool A→Z (the design annotation).
-  const options = [...equipmentPool].sort((a, b) => a.name.localeCompare(b.name));
-
-  const toggle = (id: string) =>
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-
-  // "Add equipment" leaves the list for the New-equipment form; the created
-  // piece comes back ticked.
-  const createEquipment = (values: NewEquipment) => {
-    const equipment = onCreateEquipment(values);
-    setSelectedIds((prev) => [...prev, equipment.id]);
-  };
+  const dirty = draft.isEquipmentRequired !== initial.isEquipmentRequired || !sameIds(draft.equipmentIds, initial.equipmentIds);
 
   const save = () => {
-    onSave({ equipmentIds: selectedIds });
+    onSave(draft);
     toast({ type: "success", title: '"Equipment" module updated' });
     onClose();
   };
 
   return (
-    <>
-      <SelectList
-        variant={mobile ? "drawer" : "dialog"}
-        title="Equipment"
-        open={open && !createOpen}
-        onClose={onClose}
-        multiSelect
-        searchable
-        searchPlaceholder="Equipment..."
-        breakpoint={mobile ? "mobile" : "desktop"}
-        emptyState={{ icon: "cube", title: "No equipment here yet", caption: "Add equipment to this location to pick it" }}
-        footer={
-          <PopoverFooter
-            slotLeft={
-              <Button size="lg" variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-            }
-          >
-            {/* Ghost, with the plus on the left — the node's second action,
-                between Cancel and Save. */}
-            <Button size="lg" variant="ghost" leftIcon="plus" onClick={() => setCreateOpen(true)}>
-              Add equipment
-            </Button>
-            <Button size="lg" variant="solid" onClick={save}>
-              Save
-            </Button>
-          </PopoverFooter>
-        }
-      >
-        <SelectListItemGroup>
-          {options.map((equipment) => (
-            <SelectListItem
-              key={equipment.id}
-              variant="object"
-              multiSelect
-              selected={selectedIds.includes(equipment.id)}
-              avatar={<EquipmentAvatar equipment={equipment} />}
-              label={equipmentLabel(equipment)}
-              caption={equipmentCaption(equipment)}
-              onClick={() => toggle(equipment.id)}
-            />
-          ))}
-        </SelectListItemGroup>
-      </SelectList>
-
-      {/* Creating a piece returns to the list with it ticked, so the list is
-          hidden (not closed) while this is open — the draft must survive. */}
-      <NewEquipmentForm
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        location={locationName}
-        onCreated={createEquipment}
-        breakpoint={mobile ? "mobile" : "desktop"}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Equipment"
+      breakpoint={mobile ? "mobile" : "desktop"}
+      // Mobile: grab handle above the title, no close button (node
+      // 27284-70781) — dismissed by dragging, the scrim or Cancel.
+      drawerHeader="default"
+      confirmOnDismiss={dirty}
+      footer={
+        <PopoverFooter slotLeft={<DismissCancelButton />}>
+          <Button size="lg" variant="solid" onClick={save}>
+            Save
+          </Button>
+        </PopoverFooter>
+      }
+    >
+      <EquipmentPicker
+        value={draft.equipmentIds}
+        onChange={(equipmentIds) => setDraft((prev) => ({ ...prev, equipmentIds }))}
+        isEquipmentRequired={draft.isEquipmentRequired}
+        onEquipmentRequiredChange={(isEquipmentRequired) => setDraft((prev) => ({ ...prev, isEquipmentRequired }))}
+        options={equipmentPool}
+        onCreate={onCreateEquipment}
+        locationLabel={locationName}
+        mobile={mobile}
       />
-    </>
+    </Dialog>
   );
 }

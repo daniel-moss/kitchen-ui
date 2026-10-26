@@ -23,7 +23,7 @@ import EquipmentPanel from "../EquipmentPanel/EquipmentPanel";
 import { NewEquipment } from "../NewEquipmentForm/NewEquipmentForm.types";
 import { EQUIPMENT_LABELS, Equipment as EquipmentRecord, equipmentById, jobById } from "../../data/db";
 import { useCurrentJobId } from "./currentJob";
-import { Equipment, EquipmentAvatar, equipmentCaption, equipmentCaptionText, equipmentIncomplete, equipmentLabel, equipmentTitle } from "./equipment";
+import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentIncomplete, equipmentLabel, equipmentTitle } from "./equipment";
 import EquipmentForm, { EquipmentFormValues } from "./EquipmentForm";
 import FilesModule from "./FilesModule";
 import ServiceForm, { PRIORITIES, ServiceValues } from "./ServiceForm";
@@ -123,16 +123,12 @@ const EquipmentRow = ({
         <Menu
           open={menu.open}
           onClose={menu.close}
-          // The drawer repeats the row: name + manufacturer over serial +
-          // model (the header's two annotations).
+          // Drag handle + the piece's "Name · Manufacturer" as a plain title —
+          // no avatar, no serial/model caption (node 21760-41511, 2026-10-26).
           drawerHeader={
             <DrawerHeader>
-              <PopoverHeaderContent avatar={<EquipmentAvatar equipment={equipment} />}>
-                <PopoverHeaderText
-                  variant="titleCaption"
-                  title={equipmentLabel(equipment)}
-                  caption={equipmentCaption(equipment)}
-                />
+              <PopoverHeaderContent>
+                <PopoverHeaderText variant="title" title={equipmentLabel(equipment)} />
               </PopoverHeaderContent>
             </DrawerHeader>
           }
@@ -185,6 +181,7 @@ export default function ServicePanel({
   serviceValues,
   onServiceChange,
   equipmentIds,
+  isEquipmentRequired,
   onEquipmentSave,
   equipmentPool,
   onCreateEquipment,
@@ -199,7 +196,9 @@ export default function ServicePanel({
   onServiceChange: (next: ServiceValues) => void;
   /** The job's equipment (ids into the pool) — owned by useJobShell. */
   equipmentIds: string[];
-  /** Commits the Equipment form: the answer + the job's equipment ids. */
+  /** "Make equipment required" — owned by useJobShell; the module's "Required" tag. */
+  isEquipmentRequired: boolean;
+  /** Commits the Equipment form: the job's equipment ids + the required flag. */
   onEquipmentSave: (next: EquipmentFormValues) => void;
   /** The location's equipment — owned by useJobShell (the New-equipment form
    *  appends to it). */
@@ -258,7 +257,7 @@ export default function ServicePanel({
   // piece's name + manufacturer, joined by the shared separator (the node
   // still draws the retired "・").
   const removeEquipment = (equipment: Equipment) => {
-    onEquipmentSave({ equipmentIds: equipmentIds.filter((id) => id !== equipment.id) });
+    onEquipmentSave({ equipmentIds: equipmentIds.filter((id) => id !== equipment.id), isEquipmentRequired });
     toast({ type: "success", variant: "detailed", title: "Equipment removed", caption: equipmentLabel(equipment) });
   };
 
@@ -321,29 +320,27 @@ export default function ServicePanel({
       />
       <ServiceForm open={serviceOpen} onClose={() => setServiceOpen(false)} initial={service} onSave={onServiceChange} mobile={mobile} />
 
-      {/* Equipment (Figma 21760-11304, REBUILT 2026-09-28) — a row per job
-          equipment; empty → "Equipment is not involved" with no Counter
-          (21760-11307).
+      {/* Equipment (Figma 21760-11304, "Next Update" 2026-10-26) — a row per
+          job equipment; empty → caption-only "No equipment", no Counter.
 
-          The header button is a PLUS, not a pencil: the updated design has no
-          "Edit" — adding is the action, and the form it opens is the Equipment
-          SelectList (its annotation: "'Add' IconButton — opens the SelectList").
+          The header button is a PEN ("Edit" — opens the Dialog): the edit form
+          is the shared EquipmentPicker in a Dialog, the same content as the
+          New Job form's module. The "Required" tag on the right of the title
+          shows only while "Make equipment required" is on.
 
           A piece missing any of manufacturer / model / serial turns the module
-          into its WARNING state: an AlertBanner reading "Some details require
-          your attention!" (node 24749-140737). The rows already show the amber
-          avatar and the "No Manufacturer" placeholders. */}
+          into its WARNING state: ring + banner "Key details are missing". The
+          rows show the amber avatar and the "No Manufacturer" placeholders. */}
       {(!isPublicView || jobEquipment.length > 0) && (
       <DisplayModule
         title="Equipment"
         titleSlotRight={jobEquipment.length > 0 ? <Counter value={jobEquipment.length} /> : undefined}
+        tag={isEquipmentRequired && !isPublicView ? "Required" : undefined}
         status={equipmentWarning ? "warning" : "none"}
-        banner={equipmentWarning ? { children: "Some details require your attention!" } : undefined}
+        banner={equipmentWarning ? { children: "Key details are missing" } : undefined}
         slotRight={
           isPublicView || readOnly ? undefined : (
-            <HoverTooltip text="Add equipment">
-              <IconButton icon="plus" variant="ghost" size="md" aria-label="Add equipment" onClick={() => setEquipmentOpen(true)} />
-            </HoverTooltip>
+            <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit equipment" onClick={() => setEquipmentOpen(true)} />
           )
         }
         content={
@@ -368,7 +365,7 @@ export default function ServicePanel({
             // The node's module body has NO padding of its own — EmptyState's
             // 32px is the whole padding.
             <div className={styles.emptyBody}>
-              <EmptyState caption="Equipment is not involved" />
+              <EmptyState caption="No equipment" />
             </div>
           )
         }
@@ -398,7 +395,7 @@ export default function ServicePanel({
       <EquipmentForm
         open={equipmentOpen}
         onClose={() => setEquipmentOpen(false)}
-        initial={{ equipmentIds }}
+        initial={{ equipmentIds, isEquipmentRequired }}
         equipmentPool={equipmentPool}
         onSave={onEquipmentSave}
         onCreateEquipment={onCreateEquipment}

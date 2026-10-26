@@ -23,6 +23,13 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
 
   /** Title text — used by default / accordion. Truncates with an ellipsis. */
   title?: ReactNode;
+  /**
+   * Right text — a short `tag` line (body/400, `--text-subtle`) at the right
+   * end of the header copy, before `slotRight` (Figma header Text
+   * `textRight=true`, Text Right `variant=tag`). It never truncates: the title
+   * truncates first. E.g. "Required" on the Job Details Equipment module.
+   */
+  tag?: ReactNode;
   /** Left slot — one avatar of any type, at `lg` (32px), `--size-3` (12px) before the title. */
   slotLeft?: ReactNode;
   /**

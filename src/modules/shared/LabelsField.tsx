@@ -19,9 +19,9 @@ import styles from "./LabelsField.module.scss";
 // used everywhere where there is a Labels input"). Six forms each carried
 // their own copy of the field and the list until then.
 //
-// The badge row follows the layout-freeze rule: frozen while the list is
-// open, synced when it closes — the card is fixed where it opened and must
-// not drift. The field's counter keeps updating live.
+// The list follows the standard multi-select SelectList behaviour: ticks are
+// a draft and apply when it closes, so the field and the badges do not move
+// while it is open (the card is fixed where it opened and must not drift).
 
 export interface LabelsFieldProps {
   /** The picked labels, by name, in pick order. */
@@ -38,8 +38,6 @@ export default function LabelsField({ value, onChange, pool, onCreate, mobile }:
   const pop = useSelectPopover(mobile);
   const [created, setCreated] = useState<string[]>([]);
 
-  const shownLabels = pop.freeze(value);
-
   return (
     <div className={styles.stack}>
       <SelectField
@@ -51,9 +49,9 @@ export default function LabelsField({ value, onChange, pool, onCreate, mobile }:
         open={pop.open}
         onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
       />
-      {shownLabels.length > 0 && (
+      {value.length > 0 && (
         <div className={styles.badges}>
-          {shownLabels.map((name) => (
+          {value.map((name) => (
             <Badge key={name} size="lg" isDismissable onDismiss={() => onChange(value.filter((row) => row !== name))}>
               {name}
             </Badge>
@@ -71,12 +69,8 @@ export default function LabelsField({ value, onChange, pool, onCreate, mobile }:
           setCreated((prev) => [...prev, name]);
           onCreate?.(name);
         }}
-        // Inline (desktop) this fires on every tick; the mobile drawer's
-        // Apply closes it as well.
-        onSave={(next) => {
-          onChange(next);
-          if (mobile) pop.close();
-        }}
+        // Fires once, when the list closes with changed picks.
+        onSave={onChange}
         breakpoint={mobile ? "mobile" : "desktop"}
       />
     </div>

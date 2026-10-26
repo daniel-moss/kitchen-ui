@@ -6,6 +6,9 @@ import SelectListItemGroup from "./SelectListItemGroup";
 import SelectListItem from "./SelectListItem";
 import SelectListHeader from "./SelectListHeader";
 import SelectListFooter from "./SelectListFooter";
+import { useSelectionDraft } from "./useSelectionDraft";
+import SelectListSelectFooter from "./SelectListSelectFooter";
+import SelectField from "../Fields/SelectField/SelectField";
 import GroupLabel from "../GroupLabel/GroupLabel";
 import MenuItem from "../Menu/MenuItem";
 import Button from "../Button/Button";
@@ -218,6 +221,92 @@ export const Mobile: Story = {
   render: () => (
     <DeviceFrame>
       <Demo variant="drawer" title="Select a client" header footer multiSelect breakpoint="mobile" />
+    </DeviceFrame>
+  ),
+};
+
+// ---- the standard multi-select behaviour: apply on close -------------------
+
+// A field + its multi-select list wired with `useSelectionDraft`: ticks only
+// change the draft (the field's counter does not move), and closing the list
+// applies them — on desktop the field / Escape, on mobile "Select N" or a
+// swipe down.
+const ApplyOnCloseDemo = ({ breakpoint }: { breakpoint: "desktop" | "mobile" }) => {
+  const [value, setValue] = useState<string[]>(["Bayside Diner"]);
+  const [open, setOpen] = useState(false);
+  const draft = useSelectionDraft(open, value, setValue);
+  return (
+    <div style={{ width: 320, display: "flex", flexDirection: "column", gap: 4, padding: 16 }}>
+      <SelectField
+        multiSelect
+        count={value.length}
+        value={value.length === 1 ? value[0] : undefined}
+        multiSelectLabel="Clients selected"
+        onClearSelection={() => setValue([])}
+        open={open}
+        onClick={() => setOpen((o) => !o)}
+      />
+      <SelectList
+        variant={breakpoint === "mobile" ? "drawer" : "inline"}
+        breakpoint={breakpoint}
+        title="Clients"
+        open={open}
+        onClose={() => setOpen(false)}
+        multiSelect
+        searchable
+        searchPlaceholder="Client..."
+        footer={
+          breakpoint === "mobile" ? (
+            <SelectListSelectFooter
+              count={draft.selection.length}
+              onSelect={() => setOpen(false)}
+              slotLeft={
+                <Button size="lg" variant="ghost" leftIcon="plus" onClick={() => setOpen(false)}>
+                  Add client
+                </Button>
+              }
+            />
+          ) : (
+            <SelectListFooter>
+              <MenuItem label="Add client" slotLeft={<Icon icon="plus" pack="regular" size={14} container="square" />} onClick={() => setOpen(false)} />
+            </SelectListFooter>
+          )
+        }
+      >
+        <SelectListItemGroup>
+          {OPTIONS.map((name) => (
+            <SelectListItem key={name} label={name} multiSelect selected={draft.isSelected(name)} onClick={() => draft.toggle(name)} />
+          ))}
+        </SelectListItemGroup>
+      </SelectList>
+    </div>
+  );
+};
+
+/**
+ * The standard multi-select behaviour (Daniel, 2026-10-26). Ticks are a
+ * draft; closing the list applies them. Desktop: no apply button — closing is
+ * the confirmation. No Cancel and no "Discard changes?". Wire it with
+ * `useSelectionDraft`.
+ */
+export const ApplyOnClose: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={{ minHeight: 480 }}>
+      <ApplyOnCloseDemo breakpoint="desktop" />
+    </div>
+  ),
+};
+
+/**
+ * The same on mobile: a visible "Select N" (`SelectListSelectFooter`, here
+ * with "Add client" on its left) applies, and so does swiping the drawer down.
+ */
+export const ApplyOnCloseMobile: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <DeviceFrame>
+      <ApplyOnCloseDemo breakpoint="mobile" />
     </DeviceFrame>
   ),
 };

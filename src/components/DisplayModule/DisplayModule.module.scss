@@ -135,6 +135,11 @@
   align-items: flex-start;
   justify-content: center;
 }
+// The ItemText row spans the copy, so a right `tag` lands at its right end.
+.copyText {
+  align-self: stretch;
+  min-width: 0;
+}
 .title {
   display: flex;
   align-items: center;

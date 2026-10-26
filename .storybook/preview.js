@@ -611,7 +611,7 @@ const preview = {
             "SelectList",
             [
               "SelectList",
-              ["Playground", "Groups", "Empty", "NoResults", "DialogVariant", "Mobile"],
+              ["Playground", "ApplyOnClose", "ApplyOnCloseMobile", "Groups", "Empty", "NoResults", "DialogVariant", "Mobile"],
               "SelectListFooter",
               ["Playground", "MenuItemVariant", "ActionBar"],
               "SelectListHeader",

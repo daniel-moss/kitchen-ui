@@ -70,6 +70,23 @@ interface SelectListBaseProps {
    * stays open). With MORE THAN ONE group the groups carry meaning — where an
    * option comes from — so they are left exactly as written and nothing is
    * pinned on top (Daniel, 2026-08-07).
+   *
+   * THE STANDARD MULTI-SELECT BEHAVIOUR (Daniel, 2026-10-26; Figma "Labels"
+   * SelectList 12921-10208, "New Job" Equipment 17189-78623). Ticking only
+   * changes a draft — the field behind the list does not move — and the draft
+   * is APPLIED when the list closes:
+   * - desktop card under a field: no apply button; any close applies (a
+   *   click outside, Escape, the field, a footer action). A footer, when
+   *   there is one, is a MenuItem (e.g. "Add equipment").
+   * - mobile drawer: a visible solid "Select N" counting what will be
+   *   selected (`SelectListSelectFooter` — full width, or with one ghost
+   *   action on its left); swiping the drawer down applies too. No Cancel
+   *   and no "Discard changes?" prompt.
+   * Wire it with `useSelectionDraft` (./useSelectionDraft.ts), which watches
+   * `open` so every way of closing applies. A list that IS its own edit form
+   * on desktop (a dialog with Cancel / "Select N", e.g. the side panels'
+   * Labels) keeps the Dialog rules instead — Cancel and × drop the picks,
+   * after a prompt when anything changed.
    */
   multiSelect?: boolean;
   /**
@@ -138,6 +155,11 @@ interface SelectListBaseProps {
    * shows (Popover `swipeAsks`; Figma "Labels" SelectList, Daniel
    * 2026-10-25). Ignored by the inline card,
    * which applies its picks on close. Default false.
+   *
+   * NOT for the standard multi-select list (see `multiSelect`): that one
+   * applies its picks on close and never asks. It is for a desktop list that
+   * is itself the edit form, with Cancel / "Select N" (the side panels'
+   * Labels dialog).
    */
   confirmOnDismiss?: boolean;
   /** Copy overrides for the dismiss Prompt. */
