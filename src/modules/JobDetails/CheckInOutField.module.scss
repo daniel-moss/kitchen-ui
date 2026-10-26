@@ -1,0 +1,5 @@
+// The running session inside the checked-in label ("Working: 01:30:05") —
+// red like the running clock elsewhere on the page (Daniel, 2026-10-26).
+.session {
+  color: var(--text-error);
+}

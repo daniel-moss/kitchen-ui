@@ -6,6 +6,7 @@ import RadioItem from "../../components/Radio/RadioItem";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 import { TECH_STATUSES } from "./TimesheetPanel";
+import styles from "./CheckInOutField.module.scss";
 
 /** "stay" keeps the viewer's clock as it is; "change" checks in or out. */
 export type CheckInOutChoice = "stay" | "change";
@@ -48,7 +49,14 @@ export default function CheckInOutField({
 }: CheckInOutFieldProps) {
   if (runningSession != null) {
     return (
-      <Input label={`You're checked in${TEXT_SEPARATOR}${runningSession}`}>
+      <Input
+        label={
+          <>
+            You&apos;re checked in{TEXT_SEPARATOR}
+            <span className={styles.session}>{runningSession}</span>
+          </>
+        }
+      >
         <RadioGroup
           orientation={mobile ? "vertical" : "horizontal"}
           value={choice}

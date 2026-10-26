@@ -79,7 +79,7 @@ import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
-import UnscheduleJobForm from "./UnscheduleJobForm";
+import UnscheduleJobForm, { CheckedInAssignee } from "./UnscheduleJobForm";
 import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
@@ -928,10 +928,11 @@ type JobGlyph = { icon: string; color: string };
 // The Start / Resume form's company + viewer rules (Figma 24048-13283): the
 // company's ACTIVE sub-statuses when it has them switched on (the demo does
 // not), whether it requires one, and the viewer's check in / out choice.
-const startFormRules = (showCheckIn: boolean) => ({
+const startFormRules = (viewerIsAssignee: boolean, runningSession: string | null) => ({
   activeSubStatuses: COMPANY.subStatuses.active ? subStatusesFor("active") : [],
   activeStatusRequired: COMPANY.subStatuses.activeRequired,
-  showCheckIn,
+  showCheckIn: viewerIsAssignee,
+  runningSession,
 });
 
 const JOB_GLYPH = {
@@ -1761,7 +1762,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // decides whether a session starts; the chosen status becomes its category.
   // No sub-status on an ACTIVE job (Daniel, 2026-09-28) — the check-in status
   // says what the tech is doing, so the job is simply "Active".
-  const startJob = (reason: string, checkIn: boolean, status: string, subStatus = "") => {
+  const startJob = (reason: string, checkIn: boolean, status: string, subStatus = "", checkOut = false) => {
     const ts = formatStatusTimestamp(new Date());
     setJob({
       status: "active",
@@ -1775,9 +1776,18 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       activeAt: ts,
     });
     pushJobStatusWithSub(JOB_GLYPH.active, "started the job", subStatus, reason, "Start reason");
+    applyCheckInOut(checkIn, checkOut, status);
+  };
+  // The Check In / Out control's outcome, shared by every form that has it.
+  const applyCheckInOut = (checkIn: boolean, checkOut: boolean, status: string) => {
     if (checkIn) {
       beginSession(status || undefined);
       pushEvent({ kind: "checkin", status });
+    }
+    if (checkOut) {
+      setCheckedIn(false);
+      endActiveSession();
+      pushEvent({ kind: "checkout" });
     }
   };
   const cancelJob = (reason: string) => {
@@ -1819,13 +1829,10 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // whether a session starts; the chosen status becomes its category.
   // Resuming returns the job to a plain "Active" — the pause reason goes with
   // the pause it belonged to.
-  const doResume = (reason: string, checkIn: boolean, status: string, subStatus = "") => {
+  const doResume = (reason: string, checkIn: boolean, status: string, subStatus = "", checkOut = false) => {
     setJob((j) => ({ ...j, status: "active", subStatus: subStatus || undefined, statusMessage: reason || undefined, statusMessageLabel: undefined, activeAt: formatStatusTimestamp(new Date()) }));
     pushJobStatusWithSub(JOB_GLYPH.active, "resumed the job", subStatus, reason, "Resume reason");
-    if (checkIn) {
-      beginSession(status || undefined);
-      pushEvent({ kind: "checkin", status });
-    }
+    applyCheckInOut(checkIn, checkOut, status);
   };
   // Complete: the work is done, so the job leaves Active for "Completed" and
   // its sub-status goes with it. The tech STAYS CHECKED IN — completing the job
@@ -1931,15 +1938,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
         reasonTitle: "Status change reason",
       });
     }
-    if (checkIn) {
-      beginSession(status || undefined);
-      pushEvent({ kind: "checkin", status });
-    }
-    if (checkOut) {
-      setCheckedIn(false);
-      endActiveSession();
-      pushEvent({ kind: "checkout" });
-    }
+    applyCheckInOut(checkIn, checkOut, status);
   };
   // Change the pause Type / sub-status / reason (stays paused; keeps "Paused on").
   const doChangePause = (type: string, subStatus: string, reason: string) => {
@@ -2205,8 +2204,12 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       pushEvent({ kind: "checkout" });
     }
   };
-  // Who the "Unschedule job" banner names: assignees with a running session.
-  const checkedInNames = assigneeUsers.filter((u) => (sessionsByUser[u.id] ?? []).some((s) => s.active)).map((u) => u.name);
+  // Who the "Unschedule job" form lists: assignees with a running session, its
+  // live time and check-in status.
+  const checkedInAssignees: CheckedInAssignee[] = assigneeUsers.flatMap((u) => {
+    const running = (sessionsByUser[u.id] ?? []).find((sess) => sess.active);
+    return running == null ? [] : [{ id: u.id, name: u.name, avatar: u.avatar, status: running.category, elapsedSec: running.durationSec }];
+  });
 
   // "Reschedule job" (Figma 27091-45839): the new slot, the job's details and
   // the team, then the job goes back to UPCOMING with the reschedule reason as
@@ -2375,11 +2378,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     setRescheduleOpen,
     rescheduleJob,
     unscheduleJob,
-    checkedInNames,
-    // Start / Resume: the check in / out choice is for an ASSIGNEE who is not
-    // checked in yet (Figma 27163-52433).
-    showCheckIn: assignees.includes(viewer.id) && !checkedIn,
-    // Change active status shows the Check In / Out control in BOTH states.
+    checkedInAssignees,
+    // The Check In / Out control (Figma 27163-52433) is for an ASSIGNEE, in
+    // both states — Start / Resume and Change active status.
     viewerIsAssignee: assignees.includes(viewer.id),
     assigneeIds: assignees,
     // Reschedule's clock choice: only for an ASSIGNEE whose clock runs
@@ -2536,7 +2537,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.resumeOpen}
       onClose={() => s.setResumeOpen(false)}
       onStart={s.doResume}
-      {...startFormRules(s.showCheckIn)}
+      {...startFormRules(s.viewerIsAssignee, s.runningSession)}
       title="Resume job"
       // "Resume", not "Resume job" (Daniel, 2026-10-05) — the dialog's title
       // already names the job, the same trim Start / Cancel / Schedule took.
@@ -2562,7 +2563,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.unscheduleOpen}
       onClose={() => s.setUnscheduleOpen(false)}
       onUnschedule={s.unscheduleJob}
-      checkedIn={s.checkedInNames}
+      checkedIn={s.checkedInAssignees}
       mobile={mobile}
     />
     <Prompt
@@ -2818,7 +2819,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
           </Menu>
         </div>
       )}
-      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.showCheckIn)} />
+      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.viewerIsAssignee, s.runningSession)} />
       <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} />
       <JobForms s={s} />
       <Toaster breakpoint="desktop" />
@@ -3139,7 +3140,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
       >
         {createMenuItems(s.actions)}
       </Menu>
-      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.showCheckIn)} mobile />
+      <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.viewerIsAssignee, s.runningSession)} mobile />
       <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} mobile />
       <JobForms s={s} mobile />
       <Toaster breakpoint="mobile" />

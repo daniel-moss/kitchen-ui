@@ -1,41 +1,15 @@
 @use "../../styles/mixins/font" as *;
 
-// "Unschedule job" dialog body (Figma 24221-19652): centered stack — avatars,
-// the copy block, then the Unassign checkbox card. 16px padding + 16px gaps
-// (the Dialog body adds no padding of its own).
-// Centered stack — the Dialog now supplies the content-slot padding (24/16);
-// this bespoke info layout keeps its own 16px internal rhythm.
-.body {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--size-4); // 16px
-  width: 100%;
+// The status icon beside a checked-in assignee's status — red like its text.
+.statusIcon {
+  color: var(--text-error);
 }
 
-// Centered two-line copy, 4px apart.
-.copy {
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-1); // 4px
-  width: 100%;
-  text-align: center;
-}
-
-.copyTitle {
-  color: var(--text-strong);
-
-  @include font("body-500-compact");
-}
-
-.copyCaption {
-  color: var(--text-subtle);
-
-  @include font("body-400-compact");
-}
-
-// The checkbox card stretches the full dialog width.
-.body > label {
-  align-self: stretch;
+// The running time: 500 TABULAR, so the ticking digits don't shift (Daniel,
+// 2026-10-26). ItemText has no tabular style, so it rides the line's class
+// hook. The text span inside the line carries its own `bodyMedium` font, so
+// the rule reaches it too (doubled class to win).
+.time.time,
+.time.time * {
+  @include font("body-500-compact-tabular");
 }

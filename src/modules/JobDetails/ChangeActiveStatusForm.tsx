@@ -51,8 +51,8 @@ interface ChangeActiveStatusFormProps {
 // (empty — a NEW reason; required only when the picked sub-status requires
 // one, its custom label as the help text) and, for an assignee, the shared
 // Check In / Out control. Its defaults (Figma annotations): "Check in" when
-// checked out, "Stay checked in" when checked in. "Change active status"
-// applies it and toasts "Active status changed". It replaced SubStatusForm.
+// checked out, "Stay checked in" when checked in. "Change active status" (no
+// icon — Daniel, 2026-10-26) applies it and toasts "Active status changed". It replaced SubStatusForm.
 export default function ChangeActiveStatusForm({
   open,
   onClose,
@@ -115,7 +115,7 @@ export default function ChangeActiveStatusForm({
       confirmOnDismiss={dirty}
       footer={
         <PopoverFooter leadingButton={<DismissCancelButton />}>
-          <Button size="lg" variant="solid" leftIcon="circle-play" onClick={submit}>
+          <Button size="lg" variant="solid" onClick={submit}>
             Change active status
           </Button>
         </PopoverFooter>

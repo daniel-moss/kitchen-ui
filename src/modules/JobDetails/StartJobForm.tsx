@@ -33,7 +33,7 @@ interface StartJobFormProps {
    * Starts (or resumes) the job. `checkIn` = "Check in" was picked;
    * `status` = the chosen check-in status ("" when not checking in).
    */
-  onStart: (reason: string, checkIn: boolean, status: string, subStatus?: string) => void;
+  onStart: (reason: string, checkIn: boolean, status: string, subStatus?: string, checkOut?: boolean) => void;
   mobile?: boolean;
   /** Dialog title. Default "Start job". */
   title?: string;
@@ -72,15 +72,19 @@ interface StartJobFormProps {
    */
   activeStatusRequired?: boolean;
   /**
-   * The check in / out choice — only for a viewer who is an ASSIGNEE and is not
-   * checked in yet (Figma 27163-52433). Default true.
+   * The Check In / Out control — only for a viewer who is an ASSIGNEE (Figma
+   * 27163-52433). Default true.
    */
   showCheckIn?: boolean;
+  /**
+   * The viewer's running session ("Working: 01:30:05") — the control shows its
+   * checked-in state. Null = checked out. Default null.
+   */
+  runningSession?: string | null;
 }
 
 // The "Start job" form (Figma 24048-13283, re-read 2026-10-25): Active status
-// select + Start reason + the shared Check In / Out control (checked-out state,
-// "Check in" picked by default).
+// select + Start reason + the shared Check In / Out control.
 // The SAME form serves "Resume job"
 // (Figma 24096-19684) via the copy props — resuming a PAUSED job has no banner,
 // resuming a COMPLETED one passes `banner` (Figma 24567-140277).
@@ -98,6 +102,7 @@ export default function StartJobForm({
   activeSubStatuses = [],
   activeStatusRequired = true,
   showCheckIn = true,
+  runningSession = null,
 }: StartJobFormProps) {
   const toastTitle_ = toastTitle ?? "Job started";
   // Active status (Figma 27154-50245): shown when the company has active
@@ -109,9 +114,15 @@ export default function StartJobForm({
   const subStatusRequired = activeStatusRequired && statuses.length > 1;
 
   const [reason, setReason] = useState("");
-  // "Check in" is picked by default — no company preference exists in the demo.
-  // Start never meets a running session (`showCheckIn` is false then).
-  const clock = useCheckInOut({ open, shown: showCheckIn, checkedIn: false, defaults: { checkedIn: "stay", checkedOut: "change" } });
+  // No company preference exists in the demo, so a checked-out assignee gets
+  // "Check in" and a checked-in one "Stay checked in" (as in Change active
+  // status — the Start frames draw only the checked-out state).
+  const clock = useCheckInOut({
+    open,
+    shown: showCheckIn,
+    checkedIn: runningSession != null,
+    defaults: { checkedIn: "stay", checkedOut: "change" },
+  });
   const [showError, setShowError] = useState(false);
   const [bannerShown, setBannerShown] = useState(true);
   const [subStatus, setSubStatus] = useState(onlyStatus);
@@ -144,7 +155,7 @@ export default function StartJobForm({
       setShowError(true);
       return;
     }
-    onStart(reason, clock.checkIn, clock.checkIn ? clock.status : "", subStatus);
+    onStart(reason, clock.checkIn, clock.checkIn ? clock.status : "", subStatus, clock.checkOut);
     toast({ type: "success", title: toastTitle_ });
     onClose();
   };
@@ -158,7 +169,11 @@ export default function StartJobForm({
       confirmOnDismiss={dirty}
       footer={
         <PopoverFooter leadingButton={<DismissCancelButton />}>
-          <Button size="lg" variant="solid" leftIcon={submitIcon === "" ? undefined : submitIcon} onClick={start}>
+          <Button size="lg" variant="solid" leftIcon={submitIcon === "" ? undefined : submitIcon}
+            // Solid, like the Figma button (24042-18897, re-read 2026-10-26).
+            leftIconPack="solid"
+            onClick={start}
+          >
             {submitLabel}
           </Button>
         </PopoverFooter>
@@ -198,11 +213,10 @@ export default function StartJobForm({
           />
         </Input>
 
-        {/* Check In / Out (Figma 27163-52433): only for an assignee who is
-            not checked in yet. */}
+        {/* Check In / Out (Figma 27163-52433): only for an assignee. */}
         {showCheckIn && (
           <CheckInOutField
-            runningSession={null}
+            runningSession={runningSession}
             choice={clock.choice}
             onChoiceChange={(choice) => {
               clock.setChoice(choice);

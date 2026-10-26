@@ -50,24 +50,32 @@
 }
 
 // ---- interaction (unchecked only), driven by the parent control ----
+// A control can hold ANOTHER control in its reveal slot (Check in → "Your
+// status"), so each state reaches only the box of the control it belongs to:
+// the plain rule skips boxes inside a nested control, and the nested rule
+// gives those boxes their own control's state. Focus looks at the control's
+// OWN input (a direct child), not at any input inside it.
 @media (hover: hover) {
-.control:hover .interactive:not(.filled) {
+.control:hover .interactive:not(.filled):not(.control .control .interactive),
+.control .control:hover .interactive:not(.filled) {
   background: var(--gray-a3);
   border-color: var(--gray-a8);
 }
 }
-.control:has(input:focus-visible) .interactive:not(.filled) {
+.control:has(> input:focus-visible) .interactive:not(.filled):not(.control .control .interactive),
+.control .control:has(> input:focus-visible) .interactive:not(.filled) {
   background: var(--gray-a3);
   border-color: var(--gray-a8);
 }
-.control:active .interactive:not(.filled) {
+.control:active .interactive:not(.filled):not(.control .control .interactive),
+.control .control:active .interactive:not(.filled) {
   background: var(--gray-a4);
   border-color: var(--gray-a8);
 }
 
 // Focus ring on the box — only when the control opts in (inline). The card
 // variant draws the ring on the card instead.
-.ringOnBox:has(input:focus-visible) .box {
+.ringOnBox:has(> input:focus-visible) .box {
   outline: 2px solid var(--gray-12);
   outline-offset: 2px;
 }

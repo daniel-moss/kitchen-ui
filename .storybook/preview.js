@@ -931,6 +931,7 @@ const preview = {
                   "Download PDF",
                   ["Parent / Desktop", "Parent / Mobile", "No Parent / Desktop", "No Parent / Mobile"],
                   "Reschedule Job",
+                  "Resume Job",
                   "Schedule Job",
                   "Send Summary",
                   "Start Job",

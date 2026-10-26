@@ -9,7 +9,8 @@ import StartJobForm from "./StartJobForm";
 // The "Start job" form (Figma 24048-13283) in every state. The demo company
 // has ACTIVE sub-statuses ON and REQUIRED (2026-10-23), so "Desktop" / "Mobile"
 // are what the Job Details page shows; the other stories hand the form a
-// different company setup or viewer. The same form is "Resume job".
+// different company setup or viewer. "Resume job" — the same build with its
+// own copy — has its own stories (ResumeJobForm.stories.tsx).
 const meta: Meta = {
   title: 'Modules/Job/Details/Forms/Start Job',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
@@ -27,19 +28,17 @@ const Demo = ({
   activeSubStatuses = ACTIVE,
   activeStatusRequired = COMPANY.subStatuses.activeRequired,
   showCheckIn = true,
-  resume = false,
-  banner,
+  runningSession = null,
   press,
 }: {
   mobile?: boolean;
   activeSubStatuses?: JobSubStatusRecord[];
   activeStatusRequired?: boolean;
   showCheckIn?: boolean;
-  resume?: boolean;
-  banner?: string;
+  runningSession?: string | null;
   press?: boolean;
 }) => (
-  <FormStoryFrame mobile={mobile} icon="circle-play" press={press ? (resume ? "Resume" : "Start") : undefined}>
+  <FormStoryFrame mobile={mobile} icon="circle-play" press={press ? "Start" : undefined}>
     {(open, close) => (
       <StartJobForm
         open={open}
@@ -48,16 +47,14 @@ const Demo = ({
         activeSubStatuses={activeSubStatuses}
         activeStatusRequired={activeStatusRequired}
         showCheckIn={showCheckIn}
+        runningSession={runningSession}
         mobile={mobile}
-        {...(resume
-          ? { title: "Resume job", submitLabel: "Resume", reasonLabel: "Resume reason", toastTitle: "Job resumed", banner }
-          : {})}
       />
     )}
   </FormStoryFrame>
 );
 
-/** What the page shows: Active status required (5 to pick from), Start reason, Check in picked. */
+/** What the page shows to a checked-out assignee: Active status required (5 to pick from), Start reason, "Check in" picked. */
 export const Desktop: Story = { render: () => <Demo /> };
 
 /** The same, as a mobile drawer. */
@@ -101,19 +98,14 @@ export const ActiveStatusOptional: Story = {
 /** The company has NO active sub-statuses — no field; the reason is optional. */
 export const NoSubStatuses: Story = { name: "No sub-statuses", render: () => <Demo activeSubStatuses={[]} /> };
 
-/** The viewer is not an assignee, or is already checked in — no check in / out choice. */
-export const NoCheckIn: Story = { name: "No check in", render: () => <Demo showCheckIn={false} /> };
+/** A checked-in assignee: "Stay checked in" picked, side by side. */
+export const CheckedIn: Story = { name: "Checked in", render: () => <Demo runningSession="Working: 01:30:05" /> };
 
-/** "Resume job" — the same form with the Resume copy. */
-export const Resume: Story = { render: () => <Demo resume /> };
-
-/** Resuming a COMPLETED job warns that the signature will be void (Figma 24567-140277). */
-export const ResumeCompletedJob: Story = {
-  name: "Resume completed job",
-  render: () => (
-    <Demo
-      resume
-      banner="Resuming this job will return it to Active status. A new signature will need to be collected to complete this job."
-    />
-  ),
+/** The same, as a mobile drawer — the two options stack. */
+export const CheckedInMobile: Story = {
+  name: "Checked in / Mobile",
+  render: () => <Demo runningSession="Working: 01:30:05" mobile />,
 };
+
+/** The viewer is not an assignee — no Check In / Out. */
+export const NoCheckIn: Story = { name: "No check in", render: () => <Demo showCheckIn={false} /> };
