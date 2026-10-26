@@ -928,9 +928,11 @@ const preview = {
                 [
                   "Cancel Job",
                   "Change Active Status",
+                  "Change Hold Status",
                   "Change Pause Status",
                   "Download PDF",
                   ["Parent / Desktop", "Parent / Mobile", "No Parent / Desktop", "No Parent / Mobile"],
+                  "Hold Job",
                   "Pause Job",
                   "Reschedule Job",
                   "Resume Job",
