@@ -10,6 +10,7 @@ import Button from "../../components/Button/Button";
 import { Divider } from "../../components/Divider/Divider";
 import { Icon } from "../../components/Icon/Icon";
 import IconButton from "../../components/IconButton/IconButton";
+import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import Menu from "../../components/Menu/Menu";
 import MenuItem from "../../components/Menu/MenuItem";
 import MenuItemGroup from "../../components/Menu/MenuItemGroup";
@@ -42,6 +43,7 @@ import ChangeActiveStatusForm, { ChangeActiveStatusResult } from "./ChangeActive
 import ChangePauseStatusForm from "./ChangePauseStatusForm";
 import { CheckInOutResult } from "./CheckInOutField";
 import CompleteJobForm from "./CompleteJobForm";
+import DownloadPdfForm from "./\"Download PDF\" Form/DownloadPdfForm";
 import SendSummaryForm from "./SendSummaryForm";
 import Dialog from "../../components/Dialog/Dialog";
 import ActivityPanel from "./ActivityPanel";
@@ -59,7 +61,7 @@ import { JobContact } from "./contacts";
 import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { JobLocation, LOCATIONS } from "./jobData";
-import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, inventoryProductsOf, jobById, subStatusesFor } from "../../data/db";
+import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, inventoryProductsOf, jobById, recallOf, subStatusesFor } from "../../data/db";
 import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
@@ -100,8 +102,8 @@ import styles from "./JobDetails.module.scss";
 //            the swipeable tab content; the ActionBar stays pinned at the
 //            bottom. "Details" (the desktop sidebar) is the first tab.
 //
-// The ellipsis that used to sit next to the job id is gone — its Copy URL /
-// Download PDF items are the last group of the actions menu now.
+// The ellipsis that used to sit next to the job id is gone — Copy URL is an
+// icon button beside the job id, and Download PDF leads the actions menu.
 
 export interface JobDetailsProps {
   /** The job to show — the app looks it up from the route's id. */
@@ -137,8 +139,8 @@ export interface JobDetailsProps {
   /**
    * The job's PUBLIC view (Figma 26990-56723) — the page a client opens from
    * the job's link. The SAME page in a read-only mode, not a copy: the top bar
-   * has no back button and no live users, and its only actions are Copy URL
-   * and Download PDF; the tabs are Service and Summary; there is no time
+   * has no back button and no live users, and its only actions are the
+   * title's Copy URL button and Download PDF; the tabs are Service and Summary; there is no time
    * tracking; and every module follows its public rules. Default false.
    */
   isPublicView?: boolean;
@@ -303,14 +305,28 @@ interface TopBarProps {
   actions?: ReactNode;
 }
 
-// The page's top bar: back + title, live users, and (on desktop) the job's
-// actions on the right. It carries NO tabs — they are their own bar — and no
-// context-menu ellipsis next to the job id: its two items moved into the
-// actions menu (Daniel, 2026-10-04).
+// The page's top bar: back + title, the Copy URL button and live users in the
+// title's right slot, and (on desktop) the job's actions on the right. It
+// carries NO tabs — they are their own bar.
+//
+// Copy URL sits next to the job id on every status, at both breakpoints, and
+// in the public view (Figma 21136-58234, 2026-10-27): it left the actions menu
+// and the cancelled / public bars, so there is one place to copy the link.
 const TopBar = ({ mobile = false, onBack, liveUsers, actions }: TopBarProps) => {
   const jobId = useCurrentJobId();
   return (
-  <TopBarNav liveUsers={liveUsers} actions={actions} breakpoint={mobile ? "mobile" : "desktop"}>
+  <TopBarNav
+    titleAction={
+      // Tooltip copy from Figma 27348-22245. It opens below the button there;
+      // the DS tooltip flips below on its own when the bar has no room above.
+      <HoverTooltip text="Copy job link">
+        <IconButton icon="link" variant="ghost" size="lg" aria-label="Copy job link" onClick={copyJobUrl} />
+      </HoverTooltip>
+    }
+    liveUsers={liveUsers}
+    actions={actions}
+    breakpoint={mobile ? "mobile" : "desktop"}
+  >
     <TopBarNavLeftElements onBack={onBack}>
       {/* NO job avatar here (Daniel, 2026-09-26, after trying it on JOB-1094):
           the top bar carries the title alone. The avatar still leads the
@@ -323,13 +339,6 @@ const TopBar = ({ mobile = false, onBack, liveUsers, actions }: TopBarProps) => 
 };
 
 // ---- job context menu (the ellipsis next to the title) ---------------------
-
-// Simulated download: the processing toast resolves into the success one
-// (the designed error toast would take its place on a real failure).
-const downloadPdf = () => {
-  const id = toast({ type: "processing", title: "Downloading PDF..." });
-  window.setTimeout(() => toast.update(id, { type: "success", title: "PDF downloaded" }), 2000);
-};
 
 /**
  * The signed-in user is an ADMIN (Daniel, 2026-10-06: the demo is Lorne
@@ -345,35 +354,68 @@ const VIEWER_IS_ADMIN = true;
 /** The signed-in user — Lorne Riddle. The whole demo is his screen. */
 const VIEWER_ID = 1;
 
-const copyJobUrl = () => void copyText(window.location.href, "Job URL");
+// The designed toasts (Figma 21136-58244, updated 2026-10-27): "Job's link
+// copied" / "Couldn't copy the job's link".
+const copyJobUrl = () =>
+  void copyText(window.location.href, "Job URL", "Job's link copied", "Couldn't copy the job's link");
 
-// "Copy URL" / "Download PDF". They used to be a context menu of their own,
-// behind an ellipsis next to the job id; that ellipsis is gone and they are
-// the FIRST group of the actions menu now — one menu for everything you can
-// do to the job, at both breakpoints (Figma 24049-13712 / 24049-13724).
+// "Download PDF" — the LAST item of the actions menu on every status, at both
+// breakpoints (Figma 24575-152369, 2026-10-27; it used to lead the menu).
+// Copy URL used to sit beside it; it is the title's button now (see TopBar).
 //
-// A CANCELLED job has no menu at all any more: the same two actions are its
-// only bar buttons (Figma 24569-142615), and they call the same two functions.
-const linkMenuItems = (onClose: () => void) => (
-  <MenuItemGroup>
-    <MenuItem
-      label="Copy URL"
-      slotLeft={slot("link")}
-      onClick={() => {
-        onClose();
-        copyJobUrl();
-      }}
-    />
-    <MenuItem
-      label="Download PDF"
-      slotLeft={slot("download")}
-      onClick={() => {
-        onClose();
-        downloadPdf();
-      }}
-    />
-  </MenuItemGroup>
+// A CANCELLED or FINALIZED job has no menu at all: Download PDF is a bar
+// button there (Figma 24569-142615 / 24568-141430). Every one of them opens
+// the same "Download PDF" form (Figma 24592-39416).
+const pdfMenuItem = (onClose: () => void, actions: JobActions) => (
+  <MenuItem
+    label="Download PDF"
+    slotLeft={slot("download")}
+    onClick={() => {
+      onClose();
+      actions.onDownloadPdf();
+    }}
+  />
 );
+
+/**
+ * The FINALIZED job's bar (Figma 24568-141430, 2026-10-27): three ghost
+ * buttons and no "Actions" menu — Send summary, Create recall, Download PDF.
+ * On mobile Download PDF is an icon button, so the two labelled buttons share
+ * the rest of the row.
+ *
+ * Create recall is hidden once the job HAS a recall job (the node's
+ * annotation).
+ */
+const DoneButtons = ({
+  actions,
+  hasRecall,
+  mobile,
+}: {
+  actions: JobActions;
+  hasRecall: boolean;
+  mobile: boolean;
+}) => {
+  const grow = mobile ? styles.grow : undefined;
+  return (
+    <>
+      <Button size="lg" variant="ghost" leftIcon="paper-plane" className={grow} onClick={actions.onResendSummary}>
+        Send summary
+      </Button>
+      {!hasRecall && (
+        <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" className={grow} onClick={actions.onCreateRecall}>
+          Create recall
+        </Button>
+      )}
+      {mobile ? (
+        <IconButton icon="download" variant="ghost" size="lg" aria-label="Download PDF" onClick={actions.onDownloadPdf} />
+      ) : (
+        <Button size="lg" variant="ghost" leftIcon="download" onClick={actions.onDownloadPdf}>
+          Download PDF
+        </Button>
+      )}
+    </>
+  );
+};
 
 // Handlers shared by the action-bar buttons and its overflow menu.
 interface JobActions {
@@ -385,6 +427,8 @@ interface JobActions {
   onResume: () => void;
   onChangeActive: () => void;
   onChangePause: () => void;
+  /** "Change completed status" (Figma 24567-138776) — nothing opens yet. */
+  onChangeCompleted: () => void;
   onComplete: () => void;
   onCheckIn: () => void;
   onCheckOut: () => void;
@@ -400,6 +444,8 @@ interface JobActions {
   onCreateInvoice: () => void;
   onCreateEstimate: () => void;
   onCreateRecall: () => void;
+  /** Opens the "Download PDF" form — every Download PDF button and menu item. */
+  onDownloadPdf: () => void;
 }
 
 /** A menu anchored to one of the action-bar buttons. */
@@ -413,11 +459,13 @@ interface MenuTrigger {
 // buttons:
 //   upcoming/pastDue → Start      unscheduled → Schedule
 //   active           → Complete   paused / held → Resume
-//   completed        → "Mark as" + "Create"   (Figma 24567-138761 / 138770)
-//   finalized        → "Resend summary" (desktop only) + "Create recall"
-//                      (Figma 24568-141431 / 141441)
-//   cancelled        → NO Actions button and no menu: Copy URL + Download PDF
-//                      ARE the two buttons (Figma 24569-142615 / 24972-52200)
+//   completed        → "Mark as" + "Create"   (Figma 24567-138761 / 138767)
+//   completed with a DRAFT child → "Actions" + Create recall (desktop only)
+//                      + Send summary (Figma 27348-25428 / 27348-25432)
+//   finalized        → NO Actions button and no menu: Send summary + Create
+//                      recall + Download PDF (DoneButtons; Figma 24568-141430)
+//   cancelled        → NO Actions button and no menu: Download PDF IS the
+//                      bar's button (Figma 24569-142615)
 const ActionButtons = ({
   status,
   onMenu,
@@ -425,6 +473,8 @@ const ActionButtons = ({
   actions,
   markAsMenu,
   createMenu,
+  hasRecall,
+  hasDraftChild,
   mobile = false,
 }: {
   status: JobStatus;
@@ -433,11 +483,13 @@ const ActionButtons = ({
   actions: JobActions;
   markAsMenu: MenuTrigger;
   createMenu: MenuTrigger;
+  /** The job already has a recall job — "Create recall" is hidden. */
+  hasRecall: boolean;
+  /** A completed job has a DRAFT invoice or estimate made from it. */
+  hasDraftChild: boolean;
   /**
    * The mobile ActionBar is a full-width row, so its buttons stretch. In the
-   * desktop top bar they hug instead (Daniel, 2026-10-04). It also decides
-   * WHICH buttons a finalized job gets — the mobile bar has room for two, so
-   * "Resend summary" moves into the menu there (Figma 24972-52007).
+   * desktop top bar they hug instead (Daniel, 2026-10-04).
    */
   mobile?: boolean;
 }) => {
@@ -458,16 +510,36 @@ const ActionButtons = ({
     </Button>
   );
   if (status === "cancelled") {
-    // A cancelled job has no lifecycle actions left, so the two link actions
-    // come OUT of the overflow menu and become the bar itself. Nothing opens a
-    // menu here any more.
+    // A cancelled job has no lifecycle actions left, so Download PDF comes
+    // OUT of the overflow menu and becomes the bar itself (Copy URL is the
+    // title's button). Nothing opens a menu here any more.
     return (
       <>
-        <Button size="lg" variant="ghost" leftIcon="link" className={grow} onClick={copyJobUrl}>
-          Copy URL
-        </Button>
-        <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={downloadPdf}>
+        <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={actions.onDownloadPdf}>
           Download PDF
+        </Button>
+      </>
+    );
+  }
+  if (status === "finalized") {
+    return <DoneButtons actions={actions} hasRecall={hasRecall} mobile={mobile} />;
+  }
+  // A completed job with a DRAFT invoice or estimate (Figma 27348-25428 /
+  // 27348-25432): the system already sees the child, but cannot finalize the
+  // job while that child is a draft, so "Mark as" and "Create" hide. The
+  // "Actions" menu stays. The phone bar fits two, so Create recall moves into
+  // the menu there.
+  if (status === "completed" && hasDraftChild) {
+    return (
+      <>
+        {actionsButton(grow)}
+        {!mobile && !hasRecall && (
+          <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" onClick={actions.onCreateRecall}>
+            Create recall
+          </Button>
+        )}
+        <Button size="lg" variant="ghost" leftIcon="paper-plane" className={grow} onClick={actions.onResendSummary}>
+          Send summary
         </Button>
       </>
     );
@@ -502,23 +574,6 @@ const ActionButtons = ({
           onClick={createMenu.onActions}
         >
           Create
-        </Button>
-      </>
-    );
-  }
-  if (status === "finalized") {
-    // Everything else about a finalized job is done, so all three buttons are
-    // GHOST — nothing here is the one obvious next step.
-    return (
-      <>
-        {actionsButton(grow)}
-        {!mobile && (
-          <Button size="lg" variant="ghost" leftIcon="paper-plane" onClick={actions.onResendSummary}>
-            Resend summary
-          </Button>
-        )}
-        <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" className={grow} onClick={actions.onCreateRecall}>
-          Create recall
         </Button>
       </>
     );
@@ -600,91 +655,103 @@ const markAsMenuItems = (actions: JobActions) => (
 // component — Menu's withGroupDividers can only see the MenuItemGroups when it
 // receives the fragment itself; a component element hides them, and the
 // between-group dividers silently disappear (Daniel caught this, 2026-07-21).
+//
+// Every menu is the same shape (Figma 24575-152369, 2026-10-27): the STATUS
+// actions first, then a last group that ends with Download PDF. The status
+// actions carry solid icons in their status colour, so they are easier to
+// pick out of the list (Daniel, 2026-10-05); the other items keep the plain
+// regular icon. The labels name the ACTION, without repeating "job" — the
+// menu is already the job's.
+//
+// A FINALIZED or CANCELLED job has no "Actions" button, so it has no menu.
 const jobActionMenuItems = ({
   status,
   actions,
   onClose,
+  hasRecall,
+  hasDraftChild,
   mobile = false,
 }: {
   status: JobStatus;
   actions: JobActions;
-  /** Closes the menu — the link items act and dismiss. */
+  /** Closes the menu — Download PDF acts and dismisses. */
   onClose: () => void;
+  /** The job already has a recall job — "Create recall" is hidden. */
+  hasRecall: boolean;
   /**
-   * The mobile bar fits fewer buttons, so a FINALIZED job's "Resend summary"
-   * is a menu item there and a bar button on desktop (Figma 24972-52007 vs
-   * 24972-52019).
+   * A completed job has a DRAFT invoice or estimate: Send summary (and, on
+   * desktop, Create recall) are bar buttons, so the menu drops them.
+   */
+  hasDraftChild: boolean;
+  /**
+   * A completed job's last group lists Send summary and Create recall in a
+   * different order per breakpoint (Figma 24567-138774 vs 24567-138776).
    */
   mobile?: boolean;
 }) => {
-  const links = linkMenuItems(onClose);
-  // The labels name the ACTION, without repeating "job" — the menu is already
-  // the job's (Figma 24049-13712 / 24042-15254, 2026-10-04).
-  const cancel = (
-    <MenuItemGroup>
-      <MenuItem label="Cancel" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
-    </MenuItemGroup>
-  );
-  // A completed job (Figma 24567-138776, re-read 2026-10-06): the links, then
-  // recall / resend / resume. The Create and Mark-as actions are NOT repeated
-  // here any more — each has its own button in the bar, with its own menu.
+  const pdfGroup = <MenuItemGroup>{pdfMenuItem(onClose, actions)}</MenuItemGroup>;
+  const sendSummary = <MenuItem label="Send summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />;
+  const reschedule = <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />;
+  const hold = <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />;
+  // A completed job (Figma 24567-138776 desktop / 24567-138774 mobile): two
+  // status actions, then recall / summary / PDF. The Create and Mark-as
+  // actions are NOT here — each has its own button in the bar.
+  //
+  // With a DRAFT child (Figma 27348-28422 desktop / 27348-28420 mobile) the
+  // last group keeps only what the bar does not show: Download PDF, and on
+  // mobile Create recall before it.
+  //
+  // Resume is annotated "only shown if there is no invoice or estimate
+  // created out of this job" — but a non-draft child finalizes the job, so on
+  // a completed job the item always shows (the draft frames draw it too).
   if (status === "completed") {
+    const recall = !hasRecall && (
+      <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
+    );
     return (
       <>
-        {links}
         <MenuItemGroup>
-          <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
-          <MenuItem label="Resend summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
-          {/* The one STATUS action in this menu, so it carries the solid icon
-              in its status colour — the same rule the active menu follows. */}
-          <MenuItem label="Resume job" slotLeft={slot("circle-play", "solid", "var(--jade-a9)")} onClick={actions.onResume} />
+          <MenuItem
+            label="Change completed status"
+            slotLeft={slot("circle-check", "solid", "var(--orange-a9)")}
+            onClick={actions.onChangeCompleted}
+          />
+          <MenuItem label="Resume" slotLeft={slot("circle-play", "solid", "var(--jade-a9)")} onClick={actions.onResume} />
+        </MenuItemGroup>
+        <MenuItemGroup>
+          {hasDraftChild ? (
+            mobile && recall
+          ) : (
+            <>
+              {mobile ? sendSummary : recall}
+              {mobile ? recall : sendSummary}
+            </>
+          )}
+          {pdfMenuItem(onClose, actions)}
         </MenuItemGroup>
       </>
     );
   }
-  // A finalized job (Figma 24972-52019 desktop / 24972-52007 mobile): the
-  // links, and on mobile the "Resend summary" the bar had no room for.
-  if (status === "finalized") {
-    return (
-      <>
-        {links}
-        {mobile && (
-          <MenuItemGroup>
-            <MenuItem label="Resend summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
-          </MenuItemGroup>
-        )}
-      </>
-    );
-  }
   if (status === "unscheduled") {
-    // No "Schedule job" item — Schedule is a BUTTON in the bar now, so the
-    // menu is only the links and Cancel (Figma 24049-13712 / 24049-13724).
+    // No "Schedule" item — Schedule is the bar's button (Figma 24049-13712).
     return (
       <>
-        {links}
-        {cancel}
+        <MenuItemGroup>
+          <MenuItem label="Cancel" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
+        </MenuItemGroup>
+        {pdfGroup}
       </>
     );
   }
   if (status === "active") {
-    // Figma 24057-16092 (re-read 2026-10-04): the links, then ONE group of
-    // four. No Complete item — Complete is the bar's button — and PAUSE and
-    // PUT ON HOLD are separate entries now, each opening the Pause form on its
-    // own Type. "Change job active status" is annotated "exists only if a
-    // company supports active sub-statuses"; the demo has none configured, so
-    // it is shown unconditionally for now — flagged.
+    // Figma 24057-16092: no Complete item — Complete is the bar's button —
+    // and Pause and Hold are separate entries, each opening the Pause form on
+    // its own Type.
     return (
       <>
-        {links}
         <MenuItemGroup>
           {/* "Exists only if a company supports active sub-statuses" (the
-              node's annotation). The demo company has them OFF, so this item
-              does not appear here — see StartJobForm's "Active sub-statuses"
-              story for the feature switched on. */}
-          {/* The three STATUS actions carry solid icons in their status colour,
-              so they are easier to pick out of the list (Daniel, 2026-10-05 —
-              Figma 24057-16092). Reschedule is not a status change, so it
-              keeps the plain regular icon. */}
+              node's annotation) — the demo company has them ON. */}
           {COMPANY.subStatuses.active && (
             <MenuItem
               label="Change active status"
@@ -693,25 +760,22 @@ const jobActionMenuItems = ({
             />
           )}
           <MenuItem label="Pause" slotLeft={slot("circle-pause", "solid", "var(--amber-a9)")} onClick={actions.onPause} />
-          <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />
-          <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
+          {hold}
+          {reschedule}
         </MenuItemGroup>
+        {pdfGroup}
       </>
     );
   }
-  // Paused (Figma 24096-19267) and HELD (24970-48552) — the same shape, one
-  // status action each, named for the status it changes. No Resume item:
-  // Resume is the bar's button. No Cancel item in this design. A PAUSED job
-  // can also go straight on hold (Figma 24096-19267, 2026-10-22): "Hold"
-  // opens the Pause form on its On hold type, the same as from Active.
-  // A HELD job can also send its summary (Figma 24970-48552, 2026-10-26):
-  // "Send summary" closes the group and opens the same Send-summary form as
-  // "Resend summary" on a completed job.
+  // Paused (Figma 24096-19267) and HELD (24970-48552) — one status action
+  // each, named for the status it changes. No Resume item: Resume is the
+  // bar's button. A PAUSED job can also go straight on hold. A HELD job's
+  // last group starts with "Send summary" — the same Send-summary form a
+  // completed job opens.
   if (status === "quickPaused" || status === "onHold") {
     const held = status === "onHold";
     return (
       <>
-        {links}
         <MenuItemGroup>
           <MenuItem
             label={held ? "Change hold status" : "Change pause status"}
@@ -722,29 +786,26 @@ const jobActionMenuItems = ({
             }
             onClick={actions.onChangePause}
           />
-          {!held && (
-            <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />
-          )}
-          <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />
-          {held && (
-            <MenuItem label="Send summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />
-          )}
+          {!held && hold}
+          {reschedule}
+        </MenuItemGroup>
+        <MenuItemGroup>
+          {held && sendSummary}
+          {pdfMenuItem(onClose, actions)}
         </MenuItemGroup>
       </>
     );
   }
   // Scheduled / upcoming / pastDue (Figma 24042-15254 desktop / 24042-15137
-  // mobile, re-read 2026-10-04): the links, then ONE group holding Unschedule
-  // and the danger Cancel — they used to be two groups with a line between.
-  // NO "Start" item — Start is a button in the bar now, the same way Schedule
-  // left the unscheduled menu.
+  // mobile): Unschedule and the danger Cancel, then Download PDF. NO "Start"
+  // item — Start is the bar's button.
   return (
     <>
-      {links}
       <MenuItemGroup>
         <MenuItem label="Unschedule" slotLeft={slot("calendar-xmark")} onClick={actions.onUnschedule} />
         <MenuItem label="Cancel" slotLeft={slot("ban")} danger onClick={actions.onCancel} />
       </MenuItemGroup>
+      {pdfGroup}
     </>
   );
 };
@@ -753,18 +814,15 @@ const jobActionMenuItems = ({
 // 24049-13724, 2026-10-04). It used to carry an AvatarJob and the status
 // caption as well; the drawer only has to say which job it is acting on.
 /**
- * The public view's only actions (Figma 26990-56727): Copy URL and Download
- * PDF, the same two ghost buttons a cancelled job's bar carries and the same
- * two functions. Download PDF opens no dialog yet (Daniel, 2026-10-20).
+ * The public view's only bar action (Figma 26990-56727): Download PDF, the
+ * same ghost button a cancelled job's bar carries. Copy URL is the title's
+ * button here too. Download PDF opens the same form as inside the app.
  */
-const PublicActionButtons = ({ mobile = false }: { mobile?: boolean }) => {
+const PublicActionButtons = ({ onDownloadPdf, mobile = false }: { onDownloadPdf: () => void; mobile?: boolean }) => {
   const grow = mobile ? styles.grow : undefined;
   return (
     <>
-      <Button size="lg" variant="ghost" leftIcon="link" className={grow} onClick={copyJobUrl}>
-        Copy URL
-      </Button>
-      <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={downloadPdf}>
+      <Button size="lg" variant="ghost" leftIcon="download" className={grow} onClick={onDownloadPdf}>
         Download PDF
       </Button>
     </>
@@ -1408,6 +1466,19 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const [locations, setLocations] = useState<JobLocation[]>(LOCATIONS);
   const addLocation = (next: JobLocation) => setLocations((prev) => [...prev, next]);
   const [job, setJob] = useState<JobState>(() => seedJobState(record));
+  // A job that already HAS a recall job hides "Create recall" (Figma
+  // 27348-25494). Seeded from the db; "Create recall" makes one, so it hides
+  // right after.
+  const [hasRecall, setHasRecall] = useState(() => recallOf(record.id) != null);
+  // A DRAFT invoice or estimate made from the job (Figma 27348-25428): a
+  // completed job then shows the finished bar, without "Mark as" / "Create".
+  // Seeded from the db; "Create invoice" / "Create estimate" stand for saving
+  // one as a draft, since no form opens yet.
+  const [hasDraftChild, setHasDraftChild] = useState(
+    () =>
+      INVOICES.some((i) => i.jobId === record.id && i.status === "draft") ||
+      ESTIMATES.some((e) => e.jobId === record.id && e.status === "draft"),
+  );
   // The Activity tab: how long the job has been in the "Active" status.
   const lifecycle = useJobLifecycle(job, scheduling, seedLifecycle(record));
   const [startOpen, setStartOpen] = useState(false);
@@ -1430,6 +1501,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // Opens the moment the Complete flow finishes (Figma 24576-152451), and again
   // from "Resend summary" on a completed / finalized job.
   const [sendSummaryOpen, setSendSummaryOpen] = useState(false);
+  const [downloadPdfOpen, setDownloadPdfOpen] = useState(false);
+  // The job was made from an estimate — the Download PDF form offers its PDF.
+  const hasParentEstimate = ESTIMATES.some((e) => e.jobId === record.id && e.status === "jobbed");
   // HOW it was opened: the Complete flow hands over to it (leading button
   // "Skip" — it is a step of that flow), or the user asked for it themselves
   // through "Resend summary" (leading button "Cancel").
@@ -2290,6 +2364,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       actionMenu.close();
       setChangePauseOpen(true);
     },
+    // "Change completed status" — completed jobs have no sub-statuses yet, so
+    // nothing opens (flagged to Daniel, 2026-10-27).
+    onChangeCompleted: () => actionMenu.close(),
     // Complete job → the 5-step Complete flow (Equipment · Forms · Summary ·
     // Charges · Signature).
     onComplete: () => {
@@ -2329,19 +2406,28 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     onCreateInvoice: () => {
       closeActionMenus();
       logCreatedFrom("invoice");
+      setHasDraftChild(true);
     },
     onCreateEstimate: () => {
       closeActionMenus();
       logCreatedFrom("estimate");
+      setHasDraftChild(true);
     },
     onCreateRecall: () => {
       closeActionMenus();
       logCreatedFrom("recall");
+      setHasRecall(true);
+    },
+    onDownloadPdf: () => {
+      closeActionMenus();
+      setDownloadPdfOpen(true);
     },
   };
 
   return {
     jobId: record.id,
+    hasRecall,
+    hasDraftChild,
     charges,
     chargesSubtotal,
     actionMenu,
@@ -2410,6 +2496,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     setCompleteOpen,
     sendSummaryOpen,
     setSendSummaryOpen,
+    downloadPdfOpen,
+    setDownloadPdfOpen,
+    hasParentEstimate,
     sendSummaryAfterCompletion,
     setSendSummaryAfterCompletion,
     markInvoicedOpen,
@@ -2517,6 +2606,13 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       open={s.sendSummaryOpen}
       onClose={() => s.setSendSummaryOpen(false)}
       afterCompletion={s.sendSummaryAfterCompletion}
+      mobile={mobile}
+    />
+    {/* "Download PDF" (Figma 24592-39416) — every Download PDF action opens it. */}
+    <DownloadPdfForm
+      open={s.downloadPdfOpen}
+      onClose={() => s.setDownloadPdfOpen(false)}
+      hasParentEstimate={s.hasParentEstimate}
       mobile={mobile}
     />
     {/* "Schedule job" (Figma 27163-54879) and "Reschedule job" (27091-45839):
@@ -2702,7 +2798,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
           liveUsers={isPublicView ? [] : liveUsersFor(record)}
           actions={
             isPublicView ? (
-              <PublicActionButtons />
+              <PublicActionButtons onDownloadPdf={s.actions.onDownloadPdf} />
             ) : (
             <ActionButtons
               status={s.job.status}
@@ -2711,6 +2807,8 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
               actions={s.actions}
               markAsMenu={s.markAsMenu}
               createMenu={s.createMenu}
+              hasRecall={s.hasRecall}
+              hasDraftChild={s.hasDraftChild}
             />
             )
           }
@@ -2806,13 +2904,13 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
           assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
           </ScrollArea>
         </div>
-      {/* The actions overflow menu card — it leads with Copy URL / Download
-          PDF on every status. A CANCELLED job has no "Actions" button, so this
-          never opens there: those two are its bar buttons instead. */}
+      {/* The actions overflow menu card — it leads with Download PDF on every
+          status. A CANCELLED job has no "Actions" button, so this never opens
+          there: Download PDF is its bar button instead. */}
       {s.actionMenu.pos != null && (
         <div ref={s.actionMenu.cardRef} className={styles.contextMenu} style={{ left: s.actionMenu.pos.left, top: s.actionMenu.pos.top }}>
           <Menu open={s.actionMenu.open} onClose={s.actionMenu.close} breakpoint="desktop">
-            {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close })}
+            {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.hasDraftChild })}
           </Menu>
         </div>
       )}
@@ -3098,11 +3196,11 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
         </div>
       )}
       {/* The bottom action bar stays on mobile. A cancelled job keeps it too:
-          Copy URL / Download PDF ARE its two buttons now (Figma 24972-52200,
-          2026-10-06), so nothing it can still do is hidden behind a menu. */}
+          Download PDF IS its button now (Figma 24972-52200, 2026-10-06), so
+          nothing it can still do is hidden behind a menu. */}
       <ActionBar placement="bottom">
         {isPublicView ? (
-          <PublicActionButtons mobile />
+          <PublicActionButtons onDownloadPdf={s.actions.onDownloadPdf} mobile />
         ) : (
         <ActionButtons
           status={s.job.status}
@@ -3111,6 +3209,8 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
           actions={s.actions}
           markAsMenu={s.markAsMenu}
           createMenu={s.createMenu}
+          hasRecall={s.hasRecall}
+          hasDraftChild={s.hasDraftChild}
           mobile
         />
         )}
@@ -3132,7 +3232,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
         drawerHeader={<JobMenuHeader />}
         breakpoint="mobile"
       >
-        {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, mobile: true })}
+        {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.hasDraftChild, mobile: true })}
       </Menu>
       {/* A completed job's two button menus become drawers on mobile, under the
           same job header as the overflow menu (Figma 24590-203977 / 24590-204300). */}

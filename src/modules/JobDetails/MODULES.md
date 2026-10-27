@@ -51,20 +51,51 @@ which is why `Job`, `jobRow`, `JOB_ROWS` and `jobRowById` moved to
 them, and `src/app/jobsData.ts` re-exports them so its own imports were
 untouched.
 
-## The CLOSED statuses' actions (2026-10-06)
+## Job actions on every status (2026-10-27)
 
-Read off Figma 24567-138760 (Completed), 24568-141430 (Finalized) and
-24569-142614 (Cancelled). All three live in `ActionButtons` and
-`jobActionMenuItems` in `JobDetails.tsx`.
+Read off Figma 24575-152369 (the "Workflow" page, every status). All of it
+lives in `ActionButtons`, `DoneButtons` and `jobActionMenuItems` in
+`JobDetails.tsx`. Menus: the STATUS actions first (solid icons in their
+status colour), then a last group that always ends with **Download PDF**.
+`⟋` marks the group divider.
 
 | Status | Bar | Overflow menu |
 |---|---|---|
-| Completed | ghost **Actions** · solid **Mark as ⌄** · solid **Create ⌄** — all three share the mobile row equally | Copy URL · Download PDF ⟋ Create recall · Resend summary · **Resume job** (solid jade `circle-play`) |
-| Finalized | ghost **Actions** · ghost **Resend summary** (desktop only) · ghost **Create recall** | Copy URL · Download PDF ⟋ **Resend summary** (mobile only) |
-| Cancelled | ghost **Copy URL** · ghost **Download PDF** | — none: the job has no "Actions" button |
-| On hold (Figma 24970-48552) | ghost **Actions** · solid **Resume** | Copy URL · Download PDF ⟋ Change hold status · Reschedule · **Send summary** (`paper-plane`, opens the same Send-summary form as Resend summary; added 2026-10-26) |
+| Upcoming / past due | ghost **Actions** · solid **Start** | Unschedule · Cancel (danger) ⟋ Download PDF |
+| Unscheduled | ghost **Actions** · solid **Schedule** | Cancel (danger) ⟋ Download PDF |
+| Active | ghost **Actions** · solid **Complete** | Change active status (if the company has active sub-statuses) · Pause · Hold · Reschedule ⟋ Download PDF |
+| Paused | ghost **Actions** · solid **Resume** | Change pause status · Hold · Reschedule ⟋ Download PDF |
+| On hold | ghost **Actions** · solid **Resume** | Change hold status · Reschedule ⟋ Send summary · Download PDF |
+| Completed | ghost **Actions** · solid **Mark as ⌄** · solid **Create ⌄** — all three share the mobile row equally | Change completed status (solid orange `circle-check`; opens nothing yet) · Resume ⟋ desktop: Create recall · Send summary · Download PDF / mobile: Send summary · Create recall · Download PDF |
+| Completed + a DRAFT invoice or estimate | desktop: ghost **Actions** · ghost **Create recall** · ghost **Send summary** / mobile: ghost **Actions** · ghost **Send summary** | Change completed status · Resume ⟋ desktop: Download PDF / mobile: Create recall · Download PDF |
+| Finalized | ghost **Send summary** · ghost **Create recall** · ghost **Download PDF** (mobile: an icon button) | — none |
+| Cancelled | ghost **Download PDF** | — none |
 
-Three rules worth keeping:
+**Create recall hides once the job HAS a recall job** (the node's annotation),
+in the bar and in the menu. `hasRecall` is seeded from the db (`recallOf`)
+and turns on after "Create recall".
+
+**The draft-child bar** (Figma 27348-25428): the system already sees the
+invoice or estimate, but cannot finalize the job while it is a draft, so
+"Mark as" and "Create" hide; the "Actions" menu stays (Figma 27348-28420 /
+27348-28422, 2026-10-27). `hasDraftChild` is seeded from the db (a
+`draft` invoice or estimate with this `jobId`); "Create invoice" / "Create
+estimate" turn it on, standing in for saving a draft, since no form opens yet.
+
+**Every Download PDF opens the "Download PDF" form** (Figma 24592-39416,
+rebuilt 2026-10-27; `"Download PDF" Form/DownloadPdfForm.tsx`): one RadioGroup
+— Private (`lock`) / Public (`globe`) cards, nothing picked, "Choose version"
+on Download. A job made from an estimate (an estimate with this `jobId` and
+status `jobbed`) adds "Include parent estimate PDF" under the picked card:
+off by default, and it keeps its tick when you switch cards. Toasts
+"Downloading..." → "Downloaded" ("Couldn't download" on a failure).
+
+**Copy URL is NOT in the bar or the menu** (Figma 21136-58234, 2026-10-27): it is the
+ghost `link` IconButton in TopBarNav's title right slot (`titleAction`), before the
+live users, on every status, both breakpoints and the public view. Tooltip "Copy job
+link"; toasts "Job's link copied" / "Couldn't copy the job's link".
+
+Two rules worth keeping:
 
 - **The overflow trigger is a LABELLED ghost button on every status**, never an
   icon-only ellipsis. `ActionButtons.actionsButton()` builds the one version,
@@ -74,9 +105,6 @@ Three rules worth keeping:
 - **"Mark as" and "Create" are NOT repeated in the overflow menu.** Each has
   its own bar button with its own menu, and one definition of the items
   (`markAsMenuItems` / `createMenuItems`) feeds it.
-- **`mobile` decides WHICH buttons a finalized job gets**, not just whether
-  they stretch: the phone bar fits two, so "Resend summary" moves into the
-  menu there. It is the same prop both halves read, so they cannot disagree.
 
 A completed job's Mark-as confirmations (Figma 24567-139607 / 24567-140732)
 carry the same leading icon as their menu item — `circle-dollar` / `clock`.
@@ -266,7 +294,7 @@ designed yet.
 
 | Area | Public rule |
 |---|---|
-| Top bar | no back, no live users; Copy URL + Download PDF only (the cancelled bar's two buttons) |
+| Top bar | no back, no live users; the title's Copy URL button + Download PDF only (the cancelled bar's button) |
 | Tabs | Service, Summary (+ Details first on mobile) — no Timesheet, no Activity; no time tracking |
 | Sidebar ORDER | Service company · Service location · Status · Billing intention · Job contacts · Scheduling · Assignees · Job properties · Related |
 | Service company | NEW, public only: logo (or the name's first letter), branch caption if any, email (required) + phone (if any) as wrapping links with Copy — `ValueDisplay`'s new `href` |

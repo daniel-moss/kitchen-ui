@@ -83,7 +83,8 @@ export const Desktop: Story = {
 
 /**
  * The mobile page — the same layout as the internal one (Daniel, 2026-10-20):
- * "Details" is the first tab, and Copy URL / Download PDF pin to the bottom.
+ * "Details" is the first tab, Copy URL sits beside the job id, and Download
+ * PDF pins to the bottom.
  */
 export const Mobile: Story = {
   render: (args) => (

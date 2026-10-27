@@ -8,9 +8,9 @@ import DownloadPdfForm from "./DownloadPdfForm";
 
 import styles from "./DownloadPdfForm.module.scss";
 
-// The form on its own, not wired into the Job Details prototype yet. Figma
-// section 24592-39416. With a parent estimate there are two fields (Estimate
-// and Job); without one, only Job.
+// The form on its own — Job Details opens it from every "Download PDF"
+// action. Figma section 24592-39416. With a parent estimate, the picked card
+// offers "Include parent estimate PDF"; without one, it is just the two cards.
 const meta: Meta = {
   title: 'Modules/Job/Details/Forms/Download PDF',
   parameters: { controls: { disable: true }, layout: "fullscreen" },
@@ -35,7 +35,7 @@ const Harness = ({ mobile, hasParentEstimate }: { mobile: boolean; hasParentEsti
   );
 };
 
-/** With a parent estimate — an Estimate field and a Job field. */
+/** With a parent estimate — the picked card shows "Include parent estimate PDF". */
 export const ParentDesktop: Story = {
   name: "Parent / Desktop",
   render: () => <Harness mobile={false} hasParentEstimate />,
@@ -47,7 +47,7 @@ export const ParentMobile: Story = {
   render: () => <Harness mobile hasParentEstimate />,
 };
 
-/** No parent estimate — the Job field alone. */
+/** No parent estimate — the two version cards alone. */
 export const NoParentDesktop: Story = {
   name: "No Parent / Desktop",
   render: () => <Harness mobile={false} hasParentEstimate={false} />,
