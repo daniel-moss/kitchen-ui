@@ -1,7 +1,9 @@
 import { AvatarSize } from "../../components/Avatar/Avatar.types";
 import AvatarEquipment from "../../components/Avatar/AvatarEquipment";
+import { AvatarEquipmentStatus } from "../../components/Avatar/AvatarEquipment.types";
 import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import TruncatingText from "../../components/Tooltip/TruncatingText";
+import { warrantyCoverageOf } from "../../data/db";
 import { Equipment as EquipmentRecord } from "../../data/db/types";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
@@ -81,10 +83,17 @@ export const equipmentCaptionText = (e: Equipment) => (
   </TruncatingText>
 );
 
+/** The piece's warranty coverage → the AvatarEquipment corner status. No warranties = no status. */
+export const equipmentAvatarStatus = (e: Equipment): AvatarEquipmentStatus => {
+  const coverage = warrantyCoverageOf(e.id);
+  return coverage === "partial" ? "partiallyCovered" : coverage;
+};
+
 /**
- * The row avatar: the equipment avatar, or the DS `AvatarWarning` while any of
- * the three properties is missing. A named DS component must BE that
+ * The row avatar: the equipment avatar carrying the warranty status (Figma
+ * 17189-78592 / 21760-11304, 2026-10-27), or the DS `AvatarWarning` while any
+ * of the three properties is missing. A named DS component must BE that
  * component — never a hand-built warning look (Daniel, 2026-10-06).
  */
 export const EquipmentAvatar = ({ equipment, size = "xl" }: { equipment: Equipment; size?: AvatarSize }) =>
-  equipmentIncomplete(equipment) ? <AvatarWarning size={size} /> : <AvatarEquipment size={size} />;
+  equipmentIncomplete(equipment) ? <AvatarWarning size={size} /> : <AvatarEquipment size={size} status={equipmentAvatarStatus(equipment)} />;

@@ -19,7 +19,7 @@ import { useSelectionDraft } from "../../components/SelectList/useSelectionDraft
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import NewEquipmentForm from "../NewEquipmentForm/NewEquipmentForm";
 import { NewEquipment } from "../NewEquipmentForm/NewEquipmentForm.types";
-import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentIncomplete, equipmentSearchText, equipmentTitle } from "./equipmentRow";
+import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentIncomplete, equipmentLabel, equipmentSearchText, equipmentTitle } from "./equipmentRow";
 import { SelectPopoverList, useSelectPopover } from "./selectPopover";
 
 import styles from "./EquipmentPicker.module.scss";
@@ -122,8 +122,9 @@ export default function EquipmentPicker({
           <SelectField
             multiSelect
             count={value.length}
-            value={selected.length === 1 ? selected[0].name : undefined}
-            multiSelectLabel="Pieces of equipment"
+            // One pick reads "Name · Manufacturer", more read the label (node 24336-13708).
+            value={selected.length === 1 ? equipmentLabel(selected[0]) : undefined}
+            multiSelectLabel="Pieces of equipment selected"
             onClearSelection={() => onChange([])}
             open={pop.open}
             onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
