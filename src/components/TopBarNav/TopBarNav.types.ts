@@ -19,9 +19,17 @@ export interface TopBarNavProps {
    */
   tabs?: ReactNode;
   /**
-   * The live users — everyone on the page except the current user. They sit
-   * beside the title, in the same place the tabs would. One user renders an
-   * AvatarLive, two or more an AvatarGroup (`xl`).
+   * The icon button after the title — a ghost `lg` IconButton element. Object
+   * details pages use it to copy the link to the page. It takes the place of
+   * the tabs: pass `tabs` or `titleAction`, never both (with both, the tabs
+   * win and a console warning names the mistake).
+   */
+  titleAction?: ReactNode;
+  /**
+   * The live users — everyone on the page except the current user. An add-on
+   * to the title's right slot: alone, or after the tabs or the title action,
+   * `--size-3` (12px) from them. One user renders an AvatarLive, two or more
+   * an AvatarGroup (`xl`).
    */
   liveUsers?: AvatarGroupItem[];
   /**
@@ -33,8 +41,8 @@ export interface TopBarNavProps {
   actions?: ReactNode;
   /**
    * While the page is still fetching what the bar names: the title becomes a
-   * placeholder, and the avatar, the live users, the tabs and the actions are
-   * not drawn at all. The back button stays — the user must be able to leave a
+   * placeholder, and the avatar, the tabs, the title action, the live users
+   * and the actions are not drawn at all. The back button stays — the user must be able to leave a
    * page that has not finished loading. Default false.
    */
   isLoading?: boolean;

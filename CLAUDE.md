@@ -322,6 +322,10 @@ Roughly, as of this handoff:
   tabs scroller is `flex: 0 1 auto` so it hugs instead of filling); the mobile
   second tabs row and its hide-on-scroll are DELETED, and the job-details
   section navigation is a separate bar that is not this component.
+  **The title's right slot (2026-10-27)** = a main element — `tabs` OR
+  `titleAction` (an IconButton; copy page link on object details pages),
+  never both (console warning, tabs win) — plus `liveUsers` as an ADD-ON
+  that always comes last, `--size-3` (12px) after the main element.
   `actions` is a generic slot — one to three buttons of any kind, 8px apart,
   right-aligned; `TopBarNavRightElements` is the LIST HELPER that goes in it
   (desktop-only search + create Button → mobile plus IconButton).

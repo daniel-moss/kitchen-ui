@@ -52,6 +52,9 @@ const action = (key: string) => (
   <IconButton key={key} icon="diamonds-4" variant="ghost" size="lg" aria-label="Action" onClick={noop} />
 );
 
+/** The title action of an object details page — copy the link to the page. */
+const COPY_LINK = <IconButton icon="link" variant="ghost" size="lg" aria-label="Copy link" onClick={noop} />;
+
 /** A preview's placeholder tabs — two tabs reading "Label". */
 const PlaceholderTabs = () => {
   const [tab, setTab] = useState("one");
@@ -237,7 +240,20 @@ export const Tabs: Story = {
   ),
 };
 
-/** The live users, in the same place. */
+/** The icon button, in the tabs' place. */
+export const TitleAction: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" titleAction={COPY_LINK}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** The live users alone. */
 export const LiveUsers: Story = {
   render: () => (
     <DocsFrame>
@@ -253,6 +269,32 @@ export const LiveUsers: Story = {
           </TopBarNavLeftElements>
         </TopBarNav>
       </div>
+    </DocsFrame>
+  ),
+};
+
+/** The live users after the tabs. */
+export const TabsLiveUsers: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" tabs={<PlaceholderTabs />} liveUsers={LIVE}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
+    </DocsFrame>
+  ),
+};
+
+/** The live users after the icon button. */
+export const TitleActionLiveUsers: Story = {
+  render: () => (
+    <DocsFrame>
+      <TopBarNav breakpoint="desktop" titleAction={COPY_LINK} liveUsers={LIVE}>
+        <TopBarNavLeftElements>
+          <TopBarNavTitle title="Title" />
+        </TopBarNavLeftElements>
+      </TopBarNav>
     </DocsFrame>
   ),
 };

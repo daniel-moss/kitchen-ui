@@ -3,6 +3,7 @@ import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 import * as TopBarNavStories from "./TopBarNav.stories";
 import { DocCaption } from "../../stories/DocCaption";
 import { FigmaLinks } from "../../stories/FigmaLinks";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 <Meta of={TopBarNavStories} />
 
@@ -36,7 +37,7 @@ object details page is a third bar, and not part of this component.
 ↳&nbsp;&nbsp;[Back button](#back-button)<br />
 ↳&nbsp;&nbsp;[Title](#title)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Avatar slot](#avatar-slot)<br />
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Tabs and live users](#tabs-and-live-users)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[Right slot](#right-slot)<br />
 ↳&nbsp;&nbsp;[Actions](#actions)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[The list helper](#the-list-helper)<br />
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↳&nbsp;&nbsp;[The context-menu button](#the-context-menu-button)<br />
@@ -114,8 +115,8 @@ back, so it has no button.
 
 The name of the page, in one line — `heading-h3` (Semibold 16/24) in
 `--text-strong`. It is set on TopBarNavTitle, and so are its two slots: the
-avatar before it, and the tabs or live users after it, which are TopBarNav's own
-props.
+avatar before it, and after it the tabs, an icon button or live users, which are
+TopBarNav's own props, `--size-4` (16px) from the title.
 
 A long title shortens with an ellipsis: the title box carries `min-width: 0` and
 `text-overflow: ellipsis`, so it gives way before the tabs and the actions do.
@@ -139,36 +140,56 @@ slot does not set the size itself, so the size belongs to the element you pass.
 
 <Canvas of={TopBarNavStories.AvatarSlot} />
 
-### Tabs and live users
+### Right slot
 
-The place after the title holds one of two things: the tabs that switch what a
-list shows, or the avatars of the people who are on the page right now. Both sit
-next to the title, on desktop and on mobile alike.
-
+The main element after the title is either `tabs` or `titleAction`, never both.
 The tabs are the phase of a list — open and closed, active and inactive. Two or
-three short tabs, pill style. Pass a `TabGroup` element; the bar gives it the
-`lg` size through `TabGroupDefaultSizeContext`, which is context rather than a
-cloned prop so a consumer's own wrapper around the TabGroup cannot swallow it.
-An explicit `size` on the TabGroup still wins. Long tab rows and section
-navigation are not this slot.
+three short tabs, pill style. Long tab rows and section navigation are not this
+slot. TypeScript cannot forbid passing both, so the bar logs a console warning
+and draws the tabs.
 
-The tabs hug the title and scroll horizontally when the row runs out of room,
-with a 40px fade on the side where they continue behind the container. A plain
-vertical mouse wheel scrolls them sideways — the listener is registered
-non-passive, which React's `onWheel` cannot do.
+Pass a `TabGroup` element; the bar gives it the `lg` size through
+`TabGroupDefaultSizeContext`, which is context rather than a cloned prop so a
+consumer's own wrapper around the TabGroup cannot swallow it. An explicit `size`
+on the TabGroup still wins. The tabs hug the title and scroll horizontally when
+the row runs out of room, with a 40px fade on the side where they continue
+behind the container. A plain vertical mouse wheel scrolls them sideways — the
+listener is registered non-passive, which React's `onWheel` cannot do.
+
+<DocCaption>tabs</DocCaption>
+
+<Canvas of={TopBarNavStories.Tabs} />
+
+`titleAction` copies the link to the page. It is used on object details pages,
+so the user can share the job, the estimate or the client they are looking at.
+Pass a ghost `lg` (36px) IconButton with the `link` icon and the accessible name
+"Copy link". Copying, and telling the user it worked, are the consumer's wiring
+— the component does not do this by itself.
+
+<DocCaption>titleAction</DocCaption>
+
+<Canvas of={TopBarNavStories.TitleAction} />
+
+Live users are an add-on, not a choice. They stand alone, or join the tabs or
+the icon button `--size-3` (12px) after it. They always come after the main
+element, so it keeps its place whether or not someone else is on the page.
+
+<DocCaption>liveUsers</DocCaption>
+
+<Canvas of={TopBarNavStories.LiveUsers} />
 
 The live users are everyone on the page except the current user. One user shows
 a single AvatarLive, two or more an inline AvatarGroup, both at `xl` (36px), up
 to three on desktop and two on mobile. Hovering the stack opens a tooltip with
 all of them on desktop; tapping it opens a drawer on mobile.
 
-<DocCaption>tabs</DocCaption>
+<DocCaption>tabs + liveUsers</DocCaption>
 
-<Canvas of={TopBarNavStories.Tabs} />
+<Canvas of={TopBarNavStories.TabsLiveUsers} />
 
-<DocCaption>liveUsers</DocCaption>
+<DocCaption>titleAction + liveUsers</DocCaption>
 
-<Canvas of={TopBarNavStories.LiveUsers} />
+<Canvas of={TopBarNavStories.TitleActionLiveUsers} />
 
 ## Actions
 
@@ -208,11 +229,11 @@ ghost search IconButton on desktop only — there is no search in the mobile top
 bar. `onCreate` draws a solid Button carrying `createLabel` (default "New") on
 desktop, and a solid plus IconButton with the label as its tooltip on mobile.
 
-<DocCaption>actions = TopBarNavRightElements, breakpoint = desktop</DocCaption>
+<DocCaption>{`actions = TopBarNavRightElements${TEXT_SEPARATOR}breakpoint = desktop`}</DocCaption>
 
 <Canvas of={TopBarNavStories.ActionsList} />
 
-<DocCaption>actions = TopBarNavRightElements, breakpoint = mobile</DocCaption>
+<DocCaption>{`actions = TopBarNavRightElements${TEXT_SEPARATOR}breakpoint = mobile`}</DocCaption>
 
 <Canvas of={TopBarNavStories.ActionsListMobile} />
 
@@ -229,8 +250,8 @@ escape hatch for a consumer wiring its own menu, and is ignored when
 
 Set `isLoading` while the page is still fetching what the bar names. The title
 becomes a SkeletonTypography `h3` placeholder 128px wide, and everything that
-depends on the same data — the avatar, the live users, the tabs, the actions,
-the context menu — is not drawn at all. The bar keeps its height, so nothing
+depends on the same data — the avatar, the tabs, the title action, the live
+users, the actions, the context menu — is not drawn at all. The bar keeps its height, so nothing
 moves when the content arrives.
 
 The back button stays. It is not data: the user must be able to leave a page
@@ -254,7 +275,8 @@ The flag reaches the title and the left elements through
 ## States
 
 The bar has no states of its own. Everything in it carries its own: the back
-button and the action buttons have the IconButton and Button states, the tabs
+button, the title action and the action buttons have the IconButton and Button
+states, the tabs
 have the TabGroup states, the live users have the AvatarGroup hover.
 
 The title is not interactive, so it has no hover and no pressed look.
@@ -264,14 +286,16 @@ holds a hover look after a tap.
 
 ## Accessibility
 
-Tab moves through the back button, the tabs and the actions, in that order. The
-arrow keys move inside the tabs. Enter and Space activate what is focused.
+Tab moves through the back button, the tabs or the title action, and the
+actions, in that order. The arrow keys move inside the tabs. Enter and Space
+activate what is focused.
 
 Every icon-only button needs a name, because its icon says nothing on its own.
 The component supplies them for the buttons it draws — "Back", "Object search",
 the create label, "Actions" — and the live-user stack on mobile announces itself
-as "Live users". Write the page name in the title in full: it is the only label
-the page gets.
+as "Live users". The title action is the consumer's element, so the consumer
+names it: "Copy link". Write the page name in the title in full: it is the only
+label the page gets.
 
 The bar renders plain elements, with no landmark role and no heading element —
 the title is styled text, not an `<h1>`. A page that needs a heading has to
@@ -282,7 +306,7 @@ supply one itself.
 | Where | Back | Title slots | Actions |
 | --- | --- | --- | --- |
 | Object lists — Jobs, Estimates, Invoices, Clients | no | phase tabs after the title | object search, create |
-| Object details — a job, an estimate, a client | yes | the object's avatar before the title, live users after it | context menu, and the actions of the object |
+| Object details — a job, an estimate, a client | yes | the object's avatar before the title, then copy link and live users after it | context menu, and the actions of the object |
 | Inner pages — settings, forms, sub-pages | yes | none | none, or one |
 
 ## Props

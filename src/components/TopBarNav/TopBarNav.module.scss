@@ -19,7 +19,7 @@
   width: 100%;
 }
 
-// The navigation cluster: [left elements] 16px [tabs or live users]. It takes
+// The navigation cluster: [left elements] 16px [title right slot]. It takes
 // the free width so the actions stay at the right end.
 .navigation {
   display: flex;
@@ -38,6 +38,22 @@
   flex: none;
   align-items: center;
   min-width: 0;
+}
+
+// The title's right slot: [tabs or icon button] 12px [live users]. It hugs,
+// so it stays beside the title; it may shrink, and only the tabs give way
+// (the button and the live users are `flex: none`).
+.titleSlotRight {
+  display: flex;
+  flex: 0 1 auto;
+  gap: var(--size-3); // 12px
+  align-items: center;
+  align-self: stretch;
+  min-width: 0;
+
+  > :not(.tabsScroller) {
+    flex: none;
+  }
 }
 
 // Tabs hug the title and scroll horizontally when the row runs out of room,

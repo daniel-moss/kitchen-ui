@@ -84,32 +84,51 @@ function TabsScroller({ children }: { children: ReactNode }) {
 export default function TopBarNav({
   children,
   tabs,
+  titleAction,
   liveUsers,
   actions,
   isLoading = false,
   breakpoint = "auto",
   className,
 }: TopBarNavProps) {
+  // The title's main element is the tabs OR the icon button, never both
+  // (Figma `instance` = tabs | iconButton). TypeScript cannot forbid the pair
+  // without a union props type (which empties the docs props table), so it is
+  // a runtime warning and the tabs win.
+  if (tabs != null && titleAction != null) {
+    console.warn("TopBarNav: pass `tabs` or `titleAction`, not both — `titleAction` is ignored.");
+  }
+
   // Loading suppresses everything that depends on the page's data. The back
   // button is not data, so it stays — TopBarNavLeftElements keeps it.
   const showTabs = !isLoading && tabs != null;
+  const showTitleAction = !isLoading && !showTabs && titleAction != null;
   const showLiveUsers = !isLoading && liveUsers != null && liveUsers.length > 0;
+  const showSlotRight = showTabs || showTitleAction || showLiveUsers;
   const showActions = !isLoading && actions != null;
 
   return (
     <TopBarNavLoadingContext.Provider value={isLoading}>
       <div className={clsx(styles.bar, className)}>
         <div className={styles.inner}>
-          {/* The navigation cluster: [left elements] 16px [tabs OR live users].
-              Both sit beside the title, at both breakpoints. */}
+          {/* The navigation cluster: [left elements] 16px [title right slot].
+              The slot sits beside the title, at both breakpoints. */}
           <div className={styles.navigation}>
             <div className={styles.leftElements}>{children}</div>
-            {showTabs && (
-              <TabsScroller>
-                <SizedTabs>{tabs}</SizedTabs>
-              </TabsScroller>
+            {showSlotRight && (
+              // [tabs OR icon button] 12px [live users] — live users are an
+              // add-on that always comes last, so the main element keeps its
+              // place whether or not someone else is on the page.
+              <div className={styles.titleSlotRight}>
+                {showTabs && (
+                  <TabsScroller>
+                    <SizedTabs>{tabs}</SizedTabs>
+                  </TabsScroller>
+                )}
+                {showTitleAction && titleAction}
+                {showLiveUsers && <TopBarNavLiveUsers users={liveUsers} breakpoint={breakpoint} />}
+              </div>
             )}
-            {showLiveUsers && <TopBarNavLiveUsers users={liveUsers} breakpoint={breakpoint} />}
           </div>
           {showActions && <div className={styles.actions}>{actions}</div>}
         </div>
