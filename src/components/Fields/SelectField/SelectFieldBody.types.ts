@@ -4,6 +4,9 @@ export interface SelectFieldBodyProps extends Omit<HTMLAttributes<HTMLDivElement
   /** The displayed value (truncates with an ellipsis when it overflows). */
   value?: ReactNode;
 
+  /** Shown (placeholder colour) while `value` is empty. */
+  placeholder?: ReactNode;
+
   /**
    * Left slot — for now an Icon (14px) or a user Avatar (xs / 20px). Sits before
    * the value with an 8px gap.

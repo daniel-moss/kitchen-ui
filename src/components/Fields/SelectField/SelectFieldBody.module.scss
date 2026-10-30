@@ -29,6 +29,11 @@
   @include font("body-400-compact"); // Inter Regular 14/20
 }
 
+// Placeholder — the empty field's prompt, in the placeholder colour.
+.placeholder {
+  color: var(--text-placeholder);
+}
+
 // Right slot — suffix text (subtle), 8px gap after the value.
 .suffix {
   flex: none;

@@ -7,6 +7,7 @@ import clsx from "clsx";
 import useControllableState from "../../../hooks/useControllableState";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import DatePicker from "../../DatePicker/DatePicker";
+import { FieldSkeleton } from "../FieldSkeleton";
 import { resolveGroupedField } from "../InputGroup/groupedField";
 import { Icon } from "../../Icon/Icon";
 import InputHelpText from "../../InputHelpText/InputHelpText";
@@ -46,6 +47,7 @@ export default function DateField(props: DateFieldProps) {
     onDateInput,
     isValid = true,
     errorMessage,
+    isLoading,
     withPicker = true,
     minDate,
     maxDate,
@@ -71,7 +73,7 @@ export default function DateField(props: DateFieldProps) {
 
   // In an InputGroup the group's disabled / readOnly / isValid win, the field
   // renders as a fused segment, and the group shows one shared error.
-  const g = resolveGroupedField(_group, { disabled, readOnly, isValid }, styles);
+  const g = resolveGroupedField(_group, { disabled, readOnly, isValid, isLoading }, styles);
   const interactive = !g.disabled && !g.readOnly;
   // Disabled / read-only fields can not be invalid (the docs).
   const showInvalid = !g.isValid && interactive;
@@ -191,6 +193,16 @@ export default function DateField(props: DateFieldProps) {
       />
     )
   ) : null;
+
+  // Loading: the block only — no date, no calendar icon, no error (Figma
+  // state=loading). After every hook, so the hook order never changes.
+  if (g.isLoading) {
+    return (
+      <div className={clsx(styles.root, g.rootClass, className)} aria-busy="true">
+        <FieldSkeleton position={g.position} />
+      </div>
+    );
+  }
 
   return (
     <div className={clsx(styles.root, g.rootClass, !g.grouped && g.disabled && styles.disabled, className)}>

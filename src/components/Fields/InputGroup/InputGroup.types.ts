@@ -14,17 +14,17 @@ export interface InputGroupChildContext {
   disabled?: boolean;
   readOnly?: boolean;
   isValid?: boolean;
+  isLoading?: boolean;
 }
 
 export interface InputGroupProps {
   /**
-   * The fields to fuse — two or more field components (DateField, TextField,
-   * SelectField, …). InputGroup renders them as segments of one bordered box.
-   * The Figma component defines three variants: DateField+SelectField,
-   * TextField+SelectField and DateField+TextField+SelectField (date + time +
-   * AM/PM — fixed 64px time segment, hugging select); the implementation
-   * stays flexible on purpose (Daniel). Label and help text live on the
-   * Input wrapper — the group is bare.
+   * The fields to fuse — two to four field components (DateField, TextField,
+   * SelectField). InputGroup renders them as segments of one bordered box.
+   * Widths follow the Figma segments (2026-10-30): text and date fill, a
+   * SelectField hugs its value, and a typed time is a TextField the consumer
+   * fixes at 64px (the session form's `.time`). Label and help text live on
+   * the Input wrapper — the group is bare.
    */
   children: ReactNode;
 
@@ -39,6 +39,11 @@ export interface InputGroupProps {
   disabled?: boolean;
   /** Transparent, non-editable every segment (mutually exclusive with disabled). */
   readOnly?: boolean;
+  /**
+   * Every segment shows the loading block instead of its content (Figma
+   * `state=loading`). No error while loading.
+   */
+  isLoading?: boolean;
 
   className?: string;
 }

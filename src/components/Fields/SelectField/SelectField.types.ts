@@ -5,6 +5,30 @@ import type { InputGroupChildContext } from "../InputGroup/InputGroup.types";
 interface SelectFieldBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "prefix"> {
   /** The selected value (shown in the body). Presence = "filled". */
   value?: ReactNode;
+  /**
+   * Shown while the field is empty. Optional in a full-width field; a hugging
+   * field (`fitContent`, or any SelectField inside an InputGroup) needs one,
+   * or the empty field has no width (Figma, 2026-10-30).
+   */
+  placeholder?: ReactNode;
+
+  // ---- single-select clear ----
+  /**
+   * Single-select only: a clear (×) button before the chevron while the field
+   * is filled and interactive. Use it on an OPTIONAL field instead of a
+   * "No …" option in the list. It clears at once — no confirm Prompt (unlike
+   * TextArea): choosing again is quick. Multi-select clears with the
+   * counter's × instead.
+   */
+  isClearable?: boolean;
+  /** Called when the clear button is clicked. */
+  onClear?: () => void;
+
+  /**
+   * The loading block instead of the field (Figma `state=loading`): no value,
+   * no placeholder, no icons. Inside an InputGroup the group's `isLoading` wins.
+   */
+  isLoading?: boolean;
 
   /** Left slot in the body — an Icon (use `container="square"`) or a user Avatar. */
   slotLeft?: ReactNode;
@@ -37,12 +61,11 @@ interface SelectFieldBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "pre
   open?: boolean;
 
   /**
-   * Hug the value instead of filling the container (the DS default is full
-   * width, like every other field).
-   *
-   * Inside an `InputGroup` this makes the segment hug too: it takes only its
+   * Hug the value instead of filling the container. Standalone the default is
+   * full width, like every other field. Inside an `InputGroup` the default is
+   * to HUG (the Figma select segment, 2026-10-30): the segment takes only its
    * content's width and never shrinks, so the other segments get the rest of
-   * the row (the Scheduling form's "Monday, January 1, 2027" + "12:00 AM").
+   * the row. Pass `fitContent={false}` to make a grouped select share the row.
    */
   fitContent?: boolean;
 

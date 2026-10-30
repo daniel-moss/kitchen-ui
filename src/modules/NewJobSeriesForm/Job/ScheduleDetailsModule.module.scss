@@ -6,3 +6,11 @@
   gap: var(--size-6); // 24px between the radios / Date & time / Duration
   width: 100%;
 }
+
+// The time select hugs its value (a grouped SelectField's default) but never
+// goes under 96px, so an empty time still has room (New Job 17241-69326 —
+// the same rule as the Reschedule form). Two classes out-specify the grouped
+// field's own min-width.
+.fields .timeField {
+  min-width: var(--size-24); // 96px
+}

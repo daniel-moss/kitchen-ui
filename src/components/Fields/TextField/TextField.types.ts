@@ -50,6 +50,12 @@ interface TextFieldBaseProps
    */
   errorMessage?: ReactNode;
 
+  /**
+   * The loading block instead of the field (Figma `state=loading`): no value,
+   * no affixes. Inside an InputGroup the group's `isLoading` wins.
+   */
+  isLoading?: boolean;
+
   /** @internal Injected by InputGroup — do not set directly. */
   _group?: InputGroupChildContext;
 

@@ -73,6 +73,26 @@
   flex: 1 1 0;
   min-width: 0;
 }
+// Actions — the optional clear button + the chevron (Figma
+// "#️⃣ SelectFieldActions"): 8px between them; the field's 12px gap sits
+// before the group.
+.actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px — clear ↔ chevron
+}
+.clear {
+  display: flex;
+}
+
+// Loading — the Skeleton block stands in for the field. A hugging field has no
+// content to size it, so it takes the Figma hug-loading width.
+.loading.fitContent,
+.groupedRoot.loading.groupedFitContent {
+  width: var(--size-20); // 80px
+}
+
 .chevron {
   flex: none;
   display: flex;

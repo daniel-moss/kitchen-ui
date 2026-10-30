@@ -2,6 +2,7 @@ import { InputHTMLAttributes, useState } from "react";
 
 import clsx from "clsx";
 
+import { FieldSkeleton } from "../FieldSkeleton";
 import { resolveGroupedField } from "../InputGroup/groupedField";
 import InputHelpText from "../../InputHelpText/InputHelpText";
 import { useInputLabel } from "../../Input/InputContext";
@@ -38,6 +39,7 @@ export default function TextField(props: TextFieldProps) {
     keyboard = "text",
     isValid = true,
     errorMessage,
+    isLoading,
     className,
     disabled,
     readOnly,
@@ -63,11 +65,21 @@ export default function TextField(props: TextFieldProps) {
 
   // In an InputGroup the group's disabled / readOnly / isValid win, the field
   // renders as a fused segment, and the group shows one shared error.
-  const g = resolveGroupedField(_group, { disabled, readOnly, isValid }, styles);
+  const g = resolveGroupedField(_group, { disabled, readOnly, isValid, isLoading }, styles);
   const interactive = !g.disabled && !g.readOnly;
   // Disabled / read-only fields can not be invalid (the docs).
   const showInvalid = !g.isValid && interactive;
   const kb = KEYBOARD_ATTRS[keyboard];
+
+  // Loading: the block only — no value, no affixes, no error (Figma
+  // state=loading).
+  if (g.isLoading) {
+    return (
+      <div className={clsx(styles.root, g.rootClass, className)} aria-busy="true">
+        <FieldSkeleton position={g.position} />
+      </div>
+    );
+  }
 
   return (
     <div className={clsx(styles.root, g.rootClass, !g.grouped && g.disabled && styles.disabled, className)}>

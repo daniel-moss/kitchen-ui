@@ -15,33 +15,34 @@ import { InputGroupChildContext, InputGroupPosition, InputGroupProps } from "./I
 // message below the fused row. Each child field (DateField / TextField /
 // SelectField / …) is cloned with the internal `_group` context so it renders
 // as a fused segment and inherits the group's disabled / readOnly / isValid.
-// Hover + focus stay per-segment; the error, validity, disabled and read-only
-// are group-level. Bare — the label and help text live on the Input wrapper,
-// and the default error message ("Provide [Label]") derives from the Input's
-// label through InputContext.
+// Hover + focus stay per-segment; the error, validity, disabled, read-only and
+// loading are group-level. Bare — the label and help text live on the Input
+// wrapper, and the default error message ("Provide [Label]") derives from the
+// Input's label through InputContext.
 export default function InputGroup({
   isValid = true,
   errorMessage,
   disabled = false,
   readOnly = false,
+  isLoading = false,
   children,
   className,
 }: InputGroupProps) {
   const contextLabel = useInputLabel();
 
-  const interactive = !disabled && !readOnly;
+  const interactive = !disabled && !readOnly && !isLoading;
   const showError = !isValid && interactive;
   // Default missing-value message (DS rule): "Provide [Label]".
   const effectiveError = errorMessage ?? missingValueMessage("Provide", contextLabel);
 
   // Inject the group context into each field: its position (for the fused
-  // border) plus the shared disabled / readOnly / isValid.
+  // border) plus the shared disabled / readOnly / isValid / isLoading.
   const items = Children.toArray(children).filter(isValidElement) as ReactElement<{ _group?: InputGroupChildContext }>[];
   const fused = items.map((child, i) => {
     const position: InputGroupPosition = i === 0 ? "first" : i === items.length - 1 ? "last" : "middle";
     return cloneElement(child, {
       key: child.key ?? i,
-      _group: { position, disabled, readOnly, isValid },
+      _group: { position, disabled, readOnly, isValid, isLoading },
     });
   });
 

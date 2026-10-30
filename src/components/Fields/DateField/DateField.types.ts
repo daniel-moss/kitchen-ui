@@ -68,6 +68,12 @@ interface DateFieldBaseProps
    */
   onDateInput?: (date: Date | null | undefined) => void;
 
+  /**
+   * The loading block instead of the field (Figma `state=loading`): no date,
+   * no calendar icon. Inside an InputGroup the group's `isLoading` wins.
+   */
+  isLoading?: boolean;
+
   /** @internal Injected by InputGroup — do not set directly. */
   _group?: InputGroupChildContext;
 

@@ -113,7 +113,9 @@ export const States: Story = {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-4)", ...frame }}>
         {stateRow("default (empty)", <SelectField onClick={noop} />)}
+        {stateRow("empty + placeholder", <SelectField placeholder="Technician" onClick={noop} />)}
         {stateRow("default (filled)", <SelectField value="Value" onClick={noop} />)}
+        {stateRow("clearable (filled)", <SelectField value="Value" isClearable onClear={noop} onClick={noop} />)}
         {stateRow("hover", <div className="pseudo-hover-all"><SelectField value="Value" onClick={noop} /></div>)}
         {stateRow("active (open)", <SelectField value="Value" open onClick={noop} />)}
         {stateRow("error", <SelectField value="Value" isValid={false} errorMessage="Choose an option" onClick={noop} />)}
@@ -121,9 +123,63 @@ export const States: Story = {
         {stateRow("read-only", <SelectField value="Value" readOnly />)}
         {stateRow("with icon + suffix", <SelectField value="Value" slotLeft={iconSlot} suffix="Suffix" onClick={noop} />)}
         {stateRow("fit-content (hugs the value)", <SelectField value="Value" fitContent onClick={noop} />)}
+        {stateRow("loading", <SelectField value="Value" isLoading />)}
+        {stateRow("loading + fit-content", <SelectField value="Value" isLoading fitContent />)}
       </div>
     );
   },
+};
+
+/** The optional placeholder — shown while the field is empty. */
+export const Placeholder: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-4)" }}>
+      <div style={frame}>
+        <SelectField placeholder="Technician" onClick={noop} />
+      </div>
+      <SelectField placeholder="Time" fitContent onClick={noop} />
+    </div>
+  ),
+};
+
+// Stateful wrapper so the clear button actually empties the field.
+function ClearableSingle() {
+  const [value, setValue] = useState<string | undefined>("Walk-in cooler");
+  return (
+    <SelectField
+      value={value}
+      placeholder="Equipment"
+      isClearable
+      onClear={() => setValue(undefined)}
+      onClick={() => setValue("Walk-in cooler")}
+    />
+  );
+}
+
+/** Single-select clear — click × to empty the field; click the field to fill it again. */
+export const Clear: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={docsFrame}>
+      <div style={frame}>
+        <ClearableSingle />
+      </div>
+    </div>
+  ),
+};
+
+/** Loading — the block stands in for the field (full width and hug). */
+export const Loading: Story = {
+  parameters: { controls: { disable: true } },
+  render: () => (
+    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-4)" }}>
+      <div style={frame}>
+        <SelectField isLoading />
+      </div>
+      <SelectField isLoading fitContent />
+    </div>
+  ),
 };
 
 // Stateful wrapper so the × button actually clears (count → 0).

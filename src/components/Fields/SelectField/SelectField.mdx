@@ -30,10 +30,22 @@ We use **SelectField** for selecting one or multiple options.
 
 ### Single-select
 
-Doesn't support a placeholder. Any informative text is shown either as a
-hint, or as help text on the
-<a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
-wrapper.
+The placeholder tells the user what to pick before they choose. It is
+optional in a full-width field. A hugging field must always have a
+placeholder, because without it the empty field has no width.
+
+<Canvas of={SelectFieldStories.Placeholder} />
+
+A clear button lets the user empty an optional single-select field. Use it
+instead of adding a "No …" option to the list. The field clears at once,
+with no confirmation, because choosing again is quick.
+
+<Canvas of={SelectFieldStories.Clear} />
+
+While the value loads, the field shows only a gray block, with no text, no
+caret and no buttons.
+
+<Canvas of={SelectFieldStories.Loading} />
 
 <Canvas of={SelectFieldStories.Empty} />
 

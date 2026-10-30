@@ -76,6 +76,7 @@ export default function ScheduleDetailsModule({ value, onChange, showErrors, mob
                 />
                 <SelectField
                   value={value.time ?? undefined}
+                  className={styles.timeField}
                   open={timePop.open}
                   onClick={(event: MouseEvent<HTMLDivElement>) => timePop.toggle(event.currentTarget)}
                 />

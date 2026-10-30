@@ -37,26 +37,27 @@ type Story = StoryObj<typeof InputGroup>;
 
 type GroupState = Omit<InputGroupProps, "children"> & { filled?: boolean };
 
-// The three Figma variants (24701-51704), as reusable builders. `filled`
-// controls the segments' values (the Figma isFilled axis).
+// The three common field mixes, as reusable builders. `filled` controls the
+// segments' values (the Figma isFilled axis). A grouped select hugs, so the
+// empty one carries the placeholder it needs (Figma, 2026-10-30).
 const DateSelectGroup = ({ filled = true, ...props }: GroupState) => (
   <InputGroup {...props}>
     <DateField defaultValue={filled ? DATE : undefined} breakpoint="desktop" today={DATE} />
-    <SelectField value={filled ? "Value" : undefined} />
+    <SelectField value={filled ? "Value" : undefined} placeholder="Placeholder" />
   </InputGroup>
 );
 
 const TextSelectGroup = ({ filled = true, ...props }: GroupState) => (
   <InputGroup {...props}>
     <TextField defaultValue={filled ? "Value" : undefined} />
-    <SelectField value={filled ? "Value" : undefined} />
+    <SelectField value={filled ? "Value" : undefined} placeholder="Placeholder" />
   </InputGroup>
 );
 
 // The date + time + AM/PM shape: the time TextField is FIXED at 64px
-// (placeholder "00:00"), the AM/PM SelectField hugs its content. Doubled
-// selectors out-specify the grouped field's default flex: 1 1 0; the
-// min-width keeps "AM"/"PM" whole (a grouped body has min-width: 0).
+// (placeholder "00:00"), the AM/PM SelectField hugs its content (the grouped
+// default). The doubled selector out-specifies the grouped field's default
+// flex: 1 1 0; the min-width keeps "AM"/"PM" whole.
 const TimeSegmentStyles = () => (
   <style>{`
     .igStoryTime.igStoryTime { flex: 0 0 var(--size-16); }
@@ -310,10 +311,22 @@ export const MissingValue: Story = {
       <Input label="Amount">
         <InputGroup isValid={false}>
           <TextField />
-          <SelectField />
+          <SelectField placeholder="Unit" />
         </InputGroup>
       </Input>
     </Single>
+  ),
+};
+
+// ===== Loading =============================================================
+
+/** Loading: every segment shows the loading block — no content, no error. */
+export const Loading: Story = {
+  render: () => (
+    <Column>
+      <DateSelectGroup isLoading />
+      <DateTextSelectGroup isLoading />
+    </Column>
   ),
 };
 
