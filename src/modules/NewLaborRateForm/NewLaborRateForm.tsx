@@ -9,23 +9,24 @@ import RadioItem from "../../components/Radio/RadioItem";
 import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import AccountField, { accountValue } from "../Product/NewProductForm/AccountField";
-import { numberOf } from "../Product/NewProductForm/productRules";
+import { isBlank } from "../Product/NewProductForm/productRules";
 import { NameField, nameIssues, SubtypeField, subtypeRules } from "../shared/pricebookFields";
 
-import LaborPricingFields, { LaborPricingValues, laborPricingIssues } from "./LaborPricingFields";
-import { LaborRateType, NewLaborRate, NewLaborRateFormProps } from "./NewLaborRateForm.types";
+import LaborPricingFields, { useLaborPricing } from "./LaborPricingFields";
+import { NewLaborRate, NewLaborRateFormProps } from "./NewLaborRateForm.types";
 
 import styles from "./NewLaborRateForm.module.scss";
 
 // The "Create" form for a labor rate (Figma file qhebbfbPHDVnv8IF1EC7Zg, page
-// "Labor Rate" → "Create" Form): a Dialog titled "New labor rate" holding ONLY
-// the required fields, stacked 24px apart with no FormModules around them.
+// "Labor Rate" → "Create" Form 3054-8527): a Dialog titled "New labor rate"
+// holding ONLY the required fields, stacked 24px apart with no FormModules.
 //
-//   Name · Subtype · Rate type · Cost · Rate · Taxability · Revenue account
+//   Name · Subtype · Type · Cost · Price strategy · Taxability · Revenue account
 //
-// The inputs are the pricebook's "Shared Fields" (Name, Subtype, Taxability,
-// Revenue account) and the labor rate's own Fields (Rate type, Cost, Rate) —
-// each built once and shared with the side panel's edit dialogs. Which of them
+// The inputs are the pricebook's "Shared Fields" (Name, Subtype, Price
+// strategy, Taxability, Revenue account) and the labor rate's own Fields
+// (Type, Cost) — each built once and shared with the side panel's edit
+// dialogs. Cost and Price strategy appear once a Type is picked. Which of them
 // this form shows is the "Create" form rule (Shared Behavior → Which Fields
 // Show): only the fields the user must fill in, and a required field with only
 // one option read-only, with that option selected.
@@ -35,8 +36,6 @@ import styles from "./NewLaborRateForm.module.scss";
 // A LABOR RATE is today's "Service Charge" pricebook item (`PriceBookItem`,
 // type 1). The form before the 2026-10-21 redesign is kept, unwired, in
 // src/modules/NewLaborRateFormArchive.
-
-const EMPTY_PRICING: LaborPricingValues = { rateType: null, cost: "", rate: "" };
 
 export default function NewLaborRateForm({
   open,
@@ -60,9 +59,8 @@ export default function NewLaborRateForm({
 
   const [name, setName] = useState("");
   const [subtypeId, setSubtypeId] = useState<string | null>(null);
-  // Rate type has "No selection" by default.
-  const [pricing, setPricing] = useState<LaborPricingValues>(EMPTY_PRICING);
-  const [rateTouched, setRateTouched] = useState(false);
+  // Type has "No selection" by default; Price strategy opens on Manual.
+  const pricing = useLaborPricing();
   // Pre-selected from the company default — never empty, so no error state.
   const [isTaxable, setIsTaxable] = useState<boolean>(defaultTaxable);
   const [accountId, setAccountId] = useState<string | null>(null);
@@ -80,8 +78,7 @@ export default function NewLaborRateForm({
     if (!open) return;
     setName("");
     setSubtypeId(subtype.lone?.id ?? null);
-    setPricing(EMPTY_PRICING);
-    setRateTouched(false);
+    pricing.reset();
     setIsTaxable(defaultTaxable);
     setAccountId(null);
     setShowErrors(false);
@@ -101,7 +98,6 @@ export default function NewLaborRateForm({
   // ---- validation ---------------------------------------------------------
 
   const nameProblems = nameIssues(name, existingNames);
-  const pricingProblems = laborPricingIssues(pricing);
   const missingSubtype = subtype.required && subtypeId == null;
   // A single synced account is the value — AccountField shows it read-only.
   const chosenAccountId = accountValue(quickbooks?.accounts ?? [], accountId);
@@ -112,31 +108,35 @@ export default function NewLaborRateForm({
     nameProblems.tooLong != null ||
     nameProblems.duplicate ||
     missingSubtype ||
-    pricingProblems.missingRateType ||
-    pricingProblems.missingCost ||
-    pricingProblems.missingRate ||
+    pricing.blocked ||
     missingAccount;
 
   const dirty =
     name.trim() !== "" ||
     (subtypeId != null && subtypeId !== subtype.lone?.id) ||
     pricing.rateType != null ||
+    !isBlank(pricing.cost) ||
     isTaxable !== defaultTaxable ||
     accountId != null;
 
   const create = async () => {
+    pricing.strategy.judge();
     if (blocked) {
       setShowErrors(true);
       setSubmitAttempt((previous) => previous + 1);
       return;
     }
 
+    const saved = pricing.saved();
     const laborRate: NewLaborRate = {
       name: name.trim(),
       subtypeId: subtype.required ? (subtypeId ?? undefined) : undefined,
-      rateType: pricing.rateType as LaborRateType,
-      cost: numberOf(pricing.cost),
-      rate: numberOf(pricing.rate),
+      rateType: pricing.rateType ?? "hourly",
+      cost: saved.cost,
+      priceStrategy: saved.priceStrategy,
+      rate: saved.rate,
+      fixedMarkup: saved.priceAdjustmentAmount,
+      percentMarkup: saved.priceAdjustmentPercent,
       isTaxable,
       quickbooksAccountId: hasAccounting ? (chosenAccountId ?? undefined) : undefined,
     };
@@ -204,14 +204,8 @@ export default function NewLaborRateForm({
           />
         )}
 
-        {/* "Picking an option shows Cost and Rate below it." */}
-        <LaborPricingFields
-          values={pricing}
-          onChange={setPricing}
-          showErrors={showErrors}
-          rateTouched={rateTouched}
-          onRateTouched={() => setRateTouched(true)}
-        />
+        {/* "Picking an option shows the Cost and the Price strategy inputs below it." */}
+        <LaborPricingFields state={pricing} showErrors={showErrors} />
 
         {/* "Only shown when a service company uses taxes. Pre-populated based
             on service company settings." */}

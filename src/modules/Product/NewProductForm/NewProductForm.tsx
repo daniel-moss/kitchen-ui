@@ -21,16 +21,15 @@ import SelectListItem from "../../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../../components/Toast/Toaster";
 import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
-import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import { DimensionUnit, WeightUnit } from "../../../data/db/types";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import LabelsField from "../../shared/LabelsField";
+import PriceStrategyField, { priceStrategyBlocks, usePriceStrategy } from "../../shared/PriceStrategyField";
 import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
 import AccountField, { accountValue } from "./AccountField";
 import InventoryLevelsField from "./InventoryLevelsField";
 import {
-  computePrice,
   CostStrategy,
   decimalText,
   DIMENSION_UNITS,
@@ -39,12 +38,9 @@ import {
   isImageUrl,
   isMeasureText,
   isMoneyText,
-  isPercentText,
-  isSignedMoneyText,
   MAX_BARCODE,
   MAX_IMAGE_URL,
   MAX_NAME,
-  MAX_PERCENT,
   MAX_TEXT,
   missingDimensionsError,
   NO_SUGGESTIONS,
@@ -52,7 +48,6 @@ import {
   numberOf,
   overLimitError,
   padMoneyOnBlur,
-  PriceStrategy,
   resolveCost,
   stripControlCharacters,
   WEIGHT_UNITS,
@@ -130,10 +125,6 @@ export default function NewProductForm({
   const [vendorCosts, setVendorCosts] = useState<NewProductVendorCost[]>([]);
   const [costStrategy, setCostStrategy] = useState<CostStrategy>("manual");
   const [cost, setCost] = useState("");
-  const [priceStrategy, setPriceStrategy] = useState<PriceStrategy>("manual");
-  const [price, setPrice] = useState("");
-  const [fixedMarkup, setFixedMarkup] = useState("");
-  const [percentMarkup, setPercentMarkup] = useState("");
   const [isTaxable, setIsTaxable] = useState<boolean>(defaultIsTaxable);
 
   // ---- Inventory ----
@@ -177,20 +168,6 @@ export default function NewProductForm({
   const [notes, setNotes] = useState("");
 
   const [showErrors, setShowErrors] = useState(false);
-  // A money field states its problem when it LOSES FOCUS, and from then on
-  // live — the Labor rate form's rule, and every "Validates only when the field
-  // loses the focus" annotation here.
-  // The price checks that run "when the field loses the focus" — less than
-  // cost, a negative price, a percent over the top value. They are a VERDICT
-  // taken at that moment (blur of Cost, Price or a markup, or Create), not a
-  // live reading, so typing never flips them on or off. Kept with the strategy
-  // it was taken under, so another strategy's card does not inherit it.
-  const [priceVerdict, setPriceVerdict] = useState<{
-    strategy: PriceStrategy;
-    belowCost: boolean;
-    negative: boolean;
-    tooHigh: boolean;
-  } | null>(null);
   const [submitAttempt, setSubmitAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -214,11 +191,9 @@ export default function NewProductForm({
   const vendorCostValues = vendorCosts.map((row) => row.cost);
   const hasVendorCosts = vendorCostValues.length > 0;
   const resolvedCost = resolveCost(costStrategy, numberOf(cost), vendorCostValues);
-  const percentValue = numberOf(percentMarkup);
-  const computedPrice = computePrice(priceStrategy, resolvedCost, numberOf(fixedMarkup), percentValue);
-
-  const markupText = priceStrategy === "fixedMarkup" ? fixedMarkup : percentMarkup;
-  const markupEmpty = isBlank(markupText);
+  // Price strategy — the shared field; its blur-time verdict is taken from
+  // Cost's blur and from Create too.
+  const pricing = usePriceStrategy(resolvedCost);
 
   // ---- validation ----
 
@@ -252,25 +227,6 @@ export default function NewProductForm({
 
   // Cost is required under Manual — "Enter Cost" (Figma 4057-13777).
   const missingCost = costStrategy === "manual" && isBlank(cost);
-  const missingPrice = priceStrategy === "manual" && isBlank(price);
-  const missingMarkup = (priceStrategy === "fixedMarkup" || priceStrategy === "percentMarkup") && markupEmpty;
-  const negativePrice = priceStrategy !== "manual" && !markupEmpty && computedPrice < 0;
-  const percentTooHigh = priceStrategy === "percentMarkup" && percentValue > MAX_PERCENT;
-  const belowCost =
-    priceStrategy === "manual"
-      ? !isBlank(price) && numberOf(price) < resolvedCost
-      : !markupEmpty && computedPrice >= 0 && computedPrice < resolvedCost;
-
-  const judgePrice = () =>
-    setPriceVerdict({ strategy: priceStrategy, belowCost, negative: negativePrice, tooHigh: percentTooHigh });
-  const verdict = priceVerdict?.strategy === priceStrategy ? priceVerdict : null;
-  const showBelowCost = verdict?.belowCost === true;
-  const showNegativePrice = verdict?.negative === true;
-  const showPercentTooHigh = verdict?.tooHigh === true;
-  // An EMPTY value is checked by Create only, and marks the input alone — the
-  // card turns red only for a negative price or a percent over the top value.
-  const showMissingPrice = showErrors && missingPrice;
-  const showMissingMarkup = showErrors && missingMarkup;
 
   // The three dimensions are all-or-nothing (production's own pairing rule).
   const dimensionValues = [length, width, height];
@@ -288,10 +244,7 @@ export default function NewProductForm({
     partNumberTooLong != null ||
     missingSubtype ||
     missingCost ||
-    missingPrice ||
-    missingMarkup ||
-    negativePrice ||
-    percentTooHigh ||
+    priceStrategyBlocks(pricing.check) ||
     missingRevenueAccount ||
     missingInventoryAccounts ||
     imageUrlTooLong != null ||
@@ -307,9 +260,9 @@ export default function NewProductForm({
     barcode.trim() !== "" ||
     vendorCosts.length > 0 ||
     !isBlank(cost) ||
-    !isBlank(price) ||
-    !isBlank(fixedMarkup) ||
-    !isBlank(percentMarkup) ||
+    !isBlank(pricing.values.price) ||
+    !isBlank(pricing.values.fixedMarkup) ||
+    !isBlank(pricing.values.percentMarkup) ||
     inventoryLevels.length > 0 ||
     revenueAccountId != null ||
     imageUrl.trim() !== "" ||
@@ -343,7 +296,7 @@ export default function NewProductForm({
       bodyRef.current?.querySelector("[data-editing-card]")?.scrollIntoView({ block: "center", behavior: "smooth" });
       return;
     }
-    judgePrice();
+    pricing.judge();
     if (blocked) {
       setShowErrors(true);
       setImageUrlChecked(imageUrlInvalid);
@@ -361,10 +314,10 @@ export default function NewProductForm({
       vendorCosts,
       costStrategy,
       cost: resolvedCost,
-      priceStrategy,
-      price: priceStrategy === "manual" ? numberOf(price) : computedPrice,
-      fixedMarkup: priceStrategy === "fixedMarkup" ? numberOf(fixedMarkup) : undefined,
-      percentMarkup: priceStrategy === "percentMarkup" ? percentValue : undefined,
+      priceStrategy: pricing.values.strategy,
+      price: pricing.check.price,
+      fixedMarkup: pricing.values.strategy === "fixedMarkup" ? numberOf(pricing.values.fixedMarkup) : undefined,
+      percentMarkup: pricing.values.strategy === "percentMarkup" ? numberOf(pricing.values.percentMarkup) : undefined,
       isTaxable: useTaxes ? isTaxable : false,
       trackInventory,
       inventoryLevels: trackInventory ? inventoryLevels : [],
@@ -405,25 +358,6 @@ export default function NewProductForm({
     });
     onClose();
   };
-
-  // The calculated Price under a markup — one ValueDisplay, three states.
-  const priceValueDisplay = (
-    <ValueDisplay
-      label="Price"
-      emptyText={priceStrategy === "fixedMarkup" ? "Enter Fixed markup" : "Enter Percent markup"}
-      value={
-        markupEmpty
-          ? undefined
-          : showNegativePrice
-            ? `${money(computedPrice)} — must be $0.00 or more`
-            : showBelowCost
-              ? `${money(computedPrice)} — less than cost`
-              : money(computedPrice)
-      }
-      valueColor={showNegativePrice ? "var(--text-error)" : undefined}
-      isWarning={showBelowCost}
-    />
-  );
 
   return (
     <>
@@ -564,7 +498,7 @@ export default function NewProductForm({
                           onChange={(event) => isMoneyText(decimalText(event.target.value)) && setCost(decimalText(event.target.value))}
                           onBlur={() => {
                             setCost(padMoneyOnBlur(cost));
-                            judgePrice();
+                            pricing.judge();
                           }}
                           keyboard="decimal"
                           prefix="$"
@@ -596,92 +530,7 @@ export default function NewProductForm({
                 </RadioGroup>
               </Input>
 
-              <Input label="Price strategy">
-                <RadioGroup
-                  orientation="vertical"
-                  value={priceStrategy}
-                  onChange={(value) => setPriceStrategy(value as PriceStrategy)}
-                >
-                  <RadioItem
-                    value="manual"
-                    label="Manual"
-                    content={
-                      <Input label="Price" helpText={showBelowCost ? "Less than cost" : undefined} helpTextStatus="warning">
-                        <TextField
-                          value={price}
-                          onChange={(event) => isMoneyText(decimalText(event.target.value)) && setPrice(decimalText(event.target.value))}
-                          onBlur={() => {
-                            setPrice(padMoneyOnBlur(price));
-                            judgePrice();
-                          }}
-                          keyboard="decimal"
-                          prefix="$"
-                          placeholder="0.00"
-                          isValid={!showMissingPrice}
-                        />
-                      </Input>
-                    }
-                  />
-
-                  <RadioItem
-                    value="fixedMarkup"
-                    label="Fixed markup"
-                    error={priceStrategy === "fixedMarkup" && showNegativePrice}
-                    contentPadded={false}
-                    content={
-                      <div className={styles.cardContent}>
-                        <Input label="Fixed markup">
-                          <TextField
-                            value={fixedMarkup}
-                            onChange={(event) => isSignedMoneyText(decimalText(event.target.value)) && setFixedMarkup(decimalText(event.target.value))}
-                            onBlur={() => {
-                              setFixedMarkup(padMoneyOnBlur(fixedMarkup));
-                              judgePrice();
-                            }}
-                            {...NO_SUGGESTIONS}
-                            prefix="$"
-                            placeholder="0.00"
-                            isValid={!(showMissingMarkup || showNegativePrice)}
-                            // The negative price's own message is the Price row
-                            // below, so the field turns red without one.
-                            errorMessage={showNegativePrice ? "" : undefined}
-                          />
-                        </Input>
-                        {priceValueDisplay}
-                      </div>
-                    }
-                  />
-
-                  <RadioItem
-                    value="percentMarkup"
-                    label="Percent markup"
-                    error={priceStrategy === "percentMarkup" && (showNegativePrice || showPercentTooHigh)}
-                    contentPadded={false}
-                    content={
-                      <div className={styles.cardContent}>
-                        <Input label="Percent markup">
-                          <TextField
-                            value={percentMarkup}
-                            onChange={(event) => isPercentText(decimalText(event.target.value)) && setPercentMarkup(decimalText(event.target.value))}
-                            onBlur={() => {
-                              setPercentMarkup(padMoneyOnBlur(percentMarkup));
-                              judgePrice();
-                            }}
-                            {...NO_SUGGESTIONS}
-                            suffix="%"
-                            placeholder="0.00"
-                            isValid={!(showMissingMarkup || showNegativePrice || showPercentTooHigh)}
-                            errorMessage={
-                              showPercentTooHigh ? `Must be ${MAX_PERCENT}% or less` : showNegativePrice ? "" : undefined
-                            }
-                          />
-                        </Input>
-                        {priceValueDisplay}
-                      </div>
-                    }
-                  />
-                </RadioGroup>
-              </Input>
+              <PriceStrategyField state={pricing} showErrors={showErrors} />
 
               {useTaxes && (
                 <Input label="Taxability">

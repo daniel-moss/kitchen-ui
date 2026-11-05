@@ -1,7 +1,7 @@
 import { LABOR_LABELS, LABOR_SUBTYPES, PricebookStatus } from "../data/db";
 
 import { FilterDef } from "./filterDefs";
-import { durationFilter, moneyFilter } from "./filterKinds";
+import { moneyFilter } from "./filterKinds";
 import {
   costTemplate,
   labelsTemplate,
@@ -16,16 +16,15 @@ import { PricebookPhase } from "./pricebookList";
 // The LABOR list's filter registry — ONE entry per row of its Filters menu
 // (node 15044-67466 on Daniel's "↳ Labor" canvas 15044-66760, re-read
 // 2026-09-16 after his icon and Status updates), in the menu's alphabetical
-// order: Cost, Est. duration, Labels, Last modified, Rate, Status, Subtype,
-// Taxability, Unit type.
+// order: Cost, Labels, Last modified, Rate, Status, Subtype, Taxability,
+// Unit type. Est. duration is GONE (Daniel, 2026-10-28): in the new model a
+// labor rate has no duration — the Service carries it.
 //
 // TWO kinds of entry, the standing Figma split — re-drawn on 2026-09-16 when
 // the PRODUCTS list arrived and four of these turned out to be the same
 // filter on both pricebook types:
-//   - THREE are object-specific, and stay here: Rate (15056:60150) on the
-//     Amount kind, Est. duration (15339:20649 — the list's OWN, distinct
-//     from the Jobs template: a pricebook duration is optional, so "No est.
-//     duration" leads) and Unit type (15049:71097);
+//   - TWO are object-specific, and stay here: Rate (15056:60150) on the
+//     Amount kind and Unit type (15049:71097);
 //   - SIX are shared TEMPLATES, handed how to read a LABOR item — Labels and
 //     Last modified as before, plus Cost, Status, Subtype and Taxability,
 //     PROMOTED into `filterTemplates` when the Products menu's rows linked
@@ -69,30 +68,6 @@ function rateFilter(): FilterDef<LaborRow> {
   };
 }
 
-// ---- Est. duration (object-specific — the list's OWN, not the Jobs template) --
-
-/**
- * Est. duration — production `default_job_duration`, which is OPTIONAL here
- * (unlike a job's), so the Labor list has its own filter section
- * (15339:20649, added by Daniel 2026-09-16 after the review): the duration
- * kind's list led by the ABSENT "No est. duration" row over the four hour
- * presets and "Custom..." (hr + min, at least / at most / is / within). The
- * chip prints a preset as written ("1 hour") and a custom value in the
- * compact format ("1h 30m" — units only when > 0), the section's own
- * annotation, which is exactly what the shared chip copy already does.
- */
-function estDurationFilter(): FilterDef<LaborRow> {
-  return {
-    id: "duration",
-    kind: "duration",
-    noun: { one: "duration", many: "durations" },
-    label: "Est. duration",
-    icon: "hourglass",
-    dsHeader: true,
-    ...durationFilter((item) => item.estDurationMinutes, ["noDuration", "1h", "2h", "3h", "4h"]),
-  };
-}
-
 // ---- Unit type (object-specific) ---------------------------------------------
 
 /**
@@ -125,14 +100,11 @@ function unitTypeFilter(): FilterDef<LaborRow> {
  * ONE registry per BRANCH, the other pages' rule: Status exists on the
  * Active phase alone (its menu-row annotation), and everything else is the
  * same object on both. The menu lists them alphabetically, the order its own
- * node draws (15044:67466): Cost, Est. duration, Labels, Last modified,
- * Rate, Status (Active only — it keeps its alphabetical slot between Rate
+ * node draws (15044:67466): Cost, Labels, Last modified, Rate, Status (Active only — it keeps its alphabetical slot between Rate
  * and Subtype), Subtype, Taxability, Unit type.
  */
 const buildLaborFilters = (phase: PricebookPhase): FilterDef<LaborRow>[] => [
   costTemplate((item) => item.cost),
-
-  estDurationFilter(),
 
   // Labor items carry their OWN label table (production `PriceBookItemLabel`
   // — see LABOR_LABELS in the db), the template's parameter.

@@ -1,0 +1,13 @@
+// The type modules and the subtotal stack like the Summary panel's modules.
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// OVERRIDE (Daniel, 2026-11-03): 4px between the line items. ItemGroup itself
+// has no gap between its items. The group has no header and no accordion here,
+// so its items list is its first child.
+.lineGroup > div:first-child {
+  gap: var(--size-1); // 4px
+}

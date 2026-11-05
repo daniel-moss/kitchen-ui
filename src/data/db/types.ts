@@ -1141,8 +1141,9 @@ export interface LaborItem {
   isActive: boolean;
   /** Production `subtype` (FK, nullable) — the revenue-category classification. */
   subtypeId: string | null;
-  /** Production `summary_template` — the default line-item summary. "" = none. */
-  summary: string;
+  /** Production `summary_template` — the default line-item summary, called
+   *  "Description" in the new Labor rate design. "" = none. */
+  description: string;
   /** Production `cost` — the internal cost. Auto-created items default to 0. */
   cost: number;
   /** Production `default_price` — the billed rate. */
@@ -1152,9 +1153,6 @@ export interface LaborItem {
   unitType: "hourly" | "flatRate";
   /** Production `default_is_taxable`. */
   taxable: boolean;
-  /** Production `default_job_duration`, minutes. Null = none — the table's
-   *  empty cell and the filter's "No est. duration" row. */
-  estDurationMinutes: number | null;
   /** → LABOR_LABELS (production `PriceBookItemLabel`, company-written). */
   labelIds: string[];
   lastModifiedAt: string;

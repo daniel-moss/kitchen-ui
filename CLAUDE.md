@@ -885,19 +885,21 @@ Prototypes/View Menu story links are dead):
   - Share `<site>/iframe.html?id=prototypes-<name>--<story>` for a clean
     full-screen link. Story ids come from the story's `title` + export name, so
     RENAMING a story title breaks every link already sent — don't.
-  - A root publish is all-or-nothing: every prototype in `src/prototypes/` goes
-    public together and REPLACES what is on the site. Never do that while
-    clients are testing a build that is already published.
   - **User-testing builds get their own sub-folder** (Daniel, 2026-08-25):
     `node scripts/publish-prototypes.mjs --only <Folder> --dir <url-name>`
     builds ONLY that prototype folder (`SHARE_PROTOTYPE` in
     `.storybook/main.js`) and syncs it into
     `roopairs-user-testing/<url-name>/`. Nothing outside that sub-folder is
     written, so every link already sent keeps serving the same files.
-  - A user-testing prototype is a **frozen COPY** of the prototype it comes
-    from (e.g. `src/prototypes/JobDetailsForms/` from `JobDetails/`), not a
-    variant of it — a testing build must not move when the original is worked
-    on. A change that belongs in both has to be made in both, on purpose.
+  - **The script enforces this (Daniel, 2026-11-05: tests run for a long time,
+    so a published link must never move):** it refuses to run without `--dir`,
+    and refuses a `--dir` that already exists. A new version goes to a NEW
+    folder (`job-details-charges-2`); `--replace` changes a folder on purpose.
+  - A user-testing prototype is usually a **frozen COPY** of the prototype it
+    comes from (e.g. `src/prototypes/JobDetailsForms/` from `JobDetails/`), not a
+    variant of it. `src/prototypes/JobDetailsCharges/` is NOT a copy (Daniel,
+    2026-11-05): it renders the live page, because the published build is what
+    is frozen. It follows the DS here, so a later publish carries DS changes.
   - **Careful:** the kitchen-ui repo ALSO publishes its full Storybook to
     `daniel-moss.github.io/kitchen-ui/` on every push to `main`. Links from
     that site are NOT frozen — any push changes them. Customer links should

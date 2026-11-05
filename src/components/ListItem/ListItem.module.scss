@@ -251,6 +251,7 @@ $slot-interactive: 'button, a, input, select, textarea, [role="button"], [role="
 // The body slot carries its own padding (Figma: 12px on every side, both
 // sizes), so the caller drops in bare content.
 .accordionBody {
+  box-sizing: border-box; // the 12px is inside the width, or the right side is clipped
   width: 100%;
   padding: var(--size-3); // 12px
 }

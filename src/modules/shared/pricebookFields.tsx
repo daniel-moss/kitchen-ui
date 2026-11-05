@@ -119,6 +119,11 @@ export function SubtypeField({ subtypes, required, value, onChange, showErrors, 
           open={pop.open}
           onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
           isValid={!(showErrors && rules.required && value == null)}
+          // An OPTIONAL subtype clears with the field's own × — the DS rule for
+          // an optional SelectField, in place of a "No subtype" row (Daniel,
+          // 2026-11-03).
+          isClearable={!rules.required}
+          onClear={() => onChange(null)}
         />
       </Input>
 
@@ -132,18 +137,6 @@ export function SubtypeField({ subtypes, required, value, onChange, showErrors, 
         noResultsState={<EmptyState caption="No subtypes match" />}
       >
         <SelectListItemGroup>
-          {/* "Only exists if subtype is NOT required. It allows the user to
-              clear the selection. Always on top of the list." */}
-          {!rules.required && (
-            <SelectListItem
-              label="No subtype"
-              selected={value == null}
-              onClick={() => {
-                onChange(null);
-                pop.close();
-              }}
-            />
-          )}
           {[...subtypes]
             .sort((a, b) => a.name.localeCompare(b.name))
             .map((subtype) => (

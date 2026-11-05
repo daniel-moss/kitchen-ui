@@ -349,7 +349,7 @@ function DatabasePage() {
           items. Added 2026-09-16 for the Labor list. */}
       <section className={styles.clientCard}>
         <Table
-          head={["ID", "Name", "Phase", "Status", "Subtype", "Cost", "Rate", "Unit", "Est. duration", "Labels"]}
+          head={["ID", "Name", "Phase", "Status", "Subtype", "Cost", "Rate", "Unit", "Labels"]}
           rows={LABOR_ITEMS.map((item) => [
             item.id,
             item.name,
@@ -359,7 +359,6 @@ function DatabasePage() {
             money(item.cost),
             money(item.rate),
             item.unitType === "hourly" ? "hourly" : "flat rate",
-            orDash(item.estDurationMinutes == null ? null : `${item.estDurationMinutes} min`),
             orDash(
               item.labelIds
                 .map((id) => LABOR_LABELS.find((label) => label.id === id)?.name)

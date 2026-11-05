@@ -1366,12 +1366,15 @@ export const SERVICES: Service[] = [
  * (flagged): what a commercial-kitchen service company would actually write.
  */
 export const LABOR_SUBTYPES: PricebookSubtype[] = [
-  { id: "repair", name: "Repair" },
-  { id: "installation", name: "Installation" },
-  { id: "preventive", name: "Preventive maintenance" },
-  { id: "diagnostics", name: "Diagnostics" },
-  { id: "cleaning", name: "Cleaning & sanitation" },
-  { id: "emergency", name: "Emergency service" },
+  // Modelled on the subtype template every require-subtypes company shares
+  // (production survey 2026-10-28): subtypes route a labor line to its income
+  // account, split by the KIND of work and by the time rate.
+  { id: "service-standard", name: "Service (Standard)" },
+  { id: "service-ot", name: "Service (OT & Holiday)" },
+  { id: "pm", name: "PM" },
+  { id: "project", name: "Project" },
+  { id: "warranty", name: "Warranty" },
+  { id: "non-posting", name: "Non-posting" },
 ];
 
 /** The LABOR labels — production `PriceBookItemLabel`, company-written and
@@ -1381,55 +1384,37 @@ export const LABOR_LABELS: PricebookLabel[] = [
   { id: "contract", name: "Contract" },
   { id: "warranty-work", name: "Warranty work" },
   { id: "flat-fee", name: "Flat fee" },
-  { id: "seasonal", name: "Seasonal" },
+  { id: "national-account", name: "National account" },
 ];
 
 /**
- * The pricebook fields of the 12 items that are ALSO the `SERVICES` rows —
- * the same production record (`PriceBookItem`, type service) seen from two
- * sides, joined by id below so a name or a duration can never disagree
- * between the job world and the pricebook world. All 12 are Active +
- * confirmed: jobs reference them, and production pickers offer confirmed
- * items only.
- */
-const SERVICE_LABOR_FIELDS: Record<
-  string,
-  Pick<LaborItem, "subtypeId" | "summary" | "cost" | "rate" | "unitType" | "taxable" | "labelIds" | "lastModifiedAt">
-> = {
-  "walk-in-cooler": { subtypeId: "repair", summary: "Diagnose and repair the walk-in cooler; includes leak check and temperature verification.", cost: 62, rate: 165, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-21T14:30:00" },
-  "fryer-service": { subtypeId: "preventive", summary: "Full fryer service: drain, boil-out, calibrate the thermostat and verify recovery time.", cost: 55, rate: 145, unitType: "hourly", taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-07-30T10:15:00" },
-  "ice-machine": { subtypeId: "cleaning", summary: "Descale and sanitize the ice machine per the manufacturer's schedule.", cost: 40, rate: 260, unitType: "flatRate", taxable: true, labelIds: ["flat-fee"], lastModifiedAt: "2026-08-04T09:00:00" },
-  "dishwasher": { subtypeId: "diagnostics", summary: "Inspect the dish machine: wash and rinse temperatures, chemical feed, door switches.", cost: 30, rate: 120, unitType: "flatRate", taxable: true, labelIds: ["flat-fee"], lastModifiedAt: "2026-06-19T16:45:00" },
-  "combi-oven": { subtypeId: "preventive", summary: "Quarterly combi oven maintenance: descale the boiler, clean the door gasket, run a test cycle.", cost: 85, rate: 340, unitType: "flatRate", taxable: true, labelIds: ["contract"], lastModifiedAt: "2026-08-27T11:20:00" },
-  "hood-cleaning": { subtypeId: "cleaning", summary: "Degrease the grill hood and baffles; document before/after per fire code.", cost: 120, rate: 420, unitType: "flatRate", taxable: true, labelIds: ["seasonal"], lastModifiedAt: "2026-07-12T08:30:00" },
-  "freezer-seal": { subtypeId: "repair", summary: "Replace the freezer door gasket and check the door alignment.", cost: 45, rate: 150, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-15T13:00:00" },
-  "range-burner": { subtypeId: "repair", summary: "Repair or replace range burner valves and orifices; test flame quality.", cost: 48, rate: 155, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-09-01T15:40:00" },
-  "steam-table": { subtypeId: "repair", summary: "Swap the steam table thermostat and verify holding temperatures.", cost: 35, rate: 190, unitType: "flatRate", taxable: true, labelIds: ["flat-fee"], lastModifiedAt: "2026-06-28T10:00:00" },
-  "prep-fridge": { subtypeId: "repair", summary: "Service the prep fridge compressor: coils, charge and start components.", cost: 70, rate: 160, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-09T09:45:00" },
-  "grease-trap": { subtypeId: "cleaning", summary: "Pump and scrape the grease trap; haul-away included.", cost: 60, rate: 280, unitType: "flatRate", taxable: true, labelIds: ["contract"], lastModifiedAt: "2026-07-22T07:50:00" },
-  "espresso": { subtypeId: "cleaning", summary: "Descale the espresso machine group heads and boiler.", cost: 25, rate: 175, unitType: "flatRate", taxable: true, labelIds: [], lastModifiedAt: "2026-08-30T12:10:00" },
-};
-
-/**
  * The LABOR pricebook — production `PriceBookItem` rows of type service
- * ("LABR"). Three stories in one table:
- *   - the 12 `SERVICES` rows, derived by id above (Active + confirmed);
- *   - 15 more curated catalog items a real company would write, three of
- *     them with the gaps the empty cells demonstrate (no subtype, no
- *     duration, no summary);
- *   - 8 REVIEW items — the names the SYSTEM mints when a tech types a
- *     free-text service onto a job/estimate/invoice line item (production
+ * ("LABR"), rewritten 2026-10-28 to hold ACTUAL LABOR RATES only. Today's
+ * customers also keep their SERVICES here ("Walk-in cooler repair", "Ice
+ * machine PM", "1.0 Break-Fix" — a job's Service type IS a labor rate in
+ * production); the new design splits the two (ROO-3222), so the job types
+ * live in `SERVICES` alone and this table is the hourly and flat rates a line
+ * item is billed at.
+ *
+ * Shaped on the production survey (97 companies, 2026-10-27/28): a standard
+ * hourly rate around $125 (median; middle half $110–$140), overtime 1.5x and
+ * holiday 2x, a 2nd-tech and a helper rate, PM and install rates, travel and
+ * trip charges, $0 no-charge rates (call-backs, courtesy, training), and a
+ * national-account rate. Costs are the burden rate the company records
+ * (about $55/hr for a tech). Four stories in one table:
+ *   - 23 confirmed, active rates — three with the gaps the empty cells
+ *     demonstrate (no subtype, no description);
+ *   - 5 REVIEW items — names the SYSTEM mints when a tech types a free-text
+ *     labor line onto a job/estimate/invoice (production
  *     `LineItemSerializerMixin.create`, confirmed=False): messy casing,
- *     near-duplicates of real items, cost 0 (production's auto-create
- *     default), no subtype, no duration, no summary — recent dates, because
- *     they appear as work happens;
- *   - 5 INACTIVE legacy items (all confirmed — the UI cannot deactivate an
+ *     near-duplicates of real rates, cost 0, no subtype, no description;
+ *   - 4 INACTIVE legacy rates (all confirmed — the UI cannot deactivate an
  *     unconfirmed item, so no "review + inactive" row exists on purpose).
  */
 /**
  * The LIST half of a labor rate — every field the table and its filters read.
  * The side panel's half (notes, creator, price strategy, QuickBooks) is added
- * below, so these 40 rows stay as they were written.
+ * below, so these rows stay as they were written.
  */
 type LaborItemBase = Omit<
   LaborItem,
@@ -1446,78 +1431,84 @@ type LaborItemBase = Omit<
 >;
 
 const LABOR_ITEMS_BASE: LaborItemBase[] = [
-  ...SERVICES.map((service) => ({
-    id: service.id,
-    name: service.name,
-    status: "active" as const,
-    isActive: true,
-    estDurationMinutes: service.defaultDurationMinutes ?? null,
-    ...SERVICE_LABOR_FIELDS[service.id]!,
-  })),
-  // The rest of the confirmed catalog.
-  { id: "diagnostic-labor", name: "Diagnostic labor rate", status: "active", isActive: true, subtypeId: "diagnostics", summary: "First-hour diagnostic on any kitchen equipment; applied toward the repair if approved.", cost: 40, rate: 125, unitType: "hourly", taxable: false, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-08-18T09:30:00" },
-  { id: "standard-labor", name: "Standard labor rate", status: "active", isActive: true, subtypeId: null, summary: "", cost: 45, rate: 135, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:00:00" },
-  { id: "helper-labor", name: "Helper labor rate", status: "active", isActive: true, subtypeId: null, summary: "Second tech on site, billed alongside the lead's labor.", cost: 28, rate: 85, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-05T14:05:00" },
-  { id: "after-hours-labor", name: "After-hours labor rate", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor outside business hours (7pm-7am).", cost: 62, rate: 195, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours"], lastModifiedAt: "2026-07-08T18:20:00" },
-  { id: "emergency-call-out", name: "Emergency call-out", status: "active", isActive: true, subtypeId: "emergency", summary: "Same-day dispatch fee; covers travel and the first 30 minutes on site.", cost: 70, rate: 250, unitType: "flatRate", taxable: true, estDurationMinutes: 60, labelIds: ["after-hours", "flat-fee"], lastModifiedAt: "2026-08-25T20:10:00" },
-  { id: "holiday-labor", name: "Holiday labor rate", status: "active", isActive: true, subtypeId: "emergency", summary: "Labor on observed holidays, 2x list rate.", cost: 75, rate: 240, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["after-hours", "seasonal"], lastModifiedAt: "2026-07-01T09:00:00" },
-  { id: "installation-labor", name: "Installation labor rate", status: "active", isActive: true, subtypeId: "installation", summary: "Set-in-place, connect and level new kitchen equipment.", cost: 50, rate: 150, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-11T11:00:00" },
-  { id: "equipment-startup", name: "New equipment startup", status: "active", isActive: true, subtypeId: "installation", summary: "Commission a newly installed unit: startup checks, controls setup, owner walkthrough.", cost: 95, rate: 380, unitType: "flatRate", taxable: true, estDurationMinutes: 240, labelIds: ["flat-fee"], lastModifiedAt: "2026-08-13T16:30:00" },
-  { id: "refrigerant-recovery", name: "Refrigerant recovery", status: "active", isActive: true, subtypeId: "repair", summary: "Recover and log refrigerant per EPA 608 before a sealed-system repair.", cost: 80, rate: 220, unitType: "flatRate", taxable: true, estDurationMinutes: 90, labelIds: [], lastModifiedAt: "2026-09-02T10:20:00" },
-  { id: "compressor-replacement", name: "Compressor replacement", status: "active", isActive: true, subtypeId: "repair", summary: "Replace a failed compressor: recover, swap, braze, evacuate and recharge.", cost: 320, rate: 850, unitType: "flatRate", taxable: true, estDurationMinutes: 240, labelIds: [], lastModifiedAt: "2026-08-29T15:00:00" },
-  { id: "pm-visit", name: "Preventive maintenance visit", status: "active", isActive: true, subtypeId: "preventive", summary: "Scheduled PM visit per the service agreement's checklist.", cost: 90, rate: 310, unitType: "flatRate", taxable: true, estDurationMinutes: 120, labelIds: ["contract"], lastModifiedAt: "2026-07-25T08:00:00" },
-  { id: "filter-swap", name: "Hood filter exchange", status: "active", isActive: true, subtypeId: "cleaning", summary: "Swap the hood baffle filters for cleaned spares.", cost: 22, rate: 95, unitType: "flatRate", taxable: true, estDurationMinutes: 30, labelIds: ["contract"], lastModifiedAt: "2026-08-06T07:40:00" },
-  { id: "water-treatment", name: "Water filtration service", status: "active", isActive: true, subtypeId: "preventive", summary: "Replace water filtration cartridges and test hardness.", cost: 38, rate: 165, unitType: "flatRate", taxable: true, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-08-02T13:15:00" },
-  { id: "warranty-labor", name: "Warranty repair labor rate", status: "active", isActive: true, subtypeId: "repair", summary: "Labor on manufacturer-warranty repairs; billed to the manufacturer, not the client.", cost: 55, rate: 0, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: ["warranty-work"], lastModifiedAt: "2026-07-17T10:45:00" },
-  { id: "recall-visit", name: "Recall visit", status: "active", isActive: true, subtypeId: "diagnostics", summary: "Return visit on a recent repair; no charge inside the workmanship window.", cost: 40, rate: 0, unitType: "flatRate", taxable: false, estDurationMinutes: 60, labelIds: ["warranty-work"], lastModifiedAt: "2026-09-03T09:10:00" },
+  // Service work, by time of day.
+  { id: "standard-labor", name: "Standard labor", status: "active", isActive: true, subtypeId: null, description: "", cost: 55, rate: 125, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-06-05T14:00:00" },
+  { id: "diagnostic-labor", name: "Diagnostic labor", status: "active", isActive: true, subtypeId: "service-standard", description: "First hour on site to find the fault. Applied toward the repair if the customer approves it.", cost: 55, rate: 132, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-18T09:30:00" },
+  { id: "overtime-labor", name: "Overtime labor (1.5x)", status: "active", isActive: true, subtypeId: "service-ot", description: "Weekdays before 7am or after 5pm, and Saturdays.", cost: 82.5, rate: 187.5, unitType: "hourly", taxable: false, labelIds: ["after-hours"], lastModifiedAt: "2026-07-08T18:20:00" },
+  { id: "after-hours-labor", name: "After-hours emergency labor", status: "active", isActive: true, subtypeId: "service-ot", description: "Emergency calls between 7pm and 7am.", cost: 82.5, rate: 195, unitType: "hourly", taxable: false, labelIds: ["after-hours"], lastModifiedAt: "2026-07-08T18:25:00" },
+  { id: "holiday-labor", name: "Holiday labor (2x)", status: "active", isActive: true, subtypeId: "service-ot", description: "Sundays and observed holidays.", cost: 110, rate: 250, unitType: "hourly", taxable: false, labelIds: ["after-hours"], lastModifiedAt: "2026-07-01T09:00:00" },
+  { id: "second-tech-labor", name: "2nd technician on job", status: "active", isActive: true, subtypeId: "service-standard", description: "A second technician on site, billed next to the lead's labor.", cost: 55, rate: 105, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-06-05T14:05:00" },
+  { id: "helper-labor", name: "Helper labor", status: "active", isActive: true, subtypeId: null, description: "Apprentice or helper working with a technician.", cost: 28, rate: 85, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-06-05T14:10:00" },
+  { id: "travel-labor", name: "Travel time", status: "active", isActive: true, subtypeId: "service-standard", description: "Drive time to and from sites outside the service area.", cost: 55, rate: 95, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-12T08:15:00" },
+  { id: "trip-charge", name: "Trip charge", status: "active", isActive: true, subtypeId: "service-standard", description: "Dispatch fee for every service visit.", cost: 30, rate: 85, unitType: "flatRate", taxable: false, labelIds: ["flat-fee"], lastModifiedAt: "2026-08-12T08:20:00" },
+  { id: "emergency-call-out", name: "Emergency call-out fee", status: "active", isActive: true, subtypeId: "service-ot", description: "Same-day dispatch. Covers the trip and the first 30 minutes on site.", cost: 70, rate: 250, unitType: "flatRate", taxable: false, labelIds: ["after-hours", "flat-fee"], lastModifiedAt: "2026-08-25T20:10:00" },
+  { id: "weekend-on-call", name: "Weekend on-call fee", status: "active", isActive: true, subtypeId: "service-ot", description: "Added to every Saturday or Sunday dispatch.", cost: 80, rate: 220, unitType: "flatRate", taxable: false, labelIds: ["after-hours", "flat-fee"], lastModifiedAt: "2026-09-02T10:20:00" },
+  // Maintenance and project work.
+  { id: "pm-labor", name: "PM labor", status: "active", isActive: true, subtypeId: "pm", description: "Planned maintenance visits under a service agreement.", cost: 35, rate: 95, unitType: "hourly", taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-07-25T08:00:00" },
+  { id: "pm-overtime-labor", name: "PM labor, overtime", status: "active", isActive: true, subtypeId: "pm", description: "Planned maintenance the customer asks for outside business hours.", cost: 52.5, rate: 142.5, unitType: "hourly", taxable: false, labelIds: ["contract", "after-hours"], lastModifiedAt: "2026-07-25T08:05:00" },
+  { id: "installation-labor", name: "Installation labor", status: "active", isActive: true, subtypeId: "project", description: "Set in place, connect and level new equipment.", cost: 50, rate: 150, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-11T11:00:00" },
+  { id: "installation-second-tech", name: "Installation labor, 2nd tech", status: "active", isActive: true, subtypeId: "project", description: "", cost: 50, rate: 125, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-11T11:05:00" },
+  { id: "prevailing-wage-labor", name: "Prevailing wage labor", status: "active", isActive: true, subtypeId: "project", description: "Public jobs that require certified payroll.", cost: 100, rate: 160, unitType: "hourly", taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-13T16:30:00" },
+  { id: "shop-labor", name: "In-shop repair labor", status: "active", isActive: true, subtypeId: "service-standard", description: "Bench work on units brought to the shop.", cost: 45, rate: 110, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-06T07:40:00" },
+  // A national account's own rates.
+  { id: "national-account-labor", name: "National account labor", status: "active", isActive: true, subtypeId: "service-standard", description: "Contracted rate for national facility-management accounts.", cost: 55, rate: 115, unitType: "hourly", taxable: false, labelIds: ["national-account"], lastModifiedAt: "2026-08-02T13:15:00" },
+  { id: "national-account-overtime", name: "National account labor, overtime", status: "active", isActive: true, subtypeId: "service-ot", description: "", cost: 82.5, rate: 172.5, unitType: "hourly", taxable: false, labelIds: ["national-account", "after-hours"], lastModifiedAt: "2026-08-02T13:20:00" },
+  // Billed to someone else, or not billed at all.
+  { id: "warranty-labor", name: "Warranty labor", status: "active", isActive: true, subtypeId: "warranty", description: "Manufacturer warranty repairs. Billed to the manufacturer at their labor allowance.", cost: 55, rate: 95, unitType: "hourly", taxable: false, labelIds: ["warranty-work"], lastModifiedAt: "2026-07-17T10:45:00" },
+  { id: "call-back-labor", name: "Call-back, no charge", status: "active", isActive: true, subtypeId: "warranty", description: "Return visit on our own recent repair. No charge inside the 90-day workmanship window.", cost: 55, rate: 0, unitType: "hourly", taxable: false, labelIds: ["warranty-work"], lastModifiedAt: "2026-09-03T09:10:00" },
+  { id: "courtesy-labor", name: "Courtesy visit, no charge", status: "active", isActive: true, subtypeId: "non-posting", description: "Goodwill visits the office approves.", cost: 55, rate: 0, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-20T15:00:00" },
+  { id: "training-labor", name: "Training, non-billable", status: "active", isActive: true, subtypeId: "non-posting", description: "Ride-alongs and manufacturer training. Keeps the hours on the timesheet.", cost: 28, rate: 0, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-20T15:05:00" },
   // The REVIEW inbox — system-minted from free-text line items.
-  { id: "rev-compressor-swap", name: "Compressor swap - after hours", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 210, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-09-03T21:40:00" },
-  { id: "rev-weekend-service", name: "Emergency weekend service", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 300, unitType: "flatRate", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-09-01T08:05:00" },
-  { id: "rev-walk-in-call", name: "Walk in cooler service call", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 165, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-28T17:30:00" },
-  { id: "rev-misc-labor", name: "Misc labor", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 95, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-26T12:00:00" },
-  { id: "rev-trip-charge", name: "Trip charge - south bay", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 85, unitType: "flatRate", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-22T16:15:00" },
-  { id: "rev-fryer-recal", name: "fryer recalibration", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 140, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-20T09:50:00" },
-  { id: "rev-overtime", name: "Overtime labor 1.5x", status: "review", isActive: true, subtypeId: null, summary: "", cost: 0, rate: 205, unitType: "hourly", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-08-16T19:25:00" },
-  // The one review row whose line item carried a subtype — production copies
-  // it onto the minted item when present.
-  { id: "rev-coil-cleaning", name: "Condenser coil cleaning", status: "review", isActive: true, subtypeId: "cleaning", summary: "", cost: 0, rate: 180, unitType: "flatRate", taxable: true, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-09-02T14:45:00" },
+  { id: "rev-labor-ot", name: "labor ot", status: "review", isActive: true, subtypeId: null, description: "", cost: 0, rate: 185, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-09-03T21:40:00" },
+  { id: "rev-two-techs", name: "Labor - 2 techs", status: "review", isActive: true, subtypeId: null, description: "", cost: 0, rate: 250, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-09-01T08:05:00" },
+  { id: "rev-weekend-labor", name: "Weekend labor", status: "review", isActive: true, subtypeId: null, description: "", cost: 0, rate: 190, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-28T17:30:00" },
+  { id: "rev-misc-labor", name: "Misc labor", status: "review", isActive: true, subtypeId: null, description: "", cost: 0, rate: 95, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-08-26T12:00:00" },
+  { id: "rev-trip-charge", name: "Trip charge - south bay", status: "review", isActive: true, subtypeId: null, description: "", cost: 0, rate: 95, unitType: "flatRate", taxable: false, labelIds: [], lastModifiedAt: "2026-08-22T16:15:00" },
   // The INACTIVE legacy shelf.
-  { id: "boiler-descale", name: "Boiler descaling", status: "active", isActive: false, subtypeId: "cleaning", summary: "Descale steam boilers (legacy offering).", cost: 60, rate: 240, unitType: "flatRate", taxable: true, estDurationMinutes: 120, labelIds: [], lastModifiedAt: "2026-06-10T10:00:00" },
-  { id: "mercury-thermostat", name: "Mercury thermostat swap", status: "active", isActive: false, subtypeId: "repair", summary: "Retired: mercury controls are no longer serviced.", cost: 30, rate: 110, unitType: "flatRate", taxable: true, estDurationMinutes: 60, labelIds: [], lastModifiedAt: "2026-06-02T11:30:00" },
-  { id: "fax-dispatch", name: "Fax dispatch fee", status: "active", isActive: false, subtypeId: null, summary: "", cost: 0, rate: 15, unitType: "flatRate", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-01T09:00:00" },
-  { id: "cfc-handling", name: "CFC refrigerant handling", status: "active", isActive: false, subtypeId: "repair", summary: "Retired with the R-12 phase-out.", cost: 90, rate: 260, unitType: "flatRate", taxable: true, estDurationMinutes: 90, labelIds: [], lastModifiedAt: "2026-06-14T15:20:00" },
-  { id: "pager-fee", name: "Pager on-call fee", status: "active", isActive: false, subtypeId: null, summary: "", cost: 0, rate: 25, unitType: "flatRate", taxable: false, estDurationMinutes: null, labelIds: [], lastModifiedAt: "2026-06-01T09:05:00" },
+  { id: "old-standard-labor", name: "Standard labor (2025 rate)", status: "active", isActive: false, subtypeId: "service-standard", description: "Replaced by the 2026 standard rate.", cost: 50, rate: 115, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-06-10T10:00:00" },
+  { id: "old-overtime-labor", name: "Overtime labor (2025 rate)", status: "active", isActive: false, subtypeId: "service-ot", description: "Replaced by the 2026 overtime rate.", cost: 75, rate: 172.5, unitType: "hourly", taxable: false, labelIds: [], lastModifiedAt: "2026-06-10T10:05:00" },
+  { id: "fuel-surcharge", name: "Fuel surcharge", status: "active", isActive: false, subtypeId: null, description: "", cost: 0, rate: 15, unitType: "flatRate", taxable: false, labelIds: [], lastModifiedAt: "2026-06-01T09:00:00" },
+  { id: "pager-fee", name: "Pager on-call fee", status: "active", isActive: false, subtypeId: null, description: "", cost: 0, rate: 25, unitType: "flatRate", taxable: false, labelIds: [], lastModifiedAt: "2026-06-01T09:05:00" },
 ];
 
 /**
  * The SIDE PANEL's half of a labor rate (added 2026-10-08), written only where
  * a row has something of its own to say. Everything else takes the defaults in
  * `withLaborPanelFields` below, which are the ordinary case: an item one of us
- * created and never edited since, priced manually, booked to Service Revenue
- * and already in QuickBooks.
+ * created and never edited since, priced manually, booked to Labor Income and
+ * already in QuickBooks.
  */
 const LABOR_PANEL_FIELDS: Record<string, Partial<Omit<LaborItem, keyof LaborItemBase>>> = {
   // The panel's ACTIVE demo rate — the only row carrying internal notes.
   "after-hours-labor": {
     createdById: 1,
     createdAt: "2026-06-05T14:10:00",
-    notes: "Use this rate only outside 7pm-7am and on weekends. Regular-hours work goes on the standard rate. The cost covers the agreed technician burden rate and is reviewed every January.",
-    quickbooksAccountId: "qba-4100",
+    notes: "Use this rate only between 7pm and 7am. Saturday and weekday overtime goes on the overtime rate. The cost is the technician burden rate and is reviewed every January.",
+    quickbooksAccountId: "qba-4110",
   },
+  "overtime-labor": { quickbooksAccountId: "qba-4110" },
+  "holiday-labor": { quickbooksAccountId: "qba-4120" },
+  "emergency-call-out": { quickbooksAccountId: "qba-4100" },
+  "pm-labor": { quickbooksAccountId: "qba-4040" },
+  "pm-overtime-labor": { quickbooksAccountId: "qba-4040" },
+  "warranty-labor": { quickbooksAccountId: "qba-warranty-labor" },
+  "call-back-labor": { quickbooksAccountId: "qba-warranty-labor" },
+  "courtesy-labor": { quickbooksAccountId: "qba-misc" },
+  "training-labor": { quickbooksAccountId: "qba-misc" },
   // The two MARKUP strategies. Each markup agrees with the row's own cost and
   // rate, because production's trigger derives one from the other:
   // 50 + 100 = 150, and 80 × 2.75 = 220.
-  "installation-labor": { createdById: 3, priceStrategy: "fixed", priceAdjustmentAmount: 100, quickbooksAccountId: "qba-4020" },
-  "refrigerant-recovery": { createdById: 3, priceStrategy: "percent", priceAdjustmentPercent: 175, quickbooksAccountId: "qba-4010" },
+  "installation-labor": { createdById: 3, priceStrategy: "fixed", priceAdjustmentAmount: 100 },
+  "weekend-on-call": { createdById: 3, priceStrategy: "percent", priceAdjustmentPercent: 175, quickbooksAccountId: "qba-4100" },
   // IMPORTED from QuickBooks: no creator plus a QuickBooks key — which is also
-  // why it has no subtype and no summary, since the import carries neither.
-  "standard-labor": { createdById: undefined, quickbooksId: "80000024-1726742400", quickbooksAccountId: "qba-4020" },
+  // why it has no subtype and no description, since the import carries neither.
+  "standard-labor": { createdById: undefined, quickbooksId: "80000024-1726742400" },
   // Bulk-loaded during onboarding: no creator, no QuickBooks key, never pushed.
-  "helper-labor": { createdById: undefined, quickbooksAccountId: "qba-4020", needsSyncing: true, syncedAt: undefined },
+  "helper-labor": { createdById: undefined, needsSyncing: true, syncedAt: undefined },
   // Edited since its last successful push — the other "Not synced" case.
-  "fryer-service": { createdById: 5, needsSyncing: true, syncedAt: "2026-07-24T08:00:00" },
+  "travel-labor": { createdById: 5, needsSyncing: true, syncedAt: "2026-07-24T08:00:00" },
   // The INACTIVE demo rate.
-  "boiler-descale": { createdById: 1, createdAt: "2026-02-11T10:00:00" },
+  "old-standard-labor": { createdById: 1, createdAt: "2025-01-06T10:00:00" },
 };
 
 /**
@@ -1534,7 +1525,7 @@ const withLaborPanelFields = (row: LaborItemBase): LaborItem => {
     createdAt: row.lastModifiedAt,
     createdById: minted ? undefined : 1,
     priceStrategy: "manual",
-    quickbooksAccountId: minted ? undefined : "qba-4010",
+    quickbooksAccountId: minted ? undefined : "qba-4020",
     needsSyncing: minted,
     syncedAt: minted ? undefined : row.lastModifiedAt,
     ...LABOR_PANEL_FIELDS[row.id],
@@ -1597,6 +1588,9 @@ export const PRODUCT_LABELS: PricebookLabel[] = [
  */
 const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
   // ---- TRACKED catalog: refrigeration ----
+  // Added 2026-11-03: the 48 in gasket the walk-in cooler repairs bill had no
+  // pricebook product, so its job line had no cost, subtype or part #.
+  { id: "prod-door-gasket-48", name: "Walk-in door gasket, 48 in", status: "active", isActive: true, subtypeId: "hardware", summary: "Magnetic replacement gasket for a 48 in walk-in door.", cost: 32, price: 86, taxable: true, manufacturer: "Kason", partNumber: "1855-48-GKT", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: ["oem"], lastModifiedAt: "2026-08-21T14:35:00" },
   { id: "prod-door-gasket-36", name: "Walk-in door gasket, 36 in", status: "active", isActive: true, subtypeId: "hardware", summary: "Magnetic door gasket for a 36 in walk-in door; cut and fitted on site.", cost: 48, price: 132, taxable: true, manufacturer: "Kason", partNumber: "1855-36-GKT", barcode: "0012345678905", trackInventory: true, stock: "full", quantity: 14, quantityDesired: 12, labelIds: ["oem", "truck-stock"], lastModifiedAt: "2026-08-21T14:30:00" },
   { id: "prod-evap-fan-motor", name: "Evaporator fan motor, 9W", status: "active", isActive: true, subtypeId: "refrigeration", summary: "9 watt shaded-pole evaporator fan motor, 115V.", cost: 62, price: 168, taxable: true, manufacturer: "Fasco", partNumber: "D1126", barcode: "RP-PART-7741", weight: 2.4, weightUnit: "lb", length: 5.5, width: 5.5, height: 4.25, dimensionUnit: "in", trackInventory: true, stock: "limited", quantity: 5, quantityDesired: 10, labelIds: ["truck-stock"], lastModifiedAt: "2026-08-27T11:20:00" },
   { id: "prod-condenser-fan-blade", name: "Condenser fan blade, 10 in", status: "active", isActive: true, subtypeId: "refrigeration", summary: "", cost: 21, price: 58, taxable: true, manufacturer: "Supco", partNumber: "FB1015", trackInventory: true, stock: "full", quantity: 9, quantityDesired: 6, labelIds: ["aftermarket"], lastModifiedAt: "2026-07-30T10:15:00" },
@@ -1638,7 +1632,6 @@ const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
   { id: "prod-coil-cleaner", name: "Coil cleaner, 1 gal", status: "active", isActive: true, subtypeId: "chemicals", summary: "", cost: 28, price: 74, taxable: true, manufacturer: "Nu-Calgon", partNumber: "4171-75", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: ["hazmat"], lastModifiedAt: "2026-07-17T10:45:00" },
   { id: "prod-degreaser", name: "Hood degreaser, 5 gal pail", status: "active", isActive: true, subtypeId: "chemicals", summary: "Heavy-duty degreaser for the hood cleaning route.", cost: 84, price: 190, taxable: true, manufacturer: "Zep", partNumber: "1041489", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: ["hazmat"], lastModifiedAt: "2026-07-12T08:35:00" },
   { id: "prod-sanitizer-tabs", name: "Sanitizer tablets, 100 ct", status: "active", isActive: true, subtypeId: "chemicals", summary: "", cost: 22, price: 58, taxable: true, manufacturer: "", partNumber: "", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-05T14:05:00" },
-  { id: "prod-freight", name: "Freight & handling", status: "active", isActive: true, subtypeId: null, summary: "Pass-through freight on special-order parts.", cost: 0, price: 0, taxable: false, manufacturer: "", partNumber: "", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-01T09:00:00" },
   { id: "prod-shop-supplies", name: "Shop supplies", status: "active", isActive: true, subtypeId: null, summary: "Solder, nitrogen, rags and other consumables on a repair.", cost: 0, price: 35, taxable: true, manufacturer: "", partNumber: "", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-01T09:05:00" },
   { id: "prod-warranty-part", name: "Warranty part (no charge)", status: "active", isActive: true, subtypeId: null, summary: "Part covered by the manufacturer's warranty; billed to them, not the client.", cost: 0, price: 0, taxable: false, manufacturer: "", partNumber: "", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: ["oem"], lastModifiedAt: "2026-07-17T10:50:00" },
 
@@ -1828,6 +1821,9 @@ const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = [
   { id: "other-mileage", name: "Mileage, per mile", status: "active", isActive: true, subtypeId: "travel", summary: "Billed per mile beyond the 25-mile service radius.", cost: 0.4, price: 1.25, taxable: false, labelIds: ["pass-through"], lastModifiedAt: "2026-07-30T10:15:00" },
   { id: "other-after-hours-trip", name: "After-hours trip charge", status: "active", isActive: true, subtypeId: "travel", summary: "Travel outside business hours.", cost: 30, price: 125, taxable: false, labelIds: ["after-hours"], lastModifiedAt: "2026-08-25T20:10:00" },
   { id: "other-permit", name: "Permit fee", status: "active", isActive: true, subtypeId: "permits", summary: "City permit pulled for the job; billed at cost.", cost: 145, price: 145, taxable: false, labelIds: ["pass-through", "compliance"], lastModifiedAt: "2026-08-11T11:00:00" },
+  // Moved here from the products 2026-11-03 (Daniel: shipping cost is not a
+  // part, so it is an Other charge).
+  { id: "other-freight", name: "Freight & handling", status: "active", isActive: true, subtypeId: "pass-through", summary: "Pass-through freight on special-order parts.", cost: 0, price: 0, taxable: false, labelIds: ["pass-through"], lastModifiedAt: "2026-06-01T09:00:00" },
   { id: "other-health-inspection", name: "Health department filing", status: "active", isActive: true, subtypeId: "permits", summary: "", cost: 75, price: 95, taxable: false, labelIds: ["compliance"], lastModifiedAt: "2026-07-12T08:30:00" },
   { id: "other-fire-cert", name: "Hood cleaning certificate", status: "active", isActive: true, subtypeId: "permits", summary: "Fire-code certificate issued after a hood cleaning.", cost: 0, price: 45, taxable: false, labelIds: ["compliance", "contract"], lastModifiedAt: "2026-07-22T07:50:00" },
   { id: "other-lift-rental", name: "Scissor lift rental, per day", status: "active", isActive: true, subtypeId: "rental", summary: "Daily rental for rooftop and high-ceiling work.", cost: 180, price: 340, taxable: true, labelIds: ["pass-through"], lastModifiedAt: "2026-08-13T16:30:00" },
@@ -1861,7 +1857,7 @@ const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = [
  * ladder ($100 through $5,000) has something to answer at every step.
  */
 const DISCOUNT_ITEMS_AT_ANCHOR: ChargeItem[] = [
-  { id: "disc-contract-labor", name: "Service agreement labor discount", status: "active", isActive: true, subtypeId: "agreement", summary: "10% off labor for locations on a service agreement.", cost: 0, price: -25, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:30:00" },
+  { id: "disc-contract-labor", name: "Service agreement labor discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Labor credit for locations on a service agreement.", cost: 0, price: -25, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:30:00" },
   { id: "disc-contract-parts", name: "Service agreement parts discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Contract rate on parts.", cost: 0, price: -15, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:35:00" },
   { id: "disc-pm-bundle", name: "PM bundle discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Applied when four quarterly visits are booked together.", cost: 0, price: -300, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-07-25T08:00:00" },
   { id: "disc-first-visit", name: "New client first-visit discount", status: "active", isActive: true, subtypeId: "promotional", summary: "One-time welcome credit on a first job.", cost: 0, price: -50, taxable: false, labelIds: ["one-time"], lastModifiedAt: "2026-08-11T11:00:00" },

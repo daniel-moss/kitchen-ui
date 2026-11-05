@@ -1,0 +1,11 @@
+// A markup card's content: the markup input, then the calculated "Price"
+// ValueDisplay, 16px apart (the Fixed / Percent markup frames, 3114-24834 /
+// 3114-24855). The card's own content padding is off for it, so this carries
+// it — 12px at the BOTTOM, 16px elsewhere.
+.cardContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4);
+
+  padding: var(--size-4) var(--size-4) var(--size-3);
+}

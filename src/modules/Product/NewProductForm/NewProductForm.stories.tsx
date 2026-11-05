@@ -46,7 +46,7 @@ import ScanCodeDialog, { ScanFailure } from "./ScanCodeDialog";
 // can not reach the server. A real camera can not be asked for those on
 // demand, nor for the nine camera failures. "Real Camera" is the exception.
 const meta: Meta = {
-  title: 'Modules/Product/"New Product" Form',
+  title: 'Modules/Product/"Create" Form',
   parameters: { controls: { disable: true } },
 };
 

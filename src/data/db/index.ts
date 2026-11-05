@@ -219,8 +219,10 @@ export { historyOf, JOB_HISTORY, trackedSecondsByUser } from "./jobHistory";
 export type { JobHistory, JobSession, JobTransition } from "./jobHistory";
 
 // What a job cost — labour, parts and fees, derived from the job (2026-09-28).
-export { chargesOf, chargesTotal, inventoryProductsOf } from "./jobCharges";
-export type { Charge, ChargeGroup } from "./jobCharges";
+export { chargesOf, chargesTotal, discountsOf, inventoryProductsOf } from "./jobCharges";
+export { activeInventoryLocations, INVENTORY_LEVELS, onHandAt } from "./inventoryLevels";
+export type { InventoryLevel } from "./inventoryLevels";
+export type { Charge, ChargeGroup, DiscountLine, LaborLine, OtherLine, ProductLine } from "./jobCharges";
 
 // The files a visit produced (2026-09-28).
 export { filesOf } from "./jobFiles";

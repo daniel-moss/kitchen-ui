@@ -323,7 +323,7 @@ export default function ChargesTab({
               variant="object"
               avatar={<AvatarLaborRate size="xl" />}
               label={rate.name}
-              caption={rate.summary !== "" ? rate.summary : undefined}
+              caption={rate.description !== "" ? rate.description : undefined}
               captionPlaceholder="No description"
               onClick={() => {
                 setListOpen(false);

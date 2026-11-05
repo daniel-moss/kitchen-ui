@@ -5,7 +5,7 @@ import { CellBody } from "../components/Table/CellBody/CellBody";
 import { TableColumnDef } from "./listTable";
 import { PRICEBOOK_STATUS_RANK, PricebookPhase, pricebookSorter } from "./pricebookList";
 import { LaborRow, labelsOf, perUnitSuffix, subtypeNameOf } from "./laborData";
-import { formatCurrency, formatDateTime, formatDuration } from "./listData";
+import { formatCurrency, formatDateTime } from "./listData";
 
 // The LABOR list's TABLE — the tenth list's registry over the shared
 // `listTable` (added 2026-09-16, with the Bills pattern: ONE registry per
@@ -23,15 +23,17 @@ import { formatCurrency, formatDateTime, formatDuration } from "./listData";
 //     the three active tabs, so this DIVERGES from production on purpose;
 //   - production's columnOrder puts Cost before Rate (its JSX declares them
 //     the other way round; columnOrder wins on screen) — kept;
-//   - empty Subtype and Est. duration cells use the DS "No value" cell — an
+//   - an empty Subtype cell uses the DS "No value" cell — an
 //     empty string child makes CellBody draw its own "—" placeholder
-//     (Daniel, 2026-09-16); an empty Summary falls back the same way.
+//     (Daniel, 2026-09-16);
+//   - no Summary column (Daniel, 2026-10-28) — production shows one; the
+//     search still reads the description.
 
 // ---- sorting ---------------------------------------------------------------
 
 // The sortable columns are production's own (PricebookTableView's
-// enableSorting + views.py's ordering whitelist): Summary and Labels do not
-// sort there and do not sort here. The comparator, the Review-first status
+// enableSorting + views.py's ordering whitelist): Labels and Taxability do
+// not sort. The comparator, the Review-first status
 // rank and the per-view defaults are the SHARED pricebook ones since
 // 2026-09-16 — only these per-column readers differ between the five lists.
 export const sortLabor = pricebookSorter<LaborRow>(
@@ -41,7 +43,6 @@ export const sortLabor = pricebookSorter<LaborRow>(
     subtype: (item) => subtypeNameOf(item),
     cost: (item) => item.cost,
     rate: (item) => item.rate,
-    duration: (item) => item.estDurationMinutes,
     lastModified: (item) => item.lastModifiedAt,
   },
   (item) => item.name,
@@ -52,8 +53,8 @@ export const sortLabor = pricebookSorter<LaborRow>(
 // Widths: production's Services view (224/288/144 pattern), with two standing
 // substitutions — Status 176 (production's 128; "the width the other lists'
 // Status already uses", the POs ruling) and the two datetime rules (Last
-// modified 192, date + time). Est. duration keeps the Jobs list's measured
-// 144 (the header needs it; the cells never did).
+// modified 192, date + time). No Est. duration column (Daniel, 2026-10-28):
+// a labor rate has no duration in the new model — the Service carries it.
 const COLUMNS = {
   // 288, not production's 224 (Daniel, 2026-09-16: "Make 'Short description'
   // wider") — the catalog names ("Combi oven quarterly maintenance") clipped
@@ -61,10 +62,9 @@ const COLUMNS = {
   name: 288,
   status: 176,
   subtype: 224,
-  summary: 288,
   cost: 144,
   rate: 144,
-  duration: 144,
+  taxability: 144,
   labels: 240,
   lastModified: 192,
 };
@@ -103,16 +103,6 @@ const ALL_COLUMNS: LaborColumnDef[] = [
       </CellBody>
     ),
   },
-  // Production `summary_template` — the default line-item summary. Not
-  // sortable there either.
-  {
-    key: "summary", label: "Summary", width: COLUMNS.summary, dataType: "alphabetical", sortable: false,
-    cell: (item, pin) => (
-      <CellBody width={COLUMNS.summary} {...pin}>
-        {item.summary}
-      </CellBody>
-    ),
-  },
   // Cost BEFORE Rate — production's on-screen order (its columnOrder wins
   // over its JSX). RIGHT-aligned, cells and header, the money-column rule;
   // "/hr" when the unit type is Hourly, production's value-hour cell.
@@ -132,13 +122,15 @@ const ALL_COLUMNS: LaborColumnDef[] = [
       </CellBody>
     ),
   },
-  // Production `default_job_duration` — the same compact print the Jobs
-  // list uses ("2h" / "1h 30m"). Null → the "No value" cell.
+  // Production `default_is_taxable`, worded like the Taxability filter's two
+  // rows. Production's list has no such column and its ordering whitelist
+  // has no taxable field, so it does not sort (Daniel, 2026-10-28: "after
+  // Rate", wide enough for "Non-taxable").
   {
-    key: "duration", label: "Est. duration", width: COLUMNS.duration, dataType: "numerical", sortable: true,
+    key: "taxability", label: "Taxability", width: COLUMNS.taxability, dataType: "other", sortable: false,
     cell: (item, pin) => (
-      <CellBody width={COLUMNS.duration} {...pin}>
-        {formatDuration(item.estDurationMinutes)}
+      <CellBody width={COLUMNS.taxability} {...pin}>
+        {item.taxable ? "Taxable" : "Non-taxable"}
       </CellBody>
     ),
   },

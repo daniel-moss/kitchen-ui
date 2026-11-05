@@ -492,7 +492,7 @@ File `54dNq5bLwhXf3fXwts0Jvx` ("View — Next Update"). Three tiers:
 | Bill page `14817-83509` | **Status** (`14817-83584`), **Billing Vendor** (`14817-88125`) | `billFilters.tsx` (2026-09-15) — every row of its menu node `14817-83613` is built; Status changed is CLOSED-phase only |
 | POs page, section `14817-88566` | **Status** (`14817-91233`), **Est. Arrival** (`14951-37533`), **Shipping Carrier** (`14936-42471`) + **Shipping Method** (`14954-37900` — the pair that replaced the combined Shipping), **Purchasing Vendor** (`14825-8429`), **Amount** (`14825-18855`), **Items** (`14854-31182`), **Associated Estimates / Jobs / Invoices** (`14944-5951` / `14944-6209` / `14944-6307`) | `poFilters.tsx` (2026-09-15) — every row of its menu node `14824-29890` is built; Status changed on BOTH phases |
 | Vendors page `14831-30339` | **Billing Address** (`14947-34564`), **Bills Via** (`14963-43879`), **Commitments** (`14963-44960`), **Current POs** (`14947-34881`), **Payables** (`14963-45576`) | `vendorFilters.tsx` (2026-09-15) — every row of its menu node (in section `14831-31010`) is built; ONE registry, both phases. **Created at** joined 2026-09-16 (Daniel: "we do need 'Created at' on 'Vendors' and 'Clients'"; the menu node draws the row) — the shared template over the db's new `Vendor.createdAt`, and since later the same day its COLUMN too (Daniel: "Clients and Vendors should have a 'Created at' column" — a prototype ADDITION, production's vendors table has none; 192 datetime, before Last modified) |
-| "↳ Labor" canvas `15044-66760` (the "View - Next Update" file) | **Rate** (`15056-60150`), **Est. Duration** (`15339-20649` — the list's OWN, distinct from the Jobs template: "No est. duration" leads), **Unit Type** (`15049-71097`). Its **Cost** (`15056-60848`), **Status** (`15307-68262`), **Subtype** (`15049-71446`) and **Taxability** (`15049-71299`) sections are still filed here, but the FILTERS were promoted to `filterTemplates` when Products became their second reader | `laborFilters.tsx` (2026-09-16) — every row of its menu node (`15044-67466`) is built; Status is ACTIVE-phase only (the row's own annotation) |
+| "↳ Labor" canvas `15044-66760` (the "View - Next Update" file) | **Rate** (`15056-60150`), **Unit Type** (`15049-71097`). Its **Cost** (`15056-60848`), **Status** (`15307-68262`), **Subtype** (`15049-71446`) and **Taxability** (`15049-71299`) sections are still filed here, but the FILTERS were promoted to `filterTemplates` when Products became their second reader | `laborFilters.tsx` (2026-09-16) — every row of its menu node (`15044-67466`) is built; Status is ACTIVE-phase only (the row's own annotation). **2026-10-28:** the Est. Duration filter (`15339-20649`), the column and the field were REMOVED — in the new model a labor rate has no duration, the Service does; the Summary column went too, and the field is now `description` |
 | "↳ Other" canvas `15059-64482` | NOTHING of its own — all seven menu rows are shared templates (Cost, Labels, Last modified, Price, Status, Subtype, Taxability) | `chargeFilters.tsx` (2026-09-16), shared with Discounts |
 | "↳ Discounts" canvas `15058-63980` | **Discount** (`15416-61777`) — the DISCOUNT kind, the sixth amount unit, over ten NEGATIVE presets. Its other four rows are templates | `chargeFilters.tsx`, the same module, `variant: "discount"` |
 | "↳ Tax Rates" canvas `15059-64984` | **Tax rate** (`15368-50064`) — the PERCENT kind, the fifth amount unit | `taxRateFilters.tsx` (2026-09-16); its other three rows are templates |
@@ -1897,7 +1897,16 @@ design-update rounds the same day:
   "review + inactive" rows in the db on purpose (the production UI cannot
   create one — deactivation runs through the edit form, which force-confirms
   on every save).
-- **db** — `LaborItem` + `LABOR_SUBTYPES` + `LABOR_LABELS` (both INVENTED,
+- **db (REWRITTEN 2026-10-28)** — the table now holds ACTUAL LABOR RATES
+  only (Daniel: services and labor rates are separate objects in the new
+  design), shaped on the production survey: standard / diagnostic /
+  overtime 1.5x / holiday 2x / 2nd tech / helper / travel / trip / PM /
+  install / prevailing wage / national account / warranty and $0 no-charge
+  rates — 23 confirmed, 5 review, 4 inactive. Subtypes follow the real
+  "Service (Standard) / Service (OT & Holiday) / PM / Project" template. It
+  no longer derives rows from `SERVICES`, and a job's work line bills the
+  standard rate (db/jobCharges.ts). The note below is HISTORY.
+- **db (old)** — `LaborItem` + `LABOR_SUBTYPES` + `LABOR_LABELS` (both INVENTED,
   company-written in production — flagged, like every list's). The 12
   `SERVICES` rows are the SAME records seen from the pricebook side —
   LABOR_ITEMS derives them by id, and the 9 services that had no

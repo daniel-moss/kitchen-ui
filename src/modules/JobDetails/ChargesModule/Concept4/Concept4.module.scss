@@ -1,0 +1,97 @@
+// The groups, 16px apart (Figma 28284-40930).
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// Figma 28284-40933: the card's own padding is 16px, its sections 16px apart.
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// Grip · avatar · name + subtype · the money.
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px
+}
+
+.grip {
+  display: flex;
+  flex: none;
+  color: var(--gray-a8);
+  cursor: grab;
+  touch-action: none; // a finger on the grip drags the card, it does not scroll
+}
+
+.name {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+// Two rows of three equal columns, 16px apart both ways. A flat line's third
+// column stays empty; a value that is not set closes up. The node has no phone
+// width: the numbers fit three columns there, and the second row gets two, with
+// its first value across both — a date range or a location name would not fit one.
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+  container-type: inline-size;
+}
+
+.detailsRow,
+.detailsRowNames {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start; // a wrapped date must not push its neighbours down
+  gap: var(--size-4); // 16px
+}
+
+.twoColumns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@container (max-width: 480px) {
+  .detailsRowNames {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lead {
+    grid-column: 1 / -1;
+  }
+}
+
+// The group (Figma 28284-40931): the GroupLabel and the cards use the column's full
+// width, 8px apart. ItemGroup's own margins go; only the items keep 4px on the sides
+// and below, pulled back out by the negative margins, because the accordion clips
+// its body and would cut the cards' shadow and focus ring.
+div.group {
+  width: calc(100% + 2 * var(--size-1));
+  margin: 0 calc(-1 * var(--size-1)) calc(-1 * var(--size-1));
+
+  // The header.
+  > div:first-child {
+    padding: 0 var(--size-1) var(--size-1);
+  }
+
+  // The accordion's collapse > its inner > the items.
+  > div:last-child > div > div:first-child {
+    gap: var(--size-2); // 8px
+    padding: var(--size-1);
+  }
+}
+
+// The public view opens nothing, but the DS Card has no non-interactive state
+// short of `disabled` (which dims it), so its hover and press are held off here.
+.staticCard {
+  --card-body-fill: var(--surface-interactive-default) !important;
+  --card-shadow: 0 1px 3px 0 var(--box-shadow-shadow-default) !important;
+}
+
+.staticBody {
+  cursor: default !important;
+}

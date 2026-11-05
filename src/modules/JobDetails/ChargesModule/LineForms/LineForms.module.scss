@@ -1,0 +1,22 @@
+// The form body: the fields stacked straight in the Dialog, 24px apart — the
+// node's "body" slot (gap 24, Figma 27402-31174), with no FormModules.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  align-items: stretch;
+}
+
+// "Click here" inside the Cost help text (Figma 27856-63874: the words are
+// underlined in the help text itself). The help text has no link part of its
+// own, so this inline button only adds the underline and the pointer — the
+// color and type come from the help text around it.
+.inlineLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}

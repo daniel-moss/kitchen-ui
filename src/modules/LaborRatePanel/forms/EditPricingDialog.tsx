@@ -8,23 +8,19 @@ import RadioGroup from "../../../components/Radio/RadioGroup";
 import RadioItem from "../../../components/Radio/RadioItem";
 import { toast } from "../../../components/Toast/Toaster";
 import { LaborItem } from "../../../data/db";
-import LaborPricingFields, {
-  LaborPricingValues,
-  laborPricingIssues,
-  moneyText,
-} from "../../NewLaborRateForm/LaborPricingFields";
-import { numberOf } from "../../Product/NewProductForm/productRules";
+import LaborPricingFields, { pricingOf, useLaborPricing } from "../../NewLaborRateForm/LaborPricingFields";
 import { LaborRatePricing } from "../LaborRatePanel.types";
 
 import styles from "../LaborRatePanel.module.scss";
 
 // The labor rate's "Pricing" edit form (Figma 3015-4375): a default Dialog
-// titled "Pricing" with Rate type, Cost, Rate and Taxability, pre-filled —
-// the same labor-rate Fields the "Create" form uses, so the two can not drift.
+// titled "Pricing" with Type, Cost, Price strategy and Taxability, pre-filled —
+// the same pricing fields the "Create" form uses, so the two can not drift.
 //
-// A saved labor rate always has a rate type, so Cost and Rate are always
-// drawn here. The whole module saves together: the rate type decides the
-// suffix on both money fields.
+// A saved labor rate always has a type, so Cost and Price strategy are always
+// drawn here. The whole module saves together: the type decides the suffix on
+// the money, and the strategy decides whether the price was typed or derived
+// from the cost.
 
 interface EditPricingDialogProps {
   open: boolean;
@@ -40,51 +36,38 @@ interface EditPricingDialogProps {
   breakpoint?: "auto" | "desktop" | "mobile";
 }
 
-const valuesOf = (rate: LaborItem): LaborPricingValues => ({
-  rateType: rate.unitType === "hourly" ? "hourly" : "flat",
-  cost: moneyText(rate.cost),
-  rate: moneyText(rate.rate),
-});
-
 export default function EditPricingDialog({ open, onClose, rate, useTaxes = true, onSave, breakpoint = "auto" }: EditPricingDialogProps) {
-  const [pricing, setPricing] = useState<LaborPricingValues>(() => valuesOf(rate));
-  const [rateTouched, setRateTouched] = useState(false);
+  const pricing = useLaborPricing(pricingOf(rate));
   const [isTaxable, setIsTaxable] = useState(rate.taxable);
   const [showErrors, setShowErrors] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    setPricing(valuesOf(rate));
-    setRateTouched(false);
+    pricing.reset(pricingOf(rate));
     setIsTaxable(rate.taxable);
     setShowErrors(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, rate]);
 
-  const issues = laborPricingIssues(pricing);
-  const blocked = issues.missingRateType || issues.missingCost || issues.missingRate;
-
+  const saved = pricing.saved();
   const dirty =
-    (pricing.rateType === "hourly") !== (rate.unitType === "hourly") ||
-    numberOf(pricing.cost) !== rate.cost ||
-    numberOf(pricing.rate) !== rate.rate ||
+    saved.unitType !== rate.unitType ||
+    saved.cost !== rate.cost ||
+    saved.priceStrategy !== rate.priceStrategy ||
+    saved.rate !== rate.rate ||
+    saved.priceAdjustmentAmount !== (rate.priceStrategy === "fixed" ? rate.priceAdjustmentAmount : undefined) ||
+    saved.priceAdjustmentPercent !== (rate.priceStrategy === "percent" ? rate.priceAdjustmentPercent : undefined) ||
     isTaxable !== rate.taxable;
 
   const save = async () => {
-    if (blocked) {
+    pricing.strategy.judge();
+    if (pricing.blocked) {
       setShowErrors(true);
       return;
     }
 
-    // The rate is always typed now — any old markup is cleared with it.
-    const edits: LaborRatePricing = {
-      unitType: pricing.rateType === "hourly" ? "hourly" : "flatRate",
-      cost: numberOf(pricing.cost),
-      rate: numberOf(pricing.rate),
-      taxable: isTaxable,
-      priceStrategy: "manual",
-      priceAdjustmentAmount: undefined,
-      priceAdjustmentPercent: undefined,
-    };
+    // Only the chosen strategy's markup travels; the other is cleared.
+    const edits: LaborRatePricing = { ...saved, taxable: isTaxable };
 
     if ((await onSave(edits)) === false) {
       toast({
@@ -122,13 +105,7 @@ export default function EditPricingDialog({ open, onClose, rate, useTaxes = true
       }
     >
       <div className={styles.fields}>
-        <LaborPricingFields
-          values={pricing}
-          onChange={setPricing}
-          showErrors={showErrors}
-          rateTouched={rateTouched}
-          onRateTouched={() => setRateTouched(true)}
-        />
+        <LaborPricingFields state={pricing} showErrors={showErrors} />
 
         {useTaxes && (
           <Input label="Taxability">

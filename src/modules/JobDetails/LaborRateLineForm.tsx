@@ -123,7 +123,7 @@ export default function LaborRateLineForm({ open, onClose, template = null, line
       setCost(moneyText(template.cost));
       setRate(moneyText(template.rate));
       setHours("");
-      setDescription(template.summary);
+      setDescription(template.description);
       setTechnicianId(null);
       setEquipmentId(null);
     }

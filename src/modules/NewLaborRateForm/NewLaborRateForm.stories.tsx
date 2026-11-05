@@ -7,6 +7,7 @@ import { LABOR_ITEMS, LABOR_SUBTYPES, QUICKBOOKS_ACCOUNTS } from "../../data/db"
 import { DeviceFrame } from "../../stories/helpers";
 
 import NewLaborRateForm from "./NewLaborRateForm";
+import { useOpenCreatedPanel } from "./useOpenCreatedPanel";
 
 // The "Create" form for a labor rate (Figma file qhebbfbPHDVnv8IF1EC7Zg,
 // section 3054-8527) — only the required fields, in a Dialog, shared by every
@@ -16,8 +17,8 @@ import NewLaborRateForm from "./NewLaborRateForm";
 // Desktop and Mobile show the node's company: it requires a subtype, uses
 // taxes with labor taxable by default, and is on QuickBooks Desktop with the
 // detailed line-item scheme. Subtypes and the taken names come from the demo
-// database — type "Standard labor rate" to see "Labor rate with this name already
-// exists".
+// database — type "Standard labor" to see "Labor rate with this name already
+// exists". Create opens the "Labor rate" side panel on the new rate.
 const meta: Meta = {
   title: 'Modules/Labor Rate/"Create" Form',
   parameters: { controls: { disable: true } },
@@ -50,6 +51,13 @@ const Demo = ({
   quickbooks?: { accounts: typeof QUICKBOOKS_ACCOUNTS } | null;
 }) => {
   const [open, setOpen] = useState(true);
+  // "Create … Opens the SidePanel" — on the rate it just made.
+  const created = useOpenCreatedPanel({
+    breakpoint,
+    existingNames: TAKEN_NAMES,
+    requireSubtypes,
+    hasQuickbooksAccounting: quickbooks != null,
+  });
   return (
     <>
       <Button size="lg" variant="subtle" leftIcon="plus" onClick={() => setOpen(true)}>
@@ -70,8 +78,10 @@ const Demo = ({
               ? () => new Promise<void>((resolve) => setTimeout(resolve, 2500))
               : undefined
         }
+        onOpenCreated={created.onOpenCreated}
         breakpoint={breakpoint}
       />
+      {created.panel}
       {/* The form's toasts need a mounted Toaster. */}
       <Toaster breakpoint={breakpoint} />
     </>

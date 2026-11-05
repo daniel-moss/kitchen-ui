@@ -59,11 +59,15 @@ export const semanticIcons = {
   creditLimit: "gauge-high",
   pricebook: "tag",
   /** The pricebook's service type. RENAMED from `labor` on 2026-10-06. */
-  laborRate: "tag",
+  // Each pricebook type has its own icon since 2026-10-28 (Daniel, after an
+  // icon-library comparison); `tag` now means only the whole pricebook.
+  // Labor rate = `toolbox` (Daniel, same day): a person read as "user", and
+  // the wrenches are taken by Job and Service.
+  laborRate: "toolbox",
   product: "box-taped",
-  other: "tag",
-  discount: "tag",
-  taxRate: "percent",
+  other: "receipt",
+  discount: "badge-percent",
+  taxRate: "landmark",
   equipment: "cube",
   location: "location-dot",
   user: "user",

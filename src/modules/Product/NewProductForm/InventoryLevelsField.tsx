@@ -56,7 +56,8 @@ import styles from "./InventoryLevelsField.module.scss";
 // respond, "Add inventory location" hides, and the form's Create scrolls back
 // here instead of creating.
 
-const TYPE_ICON: Record<InventoryLocation["type"], string> = {
+/** The location type's icon — the Avatar glyph the Figma location rows inherit. */
+export const LOCATION_TYPE_ICON: Record<InventoryLocation["type"], string> = {
   warehouse: "warehouse",
   truck: "truck",
   dropPoint: "box",
@@ -121,7 +122,7 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
     caption: location.address,
     searchText: `${location.plateNumber ?? ""} ${location.name}`,
     sortText: location.name,
-    avatar: <Avatar size="xl" shape="square" content="icon" icon={TYPE_ICON[location.type]} iconPack="solid" />,
+    avatar: <Avatar size="xl" shape="square" content="icon" icon={LOCATION_TYPE_ICON[location.type]} iconPack="solid" />,
   });
   const active = locations.filter((location) => location.isActive && !taken.has(location.id)).map(option);
   const inactive = locations.filter((location) => !location.isActive).map(option);
@@ -187,7 +188,7 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
             label={titleOf(draft.locationId)}
             textStyle="bodyMedium"
             color="strong"
-            slotLeft={<Icon icon={TYPE_ICON[locationOf(draft.locationId)?.type ?? "warehouse"]} />}
+            slotLeft={<Icon icon={LOCATION_TYPE_ICON[locationOf(draft.locationId)?.type ?? "warehouse"]} />}
           />
         }
         bodyPadded={false}
@@ -355,7 +356,7 @@ function LevelCard({ level, location, onClick }: LevelCardProps) {
       <div className={clsx(styles.card, level.target == null && styles.cardNoTarget)}>
         <div className={styles.header}>
           <div className={styles.name}>
-            <Icon icon={location ? TYPE_ICON[location.type] : "box"} size={14} container="square" className={styles.typeIcon} />
+            <Icon icon={location ? LOCATION_TYPE_ICON[location.type] : "box"} size={14} container="square" className={styles.typeIcon} />
             <span className={styles.title}>{location ? locationTitle(location) : level.locationId}</span>
           </div>
           <div className={styles.numbers}>

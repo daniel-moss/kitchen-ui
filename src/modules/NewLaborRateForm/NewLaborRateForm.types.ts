@@ -13,8 +13,17 @@ export interface NewLaborRate {
   rateType: LaborRateType;
   /** Production `cost`. Required. */
   cost: number;
-  /** Production `default_price`. Required. */
+  /** Production `price_strategy`, in the db's spelling. Default "manual". */
+  priceStrategy: "manual" | "fixed" | "percent";
+  /**
+   * Production `default_price` — the typed Price under "manual", the markup's
+   * result otherwise.
+   */
   rate: number;
+  /** Production `price_adjustment_amount`. Only with the "fixed" strategy. */
+  fixedMarkup?: number;
+  /** Production `price_adjustment_percent`. Only with the "percent" strategy. */
+  percentMarkup?: number;
   /** Production `default_is_taxable`. Pre-selected from the company default. */
   isTaxable: boolean;
   /**

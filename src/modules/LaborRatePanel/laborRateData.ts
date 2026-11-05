@@ -31,7 +31,7 @@ export const laborRateStatusOf = (rate: LaborItem): LaborRateStatus =>
 export const subtypeNameOf = (rate: LaborItem) =>
   LABOR_SUBTYPES.find((subtype) => subtype.id === rate.subtypeId)?.name;
 
-/** "Hourly" / "Flat" — the Rate type's own two option names. */
+/** "Hourly" / "Flat" — the Type's own two option names. */
 export const rateTypeOf = (rate: LaborItem) => (rate.unitType === "hourly" ? "Hourly" : "Flat");
 
 /**
@@ -45,6 +45,21 @@ export const perUnitSuffix = (rate: LaborItem) => (rate.unitType === "hourly" ? 
 
 /** "$100.00/hr", "$260.00" — a money field as the Pricing module prints it. */
 export const formatAmount = (value: number, rate: LaborItem) => `${money(value)}${perUnitSuffix(rate)}`;
+
+/** The price strategy, in the words the form's three options use. */
+export const priceStrategyOf = (rate: LaborItem) =>
+  rate.priceStrategy === "fixed" ? "Fixed markup" : rate.priceStrategy === "percent" ? "Percent markup" : "Manual";
+
+/**
+ * The markup of a Fixed / Percent markup rate: "$50.00" (no "/hr" — it is an
+ * amount added to the cost) or "50.00%" — two to three decimals, like the
+ * money, and a negative carries the true minus sign.
+ */
+export const formatMarkup = (rate: LaborItem) => {
+  if (rate.priceStrategy === "fixed") return money(rate.priceAdjustmentAmount ?? 0);
+  const value = rate.priceAdjustmentPercent ?? 0;
+  return `${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 3 }).replace(/^-/, "−")}%`;
+};
 
 /** Production `default_is_taxable`, in the words the form's two options use. */
 export const taxabilityOf = (rate: LaborItem) => (rate.taxable ? "Taxable" : "Non-taxable");

@@ -75,6 +75,7 @@ import { Equipment } from "./equipment";
 import { EquipmentFormValues } from "./EquipmentForm";
 import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource, sourceRequiresId } from "./JobPropertiesForm";
 import { NewEquipment } from "../NewEquipmentForm/NewEquipmentForm.types";
+import type { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
 import SummaryPanel from "./SummaryPanel";
 import TimesheetForm from "./TimesheetForm";
 import { FormsLog } from "./FormsModule";
@@ -118,6 +119,11 @@ export interface JobDetailsProps {
    * story (and then those rows are inert).
    */
   onOpenJob?: (id: string) => void;
+  /**
+   * A user-testing build (prototypes/JobDetailsCharges): the page opens on Summary →
+   * Charges and shows this Charges concept in place of its own module.
+   */
+  chargesConcept?: ChargesConceptNumber;
   /**
    * The Charges tab's "Labor rates" plus — opens the "New labor rate" form.
    * The app owns the form (shell/laborRates.tsx); unset in a standalone story.
@@ -2773,6 +2779,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
 // ---- layouts --------------------------------------------------------------
 
 interface ShellProps {
+  chargesConcept?: ChargesConceptNumber;
   roundTo5min: boolean;
   record: ListJob;
   onBack?: () => void;
@@ -2783,11 +2790,11 @@ interface ShellProps {
   companyHasLogo: boolean;
 }
 
-const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo }: ShellProps) => {
+const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
   const s = useJobShell(true, record);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
-  const [tab, setTab] = useState("service");
+  const [tab, setTab] = useState(chargesConcept != null ? "summary" : "service");
   return (
     <div className={styles.workArea}>
         {/* The job's actions sit in the TOP BAR on desktop now — there is no
@@ -2850,6 +2857,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
                   isPublicView={isPublicView}
                   charges={s.charges}
                   chargesTotal={s.chargesSubtotal}
+                  chargesConcept={chargesConcept}
                   onAddLaborRate={onAddLaborRate}
                  
                   laborRates={laborRates}
@@ -3098,11 +3106,11 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo }: ShellProps) => {
+const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
   const s = useJobShell(false, record);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
-  const [tab, setTab] = useState("details");
+  const [tab, setTab] = useState(chargesConcept != null ? "summary" : "details");
   // The active pill opens the session drawer (mobile only).
   const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
   return (
@@ -3155,6 +3163,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
                 isPublicView={isPublicView}
                 charges={s.charges}
                 chargesTotal={s.chargesSubtotal}
+                chargesConcept={chargesConcept}
                 onAddLaborRate={onAddLaborRate}
                
                 laborRates={laborRates}
@@ -3260,7 +3269,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
   );
 };
 
-export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView = false, companyHasLogo = true }: JobDetailsProps) {
+export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView = false, companyHasLogo = true, chargesConcept }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
   // Remounting on the job id is deliberate: every module seeds its state from
   // the record, so opening another job has to start those modules over rather
@@ -3268,9 +3277,9 @@ export default function JobDetails({ record, breakpoint = "auto", roundTo5min = 
   return (
     <CurrentJobIdProvider id={record.id}>
       {isDesktop ? (
-        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
+        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
       ) : (
-        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} />
+        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
       )}
     </CurrentJobIdProvider>
   );

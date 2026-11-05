@@ -1,0 +1,29 @@
+// An open accordion row's body: the buttons, then the details 16px below them.
+.lineBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// Edit takes the row, the Delete IconButton keeps its 36px, 8px apart.
+.lineActions {
+  display: flex;
+  gap: var(--size-2); // 8px
+
+  // A full-width Button does not shrink on its own, so it would push past the row.
+  > :first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  > :last-child {
+    flex: none;
+  }
+}
+
+// The node's override: a subtle IconButton whose icon is the error color.
+// Through the IconButton's own color variables, so it holds on hover and press.
+.lineActions .deleteButton {
+  --ibtn-fg: var(--text-error);
+  --ibtn-fg-hover: var(--text-error);
+}

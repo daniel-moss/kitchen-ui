@@ -46,11 +46,11 @@
   --client-industry: "industry";
   --credit-limit: "gauge-high";
   --pricebook: "tag";
-  --labor-rate: "tag";
+  --labor-rate: "toolbox";
   --product: "box-taped";
-  --other: "tag";
-  --discount: "tag";
-  --tax-rate: "percent";
+  --other: "receipt";
+  --discount: "badge-percent";
+  --tax-rate: "landmark";
   --equipment: "cube";
   --location: "location-dot";
   --user: "user";

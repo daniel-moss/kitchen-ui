@@ -73,7 +73,7 @@ export type LaborRatePatch = Partial<
     | "priceAdjustmentPercent"
     | "quickbooksAccountId"
     | "labelIds"
-    | "summary"
+    | "description"
     | "notes"
     | "status"
     | "isActive"
@@ -212,8 +212,8 @@ const seedNewTaxRate = (input: NewTaxRateInput, id: string): TaxRateRow => ({
  * A new labor rate, as production would store it: CONFIRMED (someone here
  * typed it), active, created by the signed-in user, and NOT yet synced — it
  * reaches QuickBooks on the next run, which is what the create form warns
- * about. `estDurationMinutes` is null: the form does not collect it any more,
- * because that field is moving to the new Service object (ROO-3222).
+ * about. It has no duration: that field belongs to the new Service object
+ * (ROO-3222).
  */
 const seedNewLaborRate = (input: NewLaborRateInput, id: string): LaborRow => ({
   id,
@@ -221,13 +221,12 @@ const seedNewLaborRate = (input: NewLaborRateInput, id: string): LaborRow => ({
   status: "active",
   isActive: true,
   subtypeId: input.subtypeId ?? null,
-  summary: input.description,
+  description: input.description,
   notes: input.notes,
   cost: input.cost,
   rate: input.rate,
   unitType: input.unitType === "hourly" ? "hourly" : "flatRate",
   taxable: input.isTaxable,
-  estDurationMinutes: null,
   priceStrategy: input.priceStrategy,
   priceAdjustmentAmount: input.fixedMarkup,
   priceAdjustmentPercent: input.percentMarkup,

@@ -28,8 +28,15 @@ interface DisplayModuleBaseProps extends Omit<HTMLAttributes<HTMLDivElement>, "t
    * end of the header copy, before `slotRight` (Figma header Text
    * `textRight=true`, Text Right `variant=tag`). It never truncates: the title
    * truncates first. E.g. "Required" on the Job Details Equipment module.
+   * A shorthand for `textRight` with the `tag` variant.
    */
   tag?: ReactNode;
+  /**
+   * Right text block — any `ItemTextBlock` (`align="right"`), the same right
+   * block the Figma header's ItemText takes (`textRight=true`, any variant),
+   * e.g. a `title` total on the Job Details Charges modules. Wins over `tag`.
+   */
+  textRight?: ReactNode;
   /** Left slot — one avatar of any type, at `lg` (32px), `--size-3` (12px) before the title. */
   slotLeft?: ReactNode;
   /**

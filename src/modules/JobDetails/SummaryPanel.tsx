@@ -8,6 +8,7 @@ import Segment from "../../components/SegmentedControl/Segment";
 import SegmentedControl from "../../components/SegmentedControl/SegmentedControl";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
+import ChargesConcept, { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
 import ChargesTab from "./ChargesTab";
 import { Equipment } from "./equipment";
 import FormsModule, { FormsLog } from "./FormsModule";
@@ -59,6 +60,7 @@ export default function SummaryPanel({
   readOnly = false,
   onAddLaborRate,
   laborRates,
+  chargesConcept,
 }: {
   mobile?: boolean;
   /** The job's charges and their total — derived from the job (db/jobCharges). */
@@ -98,8 +100,10 @@ export default function SummaryPanel({
   onAddLaborRate?: () => void;
   /** Charges: the pricebook rates the Labor rates plus lists (the app's store). */
   laborRates?: LaborItem[];
+  /** A user-testing build: opens on Charges and shows this concept in place of its module. */
+  chargesConcept?: ChargesConceptNumber;
 }) {
-  const [sub, setSub] = useState("tech-work");
+  const [sub, setSub] = useState(chargesConcept != null ? "charges" : "tech-work");
 
   // ---- Work summary (Figma 21833-91131) ----
   // Seeded from the DATABASE (2026-10-20): a completed or finalized job comes
@@ -199,7 +203,9 @@ export default function SummaryPanel({
         <Segment value="signature">Signature</Segment>
       </SegmentedControl>
 
-      {sub === "charges" ? (
+      {sub === "charges" && chargesConcept != null && jobById(jobId) != null ? (
+        <ChargesConcept concept={chargesConcept} job={jobById(jobId)!} mobile={mobile} />
+      ) : sub === "charges" ? (
         <ChargesTab
           groups={charges}
           laborRates={laborRates}

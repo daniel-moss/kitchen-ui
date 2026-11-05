@@ -20,15 +20,15 @@ import { LaborRatePermissions } from "./LaborRatePanel.types";
 //
 // Demo rates out of the database, each one a case the panel draws:
 //   after-hours-labor     ACTIVE and synced, every module filled.
-//   rev-walk-in-call      REVIEW — system-minted from a free-text line item,
+//   rev-weekend-labor     REVIEW — system-minted from a free-text line item,
 //                         so no creator, no subtype and no account: the
 //                         modules warn, and Confirm waits for them.
-//   boiler-descale        INACTIVE — read-only, with the Reactivate banner.
+//   old-standard-labor    INACTIVE — read-only, with the Reactivate banner.
 //   standard-labor        imported from QuickBooks Desktop: no creator.
 //   helper-labor          "Unknown" creator (an onboarding load), never synced.
-//   fryer-service         edited since its last sync — the "Not synced" case.
+//   travel-labor          edited since its last sync — the "Not synced" case.
 const meta: Meta = {
-  title: 'Modules/Labor Rate/"Labor Rate" Side Panel',
+  title: "Modules/Labor Rate/Side Panel",
   parameters: { controls: { disable: true } },
 };
 
@@ -37,15 +37,18 @@ export default meta;
 type Story = StoryObj;
 
 const ACTIVE = laborItemById("after-hours-labor")!;
-const REVIEW = laborItemById("rev-walk-in-call")!;
-const INACTIVE = laborItemById("boiler-descale")!;
+const REVIEW = laborItemById("rev-weekend-labor")!;
+const INACTIVE = laborItemById("old-standard-labor")!;
 const IMPORTED = laborItemById("standard-labor")!;
 const UNKNOWN_CREATOR = laborItemById("helper-labor")!;
-const NOT_SYNCED = laborItemById("fryer-service")!;
+const NOT_SYNCED = laborItemById("travel-labor")!;
 /** Billed on every visit's first hour — the rate with the longest History. */
 const DIAGNOSTIC = laborItemById("diagnostic-labor")!;
 /** A flat-rate item, so the "/hr" suffix has its counter-example. */
 const FLAT_RATE = laborItemById("emergency-call-out")!;
+/** The two markup strategies — their markup gets a row of its own. */
+const FIXED_MARKUP = laborItemById("installation-labor")!;
+const PERCENT_MARKUP = laborItemById("weekend-on-call")!;
 
 const LABEL_POOL = LABOR_LABELS.map((label) => label.name);
 
@@ -123,7 +126,7 @@ const Demo = ({
         onSavePricing={(edits) => edit(edits)}
         onSaveAccounting={(quickbooksAccountId) => edit({ quickbooksAccountId })}
         onSaveLabels={(labels) => edit({ labelIds: labelIdsOf(labels) })}
-        onSaveSummary={(summary) => edit({ summary })}
+        onSaveDescription={(description) => edit({ description })}
         onSaveNotes={(notes) => edit({ notes })}
         onDeactivate={() => edit({ isActive: false })}
         onReactivate={() => edit({ isActive: true })}
@@ -220,7 +223,8 @@ export const General: Story = {
 
 /**
  * The "Pricing" module on its own (node 3015-4365). An hourly item carries the
- * "/hr" suffix on both money rows; a flat one carries none.
+ * "/hr" suffix on both money rows; a flat one carries none. A markup strategy
+ * adds its own row above Price (frames 3114-26248 / 3114-26318).
  */
 export const Pricing: Story = {
   name: '"Pricing" Module',
@@ -230,6 +234,8 @@ export const Pricing: Story = {
       items={[
         ["Hourly", ACTIVE],
         ["Flat — no suffix", FLAT_RATE],
+        ["Fixed markup", FIXED_MARKUP],
+        ["Percent markup", PERCENT_MARKUP],
       ]}
       render={(record) => <PricingModule rate={record} onEdit={noop} />}
     />

@@ -11,16 +11,18 @@
 // script runs.
 //
 // Usage:
-//   node scripts/publish-prototypes.mjs            build + copy + commit
-//   node scripts/publish-prototypes.mjs --push     … and push (the site updates)
-//   node scripts/publish-prototypes.mjs --dry-run  show what would change, touch nothing
-//   SKIP_BUILD=1 node scripts/publish-prototypes.mjs   reuse the existing storybook-share/
-//
-// ONE prototype into its OWN sub-folder — the safe way to add a build while
-// clients are still testing what is already published:
 //   node scripts/publish-prototypes.mjs --only JobDetailsForms --dir job-details-forms
-// Nothing outside that sub-folder is touched, so every link already sent keeps
-// serving exactly the same files. Without --dir the whole site is replaced.
+//   … --push      and push (the site updates)
+//   … --dry-run   show what would change, touch nothing
+//   SKIP_BUILD=1 … reuse the existing storybook-share/
+//
+// EVERY build goes into its OWN new sub-folder, so every link already sent keeps
+// serving exactly the same files, for as long as a test runs (Daniel, 2026-11-05).
+// Two things are refused for that reason:
+//   - no --dir: it would replace the whole site, every other build included;
+//   - a --dir that already exists: it would change links people already have.
+//     Publish a new version to a new folder (job-details-charges-2). Add --replace
+//     only to change that folder on purpose.
 //
 // The clone lives next to kitchen-ui (../roopairs-user-testing) and is created on
 // the first run. Override with PROTOTYPES_REPO=/some/path.
@@ -47,15 +49,22 @@ const flag = (name) => {
 // spans several folders ("Time Tracker" = TimeTracker + the Concept folders)
 // is published as one build.
 const only = flag("--only");
-const subDir = flag("--dir"); // where it lands in the share repo ("" = the root)
+const subDir = flag("--dir"); // where it lands in the share repo
+const replace = process.argv.includes("--replace");
 
 for (const folder of only?.split(",").map((f) => f.trim()) ?? []) {
   if (!existsSync(resolve(ROOT, "src/prototypes", folder))) {
     throw new Error(`--only ${folder}: no such folder in src/prototypes/`);
   }
 }
-if (subDir != null && !/^[a-z0-9-]+$/.test(subDir)) {
+if (subDir == null) {
+  throw new Error("--dir is required: without it the whole site would be replaced, and every link already sent with it.");
+}
+if (!/^[a-z0-9-]+$/.test(subDir)) {
   throw new Error(`--dir ${subDir}: use a plain lower-case folder name.`);
+}
+if (existsSync(resolve(REPO, subDir)) && !replace) {
+  throw new Error(`--dir ${subDir}: that folder is already published, and links to it may be in use. Use a new folder name, or add --replace to change it on purpose.`);
 }
 
 const run = (cmd, args, cwd = ROOT) => execFileSync(cmd, args, { cwd, encoding: "utf8" });

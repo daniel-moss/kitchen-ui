@@ -30,7 +30,7 @@ import { PricebookListConfig, PricebookPage } from "./pricebookList";
 //             laborFilters.tsx.
 
 // What the view bar's keyword search MATCHES: the row's readable text — the
-// name, the subtype, the summary, the label names, and (on active items) the
+// name, the subtype, the description, the label names, and (on active items) the
 // status label — as a case-insensitive substring. Production's
 // `filter_keywords` covers description, summary and label names; the extras
 // are my choice, FLAGGED like every list's.
@@ -38,7 +38,7 @@ const searchHaystack = (item: LaborRow) =>
   [
     item.name,
     subtypeNameOf(item) ?? "",
-    item.summary,
+    item.description,
     ...labelsOf(item).map((label) => label.name),
     item.isActive ? laborStatusLabel(item.status) : "",
   ]

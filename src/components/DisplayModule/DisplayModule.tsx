@@ -58,6 +58,7 @@ export default function DisplayModule({
   variant = "default",
   title,
   tag,
+  textRight,
   titleSlotRight,
   caption,
   slotLeft,
@@ -95,8 +96,8 @@ export default function DisplayModule({
       <div className={styles.copy}>
         {/* The copy is ItemText — the title truncates with a full-text hover
             tooltip, and caption and the title badge stay mutually exclusive
-            (the badge wins). With a `tag`, the full ItemText carries it as its
-            right block (hugs, never truncates). */}
+            (the badge wins). With a `textRight` (or its `tag` shorthand), the
+            full ItemText carries it as its right block (hugs, never truncates). */}
         <ItemText
           className={styles.copyText}
           variant={caption != null && titleSlotRight == null ? "titleCaption" : "title"}
@@ -104,7 +105,7 @@ export default function DisplayModule({
           titleSlotRight={titleSlotRight}
           caption={caption != null && titleSlotRight == null ? caption : undefined}
           captionLines="wrap"
-          right={tag != null ? <ItemTextBlock align="right" variant="tag" tag={tag} /> : undefined}
+          right={textRight ?? (tag != null ? <ItemTextBlock align="right" variant="tag" tag={tag} /> : undefined)}
         />
       </div>
       {slotRight != null && (

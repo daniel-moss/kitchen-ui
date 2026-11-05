@@ -85,13 +85,11 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
             // Remembered for "Preview" below: the form hands its own value to
             // that callback, but only the store knows the id it was given.
             // The form asks only the required fields; the optional ones start
-            // empty (Manual pricing, no labels or notes) and are filled in
-            // from the panel.
+            // empty (no labels or notes) and are filled in from the panel.
             const { rateType, ...rest } = input;
             createdId.current = createLaborRate({
               ...rest,
               unitType: rateType,
-              priceStrategy: "manual",
               labels: [],
               description: "",
               notes: "",
@@ -119,7 +117,7 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
             onSavePricing={(edits) => updateLaborRate(rate.id, edits)}
             onSaveAccounting={(quickbooksAccountId) => updateLaborRate(rate.id, { quickbooksAccountId })}
             onSaveLabels={(labels) => updateLaborRate(rate.id, { labelIds: labelIdsOf(labels) })}
-            onSaveSummary={(summary) => updateLaborRate(rate.id, { summary })}
+            onSaveDescription={(description) => updateLaborRate(rate.id, { description })}
             onSaveNotes={(notes) => updateLaborRate(rate.id, { notes })}
             onDeactivate={() => updateLaborRate(rate.id, { isActive: false })}
             onReactivate={() => updateLaborRate(rate.id, { isActive: true })}

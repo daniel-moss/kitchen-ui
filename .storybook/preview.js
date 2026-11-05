@@ -879,6 +879,11 @@ const preview = {
                 "Public view — mobile",
               ],
             ],
+            "Discount",
+            [
+              "Select List",
+              ["Desktop", "Mobile", "No Discounts", "No Discounts / Mobile", "No Permission"],
+            ],
             "Equipment",
             [
               '"Equipment" Side Panel',
@@ -943,6 +948,29 @@ const preview = {
                 ],
                 "Modules",
                 [
+                  // Concepts of the Summary tab's Charges module (Daniel, 2026-10-28).
+                  "Charges",
+                  [
+                    "Concept 1",
+                    ["Desktop", "Mobile", "Empty", "Read-only"],
+                    "Concept 2",
+                    ["Desktop", "Mobile", "Lines open", "Flat, two days", "Empty"],
+                    "Concept 3",
+                    ["Desktop", "Mobile", "Empty"],
+                    "Concept 4",
+                    [
+                      "Desktop",
+                      "Mobile",
+                      "Flat",
+                      "Missing Values",
+                      "No Subtypes",
+                      "No Equipment or Assignees",
+                      "Public View",
+                      "Public View / Header Only",
+                      "Several Cards",
+                      "Several Cards / Mobile",
+                    ],
+                  ],
                   // The read-only view of a completed job form (Daniel, 2026-10-26).
                   "Forms",
                   ["Preview", ["PanelDesktop", "PanelMobile", "Mapping", "ServiceCall", "HiddenAnswers", "HotSideRepair"]],
@@ -988,7 +1016,9 @@ const preview = {
                 "Creating",
                 "Create Fails",
               ],
-              '"Labor Rate" Side Panel',
+              "Select List",
+              ["Desktop", "Mobile", "No Labor Rates", "No Labor Rates / Mobile", "No Permission"],
+              "Side Panel",
               [
                 "Desktop",
                 "Mobile",
@@ -1010,9 +1040,14 @@ const preview = {
               '"New Location" Form',
               ["Desktop", "Mobile"],
             ],
+            "Other Charge",
+            [
+              "Select List",
+              ["Desktop", "Mobile", "No Charges", "No Charges / Mobile", "No Permission"],
+            ],
             "Product",
             [
-              '"New Product" Form',
+              '"Create" Form',
               [
                 "Desktop",
                 "Mobile",
@@ -1033,6 +1068,8 @@ const preview = {
                 "Scan — Camera Isn't Working",
                 "Scan — Scanner Couldn't Load",
               ],
+              "Select List",
+              ["Desktop", "Mobile", "No Products", "No Products / Mobile", "No Permission"],
             ],
             "Tax Rate",
             [

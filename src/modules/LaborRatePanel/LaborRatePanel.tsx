@@ -93,7 +93,7 @@ export default function LaborRatePanel({
   onSavePricing,
   onSaveAccounting,
   onSaveLabels,
-  onSaveSummary,
+  onSaveDescription,
   onSaveNotes,
   onDeactivate,
   onReactivate,
@@ -111,7 +111,7 @@ export default function LaborRatePanel({
   const [editingPricing, setEditingPricing] = useState(false);
   const [editingAccounting, setEditingAccounting] = useState(false);
   const [pickingLabels, setPickingLabels] = useState(false);
-  const [editingSummary, setEditingSummary] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
   const [editingNotes, setEditingNotes] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -142,7 +142,7 @@ export default function LaborRatePanel({
     setEditingPricing(false);
     setEditingAccounting(false);
     setPickingLabels(false);
-    setEditingSummary(false);
+    setEditingDescription(false);
     setEditingNotes(false);
     setDeactivating(false);
     setDeleting(false);
@@ -200,9 +200,9 @@ export default function LaborRatePanel({
     toast({ type: "success", title: '"Labels" module updated' });
   };
 
-  const saveSummary = async (summary: string) => {
-    if ((await onSaveSummary?.(summary)) === false) return false;
-    setRecord((prev) => ({ ...prev, summary }));
+  const saveDescription = async (description: string) => {
+    if ((await onSaveDescription?.(description)) === false) return false;
+    setRecord((prev) => ({ ...prev, description }));
   };
 
   const saveNotes = async (notes: string) => {
@@ -377,8 +377,8 @@ export default function LaborRatePanel({
                 title="Description"
                 emptyCaption="No description"
                 copyErrorTitle={'Couldn\'t copy "Description"'}
-                notes={record.summary}
-                onEdit={() => setEditingSummary(true)}
+                notes={record.description}
+                onEdit={() => setEditingDescription(true)}
                 canEdit={canEditModules}
                 isLoading={isLoading}
               />
@@ -490,10 +490,10 @@ export default function LaborRatePanel({
         breakpoint={breakpoint}
       />
       <EditNotesDialog
-        open={editingSummary}
-        onClose={() => setEditingSummary(false)}
-        notes={record.summary}
-        onSave={saveSummary}
+        open={editingDescription}
+        onClose={() => setEditingDescription(false)}
+        notes={record.description}
+        onSave={saveDescription}
         title="Description"
         titleHintContent="Copied to the line item when this labor rate is added, and customers see it"
         fieldLabel="Description"

@@ -52,7 +52,7 @@ export interface LaborRatePanelActions {
   /** Save from the Labels picker — label NAMES, in pick order. */
   onSaveLabels?: (labels: string[]) => void | boolean | Promise<void | boolean>;
   /** Save from the "Description" dialog (production's `summary_template`). */
-  onSaveSummary?: (summary: string) => void | boolean | Promise<void | boolean>;
+  onSaveDescription?: (description: string) => void | boolean | Promise<void | boolean>;
   /** Save from the "Internal notes" dialog. */
   onSaveNotes?: (notes: string) => void | boolean | Promise<void | boolean>;
 
