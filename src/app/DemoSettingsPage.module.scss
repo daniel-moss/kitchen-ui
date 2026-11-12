@@ -1,0 +1,47 @@
+// The "Demo settings" page. The shell (.workArea / .mobile) comes from
+// App.module.scss; this sheet holds only the page's own body.
+
+// The content area: the ONE scroll container, filling what the top bar (and
+// the mobile bottom bar) leave.
+.scroll {
+  box-sizing: border-box;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: var(--size-6) var(--size-4) var(--size-10);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+// A form-width column, centred on a wide screen.
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-8);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+// A sub-status switch and its "Required" switch, read as one setting.
+.pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+
+// "Required" belongs to the switch above it: indented to the text of that
+// switch (the toggle is 34px wide + its 8px gap).
+.nested {
+  padding-left: 42px;
+}
+
+// The tech status list with its "Add status" button under it.
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+  align-items: flex-start;
+
+  > :first-child {
+    align-self: stretch;
+  }
+}

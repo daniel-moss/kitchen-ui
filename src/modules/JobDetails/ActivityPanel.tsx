@@ -141,6 +141,9 @@ const TimeStatusText = ({ event }: { event: ActivityEvent }) => (
     <Em>{event.user.name}</Em>
     {event.kind === "checkout" ? (
       " checked out"
+    ) : event.kind === "checkin" && !event.status ? (
+      // Checked in with no status — the company has the tech statuses off.
+      " checked in"
     ) : event.kind === "checkin" ? (
       <>
         {" "}
@@ -166,7 +169,9 @@ const TimeStatusText = ({ event }: { event: ActivityEvent }) => (
 export const SessionValue = ({ status, range, muted = false }: { status?: string; range?: string; muted?: boolean }) => (
   <>
     <ValueGlyph icon={statusIcon(status)} muted={muted} />
-    {status}: {range}
+    {/* No status (the company has the tech statuses off) → the range alone. */}
+    {status ? `${status}: ` : ""}
+    {range}
   </>
 );
 

@@ -2211,15 +2211,24 @@ export const COMPANY: CompanySettings = {
   maxFileUploadSizeMb: 100,
   jobCustomIdGenerationMode: "manual",
   // Sub-statuses are a per-company switch thrown on the backend. This company
-  // asks for one when a job is paused or on hold, and NOT when it is active —
-  // the tech's check-in status stands in for that (Daniel, 2026-10-04). The
-  // active half of the feature is still built; it is simply off here.
+  // asks for one, and requires it, when a job is active, paused or on hold
+  // (Daniel, 2026-11-12).
   subStatuses: { active: true, activeRequired: true, quickPaused: true, quickPausedRequired: true, onHold: true, onHoldRequired: true },
   // This company rounds logged time UP to the next 5 minutes (Daniel,
   // 2026-10-06 — he asked for the Timesheet's exact-time tooltips, and the
   // design only shows them for a company that rounds). Every duration on the
   // Timesheet tab is the rounded one; hovering it reveals the exact value.
   roundsTimeUp: true,
+  timeRoundingStepMinutes: 5,
+  // The four statuses every company starts with (Figma 24353-26471, the
+  // 2026-07-27 set), in the forms' order.
+  techStatusesEnabled: true,
+  techStatuses: [
+    { id: "prepping", name: "Prepping for work", icon: "clipboard-list-check" },
+    { id: "travelling", name: "Travelling", icon: "van" },
+    { id: "working", name: "Working", icon: "wrench-simple" },
+    { id: "gathering-parts", name: "Gathering parts", icon: "cart-flatbed-boxes" },
+  ],
   // This company books through QuickBooks Desktop (Daniel, 2026-10-05: "it's
   // good to show accounting integration in the Demo"). That one value is what
   // gives the tax rates their collection agency and their sync state, and what

@@ -200,8 +200,10 @@ round up the time, we show a tooltip with the exact time by hovering"*
 (Figma 24620-84353). A company that does not round hides nothing, so no
 tooltip appears — which is why none of them showed before.
 
-`JobDetails`' `roundTo5min` prop now defaults from it; a story can still pass
-its own.
+`JobDetails`' `roundsTimeUp` prop (named `roundTo5min` until 2026-11-12)
+now defaults from it; a story can still pass its own. The STEP is a company
+setting too since 2026-11-12, `COMPANY.timeRoundingStepMinutes` (5–60 min),
+read by `roundUpSec` on every call.
 
 Three places got the tooltip, all through the one `ValueTooltip` (exported
 from `TimeCharts`): a session row's total (Figma 21816-30643), and the two

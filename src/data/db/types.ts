@@ -184,10 +184,9 @@ export type SubStatusParent = Extract<JobStatus, "active" | "quickPaused" | "onH
  * Which statuses this company configures sub-statuses for — production's
  * `…_SUBSTATUSES_EXIST` switches. `onHold` covers both hold parents.
  *
- * The demo company runs ACTIVE OFF (Daniel, 2026-10-04): the tech's check-in
- * status stands in for an active sub-status, so the Start / Resume dialog asks
- * for that instead. The feature still exists for companies that want it — the
- * UI it drives is written and simply hidden.
+ * The demo company has all three ON (Daniel, 2026-11-12). The `…Required`
+ * switches are a DEMO addition from Figma — production has none: there a
+ * sub-status is required as soon as the company has any for that status.
  */
 export interface CompanySubStatusSettings {
   active: boolean;
@@ -1617,6 +1616,15 @@ export interface JobForm {
   requiredForEquipmentCategories?: EquipmentCategory[];
 }
 
+/** A tech check-in status — `CompanySettings.techStatuses`. */
+export interface TechStatus {
+  /** Stable id, so a rename keeps the row's identity in the settings editor. */
+  id: string;
+  name: string;
+  /** Font Awesome icon name (regular in forms, solid on the running session). */
+  icon: string;
+}
+
 /**
  * The demo company's settings that gate the "New Job" form (production
  * `ServiceCompany` fields of the same names).
@@ -1628,8 +1636,12 @@ export interface CompanySettings {
    * thing, not the company's name).
    */
   name: string;
-  /** The company logo, per theme. Same shape as a job source's artwork. */
-  logo: { light: string; dark: string };
+  /**
+   * The company logo, per theme. Same shape as a job source's artwork.
+   * Undefined = the company has not uploaded one: the sidebar and the job's
+   * public view fall back to the name's first letter.
+   */
+  logo?: { light: string; dark: string };
   /**
    * The company's own contact details — production `ServiceCompany.email`
    * (REQUIRED there) and `phone` / `phone_extension` (optional). A job's PUBLIC
@@ -1650,18 +1662,38 @@ export interface CompanySettings {
   jobCustomIdGenerationMode: "off" | "manual" | "automatic";
   /**
    * Which statuses ask for a sub-status. See `CompanySubStatusSettings` — the
-   * demo has active OFF, the two pause statuses ON.
+   * demo has all three ON.
    */
   subStatuses: CompanySubStatusSettings;
   /**
-   * The company rounds logged time UP to the next 5 minutes — a per-company
-   * setting, like the two above. It decides what every duration on the
+   * The company rounds logged time UP to the next step
+   * (`timeRoundingStepMinutes`) — a per-company setting, like the two above. It decides what every duration on the
    * Timesheet tab shows, and it is the CONDITION for the exact-time tooltips:
    * "If a company has a setting to round up the time, we show a tooltip with
    * the exact time by hovering" (Figma 24620-84353). A company that does not
    * round has nothing to reveal, so no tooltip appears.
    */
   roundsTimeUp: boolean;
+  /**
+   * The step `roundsTimeUp` rounds to, in minutes: 5 to 60 in steps of 5
+   * (Daniel, 2026-11-12). Only matters while `roundsTimeUp` is on. Demo-only,
+   * like `roundsTimeUp` itself — production has neither yet.
+   */
+  timeRoundingStepMinutes: number;
+  /**
+   * The tech CHECK-IN statuses are on (Daniel, 2026-11-12). Off → checking in
+   * asks nothing and a session carries no status. A NEW concept (Figma
+   * 24353-26471): production has no check-in status — its closest thing is the
+   * ACTIVE sub-statuses ("En Route" / "On Site", with a `travelling` flag).
+   */
+  techStatusesEnabled: boolean;
+  /**
+   * The statuses a tech checks in under, in the order the forms list them.
+   * Every company starts with the same four; it can add, rename, remove and
+   * reorder them. A session stores the NAME it was logged under, so renaming
+   * or removing one never rewrites history (a removed one shows the stopwatch).
+   */
+  techStatuses: TechStatus[];
   /**
    * The company's accounting integration — production
    * `ServiceCompany.accounting_integration`, which is ONE value, never a set:

@@ -249,6 +249,10 @@ single list; `subStatusesFor(status)` is what a form's picker asks.
 the three paused/held statuses only. The three kinds differ, which is what the
 names respect:
 
+**Superseded 2026-11-12: Active sub-statuses are ON** in the demo company
+(Daniel); the "Demo settings" page switches each kind. The 2026-09-28 note
+below is history.
+
 **ACTIVE deliberately has NONE** (Daniel, 2026-09-28): a sub-status only
 exists if a company enables it, and the tech's CHECK-IN status already says
 what they are doing — an active sub-status would be a second answer to the same
@@ -463,6 +467,64 @@ reload mid-job, and a cold link both with and without the option.
 What still resets on that trip: the view's FILTERS, its sort, the search box
 and the View-menu settings. They can move the same way — left out because
 Daniel asked for the tab.
+
+## Demo settings — the service company's settings (2026-11-12)
+
+`#/demo-settings`, reached from the sidebar's bottom items (and the mobile Menu
+page): "Demo settings". A DEMO TOOL, not product UI — no Figma draws it.
+Daniel switches the company's settings there and the rest of the Demo follows
+them (sub-statuses on/off, no accounting integration, …).
+
+**Scope (Daniel):** only the settings the Demo actually reads — the database's
+`CompanySettings`, all of them. No production-only settings until a part of the
+Demo uses them. The sub-status "Required" switches and "Round time up" are
+Demo-only (production has neither yet); keep them.
+
+**How it reaches the app** — `store/CompanySettingsStore.tsx`. About twenty
+files read `COMPANY` directly, many outside React, so the store WRITES the
+chosen settings INTO that one object instead of threading a context through
+them. Two consequences to respect:
+
+- **Never copy a setting into a module-level constant.** It would be read once,
+  at load, and miss every change. Read `COMPANY.x` where it is used, or wrap it
+  in a small function (`onQuickbooks()`, `inventorySetup()`, `workspaces()`, the
+  getters in `PAUSE_COPY`). The ones that existed were converted on the day.
+- Pages need no subscription: each one mounts fresh when you leave the settings
+  page. Only the always-mounted shell subscribes (`App` calls
+  `useCompanySettings()` so the sidebar's company name and logo follow).
+
+**Saved in the browser** (`localStorage`) — the one exception to "in memory, a
+reload is the reset button". Settings say WHICH company the demo shows, so
+they survive a reload; "Reset to defaults" is their reset. Jobs and every other
+edit still live in memory.
+
+**Scoped to the Demo.** The database's own values are kept aside as
+`COMPANY_DEFAULTS`, and the provider puts them back when the Demo unmounts, so
+the module stories Storybook shows next read the database as written.
+
+`COMPANY.logo` became OPTIONAL: off → the sidebar's workspace button and the
+public view's "Service company" module show the name's first letter.
+
+Known limit: a select's list stays where it opened if the PAGE scrolls under
+it — the shared `selectPopover` rule ("the card is fixed once open").
+
+**Added the same day:** the time-rounding STEP (`timeRoundingStepMinutes`,
+5–60 min, read by `roundUpSec`) and the **tech check-in statuses**
+(`techStatusesEnabled` + `techStatuses`, editor in `TechStatusesSettings.tsx`).
+Daniel's rules for the statuses:
+- Every company starts with the four; add / rename / remove / drag to reorder;
+  at least one while on. Each has a name and an icon from a short list.
+- Up to 4 they are the designed card radios; from 5 the forms show a select
+  (the DS RadioGroup is "up to 4 options"). ONE build:
+  `modules/JobDetails/TechStatusField.tsx`.
+- OFF: "Check in" checks in at once (plain toast), no "Your status" anywhere
+  (bar menu, drawer, Time session form, Check In / Out control), rows read
+  "Tracked time" with the stopwatch, the log says "checked in".
+- A session keeps the NAME it was logged under; a removed status shows the
+  stopwatch. Read the list through `techStatuses()` / `techStatusesEnabled()`
+  in `TimesheetPanel.tsx` — `TECH_STATUSES` is gone.
+- Production has no check-in status (its closest thing is the Active
+  sub-statuses "En Route" / "On Site").
 
 ## The module map (inherited from the Filters prototype)
 

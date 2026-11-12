@@ -38,12 +38,14 @@ const NewProductContext = createContext<() => void>(() => {});
 export const useNewProduct = () => useContext(NewProductContext);
 
 const LABEL_POOL = PRODUCT_LABELS.map((label) => label.name);
+// Functions, not constants: the "Demo settings" page changes COMPANY at run time.
 /** The company's inventory setup — the Inventory module exists only with the feature on. */
-const INVENTORY = COMPANY.featureInventoryEnabled
-  ? { locations: INVENTORY_LOCATIONS, defaultTrackInventory: COMPANY.defaultTrackInventory }
-  : undefined;
+const inventorySetup = () =>
+  COMPANY.featureInventoryEnabled
+    ? { locations: INVENTORY_LOCATIONS, defaultTrackInventory: COMPANY.defaultTrackInventory }
+    : undefined;
 /** The Accounting module: QuickBooks Desktop on the Detailed Split scheme only. */
-const QUICKBOOKS =
+const quickbooksSetup = () =>
   COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed"
     ? {
         revenueAccounts: QUICKBOOKS_ACCOUNTS,
@@ -77,8 +79,8 @@ export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint
         // Every vendor — the form offers the active ones and shows the
         // inactive ones disabled.
         vendors={VENDORS}
-        inventory={INVENTORY}
-        quickbooks={QUICKBOOKS}
+        inventory={inventorySetup()}
+        quickbooks={quickbooksSetup()}
         // The viewer is an admin, so the vendor list's "Add vendor" footer row
         // is there — but the "New vendor" form is not built, so the row does
         // nothing, like every unbuilt row in the Create menu. FLAGGED.

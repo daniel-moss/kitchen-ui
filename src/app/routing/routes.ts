@@ -56,6 +56,7 @@ const SLUG_OF_PAGE: Record<Page, string> = {
   other: "other",
   discounts: "discounts",
   taxRates: "tax-rates",
+  settings: "demo-settings",
 };
 
 const PAGE_OF_SLUG: Record<string, Page> = Object.fromEntries(

@@ -10,13 +10,12 @@ import TextField from "../../components/Fields/TextField/TextField";
 import { Icon } from "../../components/Icon/Icon";
 import Input from "../../components/Input/Input";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { formatFullDate } from "./SchedulingForm";
-import { Session, TECH_STATUSES } from "./TimesheetPanel";
+import TechStatusField from "./TechStatusField";
+import { Session, techStatusesEnabled } from "./TimesheetPanel";
 
 import styles from "./SessionForm.module.scss";
 
@@ -25,7 +24,7 @@ const MERIDIEMS: Meridiem[] = ["AM", "PM"];
 
 // The completed form values handed back on Save (dates are non-null once valid).
 export interface SessionDraft {
-  /** The picked tech status (one of TECH_STATUSES). */
+  /** The picked tech status (one of the company's tech statuses; "" when they are off). */
   category: string;
   startDate: Date;
   startClock: string;
@@ -350,8 +349,10 @@ export default function SessionForm({ open, onClose, session, onSave, startDate,
 
   const save = () => {
     // The status is required — Save with none picked shows the select's
-    // "Choose Status" error alongside any time errors.
-    if (category === "" || startClockBad || endClockBad || endBeforeStart || start.date == null || end.date == null) {
+    // "Choose Status" error alongside any time errors. Not asked at all when
+    // the company has the tech statuses off.
+    const statusMissing = category === "" && techStatusesEnabled();
+    if (statusMissing || startClockBad || endClockBad || endBeforeStart || start.date == null || end.date == null) {
       setSubmitted(true);
       return;
     }
@@ -390,18 +391,13 @@ export default function SessionForm({ open, onClose, session, onSave, startDate,
       <div className={styles.form}>
         {/* Status — a VERTICAL stack of card radios over the four tech
             statuses (Figma 24105-15772, error copy from 24114-16327). */}
-        <Input label="Your status">
-          <RadioGroup
-            value={category}
-            onChange={setCategory}
-            isValid={!(submitted && category === "")}
-            errorMessage="Choose your status"
-          >
-            {TECH_STATUSES.map((s) => (
-              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
-            ))}
-          </RadioGroup>
-        </Input>
+        <TechStatusField
+          value={category}
+          onChange={setCategory}
+          isValid={!(submitted && category === "")}
+          errorMessage="Choose your status"
+          mobile={mobile}
+        />
 
         <TimeGroup
           label="Start time"

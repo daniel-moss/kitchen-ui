@@ -4,6 +4,7 @@ import Toaster from "../components/Toast/Toaster";
 import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
 
 import { AppStoreProvider } from "./store/AppStore";
+import { CompanySettingsProvider, useCompanySettings } from "./store/CompanySettingsStore";
 import { listOfRoute, Route } from "./routing/routes";
 import { useRoute } from "./routing/useRoute";
 
@@ -17,6 +18,7 @@ import MenuPage from "./shell/MenuPage";
 import BillsPage from "./BillsPage";
 import ClientsPage from "./ClientsPage";
 import CreditNotesPage from "./CreditNotesPage";
+import DemoSettingsPage from "./DemoSettingsPage";
 import DiscountsPage from "./DiscountsPage";
 import EstimatesPage from "./EstimatesPage";
 import InvoicesPage from "./InvoicesPage";
@@ -64,6 +66,10 @@ export interface AppProps {
 
 const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
   const isDesktop = useIsDesktop(breakpoint);
+  // Read so the always-mounted shell (the sidebar's company name and logo)
+  // re-renders when a setting changes. Pages need no subscription: each one
+  // mounts fresh when you leave the settings page for it.
+  useCompanySettings();
   const initialRoute: Route = { kind: "list", page: initialPage };
   const { route, query, navigate: navigateToObject, navigateToPage, replaceQuery } = useRoute(initialRoute);
 
@@ -147,6 +153,8 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
       <DiscountsPage breakpoint={breakpoint} onNavigate={navigate} />
     ) : resolved === "taxRates" ? (
       <TaxRatesPage breakpoint={breakpoint} onNavigate={navigate} />
+    ) : resolved === "settings" ? (
+      <DemoSettingsPage breakpoint={breakpoint} onNavigate={navigate} />
     ) : resolved === "series" ? (
       <SeriesPage breakpoint={breakpoint} onNavigate={navigate} />
     ) : (
@@ -200,18 +208,24 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
 // page. `ProductsProvider` (2026-10-13) holds the "New product" form only —
 // there is no Product side panel yet, and the form can not save until the
 // Inventory section is designed, so it reads the database and not the store.
+//
+// `CompanySettingsProvider` (2026-11-12) is OUTERMOST: it writes the "Demo
+// settings" into the database's COMPANY during its first render, before
+// anything below reads it.
 export default function AppWithStore(props: AppProps) {
   return (
-    <AppStoreProvider>
-      <NewJobProvider breakpoint={props.breakpoint}>
-        <LaborRatesProvider breakpoint={props.breakpoint}>
-          <TaxRatesProvider breakpoint={props.breakpoint}>
-            <ProductsProvider breakpoint={props.breakpoint}>
-              <App {...props} />
-            </ProductsProvider>
-          </TaxRatesProvider>
-        </LaborRatesProvider>
-      </NewJobProvider>
-    </AppStoreProvider>
+    <CompanySettingsProvider>
+      <AppStoreProvider>
+        <NewJobProvider breakpoint={props.breakpoint}>
+          <LaborRatesProvider breakpoint={props.breakpoint}>
+            <TaxRatesProvider breakpoint={props.breakpoint}>
+              <ProductsProvider breakpoint={props.breakpoint}>
+                <App {...props} />
+              </ProductsProvider>
+            </TaxRatesProvider>
+          </LaborRatesProvider>
+        </NewJobProvider>
+      </AppStoreProvider>
+    </CompanySettingsProvider>
   );
 }

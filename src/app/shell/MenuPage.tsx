@@ -5,7 +5,7 @@ import { SidebarNavBreakpointContext } from "../../components/SidebarNav/Sidebar
 import SidebarNavProfileButton from "../../components/SidebarNav/SidebarNavProfileButton";
 import SidebarNavWorkspaceButton from "../../components/SidebarNav/SidebarNavWorkspaceButton";
 
-import { AppBottomBar, bottomItems, navContent, Page, PROFILE, profileMenu, WORKSPACES } from "./appShell";
+import { AppBottomBar, bottomItems, navContent, Page, PROFILE, profileMenu, workspaces } from "./appShell";
 
 import styles from "../App.module.scss";
 
@@ -66,7 +66,7 @@ export default function MenuPage({
     <SidebarNavBreakpointContext.Provider value="mobile">
       <div className={styles.mobile}>
         <div className={styles.menuHeader}>
-          <SidebarNavWorkspaceButton workspaces={WORKSPACES} className={styles.menuWorkspace} />
+          <SidebarNavWorkspaceButton workspaces={workspaces()} className={styles.menuWorkspace} />
           <SidebarNavProfileButton name={PROFILE.name} email={PROFILE.email} avatarSrc={PROFILE.avatarSrc}>
             {profileMenu}
           </SidebarNavProfileButton>
@@ -82,7 +82,7 @@ export default function MenuPage({
               { open: pricebookOpen, onOpenChange: setPricebookOpen },
             )}
           </div>
-          <div className={styles.menuItems}>{bottomItems}</div>
+          <div className={styles.menuItems}>{bottomItems(page, onNavigate)}</div>
         </div>
         <AppBottomBar page="menu" onNavigate={onNavigate} />
       </div>

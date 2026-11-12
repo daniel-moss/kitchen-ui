@@ -19,10 +19,7 @@ import Popover from "../../components/Popover/Popover";
 import PopoverFooter from "../../components/Popover/PopoverFooter";
 import PopoverHeaderContent from "../../components/Popover/PopoverHeaderContent";
 import PopoverHeaderText from "../../components/Popover/PopoverHeaderText";
-import Input from "../../components/Input/Input";
 import Prompt from "../../components/Prompt/Prompt";
-import RadioGroup from "../../components/Radio/RadioGroup";
-import RadioItem from "../../components/Radio/RadioItem";
 import SelectField from "../../components/Fields/SelectField/SelectField";
 import Toaster, { toast } from "../../components/Toast/Toaster";
 import SidebarNav from "../../components/SidebarNav/SidebarNav";
@@ -84,7 +81,8 @@ import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
 import UnscheduleJobForm, { CheckedInAssignee } from "./UnscheduleJobForm";
-import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, TECH_STATUSES } from "./TimesheetPanel";
+import TechStatusField from "./TechStatusField";
+import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, techStatusesEnabled } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
@@ -135,13 +133,13 @@ export interface JobDetailsProps {
    */
   laborRates?: LaborItem[];
   /**
-   * The company setting that rounds logged time UP to the next 5 minutes.
-   * A real setting would live in Settings, which this prototype does not have,
-   * so it is a Storybook control (Daniel, 2026-08-11). It changes every
+   * The company setting that rounds logged time UP to its rounding step
+   * (`COMPANY.timeRoundingStepMinutes`). Defaults to the company's own
+   * setting; a story can force it. It changes every
    * duration the Timesheet tab shows; the exact values move into the charts'
-   * tooltips. Default false.
+   * tooltips. Default `COMPANY.roundsTimeUp`.
    */
-  roundTo5min?: boolean;
+  roundsTimeUp?: boolean;
   /**
    * The job's PUBLIC view (Figma 26990-56723) — the page a client opens from
    * the job's link. The SAME page in a read-only mode, not a copy: the top bar
@@ -152,7 +150,8 @@ export interface JobDetailsProps {
   isPublicView?: boolean;
   /**
    * Public view: the service company has a logo. Without one, its avatar shows
-   * the first letter of the company's name. Default true.
+   * the first letter of the company's name. Default: whether the company has
+   * one (`COMPANY.logo`).
    */
   companyHasLogo?: boolean;
 }
@@ -609,7 +608,7 @@ const ActionButtons = ({
     return (
       <>
         {actionsButton(grow)}
-        <Button size="lg" variant="solid" leftIcon="circle-check" className={grow} onClick={actions.onComplete}>
+        <Button size="lg" variant="solid" leftIcon="circle-check" leftIconPack="solid" className={grow} onClick={actions.onComplete}>
           Complete
         </Button>
       </>
@@ -621,7 +620,7 @@ const ActionButtons = ({
     return (
       <>
         {actionsButton(grow)}
-        <Button size="lg" variant="solid" leftIcon="circle-play" className={grow} onClick={actions.onResume}>
+        <Button size="lg" variant="solid" leftIcon="circle-play" leftIconPack="solid" className={grow} onClick={actions.onResume}>
           Resume
         </Button>
       </>
@@ -633,7 +632,7 @@ const ActionButtons = ({
   return (
     <>
       {actionsButton(grow)}
-      <Button size="lg" variant="solid" leftIcon="circle-play" className={grow} onClick={actions.onStart}>
+      <Button size="lg" variant="solid" leftIcon="circle-play" leftIconPack="solid" className={grow} onClick={actions.onStart}>
         Start
       </Button>
     </>
@@ -1104,7 +1103,7 @@ const SessionBar = ({
   /** Job status is "active" — picks the amber vs neutral idle look. */
   jobActive: boolean;
   elapsed: number;
-  /** The running session's check-in status (one of TECH_STATUSES). */
+  /** The running session's check-in status (one of the company's tech statuses). */
   category?: string;
   onCheckIn: () => void;
   onCheckOut: () => void;
@@ -1177,23 +1176,26 @@ const SessionBar = ({
       {menu.pos != null && (
         <div ref={menu.cardRef} className={styles.contextMenu} style={{ top: menu.pos.top, left: menu.pos.left, right: menu.pos.right }}>
           <Menu open={menu.open} onClose={menu.close} breakpoint="desktop" className={styles.sessionMenuCard}>
-            <MenuItemGroup>
-              <MenuItem
-                label="Your status"
-                slotLeft={slot(categoryIcon(category))}
-                tag={category}
-                // SelectList rows — all four statuses, check on the current one.
-                subMenu={
-                  <StatusItems
-                    current={category}
-                    onPick={(status) => {
-                      menu.close();
-                      onSwitchStatus(status);
-                    }}
-                  />
-                }
-              />
-            </MenuItemGroup>
+            {/* No status to switch when the company has the tech statuses off. */}
+            {techStatusesEnabled() && (
+              <MenuItemGroup>
+                <MenuItem
+                  label="Your status"
+                  slotLeft={slot(categoryIcon(category))}
+                  tag={category}
+                  // SelectList rows — every status, check on the current one.
+                  subMenu={
+                    <StatusItems
+                      current={category}
+                      onPick={(status) => {
+                        menu.close();
+                        onSwitchStatus(status);
+                      }}
+                    />
+                  }
+                />
+              </MenuItemGroup>
+            )}
             <MenuItemGroup>
               <MenuItem
                 label="Check out"
@@ -1291,17 +1293,20 @@ const SessionDrawer = ({
           <Button size="lg" variant="subtle" leftIcon="arrow-left-from-arc" isFullWidth onClick={onCheckOut}>
             Check out
           </Button>
-          <Button
-            size="lg"
-            variant="solid"
-            isFullWidth
-            onClick={() => {
-              if (draft !== "" && draft !== category) onSwitchStatus(draft);
-              onClose();
-            }}
-          >
-            Update
-          </Button>
+          {/* Nothing to update when the company has the tech statuses off. */}
+          {techStatusesEnabled() && (
+            <Button
+              size="lg"
+              variant="solid"
+              isFullWidth
+              onClick={() => {
+                if (draft !== "" && draft !== category) onSwitchStatus(draft);
+                onClose();
+              }}
+            >
+              Update
+            </Button>
+          )}
         </PopoverFooter>
       }
     >
@@ -1310,14 +1315,8 @@ const SessionDrawer = ({
           <span className={styles.sessionDrawerCaption}>{category ?? "Tracking your time"}</span>
           <span className={styles.sessionDrawerClock}>{formatElapsedFull(elapsed)}</span>
         </div>
-        {/* The status is picked from card radios now, not a select + drawer. */}
-        <Input label="Your status">
-          <RadioGroup value={draft} onChange={setDraft}>
-            {TECH_STATUSES.map((s) => (
-              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
-            ))}
-          </RadioGroup>
-        </Input>
+        {/* The status is picked from card radios (a select past 4 statuses). */}
+        <TechStatusField value={draft} onChange={setDraft} mobile />
       </div>
     </Dialog>
   );
@@ -1382,23 +1381,18 @@ const CheckInDialog = ({
       <div className={styles.sessionDrawerBody}>
         {/* "Your status" — the same label the Time-tracker drawer uses
             (Daniel, 2026-08-04: one wording across the two). */}
-        <Input label="Your status">
-          <RadioGroup
-            value={status}
-            onChange={(v) => {
-              setStatus(v);
-              setShowError(false);
-            }}
-            isValid={!(showError && status === "")}
-            // The derived message would read "Choose Your status" — written
-            // out so the sentence stays natural.
-            errorMessage="Choose your status"
-          >
-            {TECH_STATUSES.map((s) => (
-              <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
-            ))}
-          </RadioGroup>
-        </Input>
+        <TechStatusField
+          value={status}
+          onChange={(v) => {
+            setStatus(v);
+            setShowError(false);
+          }}
+          isValid={!(showError && status === "")}
+          // The derived message would read "Choose Your status" — written
+          // out so the sentence stays natural.
+          errorMessage="Choose your status"
+          mobile={mobile}
+        />
       </div>
     </Dialog>
   );
@@ -2043,17 +2037,20 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   };
 
   // Check-in — opens the Check in dialog (Figma 24194-74433); confirming
-  // with a status starts the session.
+  // with a status starts the session. With the company's tech statuses OFF
+  // there is nothing to ask, so it checks in at once (2026-11-12).
   const [checkInOpen, setCheckInOpen] = useState(false);
   const checkIn = () => {
     actionMenu.close();
-    setCheckInOpen(true);
+    if (techStatusesEnabled()) setCheckInOpen(true);
+    else doCheckIn("");
   };
   const doCheckIn = (status: string) => {
-    beginSession(status);
+    beginSession(status || undefined);
     // Figma 24358-37597: the success toast is DETAILED now — the status the
-    // tech checked in under is its caption.
-    toast({ type: "success", variant: "detailed", title: "You're checked in", caption: status });
+    // tech checked in under is its caption. No status → the plain toast.
+    if (status === "") toast({ type: "success", title: "You're checked in" });
+    else toast({ type: "success", variant: "detailed", title: "You're checked in", caption: status });
     // ONE log for checking in (Daniel, 2026-08-05): the session it opens is not
     // finished yet, so there is no session to log.
     pushEvent({ kind: "checkin", status });
@@ -2134,7 +2131,8 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     const startDt = combineDateTime(draft.startDate, draft.startClock, draft.startMeridiem);
     const endDt = combineDateTime(draft.endDate, draft.endClock, draft.endMeridiem);
     const fields = {
-      category: draft.category,
+      // "" = no status: the company has the tech statuses off.
+      category: draft.category || undefined,
       startLabel: clockToLabel(draft.startClock, draft.startMeridiem),
       month: MONTH_FMT.format(draft.startDate).toUpperCase(),
       day: String(draft.startDate.getDate()),
@@ -2487,8 +2485,13 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     assigneeIds: assignees,
     // Reschedule's clock choice: only for an ASSIGNEE whose clock runs
     // (Figma 27163-54380) — its status and tracked time.
+    // No status (the company has them off) → the tracked time alone.
     runningSession:
-      checkedIn && assignees.includes(viewer.id) ? `${activeCategory ?? "Working"}: ${formatElapsedFull(elapsed)}` : null,
+      checkedIn && assignees.includes(viewer.id)
+        ? activeCategory != null
+          ? `${activeCategory}: ${formatElapsedFull(elapsed)}`
+          : formatElapsedFull(elapsed)
+        : null,
     scheduleOpen,
     setScheduleOpen,
     scheduleJob,
@@ -2780,7 +2783,7 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
 
 interface ShellProps {
   chargesConcept?: ChargesConceptNumber;
-  roundTo5min: boolean;
+  roundsTimeUp: boolean;
   record: ListJob;
   onBack?: () => void;
   onOpenJob?: (id: string) => void;
@@ -2790,7 +2793,7 @@ interface ShellProps {
   companyHasLogo: boolean;
 }
 
-const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
+const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
   const s = useJobShell(true, record);
   // Desktop tabs switch the main content column; Details is the persistent
   // sidebar, so the tabs are Service / Timesheet / … (default Service).
@@ -2847,7 +2850,7 @@ const DesktopShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, 
                   onAddSession={(userId) => s.openAddSession(undefined, userId)}
                   canAddSessions={s.canAddSessions}
                   started={false}
-                  roundTo5min={roundTo5min}
+                  roundsTimeUp={roundsTimeUp}
                 />
               </div>
             ) : tab === "summary" ? (
@@ -3106,7 +3109,7 @@ const SwipePager = ({
   );
 };
 
-const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
+const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView, companyHasLogo, chargesConcept }: ShellProps) => {
   const s = useJobShell(false, record);
   // The Details tab (the desktop right sidebar) is the only tab with real
   // content so far; the others keep the placeholder.
@@ -3154,7 +3157,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
             onAddSession={(userId) => s.openAddSession(undefined, userId)}
             canAddSessions={s.canAddSessions}
             started={false}
-            roundTo5min={roundTo5min}
+            roundsTimeUp={roundsTimeUp}
             mobile
           />
             ) : t === "summary" ? (
@@ -3269,7 +3272,7 @@ const MobileShell = ({ roundTo5min, record, onBack, onOpenJob, onAddLaborRate, l
   );
 };
 
-export default function JobDetails({ record, breakpoint = "auto", roundTo5min = COMPANY.roundsTimeUp, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView = false, companyHasLogo = true, chargesConcept }: JobDetailsProps) {
+export default function JobDetails({ record, breakpoint = "auto", roundsTimeUp = COMPANY.roundsTimeUp, onBack, onOpenJob, onAddLaborRate, laborRates, isPublicView = false, companyHasLogo = COMPANY.logo != null, chargesConcept }: JobDetailsProps) {
   const isDesktop = useIsDesktop(breakpoint);
   // Remounting on the job id is deliberate: every module seeds its state from
   // the record, so opening another job has to start those modules over rather
@@ -3277,9 +3280,9 @@ export default function JobDetails({ record, breakpoint = "auto", roundTo5min = 
   return (
     <CurrentJobIdProvider id={record.id}>
       {isDesktop ? (
-        <DesktopShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
+        <DesktopShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
       ) : (
-        <MobileShell key={record.id} roundTo5min={roundTo5min} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
+        <MobileShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
       )}
     </CurrentJobIdProvider>
   );

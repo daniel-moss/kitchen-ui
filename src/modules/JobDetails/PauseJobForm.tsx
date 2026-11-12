@@ -110,8 +110,13 @@ export const PAUSE_COPY: Record<PauseType, {
     reasonLabel: "Pause reason",
     reasonHelp: "Why do you need to pause this job?",
     toast: "Job paused",
-    enabled: COMPANY.subStatuses.quickPaused,
-    required: COMPANY.subStatuses.quickPausedRequired,
+    // Getters: the Demo's "Demo settings" page changes COMPANY at run time.
+    get enabled() {
+      return COMPANY.subStatuses.quickPaused;
+    },
+    get required() {
+      return COMPANY.subStatuses.quickPausedRequired;
+    },
   },
   "on-hold": {
     title: "Hold job",
@@ -122,8 +127,12 @@ export const PAUSE_COPY: Record<PauseType, {
     reasonHelp: "Why do you need to hold this job?",
     // "is on hold", not "put on hold" (Figma 24963-43689).
     toast: "Job is on hold",
-    enabled: COMPANY.subStatuses.onHold,
-    required: COMPANY.subStatuses.onHoldRequired,
+    get enabled() {
+      return COMPANY.subStatuses.onHold;
+    },
+    get required() {
+      return COMPANY.subStatuses.onHoldRequired;
+    },
   },
 };
 

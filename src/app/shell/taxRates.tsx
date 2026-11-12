@@ -36,9 +36,10 @@ const LABEL_POOL = TAX_RATE_LABELS.map((label) => label.name);
 
 // Whether this company has an accounting integration at all, and whether it is
 // the one that gives a tax rate an agency. Both come from the database — the
-// app must not assume (Daniel, 2026-10-05).
-const HAS_ACCOUNTING = COMPANY.accountingIntegration !== "none";
-const ON_QUICKBOOKS = COMPANY.accountingIntegration === "quickbooksDesktop";
+// app must not assume (Daniel, 2026-10-05). Functions, not constants: the
+// "Demo settings" page changes COMPANY at run time.
+const hasAccounting = () => COMPANY.accountingIntegration !== "none";
+const onQuickbooks = () => COMPANY.accountingIntegration === "quickbooksDesktop";
 
 /** The name → id map a save from the Labels picker is written back through. */
 const labelIdsOf = (names: string[]) => TAX_RATE_LABELS.filter((label) => names.includes(label.name)).map((label) => label.id);
@@ -80,7 +81,7 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
           // asks a tax rate for a collection agency, so only it hands the form
           // its QuickBooks context — and without one the whole "Accounting"
           // module is gone.
-          quickbooks={ON_QUICKBOOKS ? { vendors: QUICKBOOKS_VENDORS } : undefined}
+          quickbooks={onQuickbooks() ?{ vendors: QUICKBOOKS_VENDORS } : undefined}
           onCreated={(input) => {
             // Remembered for "Preview" below: the form hands its own value to
             // that callback, but only the store knows the id it was given.
@@ -100,7 +101,7 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
             onClose={closePanel}
             rate={rate}
             labelPool={LABEL_POOL}
-            hasAccountingIntegration={HAS_ACCOUNTING}
+            hasAccountingIntegration={hasAccounting()}
             onSaveDetails={(edits) => updateTaxRate(rate.id, edits)}
             onSaveAccounting={(quickbooksVendorId) => updateTaxRate(rate.id, { quickbooksVendorId })}
             onSaveLabels={(labels) => updateTaxRate(rate.id, { labelIds: labelIdsOf(labels) })}

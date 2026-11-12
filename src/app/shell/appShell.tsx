@@ -49,7 +49,8 @@ export type Page =
   | "products"
   | "other"
   | "discounts"
-  | "taxRates";
+  | "taxRates"
+  | "settings";
 
 // MenuItem left icon (square 16px box) — same helper the other prototypes use.
 const slot = (icon: string) => <Icon icon={icon} container="square" />;
@@ -73,8 +74,13 @@ const slot = (icon: string) => <Icon icon={icon} container="square" />;
  * ONE `imageSrc` and builds the avatar itself, so the header cannot follow the
  * theme the way `SourceAvatar` does. It wears the light-theme tile. Making it
  * theme-aware is a change to the DS component.
+ *
+ * A FUNCTION since 2026-11-12: the "Demo settings" page changes the name and
+ * the logo at run time. No logo → the button shows the name's first letter.
  */
-export const WORKSPACES = [{ id: "1", name: COMPANY.name, imageSrc: companyLogoLight }];
+export const workspaces = () => [
+  { id: "1", name: COMPANY.name, imageSrc: COMPANY.logo != null ? companyLogoLight : undefined },
+];
 
 /** The signed-in user. The header shows the avatar; the menu shows name + email. */
 export const PROFILE = { name: "Lorne Riddle", email: "email@address.com", avatarSrc: users[0].avatar };
@@ -288,8 +294,15 @@ export const navContent = (
   </>
 );
 
-export const bottomItems = (
+// "Demo settings" (2026-11-12) is a DEMO TOOL, not product UI — no Figma draws
+// it. It opens the page where the service company's settings are switched (see
+// `DemoSettingsPage`). It sits with the pinned bottom items so it is reachable
+// from every page on both shells, and stays out of the product's own list.
+export const bottomItems = (page: Page, onNavigate: (next: Page) => void) => (
   <>
+    <SidebarNavItem icon="sliders" active={page === "settings"} onClick={() => onNavigate("settings")}>
+      Demo settings
+    </SidebarNavItem>
     <SidebarNavItem icon="circle-question">Help center</SidebarNavItem>
     <SidebarNavItem icon="bullhorn">What&apos;s new</SidebarNavItem>
   </>
@@ -361,7 +374,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   return (
     <SidebarNav
       breakpoint="desktop"
-      workspaces={WORKSPACES}
+      workspaces={workspaces()}
       profileName={PROFILE.name}
       profileEmail={PROFILE.email}
       profileAvatarSrc={PROFILE.avatarSrc}
@@ -373,7 +386,7 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
         onCreateProduct: openNewProduct,
         onCreateTaxRate: openNewTaxRate,
       })}
-      bottomItems={bottomItems}
+      bottomItems={bottomItems(page, onNavigate)}
     >
       {navContent(
         page,

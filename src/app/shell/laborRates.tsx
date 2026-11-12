@@ -38,8 +38,9 @@ const LABEL_POOL = LABOR_LABELS.map((label) => label.name);
 // revenue account in exactly one setup: QuickBooks Desktop plus the detailed
 // line-item scheme. Under the generic scheme the account lives in the
 // company's settings, so the form's field and the panel's whole "Accounting"
-// module disappear.
-const ON_QUICKBOOKS_DETAILED =
+// module disappear. A function: the "Demo settings" page changes COMPANY at
+// run time.
+const onQuickbooksDetailed = () =>
   COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed";
 
 /** The name → id map a save from the Labels picker is written back through. */
@@ -76,7 +77,7 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
           requireSubtypes={COMPANY.requireSubtypes}
           useTaxes={COMPANY.useTaxes}
           defaultTaxable={COMPANY.pricebookDefaultTaxableLabor}
-          quickbooks={ON_QUICKBOOKS_DETAILED ? { accounts: QUICKBOOKS_ACCOUNTS } : undefined}
+          quickbooks={onQuickbooksDetailed() ?{ accounts: QUICKBOOKS_ACCOUNTS } : undefined}
           // The duplicate-name check. Production's uniqueness spans every
           // pricebook item of the company; the app only has these rates, so
           // that is what it can offer.
@@ -112,7 +113,7 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
             existingNames={laborRates.map((row) => row.name)}
             requireSubtypes={COMPANY.requireSubtypes}
             useTaxes={COMPANY.useTaxes}
-            hasQuickbooksAccounting={ON_QUICKBOOKS_DETAILED}
+            hasQuickbooksAccounting={onQuickbooksDetailed()}
             onSaveGeneral={(edits) => updateLaborRate(rate.id, edits)}
             onSavePricing={(edits) => updateLaborRate(rate.id, edits)}
             onSaveAccounting={(quickbooksAccountId) => updateLaborRate(rate.id, { quickbooksAccountId })}

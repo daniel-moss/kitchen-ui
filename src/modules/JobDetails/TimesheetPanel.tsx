@@ -21,6 +21,7 @@ import { shortWeekdayDate, weekdayDate } from "../shared/dates";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
+import { COMPANY } from "../../data/db";
 import { users } from "../../data/users";
 import { noop, slot, useAnchoredMenu } from "./shared";
 import { StatWidget, StatWidgetRow } from "./StatWidget";
@@ -246,16 +247,19 @@ export const overlapFlags = (sessions: Session[]): Map<number, SessionOverlap> =
 // ---- rounded time (the company setting) -------------------------------------
 // Some companies round logged time UP to a step before it is reported. Figma
 // only names the setting ("If a company has a setting to round up the time…",
-// 24620-83390); Daniel picked 5 minutes and made it a Storybook control
-// (2026-08-11). When it is on it applies to EVERY duration this tab shows —
+// 24620-83390). The STEP is the company's too (`COMPANY.timeRoundingStepMinutes`,
+// 5 to 60 minutes — Daniel, 2026-11-12; it was a fixed 5 until then), read on
+// every call so the Demo's settings page can change it. When rounding is on it
+// applies to EVERY duration this tab shows —
 // the widgets, the session rows and both charts — and the exact value moves
 // into the tooltips. The only thing it never touches is a RUNNING session's
 // live timer, which is a stopwatch, not a logged duration.
-const ROUND_STEP_SEC = 5 * 60;
-
-/** Seconds → the next whole 5 minutes, or unchanged when the setting is off. */
-export const roundUpSec = (sec: number, on: boolean) =>
-  on ? Math.ceil(sec / ROUND_STEP_SEC) * ROUND_STEP_SEC : sec;
+/** Seconds → the next whole rounding step, or unchanged when the setting is off. */
+export const roundUpSec = (sec: number, on: boolean) => {
+  if (!on) return sec;
+  const stepSec = COMPANY.timeRoundingStepMinutes * 60;
+  return Math.ceil(sec / stepSec) * stepSec;
+};
 
 /** A rounding function to hand down a component tree. */
 export type RoundSec = (sec: number) => number;
@@ -316,22 +320,32 @@ function deriveCharts(perTech: { user: User; sessions: Session[] }[], round: Rou
 // The tech self-statuses (Figma 24353-26471 — the 2026-07-27 four-status set).
 // One vocabulary for every session surface: the Time-session / Check-in /
 // Start / Resume selects, the pill, the bar, the rows and the My-status menus.
-export const TECH_STATUSES = [
-  { value: "Prepping for work", icon: "clipboard-list-check" },
-  { value: "Travelling", icon: "van" },
-  { value: "Working", icon: "wrench-simple" },
-  { value: "Gathering parts", icon: "cart-flatbed-boxes" },
-];
+//
+// A COMPANY SETTING since 2026-11-12 (`COMPANY.techStatuses`): a company can
+// add, rename, remove and reorder them, or turn them off. Functions, read on
+// every call, so the Demo's settings page can change them.
 
-// Check-in status → its icon (stopwatch = unknown/legacy value).
-export const categoryIcon = (category?: string) => TECH_STATUSES.find((s) => s.value === category)?.icon ?? "stopwatch";
+/** A session's label when it carries no status — the company has the statuses off. */
+const NO_STATUS_LABEL = "Tracked time";
+
+/** The tech statuses are on for this company. Off → checking in asks nothing. */
+export const techStatusesEnabled = () => COMPANY.techStatusesEnabled && COMPANY.techStatuses.length > 0;
+
+/** The company's tech statuses, in order — empty when the feature is off. */
+export const techStatuses = () =>
+  techStatusesEnabled() ? COMPANY.techStatuses.map((status) => ({ value: status.name, icon: status.icon })) : [];
+
+// Check-in status → its icon. A name the company no longer has (removed or
+// renamed since), or none at all, gets the stopwatch.
+export const categoryIcon = (category?: string) =>
+  COMPANY.techStatuses.find((s) => s.name === category)?.icon ?? "stopwatch";
 
 // The My-status sub-menu body (Figma 24358-37641 desktop card / 24196-76038
 // mobile sub-drawer): SelectList rows — status icon left, the CURRENT status
 // carries the solid check-circle. Shared by the session bar and the active row.
 export const StatusItems = ({ current, onPick }: { current?: string; onPick: (status: string) => void }) => (
   <SelectListItemGroup>
-    {TECH_STATUSES.map((s) => (
+    {techStatuses().map((s) => (
       <SelectListItem
         key={s.value}
         label={s.value}
@@ -396,14 +410,14 @@ const ActiveSessionRow = ({
   const startLabel = session.startLabel;
   const menuBody = (
     <>
-      {onSwitchStatus != null && (
+      {onSwitchStatus != null && techStatusesEnabled() && (
         <MenuItemGroup>
           <MenuItem
             label="Your status"
             slotLeft={slot(categoryIcon(session.category))}
             tag={session.category}
             // The sub-menu is SelectList rows (Figma 24358-37641 / 24196-76038)
-            // — all four statuses, check-circle on the current one.
+            // — every status, check-circle on the current one.
             subMenu={
               <StatusItems
                 current={session.category}
@@ -439,7 +453,7 @@ const ActiveSessionRow = ({
         right={
           <span className={styles.activeRight}>
             <span className={styles.activeTimer}>{session.timerLabel}</span>
-            {session.category != null && <span className={styles.activeRightCaption}>{session.category}</span>}
+            <span className={styles.activeRightCaption}>{session.category ?? NO_STATUS_LABEL}</span>
           </span>
         }
         slotRight={
@@ -569,7 +583,7 @@ const EndedSessionRow = ({ session, mobile, editable, overlap, round = exactSec,
             ) : (
               <span className={clsx(styles.sessionValue, longSession && styles.warnText)}>{durLabel}</span>
             )}
-            {session.category != null && <span className={styles.activeRightCaption}>{session.category}</span>}
+            <span className={styles.activeRightCaption}>{session.category ?? NO_STATUS_LABEL}</span>
           </span>
         }
         slotRight={
@@ -775,12 +789,12 @@ interface TimesheetPanelProps {
   /** True once the job has been started (has time logs). Not started → empty state. */
   started?: boolean;
   /**
-   * The company rounds logged time UP to the next 5 minutes. It applies to
+   * The company rounds logged time UP to its rounding step. It applies to
    * every duration this tab shows — the widgets, the session rows and both
    * charts — and the exact value moves into the charts' tooltips. A RUNNING
    * session's live timer is never rounded. Default false.
    */
-  roundTo5min?: boolean;
+  roundsTimeUp?: boolean;
   mobile?: boolean;
 }
 
@@ -801,10 +815,10 @@ export default function TimesheetPanel({
   onAddSession,
   canAddSessions = true,
   started = false,
-  roundTo5min = false,
+  roundsTimeUp = false,
   mobile = false,
 }: TimesheetPanelProps) {
-  const round: RoundSec = (sec) => roundUpSec(sec, roundTo5min);
+  const round: RoundSec = (sec) => roundUpSec(sec, roundsTimeUp);
 
   const groups = started
     ? FILLED_LOGS.map((g) => ({ user: g.user, total: g.total, rows: g.logs.map((log, i) => <LogRow key={i} log={log} />) }))
@@ -829,7 +843,7 @@ export default function TimesheetPanel({
               editable={editable}
               overlap={overlaps.get(sess.id)}
               round={round}
-              rounded={roundTo5min}
+              rounded={roundsTimeUp}
               onStop={onStopSession ?? noop}
               onSwitchStatus={onSwitchStatus}
               onEdit={() => onEditSession?.(sess)}
@@ -906,8 +920,8 @@ export default function TimesheetPanel({
       {/* The two charts replaced the old "Summary" module (Figma 23823-24630).
           Both derive from the LOGGED (checked-out) sessions, so a running
           session is not in them yet — which is what their hints explain. */}
-      <TimeDistributionModule techs={m.techs} rounded={roundTo5min} mobile={mobile} />
-      <WorkTimelineModule days={m.days} rounded={roundTo5min} mobile={mobile} />
+      <TimeDistributionModule techs={m.techs} rounded={roundsTimeUp} mobile={mobile} />
+      <WorkTimelineModule days={m.days} rounded={roundsTimeUp} mobile={mobile} />
     </div>
   );
 }

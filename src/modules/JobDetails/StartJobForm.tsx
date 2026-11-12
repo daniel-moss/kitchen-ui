@@ -60,9 +60,9 @@ interface StartJobFormProps {
    * REQUIRES one to start or resume, and this adds the "Active status" select
    * above the reason (Figma 24042-18897, error 24422-26522, list 24044-14180).
    *
-   * The demo company has the active half OFF — the tech's check-in status
-   * stands in for it — so the page passes nothing and the field never renders.
-   * See the "Active sub-statuses" story for what it looks like when it is on.
+   * The demo company has the active half ON (Daniel, 2026-11-12), so the page
+   * passes the active list. A company with it off passes nothing and the field
+   * never renders.
    */
   activeSubStatuses?: JobSubStatusRecord[];
   /**

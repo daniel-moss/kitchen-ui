@@ -5,7 +5,8 @@ import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
-import { TECH_STATUSES } from "./TimesheetPanel";
+import TechStatusField from "./TechStatusField";
+import { techStatusesEnabled } from "./TimesheetPanel";
 import styles from "./CheckInOutField.module.scss";
 
 /** "stay" keeps the viewer's clock as it is; "change" checks in or out. */
@@ -39,8 +40,8 @@ interface CheckInOutFieldProps {
 // Change pause status, Reschedule and Change active status. The form shows it only to an ASSIGNEE.
 //
 //   Checked out — "You're checked out": "Stay checked out" or "Check in"; "Check
-//     in" opens the required "Your status" (the four tech statuses). Always
-//     stacked.
+//     in" opens the required "Your status" (the company's tech statuses — none
+//     at all when the company has them off). Always stacked.
 //   Checked in — "You're checked in · Working: 01:30:05": "Stay checked in" or
 //     "Check out". Side by side on desktop, stacked on mobile.
 //
@@ -90,7 +91,7 @@ export default function CheckInOutField({
     );
   }
 
-  const statusBad = showError && choice === "change" && status === "";
+  const statusBad = showError && choice === "change" && status === "" && techStatusesEnabled();
   return (
     <Input label="You're checked out">
       <RadioGroup value={choice} onChange={(value) => onChoiceChange(value as CheckInOutChoice)}>
@@ -112,13 +113,15 @@ export default function CheckInOutField({
           // A missing status puts the WHOLE card in error, not just the radios.
           error={statusBad}
           content={
-            <Input label="Your status">
-              <RadioGroup value={status} onChange={onStatusChange} isValid={!statusBad} errorMessage="Choose Your status">
-                {TECH_STATUSES.map((s) => (
-                  <RadioItem key={s.value} value={s.value} variant="card" icon={s.icon} iconPack="regular" label={s.value} />
-                ))}
-              </RadioGroup>
-            </Input>
+            techStatusesEnabled() ? (
+              <TechStatusField
+                value={status}
+                onChange={onStatusChange}
+                isValid={!statusBad}
+                errorMessage="Choose Your status"
+                mobile={mobile}
+              />
+            ) : undefined
           }
         />
       </RadioGroup>
@@ -162,8 +165,8 @@ export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOu
       if (next === "stay") setStatus("");
     },
     setStatus,
-    /** "Check in" is picked with no status. */
-    statusBad: changing && !checkedIn && status === "",
+    /** "Check in" is picked with no status (only asked while the company has statuses). */
+    statusBad: changing && !checkedIn && status === "" && techStatusesEnabled(),
     dirty: shown && (choice !== initial || status !== ""),
     /** Start a session under `status`. */
     checkIn: changing && !checkedIn,
