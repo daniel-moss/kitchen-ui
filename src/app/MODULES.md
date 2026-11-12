@@ -525,7 +525,8 @@ Daniel's rules for the statuses:
   In / Out control). The bar and the mobile drawer read "Checked in"; the
   bar's ellipsis menu becomes a ghost "Check out" Button and the drawer keeps
   only "Check out", full width. The mobile drawer's buttons are ghost "Check
-  out" + solid "Update status". Timesheet rows read "Tracked time" (no Figma
+  out" + solid "Update status". The Assignees row of a checked-in tech reads
+  "Checked in" with the stopwatch, in red (Figma 29368-28388). Timesheet rows read "Tracked time" (no Figma
   for this yet), the log says "checked in".
 - A session keeps the NAME it was logged under; a removed status shows the
   stopwatch. Read the list through `techStatuses()` / `techStatusesEnabled()`

@@ -93,7 +93,7 @@ interface DetailsPanelProps {
   assignees: number[];
   onAssigneesChange: (ids: number[]) => void;
   /** Per-assignee time: their logged total and, while checked in, their status. */
-  assigneeStats?: Record<number, { trackedSec: number; status?: string }>;
+  assigneeStats?: Record<number, { trackedSec: number; checkedIn?: boolean; status?: string }>;
   /** The job lifecycle state — drives the Status module. */
   job: JobState;
   /** Finalized or Cancelled job → read-only: every edit affordance is hidden. */
@@ -681,25 +681,29 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                   // still rounds to zero.
                   const trackedLabel = formatHrMin(tracked);
                   const noneTracked = trackedLabel === "0 hr";
+                  // Checked in → the status, or "Checked in" with the
+                  // stopwatch when the company has no check-in statuses
+                  // (Figma 29368-28388).
+                  const liveStatus = stat?.checkedIn || stat?.status != null ? stat?.status ?? "Checked in" : undefined;
                   return (
                     <ListItem
                       key={u.id}
-                      variant={stat?.status != null ? "titleCaption" : "title"}
+                      variant={liveStatus != null ? "titleCaption" : "title"}
                       title={u.name}
                       avatar={<AvatarUser size="xl" imageSrc={u.avatar} />}
                       // Checked in → the status under the name, in red with its
                       // own icon (Figma 24522-64690).
-                      caption={stat?.status}
-                      captionClassName={stat?.status != null ? styles.assigneeStatus : undefined}
+                      caption={liveStatus}
+                      captionClassName={liveStatus != null ? styles.assigneeStatus : undefined}
                       // The slot's icon color is the caller's call (the DS
                       // leaves it undetermined), so it needs the red class too.
-                      captionSlotLeft={stat?.status != null ? <Icon icon={categoryIcon(stat.status)} size={14} className={styles.assigneeStatus} /> : undefined}
-                      // Caption over value (Figma 24522-64635): "Total tracked"
+                      captionSlotLeft={liveStatus != null ? <Icon icon={categoryIcon(stat?.status)} size={14} className={styles.assigneeStatus} /> : undefined}
+                      // Caption over value (Figma 24522-63732, re-read 2026-11-12): "Tracked"
                       // then the running total — placeholder gray at zero.
                       right={isPublicView ? undefined : (
                         <ItemTextBlock align="right"
                           variant="captionTitle"
-                          caption="Total tracked"
+                          caption="Tracked"
                           title={noneTracked ? "0 min" : trackedLabel}
                           className={noneTracked ? styles.zeroTracked : undefined}
                         />

@@ -1805,15 +1805,19 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   //
   // The per-session totals are ROUNDED the way the company rounds (2026-10-06,
   // when `COMPANY.roundsTimeUp` went on): the Timesheet's own group headers
-  // already were, and the same person's "Total tracked" must not read 4 hr
+  // already were, and the same person's "Tracked" total must not read 4 hr
   // 24 min beside a timesheet that adds up to 4 hr 30 min. A RUNNING session
   // is never rounded — the Timesheet does not round one either.
-  const assigneeStats: Record<number, { trackedSec: number; status?: string }> = {};
+  const assigneeStats: Record<number, { trackedSec: number; checkedIn: boolean; status?: string }> = {};
   for (const user of assigneeUsers) {
     const list = sessionsByUser[user.id] ?? [];
+    const running = list.find((s) => s.active);
     assigneeStats[user.id] = {
       trackedSec: list.reduce((acc, s) => acc + (s.active ? s.durationSec : roundUpSec(s.durationSec, COMPANY.roundsTimeUp)), 0),
-      status: list.find((s) => s.active)?.category,
+      // Checked in is its own fact: with the tech statuses off a running
+      // session carries no status, and the row still has to say so.
+      checkedIn: running != null,
+      status: running?.category,
     };
   }
 
