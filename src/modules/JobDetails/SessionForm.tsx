@@ -15,7 +15,7 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { formatFullDate } from "./SchedulingForm";
 import TechStatusField from "./TechStatusField";
-import { Session, techStatusesEnabled } from "./TimesheetPanel";
+import { Session, soleTechStatus, techStatusesEnabled } from "./TimesheetPanel";
 
 import styles from "./SessionForm.module.scss";
 
@@ -263,7 +263,8 @@ export default function SessionForm({ open, onClose, session, onSave, startDate,
       // The caller's day when it named one (the Timesheet review's per-day
       // plus), otherwise today.
       const day = startDate ?? new Date();
-      setCategory("");
+      // A company with ONE status starts on it (read-only in the field).
+      setCategory(soleTechStatus());
       setStart({ date: day, clock: "", meridiem: "AM" });
       setEnd({ date: day, clock: "", meridiem: "AM" });
       setEndEdited(false);

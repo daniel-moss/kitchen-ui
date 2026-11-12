@@ -82,7 +82,7 @@ import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
 import UnscheduleJobForm, { CheckedInAssignee } from "./UnscheduleJobForm";
 import TechStatusField from "./TechStatusField";
-import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, StatusItems, techStatusesEnabled } from "./TimesheetPanel";
+import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, soleTechStatus, StatusItems, techStatuses, techStatusesEnabled } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
@@ -1154,10 +1154,17 @@ const SessionBar = ({
           variant="titleCaption"
           title={checkedIn ? formatElapsed(elapsed) : "00:00"}
           titleColor={checkedIn ? "error" : "placeholder"}
-          caption={checkedIn ? category ?? "Tracking your time" : jobActive ? "Not tracking your time" : "Check in to track your time"}
+          // No status (the company has them off) → "Checked in" (Figma 24357-35129).
+          caption={checkedIn ? category ?? "Checked in" : jobActive ? "Not tracking your time" : "Check in to track your time"}
           captionColor={!checkedIn && jobActive ? "warning" : undefined}
         />
-        {checkedIn ? (
+        {checkedIn && !techStatusesEnabled() ? (
+          // No statuses → nothing to switch, so the bar offers "Check out"
+          // itself instead of the menu (Figma 24357-35129 / 29368-21249).
+          <Button size="lg" variant="ghost" leftIcon="arrow-left-from-arc" onClick={onCheckOut}>
+            Check out
+          </Button>
+        ) : checkedIn ? (
           <IconButton
             icon="ellipsis"
             size="lg"
@@ -1287,10 +1294,11 @@ const SessionDrawer = ({
       breakpoint="mobile"
       confirmOnDismiss={dirty}
       footer={
-        // Figma 24178-58902: NO Cancel — two equal-width buttons, subtle
-        // "Check out" and solid "Update", each filling half the bar.
+        // Figma 24178-58902 (re-read 2026-11-12): NO Cancel — two equal-width
+        // buttons, ghost "Check out" and solid "Update status". With no
+        // statuses only "Check out" is left, full width (29368-20837).
         <PopoverFooter stretch>
-          <Button size="lg" variant="subtle" leftIcon="arrow-left-from-arc" isFullWidth onClick={onCheckOut}>
+          <Button size="lg" variant="ghost" leftIcon="arrow-left-from-arc" isFullWidth onClick={onCheckOut}>
             Check out
           </Button>
           {/* Nothing to update when the company has the tech statuses off. */}
@@ -1304,7 +1312,7 @@ const SessionDrawer = ({
                 onClose();
               }}
             >
-              Update
+              Update status
             </Button>
           )}
         </PopoverFooter>
@@ -1312,7 +1320,7 @@ const SessionDrawer = ({
     >
       <div className={styles.sessionDrawerBody}>
         <div className={styles.sessionDrawerValue}>
-          <span className={styles.sessionDrawerCaption}>{category ?? "Tracking your time"}</span>
+          <span className={styles.sessionDrawerCaption}>{category ?? "Checked in"}</span>
           <span className={styles.sessionDrawerClock}>{formatElapsedFull(elapsed)}</span>
         </div>
         {/* The status is picked from card radios (a select past 4 statuses). */}
@@ -1338,11 +1346,12 @@ const CheckInDialog = ({
   onCheckIn: (status: string) => void;
   mobile?: boolean;
 }) => {
-  const [status, setStatus] = useState("");
+  // A company with ONE status starts on it (read-only in the field).
+  const [status, setStatus] = useState(soleTechStatus);
   const [showError, setShowError] = useState(false);
   useEffect(() => {
     if (!open) return;
-    setStatus("");
+    setStatus(soleTechStatus());
     setShowError(false);
   }, [open]);
   return (
@@ -1351,7 +1360,7 @@ const CheckInDialog = ({
       onClose={onClose}
       title="Check in"
       breakpoint={mobile ? "mobile" : "desktop"}
-      confirmOnDismiss={status !== ""}
+      confirmOnDismiss={status !== soleTechStatus()}
       footer={
         <PopoverFooter
           leadingButton={
@@ -2037,13 +2046,14 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   };
 
   // Check-in — opens the Check in dialog (Figma 24194-74433); confirming
-  // with a status starts the session. With the company's tech statuses OFF
-  // there is nothing to ask, so it checks in at once (2026-11-12).
+  // with a status starts the session. Only a CHOICE needs the dialog (Figma
+  // 24358-37527): with the statuses off, or just ONE status, "Check in"
+  // starts tracking at once — under that one status when there is one.
   const [checkInOpen, setCheckInOpen] = useState(false);
   const checkIn = () => {
     actionMenu.close();
-    if (techStatusesEnabled()) setCheckInOpen(true);
-    else doCheckIn("");
+    if (techStatuses().length > 1) setCheckInOpen(true);
+    else doCheckIn(soleTechStatus());
   };
   const doCheckIn = (status: string) => {
     beginSession(status || undefined);

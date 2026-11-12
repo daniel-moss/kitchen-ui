@@ -6,7 +6,7 @@ import RadioItem from "../../components/Radio/RadioItem";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 import TechStatusField from "./TechStatusField";
-import { techStatusesEnabled } from "./TimesheetPanel";
+import { soleTechStatus, techStatusesEnabled } from "./TimesheetPanel";
 import styles from "./CheckInOutField.module.scss";
 
 /** "stay" keeps the viewer's clock as it is; "change" checks in or out. */
@@ -146,12 +146,13 @@ interface UseCheckInOutOptions {
 export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOutOptions) {
   const initial = checkedIn ? defaults.checkedIn : defaults.checkedOut;
   const [choice, setChoice] = useState<CheckInOutChoice>(initial);
-  const [status, setStatus] = useState("");
+  // A company with ONE status starts on it (read-only in the field).
+  const [status, setStatus] = useState(soleTechStatus);
 
   useEffect(() => {
     if (!open) return;
     setChoice(initial);
-    setStatus("");
+    setStatus(soleTechStatus());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
@@ -162,12 +163,12 @@ export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOu
     // Leaving "Check in" resets the status pick (Daniel).
     setChoice: (next: CheckInOutChoice) => {
       setChoice(next);
-      if (next === "stay") setStatus("");
+      if (next === "stay") setStatus(soleTechStatus());
     },
     setStatus,
     /** "Check in" is picked with no status (only asked while the company has statuses). */
     statusBad: changing && !checkedIn && status === "" && techStatusesEnabled(),
-    dirty: shown && (choice !== initial || status !== ""),
+    dirty: shown && (choice !== initial || status !== soleTechStatus()),
     /** Start a session under `status`. */
     checkIn: changing && !checkedIn,
     /** End the running session. */

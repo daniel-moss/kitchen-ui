@@ -514,12 +514,19 @@ it — the shared `selectPopover` rule ("the card is fixed once open").
 Daniel's rules for the statuses:
 - Every company starts with the four; add / rename / remove / drag to reorder;
   at least one while on. Each has a name and an icon from a short list.
-- Up to 4 they are the designed card radios; from 5 the forms show a select
-  (the DS RadioGroup is "up to 4 options"). ONE build:
-  `modules/JobDetails/TechStatusField.tsx`.
-- OFF: "Check in" checks in at once (plain toast), no "Your status" anywhere
-  (bar menu, drawer, Time session form, Check In / Out control), rows read
-  "Tracked time" with the stopwatch, the log says "checked in".
+- Figma section "Your Status" 29366-19193: ONE status = its card, selected
+  and read-only (forms start on it via `soleTechStatus()`); 2–4 = the card
+  radios; 5+ = a select over a SelectList with no search (removed
+  2026-11-12). ONE build: `modules/JobDetails/TechStatusField.tsx`.
+- Figma section "Check In / Out" 24358-36818 (re-read 2026-11-12): "Check
+  in" opens the dialog ONLY with more than one status; with one it checks in
+  under it at once, with none at once and a plain toast.
+- OFF: no "Your status" anywhere (bar menu, drawer, Time session form, Check
+  In / Out control). The bar and the mobile drawer read "Checked in"; the
+  bar's ellipsis menu becomes a ghost "Check out" Button and the drawer keeps
+  only "Check out", full width. The mobile drawer's buttons are ghost "Check
+  out" + solid "Update status". Timesheet rows read "Tracked time" (no Figma
+  for this yet), the log says "checked in".
 - A session keeps the NAME it was logged under; a removed status shows the
   stopwatch. Read the list through `techStatuses()` / `techStatusesEnabled()`
   in `TimesheetPanel.tsx` — `TECH_STATUSES` is gone.

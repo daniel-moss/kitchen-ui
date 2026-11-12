@@ -335,6 +335,15 @@ export const techStatusesEnabled = () => COMPANY.techStatusesEnabled && COMPANY.
 export const techStatuses = () =>
   techStatusesEnabled() ? COMPANY.techStatuses.map((status) => ({ value: status.name, icon: status.icon })) : [];
 
+/**
+ * The status a form starts on: the company's ONLY status when it has exactly
+ * one (Figma 29368-20680: "Select by default. Read-only."), otherwise none.
+ */
+export const soleTechStatus = () => {
+  const statuses = techStatuses();
+  return statuses.length === 1 ? statuses[0].value : "";
+};
+
 // Check-in status → its icon. A name the company no longer has (removed or
 // renamed since), or none at all, gets the stopwatch.
 export const categoryIcon = (category?: string) =>
