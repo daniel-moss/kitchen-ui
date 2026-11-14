@@ -221,6 +221,8 @@ export default function HoldJobDetailedForm({
                   setPreviewed(recordFor(row, job.locationId));
                   setPanelOpen(true);
                 }}
+                // Takes the piece off the JOB at once, like the field (live step).
+                onRemove={() => onEquipmentIdsChange(equipmentIds.filter((id) => id !== row.id))}
               />
             ))}
           </div>

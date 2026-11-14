@@ -96,11 +96,17 @@ export function EquipmentDetailModule({
   equipment,
   avatar,
   onEdit,
+  onRemove,
 }: {
   equipment: Equipment;
   avatar?: ReactNode;
-  /** The Hold-flow card: the body's "Edit" button, and no header button. */
+  /** The Hold-flow card: the body's "Edit" button, and no "Open details" in the header. */
   onEdit?: () => void;
+  /**
+   * The Hold-flow card's header "Remove" — a muted md IconButton (close) that
+   * takes the piece off the job (Figma 27210-57604, Daniel 2026-11-14).
+   */
+  onRemove?: () => void;
 }) {
   // The SAME record and warranty rule the Equipment side panel reads
   // (Daniel, 2026-11-14: the card used placeholder details that disagreed with
@@ -119,7 +125,11 @@ export function EquipmentDetailModule({
       title={equipment.name}
       slotLeft={avatar}
       slotRight={
-        onEdit != null ? undefined : (
+        onRemove != null ? (
+          <HoverTooltip text="Remove">
+            <IconButton icon="close" variant="muted" size="md" aria-label={`Remove ${equipment.name}`} onClick={onRemove} />
+          </HoverTooltip>
+        ) : onEdit != null ? undefined : (
           <Button variant="ghost" size="md" rightIcon="arrow-right" onClick={noop}>
             Open details
           </Button>
