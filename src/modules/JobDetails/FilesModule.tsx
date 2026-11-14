@@ -1,11 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-
 import { toast } from "../../components/Toast/Toaster";
-import { filesOf, jobById } from "../../data/db";
 import SharedFilesModule from "../FilesModule/FilesModule";
 import { FileVisibility, ModuleFile } from "../FilesModule/FilesModule.types";
 
 import { useCurrentJobId } from "./currentJob";
+import { useJobFiles } from "./jobWork";
 
 // The job's "Files" module. The module ITSELF is shared — every object that
 // holds files shows the same one (src/modules/FilesModule) — so what lives
@@ -21,21 +19,9 @@ import { useCurrentJobId } from "./currentJob";
 export default function FilesModule({ mobile = false, isPublicView = false, readOnly = false }: { mobile?: boolean; isPublicView?: boolean; readOnly?: boolean }) {
   const jobId = useCurrentJobId();
 
-  const seeded = useMemo<ModuleFile[]>(() => {
-    const job = jobById(jobId);
-    return (job == null ? [] : filesOf(job)).map((file) => ({
-      id: String(file.id),
-      name: file.name,
-      type: file.kind,
-      size: file.size,
-      visibility: file.visibility,
-      meta: file.meta,
-    }));
-  }, [jobId]);
-
-  const [files, setFiles] = useState(seeded);
-  // The page serves all 78 jobs, so the list has to follow the job on screen.
-  useEffect(() => setFiles(seeded), [seeded]);
+  // Kept per job in the app store since 2026-11-14 (`jobWork.ts`), so the
+  // "Hold job" Detailed flow can add files to the same list.
+  const [files, setFiles] = useJobFiles(jobId);
 
   // The drag indexes are within ONE group, so map them back onto the flat array.
   const reorder = (visibility: FileVisibility, from: number, to: number) =>

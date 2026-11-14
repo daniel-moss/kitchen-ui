@@ -508,6 +508,49 @@ public view's "Service company" module show the name's first letter.
 Known limit: a select's list stays where it opened if the PAGE scrolls under
 it — the shared `selectPopover` rule ("the card is fixed once open").
 
+**Sub-status lists** (`jobSubStatuses`, 2026-11-14): the company's sub-statuses
+moved INTO the settings (they start as the db's `JOB_SUB_STATUSES`). Under each
+sub-status switch, while it is on, `SubStatusesSettings.tsx` lists that kind's
+sub-statuses (A to Z, like the dialogs — no reorder): add / edit / remove, at
+least one kept. Each has a name, "Reason required" and an optional reason help
+text (`reasonLabel`); on hold ones also External / Internal. Without its own
+help text a dialog shows its GENERIC one — `COMPANY.reasonHelpTexts` (start,
+resume, changeActiveStatus, pause, hold), editable in fields under each switch
+(shown whether the switch is on or off; empty = no help text). Every reader goes through `subStatusesFor`,
+`subStatusOf`, `statusRows(type)`, `isInternalHold` — the old load-time copies
+(`STATUS_ROWS`, `INTERNAL_ON_HOLD`, `PAUSE_SUB_STATUSES`, the jobs filter's map,
+the db id index) are gone. A removed sub-status leaves its jobs with the plain
+status label.
+
+**Check in / out rules** (2026-11-14, Demo-only): `COMPANY.checkInAfter`
+(start / resume / pause / hold → "in" | "out") is the GENERIC rule — where the
+tech ends up by default; a sub-status's own `checkInAfter` wins. It only
+PRESELECTS the dialog's option (Daniel: default, not forced). The Change status
+dialogs follow it too (active → Start's rule). Picking another sub-status moves
+the preselection until the user picks an option by hand (`useCheckInOut`'s
+`touched`). Helpers: `checkInAfterFor`, `checkInDefaults` in
+`modules/JobDetails/CheckInOutField.tsx`. Reschedule / Complete job keep their
+own fixed defaults. Settings: a select per action under each sub-status switch,
+and "After this status, the tech is" in the sub-status edit dialog.
+`ChoiceField` moved to `app/ChoiceField.tsx`.
+
+**Hold job type** (`holdJobType`, 2026-11-14, Demo-only): "Default" = the
+one "Hold job" dialog (status + reason); "Detailed" = the 4-step flow
+`modules/JobDetails/HoldJobDetailedForm.tsx` (Figma 27210-61490): Equipment
+(`EquipmentSelectField` + `EquipmentDetailModule` with `onEdit` — redesigned
+2026-11-14: a full-width subtle "Edit" in the card body opens the Equipment
+side panel; "No equipment" empty state; required when the job's "Make
+equipment required" is on → "Choose Equipment" on Next) · Summary (Work summary
+REQUIRED, Notes, Files — the New Job Files module) · Charges (the Charges tab's
+`ChargesSegment` on the SAVED lines, `showProfitability={false}`) · Status (the
+Hold dialog's own fields, `usePauseFields`). Back / Next only. Equipment and Charges
+edit the JOB live (Daniel, 2026-11-14: they must reflect the Equipment module
+and the Charges tab); the Summary and Status steps are drafts until "Hold"
+(`holdJobDetailed` applies them, then `pauseJob`) — cancelling drops those
+after "Discard changes?". Work summary, Notes
+and the job's Files moved to the app store for it (`jobWork.ts`:
+`useJobTexts` / `useJobFiles`).
+
 **Added the same day:** the time-rounding STEP (`timeRoundingStepMinutes`,
 5–60 min, read by `roundUpSec`) and the **tech check-in statuses**
 (`techStatusesEnabled` + `techStatuses`, editor in `TechStatusesSettings.tsx`).
@@ -528,6 +571,11 @@ Daniel's rules for the statuses:
   out" + solid "Update status". The Assignees row of a checked-in tech reads
   "Checked in" with the stopwatch, in red (Figma 29368-28388). Timesheet rows read "Tracked time" (no Figma
   for this yet), the log says "checked in".
+- ONE status (Daniel 2026-11-14, Figma 24357-35024 / 29535-60187): nothing to
+  switch, so the bar shows the ghost "Check out" Button (no ellipsis menu —
+  the Figma one-status bar still draws the ellipsis; Daniel's rule wins) and
+  the mobile drawer keeps only "Check out", full width, with no status cards.
+  Caption and icon stay the status's own. Gate: `canSwitchTechStatus()`.
 - A session keeps the NAME it was logged under; a removed status shows the
   stopwatch. Read the list through `techStatuses()` / `techStatusesEnabled()`
   in `TimesheetPanel.tsx` — `TECH_STATUSES` is gone.

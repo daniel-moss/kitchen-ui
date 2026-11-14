@@ -70,6 +70,12 @@
   outline: none;
   color: var(--text-strong);
 
+  // The optional placeholder (Figma: body/400 compact, text-placeholder).
+  &::placeholder {
+    color: var(--text-placeholder);
+    opacity: 1;
+  }
+
   &:disabled {
     color: var(--text-strong);
     -webkit-text-fill-color: var(--text-strong);

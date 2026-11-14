@@ -344,6 +344,14 @@ export const soleTechStatus = () => {
   return statuses.length === 1 ? statuses[0].value : "";
 };
 
+/**
+ * A running session can SWITCH status only with 2+ statuses. With one (or
+ * none) the bar shows a plain "Check out" Button instead of the menu and the
+ * mobile drawer keeps only "Check out" (Daniel 2026-11-14; Figma 24357-35024,
+ * 29535-60187).
+ */
+export const canSwitchTechStatus = () => techStatuses().length > 1;
+
 // Check-in status → its icon. A name the company no longer has (removed or
 // renamed since), or none at all, gets the stopwatch.
 export const categoryIcon = (category?: string) =>

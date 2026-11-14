@@ -89,6 +89,7 @@ const meta: Meta<typeof ListItem> = {
     },
     titleClassName: slot("string", "Extra class for the title line (e.g. a status color)."),
     captionClassName: slot("string", "Extra class for the caption line (e.g. the warning / error color)."),
+    titleSlotLeft: slot("ReactNode", "Left slot on the TITLE line — an `Icon` for avatar-less rows (compact rows in hints). Placed 8px before the title in a 20px box; the icon follows the title's color."),
     captionSlotLeft: slot("ReactNode", "Left slot on the CAPTION line — an `Icon` for now. Its size, weight and color are the caller's choice; the slot only places the glyph 8px before the caption, in a 20px box centered on the line."),
     right: slot("ReactNode", "The right text block — an `ItemTextBlock` with `align=\"right\"`. Hugs its content and never truncates, so it takes priority over the left text."),
 

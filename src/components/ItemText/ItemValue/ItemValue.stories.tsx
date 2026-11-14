@@ -22,7 +22,7 @@ const slotRow: CSSProperties = { display: "flex", alignItems: "center", gap: "va
 
 const icon = <Icon icon="diamonds-4" size={14} />;
 
-const COLORS = ["strong", "subtle", "placeholder", "warning", "error"];
+const COLORS = ["strong", "subtle", "placeholder", "success", "warning", "error"];
 
 const meta: Meta<ItemValueProps> = {
   title: "Components/ItemText/ItemValue",

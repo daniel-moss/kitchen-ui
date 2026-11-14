@@ -1,0 +1,43 @@
+// The four type modules and the subtotal stack like the Summary panel's modules.
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// Figma "Gap: Listitems": 4px between the line items. ItemGroup itself has no
+// gap between its items. The group has no header and no accordion here, so
+// its items list is its first child.
+.lineGroup > div:first-child {
+  gap: var(--size-1); // 4px
+}
+
+// An open row's body: the buttons, then the details 16px below them.
+.lineBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// Edit fills the row; Delete and Pricebook hug their labels, 8px apart.
+.lineActions {
+  display: flex;
+  gap: var(--size-2); // 8px
+
+  // A full-width Button does not shrink on its own, so it would push past the row.
+  > :first-child {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  > :not(:first-child) {
+    flex: none;
+  }
+}
+
+// The node's override (29380-43023): a subtle Button whose icon and label are
+// --text-error. Through the Button's own color variable, so it holds on hover,
+// press and focus. Not a Button variant in the DS — flagged to Daniel.
+.lineActions .deleteButton {
+  --btn-fg: var(--text-error);
+}

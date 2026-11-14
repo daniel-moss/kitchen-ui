@@ -237,7 +237,7 @@ export default function Dialog(props: DialogProps) {
 
   // ---- focus: multi-step, near-/full-screen, no drawer ----
   if (props.type === "focus") {
-    const { stepGroup, currentStep, stepCount, onBack, onNext, onFinish, finalActionLabel, secondaryAction } = props;
+    const { stepGroup, currentStep, stepCount, onBack, onNext, onFinish, finalActionLabel, finalActionIcon, finalActionIconPack, secondaryAction } = props;
     const isFirst = currentStep <= 0;
     const isLast = currentStep >= stepCount - 1;
 
@@ -271,7 +271,7 @@ export default function Dialog(props: DialogProps) {
         >
           {secondaryAction}
           {isLast ? (
-            <Button size="lg" variant="solid" isDisabled={gateNext && !atEnd} onClick={onFinish}>
+            <Button size="lg" variant="solid" leftIcon={finalActionIcon} leftIconPack={finalActionIconPack} isDisabled={gateNext && !atEnd} onClick={onFinish}>
               {finalActionLabel}
             </Button>
           ) : (

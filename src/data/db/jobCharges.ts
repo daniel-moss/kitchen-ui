@@ -272,7 +272,11 @@ function productLines(job: Job): Charge[] {
         subtypeId: item?.subtypeId ?? null,
         // Every tracked part comes out of the main warehouse in the demo.
         inventoryLocationId: item?.trackInventory === true ? "inv-warehouse" : undefined,
-        cost: item?.cost ?? 0,
+        // A part can be billed in a smaller unit than its pricebook product
+        // (R-404A by the lb, the product is a 24 lb cylinder), so the cost
+        // keeps the product's cost-to-price ratio — otherwise the
+        // Profitability module showed a cylinder's cost on 3 lb.
+        cost: item == null ? 0 : item.price > 0 ? Math.round(item.cost * (part.price / item.price) * 1000) / 1000 : item.cost,
         price: part.price,
         quantity: part.qty,
         equipmentId: attributed ? job.equipmentIds?.[0] : undefined,

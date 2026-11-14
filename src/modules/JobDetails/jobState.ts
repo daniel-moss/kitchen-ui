@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import { LIFECYCLE_META, LIFECYCLE_ORDER, LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
-import { INTERNAL_ON_HOLD } from "./PauseJobForm";
+import { isInternalOnHold } from "./PauseJobForm";
 import { isPastDue, Scheduling } from "./SchedulingForm";
 
 export type { LifecyclePeriod, LifecycleRow } from "./JobLifecycleModule/lifecycleData";
@@ -203,7 +203,7 @@ export function displayStatus(job: JobState, scheduling: Scheduling): BadgeJobSt
   // the crimson badge after switching to an internal reason, because this
   // returned `onHoldExternal` for every held job).
   if (job.status === "onHold") {
-    return job.subStatus != null && INTERNAL_ON_HOLD.includes(job.subStatus) ? "onHoldInternal" : "onHoldExternal";
+    return job.subStatus != null && isInternalOnHold(job.subStatus) ? "onHoldInternal" : "onHoldExternal";
   }
   return job.status;
 }

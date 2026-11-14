@@ -78,35 +78,11 @@ export default function EquipmentPicker({
   locationLabel,
   mobile,
 }: EquipmentPickerProps) {
-  const pop = useSelectPopover(mobile);
-  const [createOpen, setCreateOpen] = useState(false);
-
   const options = [...pool].sort((a, b) => a.name.localeCompare(b.name));
   const selected = options.filter((row) => value.includes(row.id));
   const hasIssues = selected.some(equipmentIncomplete);
 
-  const draft = useSelectionDraft(pop.open, value, onChange);
-
   const remove = (id: string) => onChange(value.filter((v) => v !== id));
-
-  // Closing the list applies its draft; the New-equipment form opens after.
-  const openCreate = () => {
-    pop.close();
-    setCreateOpen(true);
-  };
-
-  const addEquipmentButton = (
-    <Button size="lg" variant="ghost" leftIcon="plus" onClick={openCreate}>
-      Add equipment
-    </Button>
-  );
-
-  // The created piece joins the pool (the caller) and is ticked. `value` is
-  // fresh here: the list's draft was applied when it closed.
-  const handleCreated = (values: NewEquipment) => {
-    const created = onCreate(values);
-    onChange([...value, created.id]);
-  };
 
   return (
     <>
@@ -119,15 +95,13 @@ export default function EquipmentPicker({
       />
       <div className={styles.stack}>
         <Input label="Equipment" labelCondition="optional">
-          <SelectField
-            multiSelect
-            count={value.length}
-            // One pick reads "Name · Manufacturer", more read the label (node 24336-13708).
-            value={selected.length === 1 ? equipmentLabel(selected[0]) : undefined}
-            multiSelectLabel="Pieces of equipment selected"
-            onClearSelection={() => onChange([])}
-            open={pop.open}
-            onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
+          <EquipmentSelectField
+            value={value}
+            onChange={onChange}
+            options={pool}
+            onCreate={onCreate}
+            locationLabel={locationLabel}
+            mobile={mobile}
           />
         </Input>
         {selected.length > 0 && (
@@ -159,7 +133,71 @@ export default function EquipmentPicker({
           />
         )}
       </div>
+    </>
+  );
+}
 
+/**
+ * The multi-select equipment FIELD alone — the SelectField, its standard
+ * multi-select list (3. above) and the New-equipment form (4.). Split out on
+ * 2026-11-14 so the "Hold job" Detailed flow's Equipment step uses the same
+ * build; the caller supplies any label and shows the picks its own way.
+ */
+export function EquipmentSelectField({
+  value,
+  onChange,
+  options: pool,
+  onCreate,
+  locationLabel,
+  mobile,
+  isValid = true,
+  errorMessage,
+}: Pick<EquipmentPickerProps, "value" | "onChange" | "options" | "onCreate" | "locationLabel" | "mobile"> & {
+  /** False shows the field's error state (the Hold flow's required step). Default true. */
+  isValid?: boolean;
+  errorMessage?: string;
+}) {
+  const pop = useSelectPopover(mobile);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const options = [...pool].sort((a, b) => a.name.localeCompare(b.name));
+  const selected = options.filter((row) => value.includes(row.id));
+
+  const draft = useSelectionDraft(pop.open, value, onChange);
+
+  // Closing the list applies its draft; the New-equipment form opens after.
+  const openCreate = () => {
+    pop.close();
+    setCreateOpen(true);
+  };
+
+  const addEquipmentButton = (
+    <Button size="lg" variant="ghost" leftIcon="plus" onClick={openCreate}>
+      Add equipment
+    </Button>
+  );
+
+  // The created piece joins the pool (the caller) and is ticked. `value` is
+  // fresh here: the list's draft was applied when it closed.
+  const handleCreated = (values: NewEquipment) => {
+    const created = onCreate(values);
+    onChange([...value, created.id]);
+  };
+
+  return (
+    <>
+      <SelectField
+        multiSelect
+        count={value.length}
+        // One pick reads "Name · Manufacturer", more read the label (node 24336-13708).
+        value={selected.length === 1 ? equipmentLabel(selected[0]) : undefined}
+        multiSelectLabel="Pieces of equipment selected"
+        onClearSelection={() => onChange([])}
+        open={pop.open}
+        onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
+        isValid={isValid}
+        errorMessage={errorMessage}
+      />
       <SelectPopoverList
         pop={pop}
         mobile={mobile}

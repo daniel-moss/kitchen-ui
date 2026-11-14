@@ -154,7 +154,7 @@ const EquipmentRow = ({
  * page (the New-equipment form) has no database row, so its values are mapped
  * onto the same shape — it still belongs to this job's location.
  */
-const recordFor = (equipment: Equipment, locationId: string): EquipmentRecord =>
+export const recordFor = (equipment: Equipment, locationId: string): EquipmentRecord =>
   equipmentById(equipment.id) ?? {
     id: equipment.id,
     locationId,

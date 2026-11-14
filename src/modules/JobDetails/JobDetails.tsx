@@ -64,6 +64,9 @@ import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
 import { Job as ListJob } from "../shared/jobRow";
 import { defaultJob, displayStatus, formatStatusTimestamp, JobState, JobStatus, statusLabel, useJobLifecycle } from "./jobState";
+import { toModuleFile } from "../FilesModule/FilesModule";
+import HoldJobDetailedForm, { HoldJobDetailedResult } from "./HoldJobDetailedForm";
+import { useJobFiles, useJobTexts } from "./jobWork";
 import PauseJobForm from "./PauseJobForm";
 import { defaultScheduling, durationLabel, Scheduling, scheduledForLabel } from "./SchedulingForm";
 import { defaultServiceValues, ServiceValues } from "./ServiceForm";
@@ -82,7 +85,7 @@ import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
 import StartJobForm from "./StartJobForm";
 import UnscheduleJobForm, { CheckedInAssignee } from "./UnscheduleJobForm";
 import TechStatusField from "./TechStatusField";
-import TimesheetPanel, { categoryIcon, formatHrMin, roundUpSec, Session, soleTechStatus, StatusItems, techStatuses, techStatusesEnabled } from "./TimesheetPanel";
+import TimesheetPanel, { canSwitchTechStatus, categoryIcon, formatHrMin, roundUpSec, Session, soleTechStatus, StatusItems, techStatuses, techStatusesEnabled } from "./TimesheetPanel";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import { isRowDragActive } from "../../utils/dragLock";
 import { copyText, noop, slot, useAnchoredMenu } from "./shared";
@@ -1158,9 +1161,11 @@ const SessionBar = ({
           caption={checkedIn ? category ?? "Checked in" : jobActive ? "Not tracking your time" : "Check in to track your time"}
           captionColor={!checkedIn && jobActive ? "warning" : undefined}
         />
-        {checkedIn && !techStatusesEnabled() ? (
-          // No statuses → nothing to switch, so the bar offers "Check out"
-          // itself instead of the menu (Figma 24357-35129 / 29368-21249).
+        {checkedIn && !canSwitchTechStatus() ? (
+          // One status or none → nothing to switch, so the bar offers "Check
+          // out" itself instead of the menu (Figma 24357-35129 / 29535-60163;
+          // the one-status node still draws the ellipsis too — Daniel
+          // 2026-11-14: no menu with one status).
           <Button size="lg" variant="ghost" leftIcon="arrow-left-from-arc" onClick={onCheckOut}>
             Check out
           </Button>
@@ -1183,8 +1188,8 @@ const SessionBar = ({
       {menu.pos != null && (
         <div ref={menu.cardRef} className={styles.contextMenu} style={{ top: menu.pos.top, left: menu.pos.left, right: menu.pos.right }}>
           <Menu open={menu.open} onClose={menu.close} breakpoint="desktop" className={styles.sessionMenuCard}>
-            {/* No status to switch when the company has the tech statuses off. */}
-            {techStatusesEnabled() && (
+            {/* No status to switch with fewer than two statuses. */}
+            {canSwitchTechStatus() && (
               <MenuItemGroup>
                 <MenuItem
                   label="Your status"
@@ -1296,13 +1301,14 @@ const SessionDrawer = ({
       footer={
         // Figma 24178-58902 (re-read 2026-11-12): NO Cancel — two equal-width
         // buttons, ghost "Check out" and solid "Update status". With no
-        // statuses only "Check out" is left, full width (29368-20837).
+        // statuses, or just ONE, only "Check out" is left, full width
+        // (29368-20837 / 29535-60187).
         <PopoverFooter stretch>
           <Button size="lg" variant="ghost" leftIcon="arrow-left-from-arc" isFullWidth onClick={onCheckOut}>
             Check out
           </Button>
-          {/* Nothing to update when the company has the tech statuses off. */}
-          {techStatusesEnabled() && (
+          {/* Nothing to update with fewer than two statuses. */}
+          {canSwitchTechStatus() && (
             <Button
               size="lg"
               variant="solid"
@@ -1323,8 +1329,9 @@ const SessionDrawer = ({
           <span className={styles.sessionDrawerCaption}>{category ?? "Checked in"}</span>
           <span className={styles.sessionDrawerClock}>{formatElapsedFull(elapsed)}</span>
         </div>
-        {/* The status is picked from card radios (a select past 4 statuses). */}
-        <TechStatusField value={draft} onChange={setDraft} mobile />
+        {/* The status is picked from card radios (a select past 4 statuses).
+            One status or none → nothing to pick (Figma 29535-60187). */}
+        {canSwitchTechStatus() && <TechStatusField value={draft} onChange={setDraft} mobile />}
       </div>
     </Dialog>
   );
@@ -1505,6 +1512,11 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // WHICH of the two dialogs is open — "Pause" and "Hold" are separate menu
   // items and separate dialogs (Figma 24058-15840 / 24963-43684).
   const [pauseFormType, setPauseFormType] = useState<"quick-pause" | "on-hold">("quick-pause");
+  // The DETAILED "Hold job" flow — what "Hold" opens when the company's Demo
+  // setting says so (Daniel, 2026-11-14).
+  const [holdDetailedOpen, setHoldDetailedOpen] = useState(false);
+  const jobTexts = useJobTexts(record.id);
+  const [, setJobFiles] = useJobFiles(record.id);
   const [resumeOpen, setResumeOpen] = useState(false);
   const [completeOpen, setCompleteOpen] = useState(false);
   // Opens the moment the Complete flow finishes (Figma 24576-152451), and again
@@ -1887,6 +1899,12 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       setCheckedIn(false);
       endActiveSession();
       pushEvent({ kind: "checkout" });
+      // Checking out from a status dialog (Hold, Pause, the Change status
+      // forms) logs the session and opens the Timesheet review, like every
+      // other check-out (Figma 24598-41150; the "Hold" button annotation,
+      // 27267-70070, Daniel 2026-11-14). The dialog's own toast stays the
+      // only toast.
+      setTimesheetOpen(true);
     }
   };
   const cancelJob = (reason: string) => {
@@ -1918,6 +1936,17 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       reasonTitle: "Pause reason",
     });
     applyCheckInOut(clock.checkIn, clock.checkOut, clock.status);
+  };
+  // "Hold" from the Detailed flow: the Summary step's drafts are applied
+  // (Equipment and Charges were saved as they changed), then the job goes on
+  // hold exactly as from the one-dialog flow.
+  const holdJobDetailed = (result: HoldJobDetailedResult) => {
+    if (result.summary !== jobTexts.summary) logTextProperty("Work summary", jobTexts.summary, result.summary);
+    if (result.notes !== jobTexts.notes) logTextProperty("Notes to dispatcher(s)", jobTexts.notes, result.notes);
+    jobTexts.setSummary(result.summary);
+    jobTexts.setNotes(result.notes);
+    if (result.files.length > 0) setJobFiles((files) => [...files, ...result.files.map((file) => toModuleFile(file, viewer.id))]);
+    pauseJob("on-hold", result.subStatus, result.reason, result.clock);
   };
   // Resume back to active with a fresh sub-status (updates "Active on").
   // Like startJob (Figma 24096-19684): the form's "Check in" card decides
@@ -2367,6 +2396,11 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     },
     onHold: () => {
       actionMenu.close();
+      // Read at use time — the Demo settings page changes it.
+      if (COMPANY.holdJobType === "detailed") {
+        setHoldDetailedOpen(true);
+        return;
+      }
       setPauseFormType("on-hold");
       setPauseOpen(true);
     },
@@ -2513,6 +2547,9 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     pauseOpen,
     setPauseOpen,
     pauseFormType,
+    holdDetailedOpen,
+    setHoldDetailedOpen,
+    holdJobDetailed,
     resumeOpen,
     setResumeOpen,
     completeOpen,
@@ -2587,9 +2624,38 @@ type ShellState = ReturnType<typeof useJobShell>;
 
 // All the lifecycle + time-session forms, shared by both shells (they differ
 // only by the mobile flag / Prompt breakpoint). Rendered once per shell.
-const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) => (
+const JobForms = ({
+  s,
+  mobile = false,
+  laborRates,
+  onAddLaborRate,
+}: {
+  s: ShellState;
+  mobile?: boolean;
+  laborRates?: LaborItem[];
+  onAddLaborRate?: () => void;
+}) => (
   <>
     <PauseJobForm open={s.pauseOpen} onClose={() => s.setPauseOpen(false)} onPause={s.pauseJob} type={s.pauseFormType} showCheckIn={s.viewerIsAssignee} runningSession={s.runningSession} mobile={mobile} />
+    {/* "Hold job" — the Detailed flow (Figma 27210-61490), opened instead of
+        the one dialog when the company's setting is "Detailed". */}
+    <HoldJobDetailedForm
+      open={s.holdDetailedOpen}
+      onClose={() => s.setHoldDetailedOpen(false)}
+      onHold={s.holdJobDetailed}
+      job={jobById(s.jobId)!}
+      equipmentIds={s.equipmentIds}
+      onEquipmentIdsChange={s.changeEquipmentIds}
+      equipmentPool={s.equipmentPool}
+      isEquipmentRequired={s.isEquipmentRequired}
+      onCreateEquipment={s.createEquipment}
+      locationLabel={s.location.name}
+      laborRates={laborRates}
+      onAddLaborRate={onAddLaborRate}
+      showCheckIn={s.viewerIsAssignee}
+      runningSession={s.runningSession}
+      mobile={mobile}
+    />
     {/* Complete job — the 5-step flow (Equipment shares the live equipment list;
         the rest is a snapshot). Figma section 24106-16424. */}
     <CompleteJobForm
@@ -2672,6 +2738,8 @@ const JobForms = ({ s, mobile = false }: { s: ShellState; mobile?: boolean }) =>
       // already names the job, the same trim Start / Cancel / Schedule took.
       submitLabel="Resume"
       reasonLabel="Resume reason"
+      action="resume"
+      reasonHelp={COMPANY.reasonHelpTexts.resume}
       // No job ID in the toast (Figma 24096-19695, 2026-10-22).
       toastTitle="Job resumed"
       banner={
@@ -2956,7 +3024,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
       )}
       <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.viewerIsAssignee, s.runningSession)} />
       <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} />
-      <JobForms s={s} />
+      <JobForms s={s} laborRates={laborRates} onAddLaborRate={onAddLaborRate} />
       <Toaster breakpoint="desktop" />
     </div>
   );
@@ -3280,7 +3348,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
       </Menu>
       <StartJobForm open={s.startOpen} onClose={() => s.setStartOpen(false)} onStart={s.startJob} {...startFormRules(s.viewerIsAssignee, s.runningSession)} mobile />
       <CancelJobForm inventoryProducts={inventoryProductsOf(s.charges)} open={s.cancelOpen} onClose={() => s.setCancelOpen(false)} scheduling={s.scheduling} onCancel={s.cancelJob} mobile />
-      <JobForms s={s} mobile />
+      <JobForms s={s} mobile laborRates={laborRates} onAddLaborRate={onAddLaborRate} />
       <Toaster breakpoint="mobile" />
     </div>
   );

@@ -11,10 +11,11 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 
+import { COMPANY } from "../../data/db";
 import { JobSubStatusRecord } from "../../data/db/types";
 import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
-import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
+import CheckInOutField, { checkInAfterFor, checkInDefaults, useCheckInOut } from "./CheckInOutField";
 
 import styles from "./jobForm.module.scss";
 
@@ -74,7 +75,14 @@ export default function ChangeActiveStatusForm({
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
   const checkedIn = runningSession != null;
-  const clock = useCheckInOut({ open, shown: showCheckIn, checkedIn, defaults: { checkedIn: "stay", checkedOut: "change" } });
+  // Check in / out default: the picked sub-status's rule, else the company's
+  // Start rule (Daniel, 2026-11-14: the change dialogs follow the same rules).
+  const clock = useCheckInOut({
+    open,
+    shown: showCheckIn,
+    checkedIn,
+    defaults: checkInDefaults(checkInAfterFor("start", statuses.find((row) => row.name === subStatus))),
+  });
 
   // A fresh open reloads the pre-fill; closing forces the select shut.
   useEffect(() => {
@@ -90,7 +98,9 @@ export default function ChangeActiveStatusForm({
 
   const picked = statuses.find((row) => row.name === subStatus);
   const reasonRequired = picked?.reasonRequired === true;
-  const reasonHelp = picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : undefined;
+  // The sub-status's own help text, else the generic one (Daniel, 2026-11-14).
+  const reasonHelp =
+    picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : COMPANY.reasonHelpTexts.changeActiveStatus || undefined;
 
   const dirty = subStatus !== initial || reason !== "" || clock.dirty;
   const subStatusBad = subStatusRequired && subStatus === "";

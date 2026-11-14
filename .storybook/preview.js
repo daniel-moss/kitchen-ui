@@ -976,6 +976,9 @@ const preview = {
                   ["Preview", ["PanelDesktop", "PanelMobile", "Mapping", "ServiceCall", "HiddenAnswers", "HotSideRepair"]],
                   "Lifecycle",
                   ["Concept 1", "Concept 2", "Concept 3", "Concept 4", "Concept 5"],
+                  // The Charges segment's module under the Subtotal (2026-11-14).
+                  "Profitability",
+                  ["Desktop", "Mobile", "Loss", "Zero", "No cost", "No line items"],
                   "Summary",
                   [
                     "Empty / Desktop",

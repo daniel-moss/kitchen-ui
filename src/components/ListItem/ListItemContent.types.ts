@@ -76,6 +76,13 @@ export interface ListItemContentProps {
    */
   captionSlotLeft?: ReactNode;
   /**
+   * Left slot on the TITLE line — an `Icon` (Figma ListItem compact rows with
+   * ItemTextLine `slotLeft`, e.g. the Charges "Cost" hint 21842-96949). Placed
+   * like `captionSlotLeft`: 8px before the title in a 20px box; the icon
+   * follows the title's color. Meant for avatar-less rows.
+   */
+  titleSlotLeft?: ReactNode;
+  /**
    * Right block — an `ItemTextBlock` with `align="right"`, the same component
    * the left block is built from. Hugs its content and never truncates, so the
    * LEFT text is the one that gives way.

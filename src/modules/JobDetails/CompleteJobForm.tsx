@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import Avatar from "../../components/Avatar/Avatar";
 import Button from "../../components/Button/Button";
@@ -34,7 +34,10 @@ import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
+import { warrantyCoverageOf } from "../../data/db";
 import type { ChargeGroup } from "../../data/db";
+import { formatLongDate } from "../EquipmentPanel/equipmentData";
+import { COVERAGE } from "../EquipmentPanel/modules/GeneralDetailsModule";
 import FormsModule, { FormAvatar, FormSummary } from "./FormsModule";
 import {
   Equipment,
@@ -48,6 +51,7 @@ import { DEFAULT_LOCATION, locationCaption } from "./jobData";
 import { noop, slot } from "./shared";
 import SignaturePad from "./SignaturePad";
 import { SignatureResult } from "./SignatureModule";
+import { recordFor } from "./ServicePanel";
 import useSummaryGenerator from "./summaryGenerator";
 
 import styles from "./CompleteJobForm.module.scss";
@@ -67,51 +71,6 @@ const SIGNATURE_STEP = 4;
 // Job subtotal = the sum of the group totals, less discounts (none here).
 const money = (s: string) => parseFloat(s.replace(/[$,]/g, "")) || 0;
 
-// ---- warranty statuses (Figma "Warranty Status" 21958-10447) ----------------
-type WarrantyStatus = "covered" | "partial" | "expired" | "none";
-const WARRANTY_META: Record<WarrantyStatus, { icon?: string; color: string; label: string }> = {
-  covered: { icon: "shield-halved", color: "var(--text-success)", label: "Covered" },
-  partial: { icon: "shield-exclamation", color: "var(--text-warning)", label: "Partially covered" },
-  expired: { icon: "shield-xmark", color: "var(--text-placeholder)", label: "Expired" },
-  none: { color: "var(--text-placeholder)", label: "No Warranty" },
-};
-
-// ---- equipment details (placeholder; not on the base Equipment model) --------
-interface EquipmentDetails {
-  category: string;
-  type: string;
-  ownership: string;
-  area: string;
-  installDate: string;
-  warranty: WarrantyStatus;
-  notes: string;
-}
-const EQUIPMENT_DETAILS: Record<string, EquipmentDetails> = {
-  "eq-wd-reachin": {
-    category: "Refrigeration",
-    type: "Reach-in freezer",
-    ownership: "Owned",
-    area: "Storage room",
-    installDate: "November 2, 2021",
-    warranty: "covered",
-    notes:
-      "🔥 Gas Supply: Connected to main gas line; shut-off valve behind unit\n⚡ Electrical Info: 120V ignition system; breaker panel in storage room\n🛑 Safety Concerns: High heat exposure – allow cooldown before servicing\n📦 Spare Parts Availability: Spare burner tubes in storage, shelf B-3\n🧰 Maintenance: Belts and filters last checked during the previous PM visit",
-  },
-  "eq-wd-griddle": { category: "Cooking", type: "Griddle", ownership: "Owned", area: "Cook line", installDate: "March 12, 2024", warranty: "expired", notes: "" },
-  "eq-wd-range": { category: "Cooking", type: "Range", ownership: "Owned", area: "Hot line", installDate: "August 2, 2021", warranty: "expired", notes: "" },
-  "eq-wd-mixer": { category: "Food preparation", type: "Dough mixer", ownership: "Unknown", area: "", installDate: "", warranty: "none", notes: "" },
-  "eq-wd-walkin": {
-    category: "Refrigeration",
-    type: "Walk-in cooler",
-    ownership: "Owned",
-    area: "Back kitchen",
-    installDate: "March 14, 2022",
-    warranty: "partial",
-    notes:
-      "❄️ Refrigerant: R-404A low-temperature system; recovery required before opening the loop\n🚪 Door: 48\" magnetic gasket replaced in 2024\n🛑 Safety: Confirm the defrost cycle is off before servicing the evaporator coils",
-  },
-};
-
 // A value's copy button (Figma shows one on Name / Manufacturer / Model / Serial
 // / Installation date) — lg muted, real clipboard + a toast.
 const CopyButton = ({ value, label }: { value: string; label: string }) => (
@@ -129,48 +88,69 @@ const CopyButton = ({ value, label }: { value: string; label: string }) => (
 
 // One selected equipment shown as a collapsible module with its detail group.
 // "Open details" opens the Equipment side panel — NOT built (noop, per Daniel).
-function EquipmentDetailModule({ equipment }: { equipment: Equipment }) {
-  // The five demo pieces keep their details above; equipment CREATED in the
-  // prototype (New-equipment form) carries its own and has no warranty record.
-  const d: EquipmentDetails = EQUIPMENT_DETAILS[equipment.id] ?? {
-    category: equipment.category ?? "",
-    type: equipment.type ?? "",
-    ownership: equipment.ownership ?? "",
-    area: equipment.area ?? "",
-    installDate: equipment.installDate ?? "",
-    warranty: "none",
-    notes: equipment.notes ?? "",
-  };
-  const w = WARRANTY_META[d.warranty];
+// Shared with the "Hold job" Detailed flow (2026-11-14). Its redesigned card
+// (Figma 27210-57605) adds the equipment avatar (lg) and swaps the header's
+// "Open details" for a full-width subtle "Edit" (pen) at the top of the body,
+// which opens the Equipment side panel — pass `onEdit` for that version.
+export function EquipmentDetailModule({
+  equipment,
+  avatar,
+  onEdit,
+}: {
+  equipment: Equipment;
+  avatar?: ReactNode;
+  /** The Hold-flow card: the body's "Edit" button, and no header button. */
+  onEdit?: () => void;
+}) {
+  // The SAME record and warranty rule the Equipment side panel reads
+  // (Daniel, 2026-11-14: the card used placeholder details that disagreed with
+  // the panel — "November 2, 2021" vs "January 12, 2022"). A piece created on
+  // this page has no database row; `recordFor` maps its own values.
+  const record = recordFor(equipment, "");
+  const coverage = warrantyCoverageOf(record.id);
+  const w = coverage === "none" ? undefined : COVERAGE[coverage];
+  const installed = record.installationDate == null ? undefined : formatLongDate(record.installationDate);
+  const copy = (label: string, value: string | undefined) =>
+    value == null || value === "" ? undefined : <CopyButton value={value} label={label} />;
   return (
     <DisplayModule
       variant="accordion"
       defaultOpen
       title={equipment.name}
+      slotLeft={avatar}
       slotRight={
-        <Button variant="ghost" size="md" rightIcon="arrow-right" onClick={noop}>
-          Open details
-        </Button>
+        onEdit != null ? undefined : (
+          <Button variant="ghost" size="md" rightIcon="arrow-right" onClick={noop}>
+            Open details
+          </Button>
+        )
       }
       content={
+        <div className={styles.stack}>
+        {onEdit != null && (
+          <Button variant="subtle" size="lg" leftIcon="pen" isFullWidth onClick={onEdit}>
+            Edit
+          </Button>
+        )}
         <ValueDisplayGroup>
-          <ValueDisplay label="Name" value={equipment.name} slotRight={<CopyButton value={equipment.name} label="Name" />} />
-          <ValueDisplay label="Manufacturer" value={equipment.manufacturer} slotRight={<CopyButton value={equipment.manufacturer} label="Manufacturer" />} />
-          <ValueDisplay label="Model number" value={equipment.model} slotRight={<CopyButton value={equipment.model} label="Model number" />} />
-          <ValueDisplay label="Serial number" value={equipment.serial} slotRight={<CopyButton value={equipment.serial} label="Serial number" />} />
-          <ValueDisplay label="Category" value={d?.category} />
-          <ValueDisplay label="Type" value={d?.type} />
-          <ValueDisplay label="Ownership" value={d?.ownership} />
-          <ValueDisplay label="Area" value={d?.area} />
-          <ValueDisplay label="Installation date" value={d?.installDate} slotRight={d?.installDate ? <CopyButton value={d.installDate} label="Installation date" /> : undefined} />
+          <ValueDisplay label="Name" value={record.displayName} slotRight={copy("Name", record.displayName)} />
+          <ValueDisplay label="Manufacturer" value={record.manufacturer} slotRight={copy("Manufacturer", record.manufacturer)} />
+          <ValueDisplay label="Model number" value={record.modelNumber} slotRight={copy("Model number", record.modelNumber)} />
+          <ValueDisplay label="Serial number" value={record.serialNumber} slotRight={copy("Serial number", record.serialNumber)} />
+          <ValueDisplay label="Category" value={record.category} />
+          <ValueDisplay label="Type" value={record.type} />
+          <ValueDisplay label="Ownership" value={record.ownership} />
+          <ValueDisplay label="Area" value={record.physicalLocation} />
+          <ValueDisplay label="Installation date" value={installed} slotRight={copy("Installation date", installed)} />
           <ValueDisplay
             label="Warranty"
-            value={w.label}
-            valueColor={w.color}
-            slotLeft={w.icon ? <span style={{ color: w.color, display: "inline-flex" }}><Icon icon={w.icon} pack="solid" size={14} container="square" /></span> : undefined}
+            value={w?.label}
+            valueColor={w?.color}
+            slotLeft={w == null ? undefined : <Icon icon={w.icon} pack="solid" size={14} />}
           />
-          <ValueDisplay label="Notes" orientation="vertical" value={d?.notes || undefined} lineLimit={4} />
+          <ValueDisplay label="Notes" orientation="vertical" value={record.notes || undefined} lineLimit={4} />
         </ValueDisplayGroup>
+        </div>
       }
     />
   );

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { cap, docsFrame } from "../../../stories/helpers";
 import Input from "../../Input/Input";
+import InputGroup from "../InputGroup/InputGroup";
 import DateField from "./DateField";
 
 const DATE = new Date(2026, 0, 1); // Thursday, January 1 (current year — no year shown)
@@ -59,6 +60,18 @@ export const Basic: Story = {
   render: () => (
     <div style={docsFrame}>
       <DateField today={DATE} />
+    </div>
+  ),
+};
+
+/** Optional placeholder — for fields the label does not name one by one. */
+export const WithPlaceholder: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <InputGroup>
+        <DateField today={DATE} placeholder="Start date" />
+        <DateField today={DATE} placeholder="End date" />
+      </InputGroup>
     </div>
   ),
 };

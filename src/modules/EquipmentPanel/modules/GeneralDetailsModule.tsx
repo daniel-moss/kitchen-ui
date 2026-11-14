@@ -13,8 +13,8 @@ import { formatLongDate } from "../equipmentData";
 // five copyable ones carry a copy IconButton in the value's right slot, and the
 // tenth ("Warranty") is derived, not stored.
 
-/** Warranty coverage → the value's icon, text and color (Figma 21958-10447). */
-const COVERAGE: Record<Exclude<WarrantyCoverage, "none">, { icon: string; label: string; color: string }> = {
+/** Warranty coverage → the value's icon, text and color (Figma 21958-10447). Shared with the job's equipment cards. */
+export const COVERAGE: Record<Exclude<WarrantyCoverage, "none">, { icon: string; label: string; color: string }> = {
   covered: { icon: "shield-halved", label: "Covered", color: "var(--text-success)" },
   partial: { icon: "shield-exclamation", label: "Partially covered", color: "var(--text-warning)" },
   expired: { icon: "shield-xmark", label: "Expired", color: "var(--text-placeholder)" },

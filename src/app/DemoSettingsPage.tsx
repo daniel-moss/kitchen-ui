@@ -1,14 +1,11 @@
-import { MouseEvent, ReactNode, useState } from "react";
+import { ReactNode, useState } from "react";
 
 import AlertBanner from "../components/AlertBanner/AlertBanner";
 import Button from "../components/Button/Button";
-import SelectField from "../components/Fields/SelectField/SelectField";
 import TextField from "../components/Fields/TextField/TextField";
 import FormModule from "../components/FormModule/FormModule";
 import FormModuleGroup from "../components/FormModule/FormModuleGroup";
 import Input from "../components/Input/Input";
-import SelectListItem from "../components/SelectList/SelectListItem";
-import SelectListItemGroup from "../components/SelectList/SelectListItemGroup";
 import { toast } from "../components/Toast/Toaster";
 import ToggleItem from "../components/Toggle/ToggleItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
@@ -22,9 +19,10 @@ import {
   QuickbooksAccount,
 } from "../data/db";
 import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
-import { SelectPopoverList, useSelectPopover } from "../modules/shared/selectPopover";
 
 import { AppBottomBar, Page } from "./shell/appShell";
+import SubStatusList, { GenericReasonHelpFields } from "./SubStatusesSettings";
+import ChoiceField from "./ChoiceField";
 import TechStatusesSettings from "./TechStatusesSettings";
 import { useCompanySettings } from "./store/CompanySettingsStore";
 
@@ -79,6 +77,14 @@ const JOB_ID_MODES: {
   { value: "automatic", label: "Automatic" },
 ];
 
+const HOLD_JOB_TYPES: {
+  value: CompanySettings["holdJobType"];
+  label: string;
+}[] = [
+  { value: "default", label: "Default" },
+  { value: "detailed", label: "Detailed" },
+];
+
 const INTEGRATIONS: {
   value: CompanySettings["accountingIntegration"];
   label: string;
@@ -110,65 +116,6 @@ const accountLabel = (account: QuickbooksAccount) =>
   account.number != null ? `${account.number} · ${account.name}` : account.name;
 
 // ---- fields ----------------------------------------------------------------
-
-/** A SelectField over a short list of choices — the Demo's standard select. */
-function ChoiceField<T extends string>({
-  label,
-  helpText,
-  value,
-  options,
-  onChange,
-  mobile,
-  noneLabel,
-}: {
-  label: string;
-  helpText?: ReactNode;
-  value: T | undefined;
-  options: { value: T; label: string }[];
-  onChange: (next: T | undefined) => void;
-  mobile: boolean;
-  /** Adds a first row that clears the value — for an optional setting. */
-  noneLabel?: string;
-}) {
-  const pop = useSelectPopover(mobile);
-  const selected = options.find((option) => option.value === value);
-  return (
-    <>
-      <Input label={label} helpText={helpText}>
-        <SelectField
-          value={selected?.label ?? noneLabel}
-          open={pop.open}
-          onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
-        />
-      </Input>
-      <SelectPopoverList pop={pop} mobile={mobile} title={label}>
-        <SelectListItemGroup>
-          {noneLabel != null && (
-            <SelectListItem
-              label={noneLabel}
-              selected={value == null}
-              onClick={() => {
-                onChange(undefined);
-                pop.close();
-              }}
-            />
-          )}
-          {options.map((option) => (
-            <SelectListItem
-              key={option.value}
-              label={option.label}
-              selected={option.value === value}
-              onClick={() => {
-                onChange(option.value);
-                pop.close();
-              }}
-            />
-          ))}
-        </SelectListItemGroup>
-      </SelectPopoverList>
-    </>
-  );
-}
 
 /**
  * A text setting. It keeps its own DRAFT, so a value that is not valid yet (an
@@ -300,8 +247,24 @@ function SettingsForm({ mobile }: { mobile: boolean }) {
               disabled={!sub[row.key]}
               onChange={(event) => setSub({ [row.required]: event.target.checked })}
             />
+            {/* The dialogs' generic reason help texts — on or off (2026-11-14). */}
+            <GenericReasonHelpFields kind={row.key} mobile={mobile} />
+            {/* The sub-statuses themselves, while the switch is on (2026-11-14). */}
+            {sub[row.key] && <SubStatusList kind={row.key} mobile={mobile} />}
           </div>
         ))}
+        <ChoiceField
+          label="Hold job"
+          helpText={
+            settings.holdJobType === "default"
+              ? "One dialog with the status and reason fields"
+              : "Four steps: Equipment, Summary, Charges and Status"
+          }
+          value={settings.holdJobType}
+          options={HOLD_JOB_TYPES}
+          onChange={(next) => next != null && update({ holdJobType: next })}
+          mobile={mobile}
+        />
       </FormModule>
 
       <FormModule title="Time tracking">

@@ -48,7 +48,7 @@ const Example = ({ label, width = 360, children }: { label?: string; width?: num
   </div>
 );
 
-const COLORS = ["strong", "subtle", "placeholder", "warning", "error"];
+const COLORS = ["strong", "subtle", "placeholder", "success", "warning", "error"];
 const LINES = [1, 2, 3, "wrap"];
 
 const node = (description: string) => ({
@@ -256,7 +256,7 @@ export const LineStyles: Story = {
 export const LineColors: Story = {
   render: () => (
     <div style={rowAuto}>
-      {(["strong", "subtle", "placeholder", "warning", "error"] as const).map((color) => (
+      {(["strong", "subtle", "placeholder", "success", "warning", "error"] as const).map((color) => (
         <Hug key={color}>
           <ItemTextLine textStyle="caption" color={color} label={color} slotLeft={icon} />
         </Hug>

@@ -1,0 +1,183 @@
+@use "../../../styles/mixins/font" as *;
+
+// Figma 21823-86710. Desktop: the Profitability box on the left, Cost +
+// Subtotal stacked on the right, 12px apart. Mobile: the three boxes stacked,
+// 16px apart.
+
+.container {
+  container-type: inline-size;
+}
+
+.row {
+  display: flex;
+  gap: var(--size-3); // 12px
+}
+
+// Too narrow for two columns: stack like mobile, 16px apart.
+@container (max-width: 440px) {
+  .row,
+  .group {
+    flex-direction: column;
+    gap: var(--size-4); // 16px
+  }
+}
+
+.row > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3); // 12px
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4); // 16px
+}
+
+// The value boxes: gray-a2, 8px corners, 12px 16px.
+%box {
+  background: var(--gray-a2);
+  border-radius: var(--border-radius-2); // 8px
+  padding: var(--size-3) var(--size-4); // 12px 16px
+  min-width: 0;
+}
+
+// Cost / Subtotal: title filling the left, the value hugging right.
+.box {
+  @extend %box;
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+}
+
+// Profitability: title on top, the values at the bottom, 100px tall (Figma) —
+// the same height as the Cost + Subtotal column beside it.
+.mainBox {
+  @extend %box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--size-3); // 12px
+  // Figma: fixed 100, padding included. Border-box, or the 24px padding is
+  // added on top (124px); no shrink, or the mobile stack squeezes it (66px).
+  box-sizing: border-box;
+  height: 100px;
+  flex-shrink: 0;
+}
+
+.boxTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2); // 8px
+  min-width: 0;
+}
+
+// Only in Cost / Subtotal does the title fill the row (the width). In the
+// Profitability box the row is a COLUMN, so growing there stretched the title
+// to 54px and the box to 124px instead of 100.
+.box > .boxTitle {
+  flex: 1 1 0;
+}
+
+.boxLabel {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// The percent row and the amount, bottoms aligned, pushed apart.
+.mainValues {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--size-3); // 12px
+}
+
+.percentRow {
+  display: flex;
+  align-items: center;
+  gap: var(--size-3); // 12px
+  min-width: 0;
+}
+
+// A raw value, not a token (Daniel, 2026-11-14): Inter Medium 32/34.
+.percent {
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-medium);
+  font-size: 32px;
+  line-height: 34px;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.value {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  white-space: nowrap;
+}
+
+.strong {
+  color: var(--text-strong);
+}
+.subtle {
+  color: var(--text-subtle);
+}
+.placeholder {
+  color: var(--text-placeholder);
+}
+.success {
+  color: var(--text-success);
+}
+.warning {
+  color: var(--text-warning);
+}
+.error {
+  color: var(--text-error);
+}
+
+// ---- hints ----------------------------------------------------------------
+
+// The hint's copy: title strong + caption subtle, 2px apart. 16px sides and
+// top; the Cost / Subtotal hints add 4px below.
+.copy,
+.copyCompact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-0_5); // 2px
+  padding: var(--size-4) var(--size-4) 0; // 16px 16px 0
+}
+
+.copyCompact {
+  padding-bottom: var(--size-1); // 4px
+}
+
+.copyTitle {
+  @include font("body-500-compact"); // Inter Medium 14/20
+  color: var(--text-strong);
+}
+
+.copyCaption {
+  @include font("body-400-compact"); // Inter Regular 14/20
+  color: var(--text-subtle);
+}
+
+// The total under the divider: heading/h4 on both sides, 16px padding.
+.total {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
+  @include font("heading-h4"); // Inter Semibold 14/20
+}
+
+.totalLabel {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--text-strong);
+}

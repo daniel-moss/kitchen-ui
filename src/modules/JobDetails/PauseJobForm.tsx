@@ -16,10 +16,10 @@ import { toast } from "../../components/Toast/Toaster";
 import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 
-import { COMPANY, subStatusesFor } from "../../data/db";
+import { COMPANY, isInternalHold, subStatusesFor } from "../../data/db";
 import type { JobSubStatusRecord } from "../../data/db/types";
 
-import CheckInOutField, { CheckInOutResult, useCheckInOut } from "./CheckInOutField";
+import CheckInOutField, { CheckInOutResult, checkInAfterFor, checkInDefaults, useCheckInOut } from "./CheckInOutField";
 import styles from "./jobForm.module.scss";
 
 // The sub-statuses available per pause Type (placeholder demo values).
@@ -28,11 +28,6 @@ import styles from "./jobForm.module.scss";
 // ONE "on hold" type; the database splits hold reasons by who is being waited
 // on, so both kinds are offered together and `isInternalHold` tells them apart
 // again wherever the colour matters.
-export const PAUSE_SUB_STATUSES: Record<string, string[]> = {
-  "quick-pause": subStatusesFor("quickPaused").map((sub) => sub.name),
-  "on-hold": [...subStatusesFor("onHoldExternal"), ...subStatusesFor("onHoldInternal")].map((sub) => sub.name),
-};
-
 const byName = (rows: JobSubStatusRecord[]) => [...rows].sort((a, b) => a.name.localeCompare(b.name));
 
 /**
@@ -42,13 +37,14 @@ const byName = (rows: JobSubStatusRecord[]) => [...rows].sort((a, b) => a.name.l
  * (Daniel, 2026-10-05; Figma 24964-47219). The split is the database's own:
  * the two hold parents.
  */
-export const STATUS_ROWS: Record<PauseType, { label?: string; rows: JobSubStatusRecord[] }[]> = {
-  "quick-pause": [{ rows: byName(subStatusesFor("quickPaused")) }],
-  "on-hold": [
-    { label: "External", rows: byName(subStatusesFor("onHoldExternal")) },
-    { label: "Internal", rows: byName(subStatusesFor("onHoldInternal")) },
-  ],
-};
+export const statusRows = (type: PauseType): { label?: string; rows: JobSubStatusRecord[] }[] =>
+  // A function, read at use time: the Demo settings page edits the list.
+  type === "quick-pause"
+    ? [{ rows: byName(subStatusesFor("quickPaused")) }]
+    : [
+        { label: "External", rows: byName(subStatusesFor("onHoldExternal")) },
+        { label: "Internal", rows: byName(subStatusesFor("onHoldInternal")) },
+      ];
 
 /** The reason's preferred length (Figma 27189-56683): longer only WARNS. */
 export const REASON_LIMIT = 60;
@@ -63,7 +59,7 @@ export const REASON_LIMIT = 60;
  * itself — exactly as the real app does — instead of keeping a hand-written
  * list of names here that had to be kept in step.
  */
-export const INTERNAL_ON_HOLD = subStatusesFor("onHoldInternal").map((sub) => sub.name);
+export const isInternalOnHold = (name: string): boolean => isInternalHold(name);
 
 interface PauseJobFormProps {
   open: boolean;
@@ -108,7 +104,10 @@ export const PAUSE_COPY: Record<PauseType, {
     submitIcon: "circle-pause",
     statusLabel: "Pause status",
     reasonLabel: "Pause reason",
-    reasonHelp: "Why do you need to pause this job?",
+    // The company's generic text, editable on Demo settings (2026-11-14).
+    get reasonHelp() {
+      return COMPANY.reasonHelpTexts.pause;
+    },
     toast: "Job paused",
     // Getters: the Demo's "Demo settings" page changes COMPANY at run time.
     get enabled() {
@@ -124,7 +123,9 @@ export const PAUSE_COPY: Record<PauseType, {
     submitIcon: "circle-stop",
     statusLabel: "Hold status",
     reasonLabel: "Hold reason",
-    reasonHelp: "Why do you need to hold this job?",
+    get reasonHelp() {
+      return COMPANY.reasonHelpTexts.hold;
+    },
     // "is on hold", not "put on hold" (Figma 24963-43689).
     toast: "Job is on hold",
     get enabled() {
@@ -136,25 +137,31 @@ export const PAUSE_COPY: Record<PauseType, {
   },
 };
 
-// "Pause job" form (Figma 24058-15840, re-read 2026-10-26): the Pause status
-// select (only where the company has pause sub-statuses), the Pause reason, and
-// — for an assignee — the shared Check In / Out control. Its default (Figma
-// annotation): "Check out" when checked in, "Stay checked out" when checked
-// out. "Hold job" is the same build with the Hold copy.
-export default function PauseJobForm({
+/**
+ * The Pause / Hold FIELDS and their rules — the status select (+ its list), the
+ * reason and the Check In / Out control. Split out of the dialog on 2026-11-14
+ * so the "Hold job" Detailed flow's Status step (Figma 27267-70070) is the same
+ * build. The caller renders `fields` and `list`, calls `validate()` on submit
+ * and reads the values from `result()`.
+ */
+export function usePauseFields({
   open,
-  onClose,
-  onPause,
-  showCheckIn = true,
-  runningSession = null,
-  mobile = false,
-  type = "quick-pause",
-}: PauseJobFormProps) {
+  type,
+  showCheckIn,
+  runningSession,
+  mobile,
+}: {
+  open: boolean;
+  type: PauseType;
+  showCheckIn: boolean;
+  runningSession: string | null;
+  mobile: boolean;
+}) {
   const copy = PAUSE_COPY[type];
   // Pause status (Figma 27189-56150): shown when the company has sub-statuses
   // for this status; required when it requires them AND there are 2+ to
   // choose from; with exactly one required, the system picks it (read-only).
-  const groups = STATUS_ROWS[type];
+  const groups = statusRows(type);
   const statuses = groups.flatMap((group) => group.rows);
   const asksStatus = copy.enabled && statuses.length > 0;
   const onlyStatus = asksStatus && copy.required && statuses.length === 1 ? statuses[0].name : "";
@@ -162,13 +169,15 @@ export default function PauseJobForm({
 
   const [subStatus, setSubStatus] = useState(onlyStatus);
   const [reason, setReason] = useState("");
-  // Pausing usually means the tech stops working, so the default leaves them
-  // checked out — but they can keep their time running, or check in.
+  // Check in / out default: the picked sub-status's rule, else the company's
+  // Pause or Hold rule (Demo settings, Daniel 2026-11-14).
   const clock = useCheckInOut({
     open,
     shown: showCheckIn,
     checkedIn: runningSession != null,
-    defaults: { checkedIn: "change", checkedOut: "stay" },
+    defaults: checkInDefaults(
+      checkInAfterFor(type === "on-hold" ? "hold" : "pause", statuses.find((row) => row.name === subStatus)),
+    ),
   });
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
@@ -192,19 +201,135 @@ export default function PauseJobForm({
   const tooLong = reason.length > REASON_LIMIT;
   const reasonHelp = tooLong
     ? `${reason.length} / ${REASON_LIMIT} characters. Keep it short. Add details to the job summary.`
-    : customHelp ?? copy.reasonHelp;
+    : (customHelp ?? (copy.reasonHelp || undefined));
 
   const dirty = subStatus !== onlyStatus || reason !== "" || clock.dirty;
 
   const statusBad = statusRequired && subStatus === "";
   const reasonBad = reasonRequired && reason.trim() === "";
 
+  const fields = (
+    <>
+      {/* The Pause-TYPE RadioGroup is gone (Daniel, 2026-10-05): Pause and
+          Hold are two dialogs now, so the entry point already said which. */}
+      {asksStatus &&
+        (onlyStatus !== "" ? (
+          <Input label={copy.statusLabel} helpText="The only status available">
+            <SelectField value={onlyStatus} readOnly />
+          </Input>
+        ) : (
+          <Input label={copy.statusLabel} labelCondition={statusRequired ? undefined : "optional"}>
+            <SelectField
+              value={subStatus || undefined}
+              isValid={!(showError && statusBad)}
+              errorMessage={`Choose ${copy.statusLabel}`}
+              open={subStatusPop.open}
+              onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
+            />
+          </Input>
+        ))}
+
+      <Input
+        label={copy.reasonLabel}
+        labelCondition={reasonRequired ? undefined : "optional"}
+        helpText={reasonHelp}
+        helpTextStatus={tooLong ? "warning" : undefined}
+      >
+        <TextArea value={reason} onChange={(e) => setReason(e.target.value)} isValid={!(showError && reasonBad)} />
+      </Input>
+
+      {/* Check In / Out (Figma 27163-52433): only for an assignee. */}
+      {showCheckIn && (
+        <CheckInOutField
+          runningSession={runningSession}
+          choice={clock.choice}
+          onChoiceChange={(choice) => {
+            clock.setChoice(choice);
+            setShowError(false);
+          }}
+          status={clock.status}
+          onStatusChange={(status) => {
+            clock.setStatus(status);
+            setShowError(false);
+          }}
+          showError={showError}
+          mobile={mobile}
+        />
+      )}
+    </>
+  );
+
+  const list =
+    asksStatus && onlyStatus === "" ? (
+      <SelectPopoverList
+        pop={subStatusPop}
+        mobile={mobile}
+        title={copy.statusLabel}
+        searchable
+        searchPlaceholder="Status..."
+        noResultsState={<EmptyState caption="No statuses match" />}
+      >
+        {/* A group shows only when it holds a status (Figma 27189-56903). */}
+        {groups.filter((group) => group.rows.length > 0).map((group) => (
+          <SelectListItemGroup
+            key={group.label ?? "all"}
+            label={group.label == null ? undefined : <GroupLabel variant="secondary" label={group.label} />}
+          >
+            {group.rows.map(({ name }) => (
+              <SelectListItem
+                key={name}
+                label={name}
+                selected={name === subStatus}
+                onClick={() => {
+                  setSubStatus(name);
+                  setShowError(false);
+                  subStatusPop.close();
+                }}
+              />
+            ))}
+          </SelectListItemGroup>
+        ))}
+      </SelectPopoverList>
+    ) : null;
+
+  return {
+    copy,
+    fields,
+    list,
+    dirty,
+    /** Shows the errors and returns false when something required is missing. */
+    validate: () => {
+      if (statusBad || reasonBad || clock.statusBad) {
+        setShowError(true);
+        return false;
+      }
+      return true;
+    },
+    result: () => ({ subStatus, reason, clock: clock.result() }),
+  };
+}
+
+// "Pause job" form (Figma 24058-15840, re-read 2026-10-26): the Pause status
+// select (only where the company has pause sub-statuses), the Pause reason, and
+// — for an assignee — the shared Check In / Out control. Its default (Figma
+// annotation): "Check out" when checked in, "Stay checked out" when checked
+// out. "Hold job" is the same build with the Hold copy.
+export default function PauseJobForm({
+  open,
+  onClose,
+  onPause,
+  showCheckIn = true,
+  runningSession = null,
+  mobile = false,
+  type = "quick-pause",
+}: PauseJobFormProps) {
+  const pauseFields = usePauseFields({ open, type, showCheckIn, runningSession, mobile });
+  const { copy } = pauseFields;
+
   const pause = () => {
-    if (statusBad || reasonBad || clock.statusBad) {
-      setShowError(true);
-      return;
-    }
-    onPause(type, subStatus, reason, clock.result());
+    if (!pauseFields.validate()) return;
+    const { subStatus, reason, clock } = pauseFields.result();
+    onPause(type, subStatus, reason, clock);
     toast({ type: "success", title: copy.toast });
     onClose();
   };
@@ -215,7 +340,7 @@ export default function PauseJobForm({
       onClose={onClose}
       title={copy.title}
       breakpoint={mobile ? "mobile" : "desktop"}
-      confirmOnDismiss={dirty}
+      confirmOnDismiss={pauseFields.dirty}
       footer={
         <PopoverFooter leadingButton={<DismissCancelButton />}>
           {/* Solid, like the Figma buttons (24058-15849 / 24963-43684). */}
@@ -225,86 +350,8 @@ export default function PauseJobForm({
         </PopoverFooter>
       }
     >
-      <div className={styles.form}>
-        {/* The Pause-TYPE RadioGroup is gone (Daniel, 2026-10-05): Pause and
-            Hold are two dialogs now, so the entry point already said which. */}
-        {asksStatus &&
-          (onlyStatus !== "" ? (
-            <Input label={copy.statusLabel} helpText="The only status available">
-              <SelectField value={onlyStatus} readOnly />
-            </Input>
-          ) : (
-            <Input label={copy.statusLabel} labelCondition={statusRequired ? undefined : "optional"}>
-              <SelectField
-                value={subStatus || undefined}
-                isValid={!(showError && statusBad)}
-                errorMessage={`Choose ${copy.statusLabel}`}
-                open={subStatusPop.open}
-                onClick={(e: MouseEvent<HTMLDivElement>) => subStatusPop.toggle(e.currentTarget)}
-              />
-            </Input>
-          ))}
-
-        <Input
-          label={copy.reasonLabel}
-          labelCondition={reasonRequired ? undefined : "optional"}
-          helpText={reasonHelp}
-          helpTextStatus={tooLong ? "warning" : undefined}
-        >
-          <TextArea value={reason} onChange={(e) => setReason(e.target.value)} isValid={!(showError && reasonBad)} />
-        </Input>
-
-        {/* Check In / Out (Figma 27163-52433): only for an assignee. */}
-        {showCheckIn && (
-          <CheckInOutField
-            runningSession={runningSession}
-            choice={clock.choice}
-            onChoiceChange={(choice) => {
-              clock.setChoice(choice);
-              setShowError(false);
-            }}
-            status={clock.status}
-            onStatusChange={(status) => {
-              clock.setStatus(status);
-              setShowError(false);
-            }}
-            showError={showError}
-            mobile={mobile}
-          />
-        )}
-      </div>
-
-      {asksStatus && onlyStatus === "" && (
-        <SelectPopoverList
-          pop={subStatusPop}
-          mobile={mobile}
-          title={copy.statusLabel}
-          searchable
-          searchPlaceholder="Status..."
-          noResultsState={<EmptyState caption="No statuses match" />}
-        >
-          {/* A group shows only when it holds a status (Figma 27189-56903). */}
-          {groups.filter((group) => group.rows.length > 0).map((group) => (
-            <SelectListItemGroup
-              key={group.label ?? "all"}
-              label={group.label == null ? undefined : <GroupLabel variant="secondary" label={group.label} />}
-            >
-              {group.rows.map(({ name }) => (
-                <SelectListItem
-                  key={name}
-                  label={name}
-                  selected={name === subStatus}
-                  onClick={() => {
-                    setSubStatus(name);
-                    setShowError(false);
-                    subStatusPop.close();
-                  }}
-                />
-              ))}
-            </SelectListItemGroup>
-          ))}
-        </SelectPopoverList>
-      )}
+      <div className={styles.form}>{pauseFields.fields}</div>
+      {pauseFields.list}
     </Dialog>
   );
 }

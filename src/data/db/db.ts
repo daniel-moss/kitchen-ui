@@ -2105,13 +2105,18 @@ export const JOB_SUB_STATUSES: JobSubStatusRecord[] = [
   { id: "sub-parts-order", name: "Parts on order", status: "onHoldInternal" },
 ];
 
+// The table above is the company's STARTING list. The live one is
+// `COMPANY.jobSubStatuses` — the Demo settings page adds, edits and removes
+// rows there (Daniel, 2026-11-14) — so every reader goes through these
+// functions, which read it at call time.
+
 /** The reasons one status offers — what a form's sub-status picker lists. */
 export const subStatusesFor = (status: JobSubStatusRecord["status"]): JobSubStatusRecord[] =>
-  JOB_SUB_STATUSES.filter((sub) => sub.status === status);
+  COMPANY.jobSubStatuses.filter((sub) => sub.status === status);
 
 /** True when this reason waits on US rather than the client (brown, not crimson). */
 export const isInternalHold = (name: string): boolean =>
-  JOB_SUB_STATUSES.some((sub) => sub.name === name && sub.status === "onHoldInternal");
+  COMPANY.jobSubStatuses.some((sub) => sub.name === name && sub.status === "onHoldInternal");
 
 export const JOB_LABELS: JobLabel[] = [
   { id: "refrigeration", name: "Refrigeration" },
@@ -2214,6 +2219,22 @@ export const COMPANY: CompanySettings = {
   // asks for one, and requires it, when a job is active, paused or on hold
   // (Daniel, 2026-11-12).
   subStatuses: { active: true, activeRequired: true, quickPaused: true, quickPausedRequired: true, onHold: true, onHoldRequired: true },
+  // The company's own sub-statuses, editable on the Demo settings page
+  // (2026-11-14). Starts as the database table.
+  jobSubStatuses: JOB_SUB_STATUSES.map((sub) => ({ ...sub })),
+  // Where the tech ends up by default after each action (2026-11-14) — the
+  // dialogs' behaviour before the setting existed.
+  checkInAfter: { start: "in", resume: "in", pause: "out", hold: "out" },
+  // Each dialog's generic reason help text, editable there too (2026-11-14).
+  reasonHelpTexts: {
+    start: "Why do you need to start this job?",
+    resume: "Why do you need to resume this job?",
+    changeActiveStatus: "Why do you need to change the status?",
+    pause: "Why do you need to pause this job?",
+    hold: "Why do you need to hold this job?",
+  },
+  // The one-dialog hold flow (Daniel, 2026-11-14); "detailed" = the 4-step flow.
+  holdJobType: "default",
   // This company rounds logged time UP to the next 5 minutes (Daniel,
   // 2026-10-06 — he asked for the Timesheet's exact-time tooltips, and the
   // design only shows them for a company that rounds). Every duration on the

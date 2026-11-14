@@ -27,6 +27,7 @@ export default function ListItemContent({
   titleClassName,
   captionClassName,
   captionSlotLeft,
+  titleSlotLeft,
   right,
   isLoading = false,
   className,
@@ -57,6 +58,7 @@ export default function ListItemContent({
           caption={captionValue}
           captionColor={isPlaceholder ? "placeholder" : "subtle"}
           captionSlotLeft={captionSlotLeft}
+          titleSlotLeft={titleSlotLeft}
           titleStyle={titleStyle}
           titleLines={titleLines}
           captionLines={captionLines}

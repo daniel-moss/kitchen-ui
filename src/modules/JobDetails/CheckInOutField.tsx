@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Input from "../../components/Input/Input";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
+import { COMPANY } from "../../data/db";
+import type { CheckInAction, CheckInAfter, JobSubStatusRecord } from "../../data/db/types";
 import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 
 import TechStatusField from "./TechStatusField";
@@ -11,6 +13,22 @@ import styles from "./CheckInOutField.module.scss";
 
 /** "stay" keeps the viewer's clock as it is; "change" checks in or out. */
 export type CheckInOutChoice = "stay" | "change";
+
+/**
+ * Where the tech should end up after `action` (Daniel, 2026-11-14): the picked
+ * sub-status's own rule, else the company's generic rule for the action. Read
+ * at use time — the Demo settings page edits both.
+ */
+export const checkInAfterFor = (action: CheckInAction, picked?: JobSubStatusRecord): CheckInAfter =>
+  picked?.checkInAfter ?? COMPANY.checkInAfter[action];
+
+/**
+ * The preselected option that leads to `after`, from either state: to end up
+ * checked IN, a checked-in tech stays and a checked-out one checks in; to end
+ * up checked OUT, the other way round.
+ */
+export const checkInDefaults = (after: CheckInAfter): { checkedIn: CheckInOutChoice; checkedOut: CheckInOutChoice } =>
+  after === "in" ? { checkedIn: "stay", checkedOut: "change" } : { checkedIn: "change", checkedOut: "stay" };
 
 /** What a form hands the page: start a session under `status`, or end the running one. */
 export interface CheckInOutResult {
@@ -135,7 +153,12 @@ interface UseCheckInOutOptions {
   shown: boolean;
   /** The viewer is checked in right now. */
   checkedIn: boolean;
-  /** The pre-picked choice per state — the company default once one exists. */
+  /**
+   * The pre-picked choice per state — from the company's rules
+   * (`checkInDefaults(checkInAfterFor(...))`). It may change while the form
+   * is open (a sub-status with its own rule is picked): the choice follows it
+   * until the user picks an option by hand.
+   */
   defaults: { checkedIn: CheckInOutChoice; checkedOut: CheckInOutChoice };
 }
 
@@ -148,13 +171,23 @@ export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOu
   const [choice, setChoice] = useState<CheckInOutChoice>(initial);
   // A company with ONE status starts on it (read-only in the field).
   const [status, setStatus] = useState(soleTechStatus);
+  // The user picked an option by hand: the default stops moving it.
+  const touched = useRef(false);
 
   useEffect(() => {
     if (!open) return;
+    touched.current = false;
     setChoice(initial);
     setStatus(soleTechStatus());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // A new default (another sub-status picked) moves an untouched choice.
+  useEffect(() => {
+    if (!open || touched.current) return;
+    setChoice(initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial]);
 
   const changing = shown && choice === "change";
   return {
@@ -162,6 +195,7 @@ export function useCheckInOut({ open, shown, checkedIn, defaults }: UseCheckInOu
     status,
     // Leaving "Check in" resets the status pick (Daniel).
     setChoice: (next: CheckInOutChoice) => {
+      touched.current = true;
       setChoice(next);
       if (next === "stay") setStatus(soleTechStatus());
     },

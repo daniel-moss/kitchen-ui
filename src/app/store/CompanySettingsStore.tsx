@@ -57,6 +57,8 @@ function readSaved(): CompanySettings {
       if (key in COMPANY_DEFAULTS || OPTIONAL_KEYS.includes(key)) merged[key] = saved[key];
     }
     merged.subStatuses = { ...COMPANY_DEFAULTS.subStatuses, ...saved.subStatuses };
+    merged.reasonHelpTexts = { ...COMPANY_DEFAULTS.reasonHelpTexts, ...saved.reasonHelpTexts };
+    merged.checkInAfter = { ...COMPANY_DEFAULTS.checkInAfter, ...saved.checkInAfter };
     return structuredClone(merged) as unknown as CompanySettings;
   } catch {
     return structuredClone(COMPANY_DEFAULTS);

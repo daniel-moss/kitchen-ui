@@ -1,3 +1,4 @@
+import type { IconPack } from "../Icon/Icon.types";
 import { CSSProperties, ReactNode } from "react";
 
 export type DialogBreakpoint = "auto" | "desktop" | "mobile";
@@ -136,6 +137,13 @@ export interface DialogFocusProps extends DialogBaseProps {
   onFinish: () => void;
   /** Label for the last-step primary action (e.g. "Create"). */
   finalActionLabel: string;
+  /**
+   * Optional left icon of the last-step primary action — the action's status
+   * icon, e.g. "circle-stop" for "Hold" (Figma 27267-70070).
+   */
+  finalActionIcon?: string;
+  /** The final action icon's pack. Default "regular"; status icons are "solid". */
+  finalActionIconPack?: IconPack;
   /**
    * Optional extra action in the trailing button group, before Next / the
    * final action (e.g. a ghost "Save progress" Button).

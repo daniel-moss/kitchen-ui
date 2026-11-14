@@ -11,10 +11,18 @@ interface DateFieldBaseProps
   /**
    * The date value (controlled). null = empty. The user types a date in ANY
    * format (the Chrono parser standardizes it on commit — blur or Enter) or
-   * picks one in the DatePicker. NO placeholder, per the docs. Label and help
-   * text live on the Input wrapper — the field is bare.
+   * picks one in the DatePicker. Label and help text live on the Input
+   * wrapper — the field is bare.
    */
   value?: Date | null;
+  /**
+   * Optional text shown while the field is empty, in `--text-placeholder`
+   * (Figma `DateFieldBodyEmptyPlaceholder`, `placeholder=true`). Off by
+   * default — a lone field explains itself with its label. Use it where the
+   * label does not name each field, e.g. "Start date" / "End date" inside an
+   * InputGroup.
+   */
+  placeholder?: string;
   /** Uncontrolled initial value. */
   defaultValue?: Date | null;
   /** Called when a typed date commits (parsed Date, or null when cleared). */

@@ -2,6 +2,7 @@ import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
 import * as DateFieldStories from "./DateField.stories";
 import { FigmaLinks } from "../../../stories/FigmaLinks";
+import { DocCaption } from "../../../stories/DocCaption";
 
 <Meta of={DateFieldStories} />
 
@@ -32,7 +33,7 @@ to test the library functionality.
 
 ## Anatomy
 
-Doesn't support a placeholder. Any informative text is shown either as a
+Has no placeholder by default. Any informative text is shown either as a
 hint, or as help text (both live on the
 <a href="/?path=/docs/components-input-input--docs" target="_top">Input</a>
 wrapper — the field is bare).
@@ -44,6 +45,15 @@ standardized format — "Thursday, January 1, 2026" — the year is always shown
 (`formatValue` overrides the display).
 
 <Canvas of={DateFieldStories.Filled} />
+
+An optional `placeholder` is for fields the label does not name one by one —
+e.g. "Start date" and "End date" side by side in an
+<a href="/?path=/docs/components-fields-inputgroup--docs" target="_top">InputGroup</a>.
+It uses `--text-placeholder`.
+
+<DocCaption>placeholder = "Start date" / "End date"</DocCaption>
+
+<Canvas of={DateFieldStories.WithPlaceholder} />
 
 ## Behavior
 

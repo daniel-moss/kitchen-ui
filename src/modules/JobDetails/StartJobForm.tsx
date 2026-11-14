@@ -13,10 +13,11 @@ import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { toast } from "../../components/Toast/Toaster";
 
+import { COMPANY } from "../../data/db";
 import { JobSubStatusRecord } from "../../data/db/types";
 import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
-import CheckInOutField, { useCheckInOut } from "./CheckInOutField";
+import CheckInOutField, { checkInAfterFor, checkInDefaults, useCheckInOut } from "./CheckInOutField";
 
 import styles from "./jobForm.module.scss";
 
@@ -44,8 +45,19 @@ interface StartJobFormProps {
    * it fits Start and the Resume reuse alike. Pass "" for none.
    */
   submitIcon?: string;
+  /**
+   * Which action this dialog is — picks the company's check in / out rule.
+   * Default "start"; the Resume reuse passes "resume".
+   */
+  action?: "start" | "resume";
   /** The reason TextArea's label. Default "Start reason". */
   reasonLabel?: string;
+  /**
+   * The reason's GENERIC help text — shown when the picked sub-status has no
+   * help text of its own (Daniel, 2026-11-14). Default the company's Start
+   * text (`COMPANY.reasonHelpTexts.start`, set on Demo settings).
+   */
+  reasonHelp?: string;
   /** Success toast title. Default "Job started" (Figma 24045-12359). */
   toastTitle?: string;
   /**
@@ -97,6 +109,8 @@ export default function StartJobForm({
   submitLabel = "Start",
   submitIcon = "circle-play",
   reasonLabel = "Start reason",
+  action = "start",
+  reasonHelp: genericReasonHelpProp,
   toastTitle,
   banner,
   activeSubStatuses = [],
@@ -114,18 +128,17 @@ export default function StartJobForm({
   const subStatusRequired = activeStatusRequired && statuses.length > 1;
 
   const [reason, setReason] = useState("");
-  // No company preference exists in the demo, so a checked-out assignee gets
-  // "Check in" and a checked-in one "Stay checked in" (as in Change active
-  // status — the Start frames draw only the checked-out state).
+  const [showError, setShowError] = useState(false);
+  const [bannerShown, setBannerShown] = useState(true);
+  const [subStatus, setSubStatus] = useState(onlyStatus);
+  // Check in / out default: the picked sub-status's rule, else the company's
+  // rule for Start or Resume (Demo settings, Daniel 2026-11-14).
   const clock = useCheckInOut({
     open,
     shown: showCheckIn,
     checkedIn: runningSession != null,
-    defaults: { checkedIn: "stay", checkedOut: "change" },
+    defaults: checkInDefaults(checkInAfterFor(action, statuses.find((row) => row.name === subStatus))),
   });
-  const [showError, setShowError] = useState(false);
-  const [bannerShown, setBannerShown] = useState(true);
-  const [subStatus, setSubStatus] = useState(onlyStatus);
   const subStatusPop = useSelectPopover(mobile);
 
   // A fresh open resets the draft; closing also forces the nested selects shut.
@@ -143,7 +156,9 @@ export default function StartJobForm({
   // PICKED sub-status requires a reason. Its custom label is the help text.
   const picked = statuses.find((row) => row.name === subStatus);
   const reasonRequired = picked?.reasonRequired === true;
-  const reasonHelp = picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : undefined;
+  // The sub-status's own help text, else the generic one (Daniel, 2026-11-14).
+  const genericReasonHelp = (genericReasonHelpProp ?? COMPANY.reasonHelpTexts.start) || undefined;
+  const reasonHelp = picked?.reasonLabel != null && picked.reasonLabel !== "" ? picked.reasonLabel : genericReasonHelp;
 
   const dirty = reason !== "" || clock.dirty || subStatus !== onlyStatus;
 

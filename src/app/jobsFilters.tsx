@@ -2,7 +2,7 @@ import AvatarUser from "../components/Avatar/AvatarUser";
 import { STATUS } from "../components/Badge/BadgeJobStatus";
 import { Icon } from "../components/Icon/Icon";
 import { IconPack } from "../components/Icon/Icon.types";
-import { JOB_SUB_STATUSES } from "../data/db";
+import { COMPANY } from "../data/db";
 import { semanticIcons } from "../styles/semanticIcons";
 
 import { DateWindowPreset, FilterDef, optionCounts } from "./filterDefs";
@@ -85,7 +85,7 @@ const CLOSED_STATUSES = STATUS_KEYS.filter((key) => CLOSED_KEYS.includes(key));
  * How the two on-holds are spelled when they have NO sub-status to name them.
  * The badge map calls both plain "On hold", which would make two identical
  * rows. With sub-statuses in the workspace these labels are never reached —
- * see `SUB_STATUSES_BY_STATUS` and the Status filter's options.
+ * see `subStatusesOfStatus` and the Status filter's options.
  */
 const STATUS_FILTER_LABELS: Partial<Record<keyof typeof STATUS, string>> = {
   onHoldExternal: "On hold (external)",
@@ -97,10 +97,8 @@ const STATUS_FILTER_LABELS: Partial<Record<keyof typeof STATUS, string>> = {
  * the paused / on-hold statuses can have any, and a workspace that never wrote
  * one has none at all — then every status keeps its own generic row.
  */
-const SUB_STATUSES_BY_STATUS = JOB_SUB_STATUSES.reduce((map, sub) => {
-  map.set(sub.status, [...(map.get(sub.status) ?? []), sub]);
-  return map;
-}, new Map<string, typeof JOB_SUB_STATUSES>());
+// A function, read at use time: the Demo settings page edits the list.
+const subStatusesOfStatus = (status: string) => COMPANY.jobSubStatuses.filter((sub) => sub.status === status);
 
 /**
  * The Status filter OPTION IDS behind a set of statuses — a status that has
@@ -116,7 +114,7 @@ const SUB_STATUSES_BY_STATUS = JOB_SUB_STATUSES.reduce((map, sub) => {
  */
 export const lockedStatusOptionIds = (statuses: readonly string[]): string[] =>
   statuses.flatMap((status) => {
-    const subs = SUB_STATUSES_BY_STATUS.get(status) ?? [];
+    const subs = subStatusesOfStatus(status);
     return subs.length > 0 ? subs.map((sub) => sub.id) : [status];
   });
 
@@ -406,7 +404,7 @@ function buildJobsFilters(phase: JobsPhase): FilterDef<Job>[] {
             style={{ color: `var(--${STATUS[key].scheme}-a9)` }}
           />
         );
-        const subs = SUB_STATUSES_BY_STATUS.get(key) ?? [];
+        const subs = subStatusesOfStatus(key);
         if (subs.length > 0) return subs.map((sub) => ({ id: sub.id, label: sub.name, slotLeft }));
         return [{ id: key, label: STATUS_FILTER_LABELS[key] ?? STATUS[key].label, slotLeft }];
       }),

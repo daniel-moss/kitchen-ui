@@ -68,8 +68,8 @@ const addedCaption = (userId: number): string => {
     : `Added on ${stamp} by ${user.firstName} ${user.lastName.charAt(0)}.`;
 };
 
-/** What the "Add files" form produces → what this module lists. */
-const toModuleFile = (file: ManagedFile, userId: number): ModuleFile => ({
+/** What the "Add files" form produces → what this module lists. Exported for the Hold flow's Files (2026-11-14). */
+export const toModuleFile = (file: ManagedFile, userId: number): ModuleFile => ({
   id: file.key,
   name: file.name,
   // The form's four kinds are all AvatarFile types too.

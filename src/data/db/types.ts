@@ -240,7 +240,21 @@ export interface JobSubStatusRecord {
    * field keeps its label and shows this as its help text (Figma 27154-51867).
    */
   reasonLabel?: string;
+  /**
+   * Where the tech should end up after a dialog that picks this sub-status
+   * (Daniel, 2026-11-14): "in" = checked in, "out" = checked out. It only
+   * PRESELECTS the dialog's Check in / out option; the tech can still pick the
+   * other. Unset = the company's generic rule (`CompanySettings.checkInAfter`).
+   * Demo-only: production has no such setting.
+   */
+  checkInAfter?: CheckInAfter;
 }
+
+/** Checked in or checked out — after a dialog, by default. */
+export type CheckInAfter = "in" | "out";
+
+/** The status dialogs that carry a Check in / out control with a company default. */
+export type CheckInAction = "start" | "resume" | "pause" | "hold";
 
 /**
  * A saved contact — production `BaseContact` (core/models.py): every field
@@ -1629,6 +1643,15 @@ export interface TechStatus {
  * The demo company's settings that gate the "New Job" form (production
  * `ServiceCompany` fields of the same names).
  */
+/** One generic reason help text per dialog. See `CompanySettings.reasonHelpTexts`. */
+export interface ReasonHelpTexts {
+  start: string;
+  resume: string;
+  changeActiveStatus: string;
+  pause: string;
+  hold: string;
+}
+
 export interface CompanySettings {
   /**
    * The service company's own name — what the sidebar header carries (Daniel,
@@ -1665,6 +1688,35 @@ export interface CompanySettings {
    * demo has all three ON.
    */
   subStatuses: CompanySubStatusSettings;
+  /**
+   * The company's sub-statuses themselves (Daniel, 2026-11-14) — the rows of
+   * production `JobSubStatus`, each with its own reason rules. Starts as the
+   * database's `JOB_SUB_STATUSES`; the Demo settings page adds, edits and
+   * removes them. Read through `subStatusesFor` / `subStatusOf`, never copied.
+   */
+  jobSubStatuses: JobSubStatusRecord[];
+  /**
+   * The GENERIC help text of each dialog's reason field (Daniel, 2026-11-14) —
+   * shown when the picked sub-status has no help text of its own, or when no
+   * sub-status is picked. Empty = the field shows no help text. Demo-only.
+   */
+  reasonHelpTexts: ReasonHelpTexts;
+  /**
+   * The GENERIC check in / out rule per action (Daniel, 2026-11-14): where the
+   * tech ends up by default after Start, Resume, Pause or Hold — and after the
+   * matching "Change status" dialog (active → Start's rule). A sub-status's own
+   * `checkInAfter` wins over it. Only a default: the tech can pick the other
+   * option. Demo-only.
+   */
+  checkInAfter: Record<CheckInAction, CheckInAfter>;
+  /**
+   * How the company puts a job ON HOLD (Daniel, 2026-11-14). "default" = the
+   * current flow: ONE "Hold job" dialog with the status and reason fields.
+   * "detailed" = the 4-step flow (Equipment, Summary, Charges, Status —
+   * `HoldJobDetailedForm`, built the same day). Demo-only: production has no
+   * such setting.
+   */
+  holdJobType: "default" | "detailed";
   /**
    * The company rounds logged time UP to the next step
    * (`timeRoundingStepMinutes`) — a per-company setting, like the two above. It decides what every duration on the

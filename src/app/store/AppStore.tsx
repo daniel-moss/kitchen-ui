@@ -1,10 +1,12 @@
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
 import { LABOR_LABELS, PRODUCT_LABELS, StockStatus, TAX_RATE_LABELS } from "../../data/db";
+import type { Charge } from "../../data/db";
 import { users } from "../../data/users";
 import { Job, JOBS as SEED_JOBS } from "../jobsData";
 import { LABOR_ROWS as SEED_LABOR_RATES, LaborRow } from "../laborData";
 import { PRODUCT_ROWS as SEED_PRODUCTS, ProductRow } from "../productsData";
+import type { ModuleFile } from "../../modules/FilesModule/FilesModule.types";
 import { NewProduct } from "../../modules/Product/NewProductForm/NewProductForm.types";
 import { stockLevel } from "../../modules/Product/NewProductForm/productRules";
 import { TAX_RATE_ROWS as SEED_TAX_RATES, TaxRateRow } from "../taxRatesData";
@@ -126,6 +128,41 @@ interface AppStoreValue {
   products: ProductRow[];
   /** Adds a product from the "New product" form and returns its id. */
   createProduct: (input: NewProduct) => string;
+
+  /**
+   * The Charges lines a demo has changed, by job id (Daniel, 2026-11-13: "they
+   * can be saved"). A job that is not here still shows its derived lines
+   * (db/jobCharges) — the Charges segment seeds itself from those.
+   */
+  chargeLines: Record<string, JobChargeLines>;
+  setChargeLines: (jobId: string, lines: JobChargeLines) => void;
+
+  /**
+   * A job's Work summary and Notes to dispatcher(s), once a demo changed them
+   * (2026-11-14). Lifted out of the Summary tab so the "Hold job" Detailed flow
+   * can write them too. A job that is not here shows its db summary.
+   */
+  jobTexts: Record<string, JobTexts>;
+  /** Changes some of a job's texts; the others keep their value. */
+  setJobTexts: (jobId: string, patch: JobTexts) => void;
+  /** A job's Files list, once a demo changed it (2026-11-14, same reason). */
+  jobFiles: Record<string, ModuleFile[]>;
+  /** Updates a job's files from their current value (`seed` until it has one). */
+  updateJobFiles: (jobId: string, seed: ModuleFile[], update: (files: ModuleFile[]) => ModuleFile[]) => void;
+}
+
+/** A job's two free-text properties. Unset = not changed in this session. */
+export interface JobTexts {
+  summary?: string;
+  notes?: string;
+}
+
+/** One job's charge lines, per type, in the order the user put them in. */
+export interface JobChargeLines {
+  labor: Charge[];
+  products: Charge[];
+  other: Charge[];
+  discounts: Charge[];
 }
 
 /**
@@ -350,8 +387,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [productTable],
   );
 
+  // ---- the Job Details Charges lines ------------------------------------------
+  const [chargeLines, setAllChargeLines] = useState<Record<string, JobChargeLines>>({});
+  const setChargeLines = useCallback((jobId: string, lines: JobChargeLines) => {
+    setAllChargeLines((current) => ({ ...current, [jobId]: lines }));
+  }, []);
+
+  // ---- the Job Details texts and files (2026-11-14) ------------------------------
+  const [jobTexts, setAllJobTexts] = useState<Record<string, JobTexts>>({});
+  const setJobTexts = useCallback((jobId: string, patch: JobTexts) => {
+    setAllJobTexts((current) => ({ ...current, [jobId]: { ...current[jobId], ...patch } }));
+  }, []);
+  const [jobFiles, setAllJobFiles] = useState<Record<string, ModuleFile[]>>({});
+  const updateJobFiles = useCallback(
+    (jobId: string, seed: ModuleFile[], update: (files: ModuleFile[]) => ModuleFile[]) => {
+      setAllJobFiles((current) => ({ ...current, [jobId]: update(current[jobId] ?? seed) }));
+    },
+    [],
+  );
+
   const value = useMemo(
     () => ({
+      chargeLines,
+      setChargeLines,
+      jobTexts,
+      setJobTexts,
+      jobFiles,
+      updateJobFiles,
       jobs,
       jobById,
       updateJob,
@@ -384,6 +446,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       deleteLaborRate,
       products,
       createProduct,
+      chargeLines,
+      setChargeLines,
+      jobTexts,
+      setJobTexts,
+      jobFiles,
+      updateJobFiles,
     ],
   );
 
@@ -395,6 +463,12 @@ export function useAppStore(): AppStoreValue {
   if (value == null) throw new Error("useAppStore must be used inside <AppStoreProvider>");
   return value;
 }
+
+/**
+ * The store, or null outside the demo app — for a module that also renders in
+ * a story of its own (Job Details' Charges keeps its lines locally there).
+ */
+export const useOptionalAppStore = (): AppStoreValue | null => useContext(AppStoreContext);
 
 /** Every job, edits applied. */
 export const useJobs = (): Job[] => useAppStore().jobs;

@@ -16,13 +16,15 @@ import DismissCancelButton from "../shared/DismissCancelButton";
 import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
 import CheckInOutField, {
   CheckInOutResult,
+  checkInAfterFor,
+  checkInDefaults,
   useCheckInOut,
 } from "./CheckInOutField";
 import {
   PAUSE_COPY,
   PauseType,
   REASON_LIMIT,
-  STATUS_ROWS,
+  statusRows,
 } from "./PauseJobForm";
 
 import styles from "./jobForm.module.scss";
@@ -74,7 +76,7 @@ export default function ChangePauseStatusForm({
   // Pause status (Figma 27189-56150) — the same rules as "Pause job": shown when
   // the company has sub-statuses for this status; required when it requires
   // them AND there are 2+; with exactly one required, the system picks it.
-  const groups = STATUS_ROWS[type];
+  const groups = statusRows(type);
   const statuses = groups.flatMap((group) => group.rows);
   const asksStatus = copy.enabled && statuses.length > 0;
   const onlyStatus =
@@ -89,11 +91,13 @@ export default function ChangePauseStatusForm({
   const [reason, setReason] = useState("");
   const [showError, setShowError] = useState(false);
   const subStatusPop = useSelectPopover(mobile);
+  // Check in / out default: the picked sub-status's rule, else the company's
+  // Pause or Hold rule (Daniel, 2026-11-14: the change dialogs follow it too).
   const clock = useCheckInOut({
     open,
     shown: showCheckIn,
     checkedIn: runningSession != null,
-    defaults: { checkedIn: "change", checkedOut: "stay" },
+    defaults: checkInDefaults(checkInAfterFor(held ? "hold" : "pause", statuses.find((row) => row.name === subStatus))),
   });
 
   useEffect(() => {
@@ -120,7 +124,7 @@ export default function ChangePauseStatusForm({
     picked?.reasonLabel != null && picked.reasonLabel !== ""
       ? picked.reasonLabel
       : undefined;
-  const defaultHelp = copy.reasonHelp;
+  const defaultHelp = copy.reasonHelp || undefined;
   const tooLong = reason.length > REASON_LIMIT;
   const reasonHelp = tooLong
     ? `${reason.length} / ${REASON_LIMIT} characters. Keep it short. Add details to the job summary.`

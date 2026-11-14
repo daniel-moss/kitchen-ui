@@ -1,4 +1,4 @@
-import { CSSProperties, ReactNode, useRef, useState } from "react";
+import { CSSProperties, ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import useIsDesktop from "../../hooks/useIsDesktop";
@@ -19,7 +19,11 @@ interface HoverHintProps extends Pick<HintProps, "state" | "indicator" | "title"
    * into the bubble (to reach a button inside).
    */
   content?: ReactNode;
-  /** Hint side relative to the trigger. Default "top" (pops up on top). */
+  /**
+   * Hint side relative to the trigger. Default "top" (pops up on top).
+   * "top" / "bottom" flip to the opposite side when the bubble does not fit
+   * in the window there and the other side has more room.
+   */
   position?: HintPosition;
   /**
    * How the hint aligns to the trigger along the other axis (which is also
@@ -46,6 +50,8 @@ const TONGUE_FOR_POSITION: Record<HintPosition, HintTongue> = {
 const GAP = 10;
 // tongue center inset from the bubble corner: 12px padding + ~6px half-base
 const TONGUE_INSET = 18;
+// the least space kept between a bubble and the window edge
+const EDGE = 8;
 
 // HoverHint — shows a Hint while hovering/focusing the trigger (desktop), in
 // a body portal so no overflow ancestor clips it. On mobile the hint turns
@@ -53,7 +59,7 @@ const TONGUE_INSET = 18;
 export default function HoverHint({
   children,
   content,
-  position = "top",
+  position: preferredPosition = "top",
   align = "center",
   width = 320,
   breakpoint = "auto",
@@ -69,6 +75,25 @@ export default function HoverHint({
   // only where hover is real.
   const canHover = typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
   const [anchor, setAnchor] = useState<DOMRect | null>(null);
+  // The side the bubble is actually on. It starts as the asked-for side on
+  // every show; when the bubble does not fit there (a tall hint low in the
+  // window — the Charges Profitability hints, 2026-11-14) it flips to the
+  // opposite side, if that side has the room.
+  const [position, setPosition] = useState<HintPosition>(preferredPosition);
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const flipChecked = useRef(false);
+
+  useLayoutEffect(() => {
+    if (anchor == null || flipChecked.current) return;
+    flipChecked.current = true;
+    const el = bubbleRef.current;
+    if (el == null || (position !== "top" && position !== "bottom")) return;
+    const h = el.getBoundingClientRect().height;
+    const roomBelow = window.innerHeight - anchor.bottom - GAP - EDGE;
+    const roomAbove = anchor.top - GAP - EDGE;
+    if (position === "bottom" && h > roomBelow && roomAbove > roomBelow) setPosition("top");
+    else if (position === "top" && h > roomAbove && roomBelow > roomAbove) setPosition("bottom");
+  }, [anchor, position]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Interactive bubbles (`content`) hide on a short grace period, so the
   // pointer can cross the 10px gap into the bubble without closing it.
@@ -83,7 +108,11 @@ export default function HoverHint({
   const show = () => {
     cancelHide();
     const el = ref.current;
-    if (el != null) setAnchor(el.getBoundingClientRect());
+    if (el == null) return;
+    // A new show starts again from the asked-for side.
+    flipChecked.current = false;
+    setPosition(preferredPosition);
+    setAnchor(el.getBoundingClientRect());
   };
   const hide = () => {
     cancelHide();
@@ -196,6 +225,7 @@ export default function HoverHint({
       {anchor != null &&
         createPortal(
           <div
+            ref={bubbleRef}
             style={bubbleStyle(anchor)}
             data-hint-align={effectiveAlign(anchor)}
             // Keep an interactive bubble open while the pointer is inside it.

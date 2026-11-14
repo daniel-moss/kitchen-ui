@@ -5,7 +5,7 @@
 //
 //   import { CLIENTS, locationsOf, warrantiesOf } from "../../data/db";
 
-import { BILLS, CLIENT_CONTACTS, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, JOB_SUB_STATUSES, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
+import { BILLS, CLIENT_CONTACTS, COMPANY, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
 import { Bill, Client, ClientContact, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, LocationContact, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
 
 export * from "./types";
@@ -90,7 +90,6 @@ const CLIENT_BY_ID = index(CLIENTS);
 const LOCATION_BY_ID = index(LOCATIONS);
 const EQUIPMENT_BY_ID = index(EQUIPMENT);
 const JOB_BY_ID = index(JOBS);
-const SUB_STATUS_BY_ID = index(JOB_SUB_STATUSES);
 const VENDOR_BY_ID = index(VENDORS);
 
 export const clientById = (id: string): Client | undefined => CLIENT_BY_ID.get(id);
@@ -106,7 +105,7 @@ export const vendorById = (id: string): Vendor | undefined => VENDOR_BY_ID.get(i
  * (`getJobStatusOrSubStatusLabel`).
  */
 export const subStatusOf = (job: Job): JobSubStatusRecord | undefined =>
-  job.subStatusId == null ? undefined : SUB_STATUS_BY_ID.get(job.subStatusId);
+  job.subStatusId == null ? undefined : COMPANY.jobSubStatuses.find((sub) => sub.id === job.subStatusId);
 
 /**
  * The job that RECALLS this one — the other end of `recallToId`. The Related

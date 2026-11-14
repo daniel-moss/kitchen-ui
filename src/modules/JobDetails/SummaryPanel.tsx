@@ -9,15 +9,16 @@ import SegmentedControl from "../../components/SegmentedControl/SegmentedControl
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
 import ChargesConcept, { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
-import ChargesTab from "./ChargesTab";
+import ChargesSegment from "./Charges/ChargesSegment";
 import { Equipment } from "./equipment";
 import FormsModule, { FormsLog } from "./FormsModule";
 import NotesForm from "./NotesForm";
 import SignatureModule, { SignatureData, SignatureResult, SignatureState } from "./SignatureModule";
+import { useJobTexts } from "./jobWork";
+import { jobById } from "../../data/db";
 import WorkSummaryForm from "./WorkSummaryForm";
 import useSummaryGenerator from "./summaryGenerator";
 
-import { jobById, workSummary } from "../../data/db";
 import type { ChargeGroup } from "../../data/db";
 import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId } from "./currentJob";
@@ -63,7 +64,11 @@ export default function SummaryPanel({
   chargesConcept,
 }: {
   mobile?: boolean;
-  /** The job's charges and their total — derived from the job (db/jobCharges). */
+  /**
+   * The job's charges and their total — derived from the job (db/jobCharges).
+   * No longer read here since the Charges segment keeps its own saved lines
+   * (2026-11-13); kept for the callers.
+   */
   charges: ChargeGroup[];
   chargesTotal: string;
   /** The job's live Equipment-module list — the Service call form reads it. */
@@ -110,11 +115,10 @@ export default function SummaryPanel({
   // with the summary its tech wrote (`workSummary` — empty for a job not yet
   // worked). It used to start empty on every job, so a finished job showed the
   // Generate button instead of what was done.
+  // Kept per job in the app store since 2026-11-14 (`jobWork.ts`), so the
+  // "Hold job" Detailed flow writes the same summary and notes.
   const jobId = useCurrentJobId();
-  const [summary, setSummary] = useState(() => {
-    const job = jobById(jobId);
-    return job == null ? "" : workSummary(job);
-  });
+  const { summary, setSummary, notes, setNotes } = useJobTexts(jobId);
   const [summaryOpen, setSummaryOpen] = useState(false);
   // Which forms revision the current summary was written from, and where the
   // forms are now. Different → the "Forms updated" banner.
@@ -126,7 +130,6 @@ export default function SummaryPanel({
   const inlineGen = useSummaryGenerator(setSummary);
 
   // ---- Notes to dispatcher(s) (Figma 21820-59549) ----
-  const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
 
   const [formsDone, setFormsDone] = useState({ all: false, any: false });
@@ -205,15 +208,10 @@ export default function SummaryPanel({
 
       {sub === "charges" && chargesConcept != null && jobById(jobId) != null ? (
         <ChargesConcept concept={chargesConcept} job={jobById(jobId)!} mobile={mobile} />
-      ) : sub === "charges" ? (
-        <ChargesTab
-          groups={charges}
-          laborRates={laborRates}
-          jobEquipment={jobEquipment}
-          mobile={mobile}
-          onAddLaborRate={onAddLaborRate}
-          readOnly={readOnly}
-        />
+      ) : sub === "charges" && jobById(jobId) != null ? (
+        // The Charges segment (Figma 29380-42876, 2026-11-13) — it replaced the
+        // labor-only ChargesTab. It reads and saves its own lines.
+        <ChargesSegment job={jobById(jobId)!} mobile={mobile} readOnly={readOnly} laborRates={laborRates} onAddLaborRate={onAddLaborRate} />
       ) : sub === "signature" ? (
         <SignatureModule {...signatureView(signature)} />
       ) : (

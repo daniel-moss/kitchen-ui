@@ -18,7 +18,7 @@ export type ItemTextLineStyle = "bodyMedium" | "bodyRegular" | "caption";
  * Text color, applied as a token on the line. The slots' icons inherit it
  * (`currentColor`) — an icon only differs when it sets a color of its own.
  */
-export type ItemTextLineColor = "strong" | "subtle" | "placeholder" | "warning" | "error";
+export type ItemTextLineColor = "strong" | "subtle" | "placeholder" | "success" | "warning" | "error";
 
 /**
  * Truncation rule for one line. Default 1 = ellipsis after one line; 2 / 3 =
