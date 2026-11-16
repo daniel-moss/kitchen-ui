@@ -34,7 +34,7 @@ import { toast } from "../../components/Toast/Toaster";
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { warrantyCoverageOf } from "../../data/db";
+import { COMPANY, warrantyCoverageOf } from "../../data/db";
 import type { ChargeGroup } from "../../data/db";
 import { formatLongDate } from "../EquipmentPanel/equipmentData";
 import { COVERAGE } from "../EquipmentPanel/modules/GeneralDetailsModule";
@@ -63,10 +63,11 @@ import styles from "./CompleteJobForm.module.scss";
 // Next). The last step adds a "Skip signature" secondary action.
 // ---------------------------------------------------------------------------
 
-const STEP_LABELS = ["Equipment", "Forms", "Summary", "Charges", "Signature"];
-const FORMS_STEP = 1;
-const SUMMARY_STEP = 2;
-const SIGNATURE_STEP = 4;
+// Forms is a step only while the company uses forms (Demo settings → Forms,
+// 2026-11-16); without it the flow has four steps. So the steps are looked up
+// by NAME, never by a fixed index.
+const ALL_STEPS = ["Equipment", "Forms", "Summary", "Charges", "Signature"] as const;
+type StepName = (typeof ALL_STEPS)[number];
 
 // Job subtotal = the sum of the group totals, less discounts (none here).
 const money = (s: string) => parseFloat(s.replace(/[$,]/g, "")) || 0;
@@ -338,6 +339,10 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const STEP_LABELS: StepName[] = COMPANY.featureFormsEnabled ? [...ALL_STEPS] : ALL_STEPS.filter((name) => name !== "Forms");
+  const current = STEP_LABELS[step];
+  const FORMS_STEP = STEP_LABELS.indexOf("Forms");
+
   const jobEquipment = equipmentPool.filter((e) => equipmentIds.includes(e.id));
   const completedForms = forms.filter((f) => f.completed);
 
@@ -355,12 +360,12 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
 
   const handleNext = () => {
     // Forms: all completed → advance; otherwise the Skip-forms warning prompt.
-    if (step === FORMS_STEP && !formsDone.all) {
+    if (current === "Forms" && !formsDone.all) {
       setSkipFormsOpen(true);
       return;
     }
     // Summary: the Work summary is required.
-    if (step === SUMMARY_STEP && workSummary.trim() === "") {
+    if (current === "Summary" && workSummary.trim() === "") {
       setSummaryError(true);
       return;
     }
@@ -408,7 +413,7 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
         finalActionLabel="Complete job"
         // The Signature step alone offers a way out of signing.
         secondaryAction={
-          step === SIGNATURE_STEP ? (
+          current === "Signature" ? (
             <Button size="lg" variant="subtle" onClick={() => setSkipSignatureOpen(true)}>
               Skip signature
             </Button>
@@ -416,7 +421,7 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
         }
       >
         {/* Step 1 — Equipment */}
-        {step === 0 && (
+        {current === "Equipment" && (
           <FormModule title="Equipment" caption="Make sure the following equipment details are correct">
             <div className={styles.stack}>
               <SelectField
@@ -437,7 +442,8 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
 
         {/* Step 2 — Forms (kept mounted across steps so its state persists;
             reports completion up for the Skip gating + the Generate button). */}
-        <div style={{ display: step === FORMS_STEP ? undefined : "none" }}>
+        {FORMS_STEP >= 0 && (
+        <div style={{ display: current === "Forms" ? undefined : "none" }}>
           <FormsModule
             mobile={mobile}
             stepVariant
@@ -446,16 +452,17 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
             registerPreview={registerPreview}
           />
         </div>
+        )}
 
         {/* Step 3 — Summary */}
-        {step === SUMMARY_STEP && (
+        {current === "Summary" && (
           <FormModuleGroup>
-            <FormModule title="Work summary" caption="Roopairs can generate summary based on completed forms or you can fill it out manually">
+            <FormModule title="Work summary" caption={COMPANY.featureFormsEnabled ? "Roopairs can generate summary based on completed forms or you can fill it out manually" : undefined}>
               <div className={styles.genStack}>
                 {/* The button is only offered when the job HAS forms; with
                     forms but none completed it stays, disabled, and SAYS so
                     (Figma 24429-51511). */}
-                {formsDone.count > 0 && (
+                {COMPANY.featureFormsEnabled && formsDone.count > 0 && (
                   <Button
                     variant="subtle"
                     size="lg"
@@ -491,7 +498,7 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
         {/* Step 4 — Charges: one DisplayModule per group + Discounts, then the
             Job subtotal. The groups carry NO total row of their own any more
             (Figma 24429-51526, 2026-08-07). */}
-        {step === 3 && (
+        {current === "Charges" && (
           <FormModule title="Charges" caption="Add labor rates, products, and any other charges or discounts">
             <div className={styles.stack}>
               {charges.map((g) => (
@@ -518,7 +525,7 @@ export default function CompleteJobForm({ charges, chargesTotal, open, onClose, 
 
         {/* Step 5 — Signature: a read-only recap of the job the customer signs
             off (Figma 24395-37211), then the signature pad + "Signed by". */}
-        {step === SIGNATURE_STEP && (
+        {current === "Signature" && (
           <div className={styles.signatureStep}>
             <div className={styles.recap}>
               <div className={styles.client}>

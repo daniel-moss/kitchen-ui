@@ -2,6 +2,15 @@
 // the Timesheet tab's two chart modules. The legend below each chart is a plain
 // ItemGroup of ListItems, so only the chart itself needs styles here.
 
+// The module body: chart, divider and legend sit 0px apart (Figma). It is its
+// own wrapper because DisplayModule's body puts 16px between its children,
+// even with `bodyPadded={false}`.
+.content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
 // The segment row: 16px padding, 8px between segments.
 //
 // Segments are TOP-aligned, not center-aligned: a segment whose time label did

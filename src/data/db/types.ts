@@ -1805,6 +1805,18 @@ export interface CompanySettings {
    */
   pricebookDefaultTaxableProduct: boolean;
 
+  // ---- forms (added 2026-11-16) ----------------------------------------------
+
+  /**
+   * The company uses FORMS at all (Daniel, 2026-11-16 — the Demo settings
+   * switch). Off: no Forms module on a job, no Forms step in the Complete-job
+   * and Hold-job flows, no Generate in Work summary (it writes from completed
+   * forms), no Forms module in the New job form. On: the job's "Add forms"
+   * list offers the company's forms (`FORM_TEMPLATES`). Forms are built on the
+   * backend on request, so the company cannot edit that list.
+   */
+  featureFormsEnabled: boolean;
+
   // ---- inventory + product accounting (added 2026-10-17) -------------------
 
   /**

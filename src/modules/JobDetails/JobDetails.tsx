@@ -75,10 +75,11 @@ import { Equipment } from "./equipment";
 import { EquipmentFormValues } from "./EquipmentForm";
 import { defaultJobProperties, JobProperties, JOB_SOURCES, JobSource, sourceRequiresId } from "./JobPropertiesForm";
 import { NewEquipment } from "../NewEquipmentForm/NewEquipmentForm.types";
+import type { LineEquipment } from "./Charges/lineEquipment";
 import type { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
 import SummaryPanel from "./SummaryPanel";
 import TimesheetForm from "./TimesheetForm";
-import { FormsLog } from "./FormsModule";
+import { FormsLog, JobFormsProvider } from "./FormsModule";
 import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
 import RescheduleJobForm, { RescheduleResult } from "./RescheduleJobForm";
@@ -910,7 +911,7 @@ const createMenu = (
         <MenuItemGroup>
           <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
-          <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
+          <MenuItem label="Other charge" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
           <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} />
         </MenuItemGroup>
@@ -943,7 +944,7 @@ const navContent = (
     <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
       <SidebarNavItem type="stackItem">Labor rates</SidebarNavItem>
       <SidebarNavItem type="stackItem">Products</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Other charges</SidebarNavItem>
       <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
       <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
     </SidebarNavItemGroup>
@@ -1665,6 +1666,20 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     };
     setEquipmentPool((prev) => [...prev, equipment]);
     return equipment;
+  };
+
+  // A line item's "Equipment attribution" list (Charges, Figma 29380-43809):
+  // its "Add equipment" creates the piece AND adds it to the job at once —
+  // the list only shows the job's equipment, so a piece outside the job could
+  // not be selected. One "equipment added" Activity log, like the Equipment form.
+  const lineEquipment: LineEquipment = {
+    equipment: jobEquipment,
+    locationLabel: location.name,
+    onCreate: (values) => {
+      const created = createEquipment(values);
+      changeEquipmentIds([...equipmentIds, created.id], [...equipmentPool, created]);
+      return created;
+    },
   };
 
   // A job-contact edit (Figma 24487-43383). The contacts live in DetailsPanel,
@@ -2497,6 +2512,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     equipmentPool,
     createEquipment,
     jobEquipment,
+    lineEquipment,
     jobProperties,
     changeJobProperties,
     jobSources,
@@ -2947,6 +2963,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
                  
                   laborRates={laborRates}
                   jobEquipment={s.jobEquipment}
+                  lineEquipment={s.lineEquipment}
                   signature={s.signature}
                   onFormsLog={s.logForms}
                   onTextLog={s.logTextProperty}
@@ -3254,6 +3271,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
                 laborRates={laborRates}
                 mobile
                 jobEquipment={s.jobEquipment}
+                lineEquipment={s.lineEquipment}
                 signature={s.signature}
                 onFormsLog={s.logForms}
                 onTextLog={s.logTextProperty}
@@ -3361,11 +3379,14 @@ export default function JobDetails({ record, breakpoint = "auto", roundsTimeUp =
   // than carry the previous job's edits across.
   return (
     <CurrentJobIdProvider id={record.id}>
-      {isDesktop ? (
-        <DesktopShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
-      ) : (
-        <MobileShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
-      )}
+      {/* The job's forms, shared by the Summary tab and the flows (FormsModule). Keyed like the shells. */}
+      <JobFormsProvider key={record.id}>
+        {isDesktop ? (
+          <DesktopShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
+        ) : (
+          <MobileShell key={record.id} roundsTimeUp={roundsTimeUp} record={record} onBack={onBack} onOpenJob={onOpenJob} onAddLaborRate={onAddLaborRate} laborRates={laborRates} isPublicView={isPublicView} companyHasLogo={companyHasLogo} chargesConcept={chargesConcept} />
+        )}
+      </JobFormsProvider>
     </CurrentJobIdProvider>
   );
 }

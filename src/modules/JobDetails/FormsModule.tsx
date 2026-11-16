@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 
 import Avatar from "../../components/Avatar/Avatar";
@@ -46,7 +46,7 @@ import ServiceCallForm, { ServiceCallDraft, serviceCallDraftHasContent } from ".
 import { Equipment } from "./equipment";
 import { formatStatusTimestamp, STATUS_TS } from "./jobState";
 import { usersById } from "../../data/users";
-import { historyOf, jobById } from "../../data/db";
+import { FORM_TEMPLATES, historyOf, jobById } from "../../data/db";
 import { useCurrentJobId } from "./currentJob";
 import { noop, useAnchoredMenu } from "./shared";
 
@@ -120,42 +120,8 @@ const INITIAL_FORMS: JobForm[] = [
   { id: 3, name: "PM - RTU", template: "PM - RTU", visibility: "private", state: "inProgress" },
 ];
 
-// The workspace's form templates = the "Add forms" list. STATIC — a template
-// never leaves the list; every row tap adds one MORE copy to the job (the job
-// can hold any number of copies). The templates of the forms already on the job
-// STAY on the list too (Daniel 2026-08-25): the list is the workspace's form
-// library, not "what is missing" — a form on the job was picked from here, so
-// hiding it made the list look wrong.
-//
-// NAMING (Daniel 2026-08-25): "<Service> - <Equipment>" — the work type first,
-// the equipment second. Sorted A→Z, that makes the list read as groups (every
-// "Inspection - …" together, every "PM - …", every "Repair - …") without a real
-// grouping. "Service call" is the one exception: it is not tied to a piece of
-// equipment, and it is the real Roopairs form name.
-const FORM_TEMPLATES = [
-  "Audit - Walk-in Cooler",
-  "Claim - Warranty",
-  "Inspection - Fryer",
-  "Inspection - Gas Line",
-  "Inspection - Hood & Exhaust",
-  "Inspection - Safety",
-  "Intake - Equipment",
-  "PM - Combi Oven",
-  "PM - HVAC",
-  "PM - RTU",
-  "PM - Walk-in Cooler",
-  "Repair - Dishwasher",
-  "Repair - Hot Side",
-  "Repair - Ice Machine",
-  "Repair - Refrigeration",
-  "Request - Parts",
-  "Service - Espresso Machine",
-  "Service - Grease Trap",
-  "Service call",
-  "Survey - Site",
-  // Sorted here, and sorted again at load — a new template can be appended
-  // anywhere above and the list stays A→Z.
-].sort((a, b) => a.localeCompare(b));
+// The "Add forms" list = the company's forms, `FORM_TEMPLATES` in the demo
+// database (moved there 2026-11-16, when Demo settings got a Forms section).
 
 // The forms with a real fillable questionnaire: "PM - HVAC" = the 7-step
 // stepper (Figma 24337-41981); "Service call" = the modules form (Figma
@@ -483,12 +449,67 @@ const RenameForm = ({
   );
 };
 
+// ---- the job's forms, shared ----------------------------------------------------
+//
+// One job page can show the Forms module twice: the Summary tab, and the
+// "Hold job" flow's Forms step (Figma 29738-58015, 2026-11-16: "Updating the
+// forms directly affects the Forms module on the Summary tab"). So the forms
+// and their saved answers live in a JobFormsProvider at the page level, and
+// every Forms module under it reads and writes the same list. It also keeps
+// them when the Summary tab unmounts (a tab switch). Without a provider (a
+// story, the Complete flow's own copy) a module keeps its own.
+
+/** The job's forms, stamped with the job's own techs and visit day on the two that start completed. */
+function seedJobForms(jobId: string): JobForm[] {
+  const job = jobById(jobId);
+  if (job == null) return INITIAL_FORMS;
+  const history = historyOf(job);
+  const visit = history.sessions[0]?.start ?? job.scheduledFor ?? job.receivedAt;
+  const at = new Date(visit);
+  const stamp =
+    `${at.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ` +
+    at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/ /g, " ");
+  const techs = job.assigneeIds;
+  return INITIAL_FORMS.map((form, index) =>
+    form.state === "completed" ? { ...form, statusBy: techName(techs[index % Math.max(1, techs.length)] ?? techs[0]), statusAt: stamp } : form,
+  );
+}
+
+function useJobFormsState(jobId: string) {
+  const [forms, setForms] = useState<JobForm[]>(() => seedJobForms(jobId));
+  const [nextId, setNextId] = useState(100);
+  const [stepDraft, setStepDraft] = useState<HvacPmStepDraft | null>(null);
+  // Pre-filled demo answers — the two completed rows open their preview.
+  const [serviceDraft, setServiceDraft] = useState<ServiceCallDraft | null>(DEMO_SERVICE_CALL_DRAFT);
+  const [hotSideDraft, setHotSideDraft] = useState<HotSideDraft | null>(DEMO_HOT_SIDE_DRAFT);
+  // Ice Machine starts EMPTY — the row to fill by hand (Daniel, 2026-08-06).
+  const [iceMachineDraft, setIceMachineDraft] = useState<IceMachineDraft | null>(null);
+  return { forms, setForms, nextId, setNextId, stepDraft, setStepDraft, serviceDraft, setServiceDraft, hotSideDraft, setHotSideDraft, iceMachineDraft, setIceMachineDraft };
+}
+
+type JobFormsData = ReturnType<typeof useJobFormsState>;
+const JobFormsContext = createContext<JobFormsData | null>(null);
+
+/** Shares one set of forms with every Forms module below it — the job page wraps its shells in it. */
+export function JobFormsProvider({ children }: { children: ReactNode }) {
+  const data = useJobFormsState(useCurrentJobId());
+  return <JobFormsContext.Provider value={data}>{children}</JobFormsContext.Provider>;
+}
+
+/** The shared forms when a JobFormsProvider is above, else this module's own. */
+function useJobFormsData(): JobFormsData {
+  const shared = useContext(JobFormsContext);
+  const own = useJobFormsState(useCurrentJobId());
+  return shared ?? own;
+}
+
 // ---- the module -------------------------------------------------------------
 
 export default function FormsModule({
   mobile = false,
   jobEquipment = [],
   stepVariant = false,
+  stepCaption = "Fill in all the forms related to this service",
   onCompletionChange,
   onFormsRevision,
   onFormsChange,
@@ -506,6 +527,8 @@ export default function FormsModule({
    * header. Everything else (rows, menus, fillable forms, Add list) is identical.
    */
   stepVariant?: boolean;
+  /** The step variant's caption. Default the Complete-job flow's; the Hold flow has its own (Figma 29738-58015). */
+  stepCaption?: string;
   /**
    * Reports the forms' completion (Complete flow gates Next + the Generate
    * button). `count` is how many forms the job has at all — with none, the
@@ -547,27 +570,11 @@ export default function FormsModule({
    */
   readOnly?: boolean;
 }) {
-  // The job's own techs and the day they were on site, stamped onto the two
-  // forms that start completed.
-  const jobId = useCurrentJobId();
-  const seededForms = useMemo(() => {
-    const job = jobById(jobId);
-    if (job == null) return INITIAL_FORMS;
-    const history = historyOf(job);
-    const visit = history.sessions[0]?.start ?? job.scheduledFor ?? job.receivedAt;
-    const at = new Date(visit);
-    const stamp =
-      `${at.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} at ` +
-      at.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\u202f/g, " ");
-    const techs = job.assigneeIds;
-    return INITIAL_FORMS.map((form, index) =>
-      form.state === "completed"
-        ? { ...form, statusBy: techName(techs[index % Math.max(1, techs.length)] ?? techs[0]), statusAt: stamp }
-        : form,
-    );
-  }, [jobId]);
-  const [forms, setForms] = useState<JobForm[]>(seededForms);
-  const [nextId, setNextId] = useState(100);
+  // The job's forms and their saved answers \u2014 SHARED by every Forms module of
+  // the job page when a JobFormsProvider is above (the Summary tab and the
+  // Hold flow's Forms step), else this module's own.
+  const { forms, setForms, nextId, setNextId, stepDraft, setStepDraft, serviceDraft, setServiceDraft, hotSideDraft, setHotSideDraft, iceMachineDraft, setIceMachineDraft } =
+    useJobFormsData();
   // Which group is being added to — each GroupLabel has its own plus ("Add
   // public forms" / "Add private forms"); the committed copies land in it.
   const [addTarget, setAddTarget] = useState<"public" | "private" | null>(null);
@@ -577,12 +584,6 @@ export default function FormsModule({
   // The fillable questionnaires: which one is open + a stored draft per form
   // (prefills reopen). Each dialog has a fixed title, so no last-shown refs.
   const [openFormTemplate, setOpenFormTemplate] = useState<FillableTemplate | null>(null);
-  const [stepDraft, setStepDraft] = useState<HvacPmStepDraft | null>(null);
-  // Pre-filled demo answers — the two completed rows above open their preview.
-  const [serviceDraft, setServiceDraft] = useState<ServiceCallDraft | null>(DEMO_SERVICE_CALL_DRAFT);
-  const [hotSideDraft, setHotSideDraft] = useState<HotSideDraft | null>(DEMO_HOT_SIDE_DRAFT);
-  // Ice Machine starts EMPTY — the row to fill by hand (Daniel, 2026-08-06).
-  const [iceMachineDraft, setIceMachineDraft] = useState<IceMachineDraft | null>(null);
   // The Add list STAGES copies per template ({name: count}); the footer's Add
   // commits them all at once. Dismissing the list discards the staging.
   // The form whose read-only preview is open (a completed row / its menu).
@@ -907,7 +908,7 @@ export default function FormsModule({
       {stepVariant ? (
         // Complete-job flow (Figma 24395-35194): a FormModule header (title +
         // caption) over a header-less DisplayModule card holding the groups.
-        <FormModule title="Forms" caption="Fill in all the forms related to this service">
+        <FormModule title="Forms" caption={stepCaption}>
           <DisplayModule variant="bodyOnly" content={groupsBody} />
         </FormModule>
       ) : (

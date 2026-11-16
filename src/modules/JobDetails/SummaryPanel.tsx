@@ -10,12 +10,13 @@ import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
 import ChargesConcept, { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
 import ChargesSegment from "./Charges/ChargesSegment";
+import type { LineEquipment } from "./Charges/lineEquipment";
 import { Equipment } from "./equipment";
 import FormsModule, { FormsLog } from "./FormsModule";
 import NotesForm from "./NotesForm";
 import SignatureModule, { SignatureData, SignatureResult, SignatureState } from "./SignatureModule";
 import { useJobTexts } from "./jobWork";
-import { jobById } from "../../data/db";
+import { COMPANY, jobById } from "../../data/db";
 import WorkSummaryForm from "./WorkSummaryForm";
 import useSummaryGenerator from "./summaryGenerator";
 
@@ -62,6 +63,7 @@ export default function SummaryPanel({
   onAddLaborRate,
   laborRates,
   chargesConcept,
+  lineEquipment,
 }: {
   mobile?: boolean;
   /**
@@ -107,6 +109,8 @@ export default function SummaryPanel({
   laborRates?: LaborItem[];
   /** A user-testing build: opens on Charges and shows this concept in place of its module. */
   chargesConcept?: ChargesConceptNumber;
+  /** Charges: the job's live equipment for "Equipment attribution", with its "Add equipment". */
+  lineEquipment?: LineEquipment;
 }) {
   const [sub, setSub] = useState(chargesConcept != null ? "charges" : "tech-work");
 
@@ -164,8 +168,12 @@ export default function SummaryPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inlineGen.phase]);
 
+  // The company uses forms (Demo settings → Forms). Off: no Forms module, no
+  // Generate, no "Forms updated" banner — the summary is written by hand.
+  const formsOn = COMPANY.featureFormsEnabled;
+
   // The forms moved on after the summary was written (Figma 24268-68841).
-  const formsMovedOn = !readOnly && summary !== "" && formsRevision !== summaryRevision && !bannerDismissed;
+  const formsMovedOn = formsOn && !readOnly && summary !== "" && formsRevision !== summaryRevision && !bannerDismissed;
 
   // The four Work summary bodies (Figma 21833-91133 / 23866-10982 /
   // 23867-11398 / 24268-68842).
@@ -176,6 +184,10 @@ export default function SummaryPanel({
       // Nothing was written and nothing can be any more — no Generate, no
       // "complete the forms" hint (no Figma state yet — flagged).
       <EmptyState caption="No work summary" />
+    ) : !formsOn ? (
+      // No forms to generate from — written by hand through the pencil (no
+      // Figma state — flagged; the wording follows the Notes module's).
+      <EmptyState caption="No work summary here yet" />
     ) : formsDone.any ? (
       // ONE completed form is enough to generate from (Daniel, 2026-08-07).
       <div className={styles.generateBody}>
@@ -211,7 +223,7 @@ export default function SummaryPanel({
       ) : sub === "charges" && jobById(jobId) != null ? (
         // The Charges segment (Figma 29380-42876, 2026-11-13) — it replaced the
         // labor-only ChargesTab. It reads and saves its own lines.
-        <ChargesSegment job={jobById(jobId)!} mobile={mobile} readOnly={readOnly} laborRates={laborRates} onAddLaborRate={onAddLaborRate} />
+        <ChargesSegment job={jobById(jobId)!} mobile={mobile} readOnly={readOnly} laborRates={laborRates} onAddLaborRate={onAddLaborRate} lineEquipment={lineEquipment} />
       ) : sub === "signature" ? (
         <SignatureModule {...signatureView(signature)} />
       ) : (
@@ -219,15 +231,17 @@ export default function SummaryPanel({
           {/* Forms (Figma 21816-30805) — the full module: Public/Private
               groups, per-state rows + menus, rename/duplicate/visibility
               flows, and the Add-forms select list. */}
-          <FormsModule
-            mobile={mobile}
-            jobEquipment={jobEquipment}
-            onCompletionChange={setFormsDone}
-            onFormsRevision={handleFormsRevision}
-            onLog={onFormsLog}
-            isPublicView={isPublicView}
-            readOnly={readOnly}
-          />
+          {formsOn && (
+            <FormsModule
+              mobile={mobile}
+              jobEquipment={jobEquipment}
+              onCompletionChange={setFormsDone}
+              onFormsRevision={handleFormsRevision}
+              onLog={onFormsLog}
+              isPublicView={isPublicView}
+              readOnly={readOnly}
+            />
+          )}
 
           {/* Work summary — 4 states (filled / generate / incomplete forms /
               forms updated). The pencil always opens the edit form. Public
@@ -277,6 +291,7 @@ export default function SummaryPanel({
             value={summary}
             onSave={acceptSummary}
             canGenerate={formsDone.any}
+            showGenerate={formsOn}
             mobile={mobile}
           />
           <NotesForm

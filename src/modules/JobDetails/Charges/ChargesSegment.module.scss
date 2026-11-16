@@ -12,32 +12,16 @@
   gap: var(--size-1); // 4px
 }
 
-// An open row's body: the buttons, then the details 16px below them.
-.lineBody {
+// An open row's body (Figma 29380-42961 and its siblings): the Edit Button
+// alone, then the details 12px below it.
+.menuLineBody {
   display: flex;
   flex-direction: column;
-  gap: var(--size-4); // 16px
+  gap: var(--size-3); // 12px
 }
 
-// Edit fills the row; Delete and Pricebook hug their labels, 8px apart.
-.lineActions {
-  display: flex;
-  gap: var(--size-2); // 8px
-
-  // A full-width Button does not shrink on its own, so it would push past the row.
-  > :first-child {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  > :not(:first-child) {
-    flex: none;
-  }
-}
-
-// The node's override (29380-43023): a subtle Button whose icon and label are
-// --text-error. Through the Button's own color variable, so it holds on hover,
-// press and focus. Not a Button variant in the DS — flagged to Daniel.
-.lineActions .deleteButton {
-  --btn-fg: var(--text-error);
+// The context menu's desktop card, fixed below its ⋯ trigger.
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
 }

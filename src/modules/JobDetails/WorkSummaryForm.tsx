@@ -19,6 +19,8 @@ interface WorkSummaryFormProps {
   onSave: (summary: string) => void;
   /** False → Generate is disabled (a form is still incomplete). */
   canGenerate?: boolean;
+  /** False → no Generate button at all: the company has forms turned off (Demo settings). Default true. */
+  showGenerate?: boolean;
   mobile?: boolean;
 }
 
@@ -33,6 +35,7 @@ export default function WorkSummaryForm({
   value,
   onSave,
   canGenerate = true,
+  showGenerate = true,
   mobile = false,
 }: WorkSummaryFormProps) {
   const [summary, setSummary] = useState(value);
@@ -70,16 +73,18 @@ export default function WorkSummaryForm({
             </Button>
           }
         >
-          <Button
-            size="lg"
-            variant="ghost"
-            leftIcon="wand-magic-sparkles"
-            isDisabled={!canGenerate || gen.busy}
-            isProcessing={gen.phase === "thinking"}
-            onClick={gen.generate}
-          >
-            Generate summary
-          </Button>
+          {showGenerate && (
+            <Button
+              size="lg"
+              variant="ghost"
+              leftIcon="wand-magic-sparkles"
+              isDisabled={!canGenerate || gen.busy}
+              isProcessing={gen.phase === "thinking"}
+              onClick={gen.generate}
+            >
+              Generate summary
+            </Button>
+          )}
           <Button size="lg" variant="solid" isDisabled={gen.busy} onClick={save}>
             Save
           </Button>

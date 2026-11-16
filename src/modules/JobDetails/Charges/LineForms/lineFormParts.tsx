@@ -1,4 +1,4 @@
-import { MouseEvent, ReactNode, RefObject } from "react";
+import { MouseEvent, ReactNode, RefObject, useState } from "react";
 
 import AvatarUser from "../../../../components/Avatar/AvatarUser";
 import Button from "../../../../components/Button/Button";
@@ -9,16 +9,21 @@ import TextField from "../../../../components/Fields/TextField/TextField";
 import { InputHelpTextStatus } from "../../../../components/InputHelpText/InputHelpText.types";
 import Input from "../../../../components/Input/Input";
 import PopoverFooter from "../../../../components/Popover/PopoverFooter";
+import { Icon } from "../../../../components/Icon/Icon";
+import MenuItem from "../../../../components/Menu/MenuItem";
+import SelectListFooter from "../../../../components/SelectList/SelectListFooter";
 import SelectListItem from "../../../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../../../components/SelectList/SelectListItemGroup";
-import { equipmentById, historyOf } from "../../../../data/db";
+import { historyOf } from "../../../../data/db";
 import type { Job } from "../../../../data/db";
 import { users } from "../../../../data/users";
 import { Breakpoint } from "../../../../hooks/useIsDesktop";
 import { TEXT_SEPARATOR } from "../../../../utils/textSeparator";
 import { decimalText, isMoneyText, isQuantityText, padMoneyOnBlur } from "../../../Product/NewProductForm/productRules";
+import NewEquipmentForm from "../../../NewEquipmentForm/NewEquipmentForm";
 import DismissCancelButton from "../../../shared/DismissCancelButton";
-import { EquipmentAvatar, equipmentCaptionText, equipmentLabel, equipmentTitle, toEquipment } from "../../../shared/equipmentRow";
+import { EquipmentAvatar, equipmentCaptionText, equipmentLabel, equipmentTitle } from "../../../shared/equipmentRow";
+import { useLineEquipment } from "../lineEquipment";
 import { SelectPopoverList, useSelectPopover } from "../../../shared/selectPopover";
 
 import styles from "./LineForms.module.scss";
@@ -264,16 +269,22 @@ interface AttributionFieldsProps {
  * always optional; the list is the job's own, A → Z, with no search (an
  * inline card on desktop, a drawer titled "Equipment" / "Assignees" on
  * mobile). Both fields are clearable — the field's own × empties them.
+ * The equipment list ends with an "Add equipment" footer when Job Details
+ * provides a create action (Figma 29380-43809; see ../lineEquipment).
  */
 export function AttributionFields({ job, equipmentId, onEquipmentChange, technicianId, onTechnicianChange, mobile, shortLabels = false }: AttributionFieldsProps) {
   const equipmentPop = useSelectPopover(mobile);
   const techPop = useSelectPopover(mobile);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const jobEquipment = (job.equipmentIds ?? [])
-    .map((id) => equipmentById(id))
-    .filter((row): row is NonNullable<typeof row> => row != null)
-    .map(toEquipment)
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // The job's LIVE equipment when Job Details provides it (./lineEquipment).
+  const { equipment: jobEquipment, onCreate, locationLabel } = useLineEquipment(job);
+  // "Add equipment" (Figma 29380-43809): closes the list, opens the
+  // New-equipment form; the created piece joins the job and is selected.
+  const openCreate = () => {
+    equipmentPop.close();
+    setCreateOpen(true);
+  };
   const assignees = users.filter((user) => job.assigneeIds?.includes(user.id)).sort((a, b) => a.name.localeCompare(b.name));
   const equipment = jobEquipment.find((row) => row.id === equipmentId);
   const technician = assignees.find((user) => user.id === technicianId);
@@ -291,7 +302,19 @@ export function AttributionFields({ job, equipmentId, onEquipmentChange, technic
               onClear={() => onEquipmentChange(undefined)}
             />
           </Input>
-          <SelectPopoverList pop={equipmentPop} mobile={mobile} title="Equipment">
+          <SelectPopoverList
+            pop={equipmentPop}
+            mobile={mobile}
+            title="Equipment"
+            // The same footer MenuItem on both breakpoints (the node's two SelectLists).
+            footer={
+              onCreate != null ? (
+                <SelectListFooter>
+                  <MenuItem label="Add equipment" slotLeft={<Icon icon="plus" pack="regular" size={14} container="square" />} onClick={openCreate} />
+                </SelectListFooter>
+              ) : undefined
+            }
+          >
             <SelectListItemGroup>
               {jobEquipment.map((row) => (
                 <SelectListItem
@@ -309,6 +332,15 @@ export function AttributionFields({ job, equipmentId, onEquipmentChange, technic
               ))}
             </SelectListItemGroup>
           </SelectPopoverList>
+          {onCreate != null && (
+            <NewEquipmentForm
+              open={createOpen}
+              onClose={() => setCreateOpen(false)}
+              location={locationLabel}
+              onCreated={(values) => onEquipmentChange(onCreate(values).id)}
+              breakpoint={mobile ? "mobile" : "desktop"}
+            />
+          )}
         </>
       )}
 

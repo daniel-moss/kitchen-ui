@@ -8,7 +8,7 @@ import { conceptMeta, Frame, JOB, JOB_CHARGES, JOB_DISCOUNTS } from "../conceptS
 // CONCEPT 4 — line items as Cards (Figma 28284-40930). The variants show what a card leaves out: a value that is not set is not
 // drawn, and the rest close up.
 const meta: Meta = {
-  title: "Modules/Job/Details/Modules/Charges/Concept 4",
+  title: "Modules/Job/Details/Modules/Line-items/Concept 4",
   ...conceptMeta,
 };
 

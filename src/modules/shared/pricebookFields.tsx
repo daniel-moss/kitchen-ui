@@ -76,10 +76,18 @@ export function NameField({ value, onChange, existingNames = [], ownName, itemLa
 // ---- Subtype (3060-14052) ---------------------------------------------------
 
 /**
- * Subtype's rules.
- *   Applies when           the company supports subtypes (the list is not empty)
- *   Must be filled in when the company requires subtypes and there are 2 or more
- *   Single required option shown read-only, selected — the caller pre-picks it
+ * Subtype's rules (Figma 3060-14052, updated 2026-11-16).
+ *   Applies when           the company supports subtypes (the list is not
+ *                          empty), for any item type except Tax — the tax rate
+ *                          forms, table and filters never render this field
+ *   Must be filled in when the company requires subtypes and there are 2 or
+ *                          more. With one subtype, the system picks it
+ *   Default                none — except the single subtype the system picks,
+ *                          shown read-only with "The only subtype available"
+ *                          (the caller pre-picks it into its value)
+ *   Optional               clearable with the field's own ×
+ * Opens the "Subtypes" select list (Select Lists file, page 12968-1387):
+ * single-select, A to Z, search "Subtype...", no match "No subtypes match".
  */
 export const subtypeRules = (subtypes: PricebookSubtype[], required: boolean) => {
   const applies = subtypes.length > 0;

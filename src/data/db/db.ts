@@ -2196,15 +2196,55 @@ export const BRANCHES: Branch[] = [
 export const branchOf = (job: { branchId: string }): Branch =>
   BRANCHES.find((branch) => branch.id === job.branchId) ?? BRANCHES[0];
 
-// NEW concept — production has no form-template model; see types.ts.
+
+// The COMPANY'S FORMS = a job's "Add forms" list (Job Details). Built on the
+// backend on a customer's request — there is no form builder, so Demo settings
+// only LISTS them (Daniel, 2026-11-16). Used only while
+// `COMPANY.featureFormsEnabled` is on.
+//
+// ONE list everywhere (Daniel, 2026-11-16): the job page's Forms module, the
+// New job form and Demo settings all read it. It replaced the New job form's
+// own six forms; their three "required" rules moved onto the matching forms
+// here (Repair - Refrigeration, Inspection - Hood & Exhaust, Inspection -
+// Fryer). Production has no form-template model; see `JobForm` in types.ts.
+//
+// The list is STATIC — a template
+// never leaves the list; every row tap adds one MORE copy to the job (the job
+// can hold any number of copies). The templates of the forms already on the job
+// STAY on the list too (Daniel 2026-08-25): the list is the workspace's form
+// library, not "what is missing" — a form on the job was picked from here, so
+// hiding it made the list look wrong.
+//
+// NAMING (Daniel 2026-08-25): "<Service> - <Equipment>" — the work type first,
+// the equipment second. Sorted A→Z, that makes the list read as groups (every
+// "Inspection - …" together, every "PM - …", every "Repair - …") without a real
+// grouping. "Service call" is the one exception: it is not tied to a piece of
+// equipment, and it is the real Roopairs form name.
 export const JOB_FORMS: JobForm[] = [
-  { id: "service-report", name: "Service report" },
-  { id: "refrigeration-checklist", name: "Refrigeration service checklist", requiredForServiceIds: ["walk-in-cooler", "prep-fridge", "freezer-seal"] },
-  { id: "hood-cleaning-cert", name: "Hood cleaning certificate", requiredForServiceIds: ["hood-cleaning"] },
-  { id: "fryer-safety", name: "Fryer safety inspection", requiredForEquipmentCategories: ["Fryers"] },
-  { id: "customer-signoff", name: "Customer sign-off" },
-  { id: "parts-used", name: "Parts used log" },
+  { id: "audit-walk-in-cooler", name: "Audit - Walk-in Cooler" },
+  { id: "claim-warranty", name: "Claim - Warranty" },
+  { id: "inspection-fryer", name: "Inspection - Fryer", requiredForEquipmentCategories: ["Fryers"] },
+  { id: "inspection-gas-line", name: "Inspection - Gas Line" },
+  { id: "inspection-hood-exhaust", name: "Inspection - Hood & Exhaust", requiredForServiceIds: ["hood-cleaning"] },
+  { id: "inspection-safety", name: "Inspection - Safety" },
+  { id: "intake-equipment", name: "Intake - Equipment" },
+  { id: "pm-combi-oven", name: "PM - Combi Oven" },
+  { id: "pm-hvac", name: "PM - HVAC" },
+  { id: "pm-rtu", name: "PM - RTU" },
+  { id: "pm-walk-in-cooler", name: "PM - Walk-in Cooler" },
+  { id: "repair-dishwasher", name: "Repair - Dishwasher" },
+  { id: "repair-hot-side", name: "Repair - Hot Side" },
+  { id: "repair-ice-machine", name: "Repair - Ice Machine" },
+  { id: "repair-refrigeration", name: "Repair - Refrigeration", requiredForServiceIds: ["walk-in-cooler", "prep-fridge", "freezer-seal"] },
+  { id: "request-parts", name: "Request - Parts" },
+  { id: "service-espresso-machine", name: "Service - Espresso Machine" },
+  { id: "service-grease-trap", name: "Service - Grease Trap" },
+  { id: "service-call", name: "Service call" },
+  { id: "survey-site", name: "Survey - Site" },
 ];
+
+/** The forms' names, A → Z — a job's "Add forms" list and the Demo settings list. */
+export const FORM_TEMPLATES: string[] = JOB_FORMS.map((form) => form.name).sort((a, b) => a.localeCompare(b));
 
 /** Production `ServiceCompany` defaults; "manual" keeps the Job ID field visible. */
 export const COMPANY: CompanySettings = {
@@ -2275,6 +2315,8 @@ export const COMPANY: CompanySettings = {
   // default, so an inventory product opens with them filled (2026-10-17).
   featureInventoryEnabled: true,
   defaultTrackInventory: false,
+  // This company uses forms (its list: FORM_TEMPLATES).
+  featureFormsEnabled: true,
   quickbooksDefaultCogsAccountId: "qba-5010",
   quickbooksDefaultAssetAccountId: "qba-1300",
 };

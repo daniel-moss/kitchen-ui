@@ -776,7 +776,9 @@ src/prototypes/Filters/
   the two types the same fields but one, and the design's two Filters menus
   are identical row for row)
   OtherPage.tsx           the config; production's "Miscellaneous", which the
-                          design renames "Other"
+                          design renames "Other charges" (was "Other" until
+                          2026-11-16 — sidebar, top bar, Pricebook sub-pages;
+                          the Create menu item is the singular "Other charge")
   DiscountsPage.tsx       the config; the only structural difference is no
                           Cost column
   chargesTable.tsx        `chargeColumns(list, {withCost})` + `sortCharges`
@@ -2316,7 +2318,7 @@ Still open:
   5. **The reference tables are INVENTED** (subtypes and labels for all
      three types), and the keyword search's fields beyond production's three
      are my choice.
-  6. **"Other" vs "Others"** — his open question. Recommendation in the
+  6. **SETTLED 2026-11-16: "Other charges"** (Daniel). Was: **"Other" vs "Others"** — his open question. Recommendation in the
      session notes: keep **Other**; "Others" reads as "other people" in
      English, and a catch-all bucket is conventionally singular. If plural
      symmetry with its siblings matters, the honest plural is "Other

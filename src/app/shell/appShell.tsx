@@ -156,7 +156,7 @@ export const createMenu = ({
         <MenuItemGroup>
           <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} onClick={onCreateLaborRate} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} onClick={onCreateProduct} />
-          <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
+          <MenuItem label="Other charge" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
           <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} onClick={onCreateTaxRate} />
         </MenuItemGroup>
@@ -261,7 +261,7 @@ export const navContent = (
         Products
       </SidebarNavItem>
       <SidebarNavItem type="stackItem" active={page === "other"} onClick={() => onNavigate("other")}>
-        Other
+        Other charges
       </SidebarNavItem>
       <SidebarNavItem type="stackItem" active={page === "discounts"} onClick={() => onNavigate("discounts")}>
         Discounts

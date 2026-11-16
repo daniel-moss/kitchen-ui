@@ -6,7 +6,7 @@ import { conceptMeta, Frame, JOB, JOB_CHARGES, JOB_DISCOUNTS } from "../conceptS
 // CONCEPT 3 (Figma 27942-67997): one module per charge type; rows drag within
 // their type and open the line's side panel. The plus buttons open the SelectLists.
 const meta: Meta = {
-  title: "Modules/Job/Details/Modules/Charges/Concept 3",
+  title: "Modules/Job/Details/Modules/Line-items/Concept 3",
   ...conceptMeta,
 };
 

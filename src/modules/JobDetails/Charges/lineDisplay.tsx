@@ -1,10 +1,11 @@
 import AvatarUser from "../../../components/Avatar/AvatarUser";
 import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import { formatDay } from "../../../app/listData";
-import { equipmentById } from "../../../data/db";
 import type { DiscountLine, Job, LaborLine, OtherLine, ProductLine } from "../../../data/db";
 import { users } from "../../../data/users";
 import { joinWithSeparator } from "../../../utils/textSeparator";
+
+import { useLineEquipment } from "./lineEquipment";
 
 // How a charge line's values READ in the Job Details Charges segment (Figma
 // 29380-42876, 2026-11-13). Copied from ../ChargesModule/lineDisplay.tsx when
@@ -42,18 +43,20 @@ export function serviceDates(labor: LaborLine): { plural: boolean; text?: string
   return { plural: true, text: `${formatDay(start)} -> ${formatDay(end)}` };
 }
 
-/** "Walk-in Cooler · True Manufacturing" — the line's attributed equipment. */
-const equipmentText = (id: string | undefined) => {
-  const equipment = id != null ? equipmentById(id) : undefined;
-  return equipment != null ? joinWithSeparator(equipment.displayName, equipment.manufacturer) : undefined;
-};
-
-/** The Equipment + Technician rows — each only when the job has any to attribute. */
+/**
+ * The Equipment + Technician rows — each only when the job has any to
+ * attribute. The equipment is the job's live list (./lineEquipment), so a piece
+ * created from a line form reads "Name · Manufacturer" here too.
+ */
 export function AttributionRows({ job, equipmentId, technicianId }: { job: Job; equipmentId?: string; technicianId?: number }) {
+  const { equipment } = useLineEquipment(job);
+  const piece = equipmentId != null ? equipment.find((row) => row.id === equipmentId) : undefined;
   const tech = technicianId != null ? users.find((user) => user.id === technicianId) : undefined;
   return (
     <>
-      {(job.equipmentIds?.length ?? 0) > 0 && <ValueDisplay label="Equipment" value={equipmentText(equipmentId)} />}
+      {equipment.length > 0 && (
+        <ValueDisplay label="Equipment" value={piece != null ? joinWithSeparator(piece.name, piece.manufacturer) : undefined} />
+      )}
       {(job.assigneeIds?.length ?? 0) > 0 && (
         <ValueDisplay label="Technician" value={tech?.name} slotLeft={tech != null ? <AvatarUser size="xs" imageSrc={tech.avatar} /> : undefined} />
       )}

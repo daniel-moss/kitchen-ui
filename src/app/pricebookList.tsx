@@ -211,7 +211,7 @@ export interface PricebookListConfig<TRow> {
 const SUB_PAGES: { id: string; label: string; page: Page }[] = [
   { id: "labor", label: "Labor rates", page: "labor" },
   { id: "products", label: "Products", page: "products" },
-  { id: "other", label: "Other", page: "other" },
+  { id: "other", label: "Other charges", page: "other" },
   { id: "discounts", label: "Discounts", page: "discounts" },
   { id: "taxRates", label: "Tax rates", page: "taxRates" },
 ];

@@ -7,7 +7,7 @@ import { conceptMeta, Frame, JOB, JOB_CHARGES, JOB_DISCOUNTS } from "../conceptS
 // CONCEPT 2 — DRAFT (Figma 27402-31061): one accordion module per charge type,
 // each line an accordion with its details. Every plus and pen is inert.
 const meta: Meta = {
-  title: "Modules/Job/Details/Modules/Charges/Concept 2",
+  title: "Modules/Job/Details/Modules/Line-items/Concept 2",
   ...conceptMeta,
 };
 

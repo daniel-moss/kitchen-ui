@@ -4,8 +4,11 @@ import AlertBanner from "../components/AlertBanner/AlertBanner";
 import Button from "../components/Button/Button";
 import TextField from "../components/Fields/TextField/TextField";
 import FormModule from "../components/FormModule/FormModule";
+import DisplayModule from "../components/DisplayModule/DisplayModule";
 import FormModuleGroup from "../components/FormModule/FormModuleGroup";
 import Input from "../components/Input/Input";
+import ItemGroup from "../components/ItemGroup/ItemGroup";
+import ListItem from "../components/ListItem/ListItem";
 import { toast } from "../components/Toast/Toaster";
 import ToggleItem from "../components/Toggle/ToggleItem";
 import TopBarNav from "../components/TopBarNav/TopBarNav";
@@ -14,6 +17,7 @@ import TopBarNavTitle from "../components/TopBarNav/TopBarNavTitle";
 import {
   CompanySettings,
   CompanySubStatusSettings,
+  FORM_TEMPLATES,
   QUICKBOOKS_ASSET_ACCOUNTS,
   QUICKBOOKS_COGS_ACCOUNTS,
   QuickbooksAccount,
@@ -258,13 +262,40 @@ function SettingsForm({ mobile }: { mobile: boolean }) {
           helpText={
             settings.holdJobType === "default"
               ? "One dialog with the status and reason fields"
-              : "Four steps: Equipment, Summary, Charges and Status"
+              : settings.featureFormsEnabled
+                ? "Five steps: Equipment, Forms, Summary, Charges and Status"
+                : "Four steps: Equipment, Summary, Charges and Status"
           }
           value={settings.holdJobType}
           options={HOLD_JOB_TYPES}
           onChange={(next) => next != null && update({ holdJobType: next })}
           mobile={mobile}
         />
+      </FormModule>
+
+      {/* Forms (Daniel, 2026-11-16): the whole feature on or off, and the
+          company's forms. Forms are built on the backend on a customer's
+          request, so the list is READ-ONLY — no add, edit or remove. */}
+      <FormModule title="Forms" caption="Forms are built on the backend on a customer's request. This list shows the company's forms">
+        <ToggleItem
+          label="Forms"
+          caption="Off: no Forms module on a job, no Forms step when completing or holding a job, and no Generate in Work summary"
+          checked={settings.featureFormsEnabled}
+          onChange={(event) => update({ featureFormsEnabled: event.target.checked })}
+        />
+        {settings.featureFormsEnabled && (
+          <DisplayModule
+            variant="bodyOnly"
+            bodyPadded={false}
+            content={
+              <ItemGroup>
+                {FORM_TEMPLATES.map((name) => (
+                  <ListItem key={name} variant="title" title={name} />
+                ))}
+              </ItemGroup>
+            }
+          />
+        )}
       </FormModule>
 
       <FormModule title="Time tracking">

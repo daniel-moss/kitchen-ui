@@ -948,9 +948,13 @@ const preview = {
                 ],
                 "Modules",
                 [
-                  // Concepts of the Summary tab's Charges module (Daniel, 2026-10-28).
-                  "Charges",
+                  // The Summary tab's line-item modules (was "Charges" until
+                  // 2026-11-16). "Current" = what Job Details really renders,
+                  // line-item modules only; the Concepts are the user-test copies.
+                  "Line-items",
                   [
+                    "Current",
+                    ["Desktop", "Mobile", "Editing locked", "Editing locked / Mobile", "Read-only", "Empty"],
                     "Concept 1",
                     ["Desktop", "Mobile", "Empty", "Read-only"],
                     "Concept 2",

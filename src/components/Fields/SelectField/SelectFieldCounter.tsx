@@ -25,7 +25,8 @@ export default function SelectFieldCounter({ count, onClear, readOnly = false, c
               onClear?.();
             }}
           >
-            <Icon icon="xmark" pack="regular" size={12} />
+            {/* Figma "#️⃣ SelectFieldCounter" (27482-5065): circle-xmark, solid, 14px. */}
+            <Icon icon="circle-xmark" pack="solid" size={14} />
           </button>
         </HoverTooltip>
       )}

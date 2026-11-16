@@ -2,6 +2,7 @@ import { ReactNode, useMemo, useState } from "react";
 
 import AvatarDiscount from "../../../components/Avatar/AvatarDiscount";
 import AvatarLaborRate from "../../../components/Avatar/AvatarLaborRate";
+import AvatarLive from "../../../components/Avatar/AvatarLive";
 import AvatarOther from "../../../components/Avatar/AvatarOther";
 import AvatarProduct from "../../../components/Avatar/AvatarProduct";
 import Button from "../../../components/Button/Button";
@@ -13,6 +14,9 @@ import IconButton from "../../../components/IconButton/IconButton";
 import ItemGroup from "../../../components/ItemGroup/ItemGroup";
 import ItemTextBlock from "../../../components/ItemText/ItemText/ItemTextBlock";
 import ListItem from "../../../components/ListItem/ListItem";
+import Menu from "../../../components/Menu/Menu";
+import MenuItem from "../../../components/Menu/MenuItem";
+import MenuItemGroup from "../../../components/Menu/MenuItemGroup";
 import Prompt from "../../../components/Prompt/Prompt";
 import { toast } from "../../../components/Toast/Toaster";
 import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
@@ -25,6 +29,7 @@ import {
   DISCOUNT_ITEMS,
   DISCOUNT_SUBTYPES,
   discountsOf,
+  editingLocksOf,
   INVENTORY_LOCATIONS,
   LABOR_ITEMS,
   LABOR_SUBTYPES,
@@ -34,6 +39,8 @@ import {
   PRODUCT_SUBTYPES,
 } from "../../../data/db";
 import type { Charge, ChargeItem, Job, LaborItem, ProductItem } from "../../../data/db";
+import type { User } from "../../../data/users";
+import { usersById } from "../../../data/users";
 import { Breakpoint } from "../../../hooks/useIsDesktop";
 import { joinWithSeparator } from "../../../utils/textSeparator";
 import DiscountSelectList from "../../Discount/DiscountSelectList/DiscountSelectList";
@@ -42,6 +49,9 @@ import LaborRateSelectList from "../../LaborRateSelectList/LaborRateSelectList";
 import OtherChargeSelectList from "../../OtherCharge/OtherChargeSelectList/OtherChargeSelectList";
 import { LOCATION_TYPE_ICON, locationTitle } from "../../Product/NewProductForm/InventoryLevelsField";
 import ProductSelectList from "../../Product/ProductSelectList/ProductSelectList";
+import { useAnchoredMenu } from "../../shared/anchoredMenu";
+
+import { LineEquipment, LineEquipmentProvider } from "./lineEquipment";
 import { noop } from "../shared";
 
 import {
@@ -72,15 +82,21 @@ import styles from "./ChargesSegment.module.scss";
 //   - one DisplayModule per charge type: Counter + the type's total in the
 //     header ("$0.00" in the placeholder color when empty), a "Re-order"
 //     IconButton (2+ lines only) and a plus;
-//   - every line is an accordion ListItem, collapsed by default; open, it shows
-//     Edit (filling) + Delete + Pricebook, then its details;
+//   - every line is an accordion ListItem, collapsed by default, with a ⋯
+//     context menu (Edit, View pricebook item, Delete — 2026-11-16); open, it
+//     shows the Edit Button (filling), then its details 12px below;
 //   - "Re-order" switches the module to re-order mode: the rows turn into
 //     draggable, non-clickable rows (no Delete since 2026-11-14), and a "Done"
 //     Button replaces the header's buttons. ONE module at a time, and entering
 //     it collapses the open rows (Daniel);
-//   - "Pricebook" opens the labor rate's side panel; products, other charges
-//     and discounts have no side panel yet, so it is inactive there (Daniel);
-//   - every amount shows 2 to 3 decimals (`formatAmount`, Daniel).
+//   - "View pricebook item" opens the labor rate's side panel; products, other
+//     charges and discounts have no side panel yet, so it is inactive there
+//     (Daniel);
+//   - every amount shows 2 to 3 decimals (`formatAmount`, Daniel);
+//   - a line SOMEONE ELSE is editing is locked, in every module (Figma
+//     "Shared Behavior", 29733-54808, 2026-11-16): their live avatar before
+//     the ⋯, no Edit in the body, only "View pricebook item" in the menu.
+//     The demo's locks live in the database (`editingLocksOf`).
 //
 // The lines are SAVED in the app store (in memory, like every demo edit), so
 // leaving the job and coming back keeps them. In a story outside the demo app
@@ -141,40 +157,117 @@ interface LineRowProps {
   isDragging?: boolean;
   onEdit: () => void;
   onDelete: () => void;
-  /** Opens the pricebook item. Unset → the Pricebook button is inactive. */
+  /** Opens the pricebook item. Unset → "View pricebook item" is inactive. */
   onPricebook?: () => void;
   /** Finalized / Cancelled job: no Edit, no Delete. */
   readOnly: boolean;
+  /** Drawer (mobile) or anchored card (desktop) for the context menu. */
+  mobile: boolean;
+  /** Another user is editing this line — it is locked for the viewer. */
+  editingBy?: User;
 }
 
-function LineRow({ title, caption, avatar, right, details, reorder, isDragging, onEdit, onDelete, onPricebook, readOnly }: LineRowProps) {
-  const text = { variant: caption != null ? ("titleCaption" as const) : ("title" as const), title, caption, avatar, right };
-  if (reorder) {
+/**
+ * One line (Figma 29380-42961 / -43262 / -43445 / -43604, 2026-11-16): the
+ * row's right slot holds a ⋯ IconButton whose Menu has Edit, View pricebook
+ * item and Delete; the open body has only the Edit Button, then the details.
+ */
+function LineRow(props: LineRowProps) {
+  const { title, caption, avatar, right, isDragging } = props;
+  if (props.reorder) {
     // No Delete here any more (Daniel, 2026-11-14) — a line is deleted from
-    // its open row, outside re-order mode.
-    return <ListItem {...text} isDraggable isDragging={isDragging} />;
+    // its menu, outside re-order mode.
+    const variant = caption != null ? ("titleCaption" as const) : ("title" as const);
+    return <ListItem variant={variant} title={title} caption={caption} avatar={avatar} right={right} isDraggable isDragging={isDragging} />;
   }
+  return <MenuLineRow {...props} />;
+}
+
+/** A line outside re-order mode — its own component, as it owns the menu's state. */
+function MenuLineRow({ title, caption, avatar, right, details, onEdit, onDelete, onPricebook, readOnly, mobile, editingBy }: LineRowProps) {
+  const menu = useAnchoredMenu(!mobile);
+  // Someone else editing the line locks it (Figma "Locked", 29733-54353): no
+  // Edit in the body, and the menu keeps only "View pricebook item".
+  const canEdit = !readOnly && editingBy == null;
+  const item = (label: string, icon: string, onClick: (() => void) | undefined, danger = false) => {
+    const shared = {
+      label,
+      slotLeft: <Icon icon={icon} container="square" />,
+      disabled: onClick == null,
+      onClick: () => {
+        menu.close();
+        onClick?.();
+      },
+    };
+    return danger ? <MenuItem {...shared} danger /> : <MenuItem {...shared} />;
+  };
+  const menuBody = (
+    <>
+      <MenuItemGroup>
+        {canEdit && item("Edit", "pen", onEdit)}
+        {item("View pricebook item", "arrow-up-right", onPricebook)}
+      </MenuItemGroup>
+      {canEdit && <MenuItemGroup>{item("Delete", "trash-can", onDelete, true)}</MenuItemGroup>}
+    </>
+  );
+  const menuButton = (
+    <IconButton
+      icon="ellipsis"
+      variant="ghost"
+      size="md"
+      aria-label={`${title} actions`}
+      isPressed={menu.open}
+      noDebounce
+      onClick={menu.onActions}
+    />
+  );
   return (
-    <ListItem {...text} isAccordion>
-      <div className={styles.lineBody}>
-        <div className={styles.lineActions}>
-          {!readOnly && (
+    <>
+      <ListItem
+        variant={caption != null ? "titleCaption" : "title"}
+        title={title}
+        caption={caption}
+        avatar={avatar}
+        right={right}
+        slotRight={
+          editingBy == null ? (
+            menuButton
+          ) : (
             <>
-              <Button size="lg" variant="subtle" leftIcon="pen" isFullWidth onClick={onEdit}>
-                Edit
-              </Button>
-              <Button size="lg" variant="subtle" leftIcon="trash-can" className={styles.deleteButton} onClick={onDelete}>
-                Delete
-              </Button>
+              {/* The editor's live avatar, before the menu; hover names them (Figma 29733-54750). */}
+              <HoverTooltip text={`${editingBy.firstName} ${editingBy.lastName.charAt(0)}. is editing...`}>
+                <AvatarLive size="lg" content="image" color="amber" imageSrc={editingBy.avatar} />
+              </HoverTooltip>
+              {menuButton}
             </>
+          )
+        }
+        isAccordion
+      >
+        <div className={styles.menuLineBody}>
+          {canEdit && (
+            <Button size="lg" variant="subtle" leftIcon="pen" isFullWidth onClick={onEdit}>
+              Edit
+            </Button>
           )}
-          <Button size="lg" variant="subtle" rightIcon="arrow-up-right" isDisabled={onPricebook == null} onClick={onPricebook}>
-            Pricebook
-          </Button>
+          {details}
         </div>
-        {details}
-      </div>
-    </ListItem>
+      </ListItem>
+      {/* Mobile: the drawer is titled with the line's name (Figma annotation). */}
+      {mobile ? (
+        <Menu open={menu.open} onClose={menu.close} title={title} breakpoint="mobile">
+          {menuBody}
+        </Menu>
+      ) : (
+        menu.pos != null && (
+          <div ref={menu.cardRef} className={styles.anchoredMenu} style={{ top: menu.pos.top, left: menu.pos.left, right: menu.pos.right }}>
+            <Menu open={menu.open} onClose={menu.close} breakpoint="desktop">
+              {menuBody}
+            </Menu>
+          </div>
+        )
+      )}
+    </>
   );
 }
 
@@ -267,6 +360,22 @@ export interface ChargesSegmentProps {
   onLinesChange?: (lines: JobChargeLines) => void;
   /** The Profitability module under the Subtotal. Default true; the Hold flow's step hides it (Daniel). */
   showProfitability?: boolean;
+  /**
+   * Lines another user is editing right now: line id → that user's id
+   * (`src/data/users`). Each one is LOCKED for the viewer, in every module
+   * (Figma "Shared Behavior" → "Locked Editing", 29733-56399): the editor's
+   * live avatar sits before the ⋯, the body has no Edit, and the menu has
+   * only "View pricebook item". Default: the job's locks in the database
+   * (`editingLocksOf`).
+   */
+  editingLocks?: Record<string, number>;
+  /**
+   * The job's LIVE equipment and how to add a piece to it (Job Details). The
+   * forms' "Equipment attribution" lists it, with an "Add equipment" action
+   * when `onCreate` is set. Unset → the job's equipment in the database, no
+   * action. See ./lineEquipment.
+   */
+  lineEquipment?: LineEquipment;
 }
 
 /** A job's charge lines as the Charges segment starts them — saved, else derived. Exported for draft callers. */
@@ -283,7 +392,37 @@ export default function ChargesSegment({
   lines: draftLines,
   onLinesChange,
   showProfitability = true,
+  editingLocks = editingLocksOf(job),
+  lineEquipment,
 }: ChargesSegmentProps) {
+  const segment = (
+    <ChargesSegmentBody
+      job={job}
+      mobile={mobile}
+      readOnly={readOnly}
+      laborRates={laborRates}
+      onAddLaborRate={onAddLaborRate}
+      lines={draftLines}
+      onLinesChange={onLinesChange}
+      showProfitability={showProfitability}
+      editingLocks={editingLocks}
+    />
+  );
+  return lineEquipment != null ? <LineEquipmentProvider value={lineEquipment}>{segment}</LineEquipmentProvider> : segment;
+}
+
+function ChargesSegmentBody({
+  job,
+  mobile,
+  readOnly,
+  laborRates,
+  onAddLaborRate,
+  lines: draftLines,
+  onLinesChange,
+  showProfitability,
+  editingLocks,
+}: Required<Pick<ChargesSegmentProps, "job" | "mobile" | "readOnly" | "laborRates" | "onAddLaborRate" | "showProfitability" | "editingLocks">> &
+  Pick<ChargesSegmentProps, "lines" | "onLinesChange">) {
   const saved = useSavedLines(job);
   const [lines, setLines]: [JobChargeLines, (update: (lines: JobChargeLines) => JobChargeLines) => void] =
     draftLines != null ? [draftLines, (update) => onLinesChange?.(update(draftLines))] : saved;
@@ -344,7 +483,10 @@ export default function ChargesSegment({
     title: charge.title,
     reorder: reorderKind === kind,
     readOnly,
+    mobile,
     onDelete: askDelete(kind, charge),
+    // Shared by every module: a line someone else is editing is locked.
+    editingBy: editingLocks[charge.id] != null ? usersById.get(editingLocks[charge.id]) : undefined,
   });
 
   // ---- the rows, per type ----

@@ -131,10 +131,10 @@ export const PRODUCT_NOUN: ObjectNoun = {
   createLabel: "Create product",
 };
 
-// "Other" is the page's NAME, not a noun you can count — "3 others" says
-// nothing. One row is an other CHARGE, which is what production calls the
-// type ("Other Charge", and "Miscellaneous Charge" in its form's picker), so
-// the counts read "3 other charges".
+// The page is "Other charges" (renamed from "Other", Daniel 2026-11-16). One
+// row is an other CHARGE, which is what production calls the type ("Other
+// Charge", and "Miscellaneous Charge" in its form's picker), so the counts
+// read "3 other charges".
 export const OTHER_NOUN: ObjectNoun = {
   one: "other charge",
   many: "other charges",

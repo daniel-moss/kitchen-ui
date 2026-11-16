@@ -422,6 +422,26 @@ const DISCOUNTS_BY_JOB: Record<string, string[]> = {
   "JOB-1201": ["disc-contract-labor"],
 };
 
+// Line items SOMEONE ELSE is editing right now, by job id → line id → user id
+// (Daniel, 2026-11-16: "some jobs might show edit mode for some line-items").
+// The Charges segment locks these for the viewer (Figma "Shared Behavior" →
+// "Locked Editing", 29733-56399). Line ids are the ones `chargesOf` /
+// `discountsOf` give: l1/l2 labor, p1… products, o1 other, d1… discounts.
+// The editor is never the viewer (Lorne Riddle, user 1).
+const EDITING_LOCKS_BY_JOB: Record<string, Record<string, number>> = {
+  // The main demo job: the office is adjusting the door gasket line.
+  "JOB-1201": { p1: 2 },
+  // An assignee is fixing the hours on the standard labor line.
+  "JOB-1106": { l2: 3 },
+  // A paused job: the trip charge is being corrected.
+  "JOB-1099": { o1: 6 },
+};
+
+/** The job's locked line items: line id → the id of the user editing it. */
+export function editingLocksOf(job: Job): Record<string, number> {
+  return EDITING_LOCKS_BY_JOB[job.id] ?? {};
+}
+
 /** The job's discount lines, pre-filled from their pricebook discounts. */
 export function discountsOf(job: Job): Charge[] {
   return (DISCOUNTS_BY_JOB[job.id] ?? []).flatMap((id, index) => {

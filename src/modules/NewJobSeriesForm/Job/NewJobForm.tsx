@@ -10,7 +10,7 @@ import { toast } from "../../../components/Toast/Toaster";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import { clientById, locationById } from "../../../data/db";
 
-import { BRANCHES, equipmentById, JOB_FORMS } from "../../../data/db";
+import { BRANCHES, COMPANY, equipmentById, JOB_FORMS } from "../../../data/db";
 
 import AssigneesModule from "./AssigneesModule";
 import BillingIntentionModule, { isBillingValid } from "./BillingIntentionModule";
@@ -188,7 +188,8 @@ export default function NewJobForm({
   // Forms required by the picked service or equipment auto-JOIN the picks
   // (public, not removable) and leave again when their trigger goes away.
   useEffect(() => {
-    const required: FormPick[] = JOB_FORMS.flatMap((form) => {
+    // Forms off (Demo settings): nothing joins — the job gets no forms.
+    const required: FormPick[] = !COMPANY.featureFormsEnabled ? [] : JOB_FORMS.flatMap((form) => {
       if (serviceDetails.serviceId != null && form.requiredForServiceIds?.includes(serviceDetails.serviceId)) {
         return [
           {
@@ -390,8 +391,13 @@ export default function NewJobForm({
               mobile={!isDesktop}
             />
             <Divider />
-            <FormsModule value={formPicks} onChange={setFormPicks} mobile={!isDesktop} />
-            <Divider />
+            {/* Only while the company uses forms (Demo settings → Forms). */}
+            {COMPANY.featureFormsEnabled && (
+              <>
+                <FormsModule value={formPicks} onChange={setFormPicks} mobile={!isDesktop} />
+                <Divider />
+              </>
+            )}
             <FilesModule value={files} onChange={setFiles} mobile={!isDesktop} />
           </>
         ) : (

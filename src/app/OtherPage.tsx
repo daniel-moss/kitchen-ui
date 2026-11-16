@@ -20,7 +20,7 @@ import { PricebookListConfig, PricebookPage } from "./pricebookList";
 
 const OTHER_LIST: PricebookListConfig<ChargeRow> = {
   page: "other",
-  title: "Other",
+  title: "Other charges",
   noun: OTHER_NOUN,
   rows: OTHER.rows,
   isActive: (item) => item.isActive,

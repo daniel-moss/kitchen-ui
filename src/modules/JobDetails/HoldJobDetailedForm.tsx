@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import Button from "../../components/Button/Button";
 import Dialog from "../../components/Dialog/Dialog";
 import EmptyState from "../../components/EmptyState/EmptyState";
 import TextArea from "../../components/Fields/TextArea/TextArea";
@@ -9,7 +10,7 @@ import StepItem from "../../components/StepItemGroup/StepItem";
 import StepItemGroup from "../../components/StepItemGroup/StepItemGroup";
 import { StepItemProgress } from "../../components/StepItemGroup/StepItem.types";
 import { toast } from "../../components/Toast/Toaster";
-import { EQUIPMENT_LABELS } from "../../data/db";
+import { COMPANY, EQUIPMENT_LABELS } from "../../data/db";
 import type { Equipment as EquipmentRecord, Job, LaborItem } from "../../data/db";
 import EquipmentPanel from "../EquipmentPanel/EquipmentPanel";
 import { ManagedFile } from "../AddFilesForm/files";
@@ -21,38 +22,47 @@ import ChargesSegment from "./Charges/ChargesSegment";
 import { CheckInOutResult } from "./CheckInOutField";
 import { EquipmentDetailModule } from "./CompleteJobForm";
 import { Equipment, EquipmentAvatar } from "./equipment";
+import FormsModule from "./FormsModule";
 import { useJobTexts } from "./jobWork";
 import { usePauseFields } from "./PauseJobForm";
 import { recordFor } from "./ServicePanel";
+import useSummaryGenerator from "./summaryGenerator";
 
 import completeStyles from "./CompleteJobForm.module.scss";
 import formStyles from "./jobForm.module.scss";
 
 // "Hold job" — the DETAILED flow (Figma section 27210-61490, Daniel 2026-11-14).
 // A company whose Demo setting "Hold job" is "Detailed" gets this instead of
-// the one "Hold job" dialog. A 4-step focus Dialog:
+// the one "Hold job" dialog. A 5-step focus Dialog:
 //
 // 1. Equipment (redesigned, Figma 27210-57604) — the job's equipment (the
 //    standard multi-select field) and an open details card per piece whose
 //    "Edit" opens the Equipment side panel; "No equipment" when none. REQUIRED
 //    when the job's "Make equipment required" is on: Next shows "Choose
 //    Equipment".
-// 2. Summary — Work summary (REQUIRED), Notes to dispatcher(s), Files. No
-//    Generate button and no caption (Daniel: there is no Forms step).
-// 3. Charges — works the same as the Charges tab: the line items and the
+// 2. Forms (added 2026-11-16, Figma 29738-58014) — the job's Forms module:
+//    the SAME forms as the Summary tab (FormsModule's JobFormsProvider), so a
+//    change here shows there at once. Not required: Next never asks.
+// 3. Summary (redesigned 2026-11-16, Figma 27267-68476) — Work summary
+//    (REQUIRED) with its caption and the Generate button (from completed
+//    forms, as in the Complete-job flow), Notes to dispatcher(s), Files.
+// 4. Charges — works the same as the Charges tab: the line items and the
 //    Subtotal, NO Profitability (Daniel).
-// 4. Status — the "Hold job" dialog's fields, the same build (`usePauseFields`):
+// 5. Status — the "Hold job" dialog's fields, the same build (`usePauseFields`):
 //    Hold status, Hold reason, Check in / out. "Hold" finishes.
 //
-// Back / Next only — the step bar is not clickable (Daniel). The Equipment and
-// Charges steps edit the JOB directly — they show exactly what the Equipment
-// module and the Charges tab show, and a change there is saved at once (Daniel,
-// 2026-11-14). The Summary step and the Status step are a draft until "Hold":
-// cancelling drops them, after "Discard changes?" when something changed.
+// Back / Next only — the step bar is not clickable (Daniel). The Equipment,
+// Forms and Charges steps edit the JOB directly — they show exactly what the
+// Equipment module, the Forms module and the Charges tab show, and a change
+// there is saved at once (Daniel, 2026-11-14). The Summary step and the Status
+// step are a draft until "Hold": cancelling drops them, after "Discard
+// changes?" when something changed.
 
-const STEP_LABELS = ["Equipment", "Summary", "Charges", "Status"];
-const SUMMARY_STEP = 1;
-const STATUS_STEP = 3;
+// Forms is a step only while the company uses forms (Demo settings → Forms,
+// 2026-11-16); without it the flow has four steps. So the steps are looked up
+// by NAME, never by a fixed index.
+const ALL_STEPS = ["Equipment", "Forms", "Summary", "Charges", "Status"] as const;
+type StepName = (typeof ALL_STEPS)[number];
 
 /** Everything the flow collected — the job page applies it on "Hold". */
 export interface HoldJobDetailedResult {
@@ -112,6 +122,9 @@ export default function HoldJobDetailedForm({
   const savedTexts = useJobTexts(job.id);
 
   const [step, setStep] = useState(0);
+  const formsOn = COMPANY.featureFormsEnabled;
+  const STEP_LABELS: StepName[] = formsOn ? [...ALL_STEPS] : ALL_STEPS.filter((name) => name !== "Forms");
+  const current = STEP_LABELS[step];
   // The drafts — copied from the job when the flow opens.
   const [summary, setSummary] = useState(savedTexts.summary);
   const [notes, setNotes] = useState(savedTexts.notes);
@@ -125,7 +138,14 @@ export default function HoldJobDetailedForm({
 
   const pauseFields = usePauseFields({ open, type: "on-hold", showCheckIn, runningSession, mobile });
 
+  // Forms → Summary: the Generate button needs to know whether any form is
+  // completed (the Complete-job flow's rule). The Forms step reports it.
+  const [formsDone, setFormsDone] = useState({ all: false, any: false, count: 0 });
+  // Generate: "AI thinking", then the summary is typed in (shared hook).
+  const gen = useSummaryGenerator(setSummary);
+
   useEffect(() => {
+    gen.reset();
     if (!open) return;
     setStep(0);
     setSummary(savedTexts.summary);
@@ -148,12 +168,12 @@ export default function HoldJobDetailedForm({
 
   const next = () => {
     // Equipment: required when the job says so (Figma "Equipment" Input 29570-48030).
-    if (step === 0 && isEquipmentRequired && equipmentIds.length === 0) {
+    if (current === "Equipment" && isEquipmentRequired && equipmentIds.length === 0) {
       setEquipmentError(true);
       return;
     }
     // Summary: the Work summary is required (Daniel, 2026-11-14).
-    if (step === SUMMARY_STEP && summary.trim() === "") {
+    if (current === "Summary" && summary.trim() === "") {
       setSummaryError(true);
       return;
     }
@@ -195,7 +215,7 @@ export default function HoldJobDetailedForm({
       finalActionIconPack="solid"
     >
       {/* Step 1 — Equipment (Figma 27210-57605). */}
-      {step === 0 && (
+      {current === "Equipment" && (
         <FormModule title="Equipment" caption="Add the equipment you worked on and check its details">
           <div className={completeStyles.stack}>
             <EquipmentSelectField
@@ -229,16 +249,48 @@ export default function HoldJobDetailedForm({
         </FormModule>
       )}
 
-      {/* Step 2 — Summary (Figma 27267-68477). */}
-      {step === SUMMARY_STEP && (
+      {/* Step 2 — Forms (Figma 29738-58015): the job's Forms module, shared
+          with the Summary tab. Kept MOUNTED so it keeps reporting completion
+          for the Generate button. */}
+      {formsOn && (
+      <div style={{ display: current === "Forms" ? undefined : "none" }}>
+        <FormsModule
+          mobile={mobile}
+          stepVariant
+          stepCaption="Complete the forms for this service. Add more, if necessary."
+          jobEquipment={picked}
+          onCompletionChange={setFormsDone}
+        />
+      </div>
+      )}
+
+      {/* Step 3 — Summary (Figma 27267-68477). */}
+      {current === "Summary" && (
         <FormModuleGroup>
-          <FormModule title="Work summary">
-            <TextArea
-              value={summary}
-              isValid={!(summaryError && summary.trim() === "")}
-              errorMessage="Provide Work summary"
-              onChange={(e) => setSummary(e.target.value)}
-            />
+          <FormModule title="Work summary" caption={formsOn ? "Roopairs can generate summary based on completed forms or you can fill it out manually" : undefined}>
+            <div className={completeStyles.genStack}>
+              {/* Like the Complete-job flow: only when the job has forms; with
+                  none completed it stays, disabled, and says so. */}
+              {formsOn && formsDone.count > 0 && (
+                <Button
+                  variant="subtle"
+                  size="lg"
+                  isFullWidth
+                  leftIcon="wand-magic-sparkles"
+                  isDisabled={!formsDone.any || gen.busy}
+                  isProcessing={gen.phase === "thinking"}
+                  onClick={gen.generate}
+                >
+                  {formsDone.any ? "Generate" : "No completed forms"}
+                </Button>
+              )}
+              <TextArea
+                value={summary}
+                isValid={!(summaryError && summary.trim() === "")}
+                errorMessage="Provide Work summary"
+                onChange={(e) => setSummary(e.target.value)}
+              />
+            </div>
           </FormModule>
           <FormModule
             title="Notes to dispatcher(s)"
@@ -251,10 +303,10 @@ export default function HoldJobDetailedForm({
         </FormModuleGroup>
       )}
 
-      {/* Step 3 — Charges (Figma 27267-69257): the Charges tab's segment on a
+      {/* Step 4 — Charges (Figma 27267-69257): the Charges tab's segment on a
           job's SAVED lines (changes show on the tab at once), without
           Profitability. */}
-      {step === 2 && (
+      {current === "Charges" && (
         <FormModule title="Charges" caption="Add labor rates, products, and any other charges or discounts">
           <ChargesSegment
             job={job}
@@ -266,9 +318,9 @@ export default function HoldJobDetailedForm({
         </FormModule>
       )}
 
-      {/* Step 4 — Status (Figma 27267-70070): the "Hold job" dialog's fields.
+      {/* Step 5 — Status (Figma 27267-70070): the "Hold job" dialog's fields.
           Kept MOUNTED (hidden) so its values survive Back / Next. */}
-      <div className={formStyles.form} style={{ display: step === STATUS_STEP ? undefined : "none" }}>
+      <div className={formStyles.form} style={{ display: current === "Status" ? undefined : "none" }}>
         {pauseFields.fields}
       </div>
       {pauseFields.list}

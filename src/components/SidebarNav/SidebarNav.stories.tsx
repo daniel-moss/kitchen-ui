@@ -76,7 +76,7 @@ const createMenu = (
         <MenuItemGroup>
           <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} />
-          <MenuItem label="Other" slotLeft={slot(semanticIcons.other)} />
+          <MenuItem label="Other charge" slotLeft={slot(semanticIcons.other)} />
           <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
           <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} />
         </MenuItemGroup>
@@ -108,7 +108,7 @@ const navContent = (
     <SidebarNavItemGroup icon={semanticIcons.pricebook} label="Pricebook">
       <SidebarNavItem type="stackItem">Labor rates</SidebarNavItem>
       <SidebarNavItem type="stackItem">Products</SidebarNavItem>
-      <SidebarNavItem type="stackItem">Other</SidebarNavItem>
+      <SidebarNavItem type="stackItem">Other charges</SidebarNavItem>
       <SidebarNavItem type="stackItem">Discounts</SidebarNavItem>
       <SidebarNavItem type="stackItem">Tax rates</SidebarNavItem>
     </SidebarNavItemGroup>

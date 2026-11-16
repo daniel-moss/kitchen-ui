@@ -8,7 +8,7 @@ import { conceptMeta, Frame, JOB, JOB_CHARGES, JOB_DISCOUNTS } from "../conceptS
 // footer — the live module's layout, built on the SAME lines, lists and edit
 // forms as Concept 2 (2026-11-03). The Job Details page keeps the original.
 const meta: Meta = {
-  title: "Modules/Job/Details/Modules/Charges/Concept 1",
+  title: "Modules/Job/Details/Modules/Line-items/Concept 1",
   ...conceptMeta,
 };
 

@@ -194,7 +194,7 @@ function ChartModule({
         entries.length === 0 ? (
           <EmptyState caption="No time logged" />
         ) : (
-          <>
+          <div className={styles.content}>
             {/* Every segment keeps a 36px minimum so the avatars can never
                 overlap (Daniel, 2026-08-11); past that the row scrolls
                 sideways. Figma does not draw the overflowing case. */}
@@ -229,7 +229,7 @@ function ChartModule({
                 );
               })}
             </ItemGroup>
-          </>
+          </div>
         )
       }
     />
