@@ -122,9 +122,9 @@ function seedLines(job: Job): JobChargeLines {
 }
 
 /** The saved lines (the app store) — or local ones, in a story of its own. */
-function useSavedLines(job: Job): [JobChargeLines, (update: (lines: JobChargeLines) => JobChargeLines) => void] {
+function useSavedLines(job: Job, initial?: JobChargeLines): [JobChargeLines, (update: (lines: JobChargeLines) => JobChargeLines) => void] {
   const store = useOptionalAppStore();
-  const seed = useMemo(() => seedLines(job), [job]);
+  const seed = useMemo(() => initial ?? seedLines(job), [job, initial]);
   const [local, setLocal] = useState(seed);
   if (store == null) return [local, setLocal];
   const lines = store.chargeLines[job.id] ?? seed;
@@ -376,6 +376,23 @@ export interface ChargesSegmentProps {
    * action. See ./lineEquipment.
    */
   lineEquipment?: LineEquipment;
+  /**
+   * The lines the segment STARTS with, in place of the ones the database
+   * derives for the job — a user-testing build sets its own (see
+   * prototypes/JobDetailsLineItems). Unset = the database's lines.
+   */
+  initialLines?: JobChargeLines;
+}
+
+/**
+ * A "Charges only" user-testing build (prototypes/JobDetailsLineItems): the
+ * Job Details page opens on Summary → Charges with these lines and locks, and
+ * the page cannot leave it.
+ */
+export interface ChargesTestSetup {
+  lines: JobChargeLines;
+  /** Line id → the id of the user editing it (see `editingLocks`). */
+  editingLocks: Record<string, number>;
 }
 
 /** A job's charge lines as the Charges segment starts them — saved, else derived. Exported for draft callers. */
@@ -394,10 +411,12 @@ export default function ChargesSegment({
   showProfitability = true,
   editingLocks = editingLocksOf(job),
   lineEquipment,
+  initialLines,
 }: ChargesSegmentProps) {
   const segment = (
     <ChargesSegmentBody
       job={job}
+      initialLines={initialLines}
       mobile={mobile}
       readOnly={readOnly}
       laborRates={laborRates}
@@ -421,9 +440,10 @@ function ChargesSegmentBody({
   onLinesChange,
   showProfitability,
   editingLocks,
+  initialLines,
 }: Required<Pick<ChargesSegmentProps, "job" | "mobile" | "readOnly" | "laborRates" | "onAddLaborRate" | "showProfitability" | "editingLocks">> &
-  Pick<ChargesSegmentProps, "lines" | "onLinesChange">) {
-  const saved = useSavedLines(job);
+  Pick<ChargesSegmentProps, "lines" | "onLinesChange" | "initialLines">) {
+  const saved = useSavedLines(job, initialLines);
   const [lines, setLines]: [JobChargeLines, (update: (lines: JobChargeLines) => JobChargeLines) => void] =
     draftLines != null ? [draftLines, (update) => onLinesChange?.(update(draftLines))] : saved;
   const breakpoint: Breakpoint = mobile ? "mobile" : "desktop";
@@ -644,7 +664,8 @@ function ChargesSegmentBody({
   });
 
   return (
-    <div className={styles.stack}>
+    // `data-charges-segment` marks the area a "Charges only" user test leaves usable.
+    <div className={styles.stack} data-charges-segment>
       <TypeModule title="Labor rates" addLabel="Add labor rate" empty="No labor rates" {...moduleProps("labor", laborRows, laborTotal)} />
       <TypeModule title="Products" addLabel="Add product" empty="No products" {...moduleProps("product", productRows, productTotal)} />
       {/* "No charges", not "No other charges" (Daniel, 2026-11-13). */}

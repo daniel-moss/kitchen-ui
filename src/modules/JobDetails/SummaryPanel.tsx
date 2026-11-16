@@ -9,7 +9,7 @@ import SegmentedControl from "../../components/SegmentedControl/SegmentedControl
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 
 import ChargesConcept, { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
-import ChargesSegment from "./Charges/ChargesSegment";
+import ChargesSegment, { type ChargesTestSetup } from "./Charges/ChargesSegment";
 import type { LineEquipment } from "./Charges/lineEquipment";
 import { Equipment } from "./equipment";
 import FormsModule, { FormsLog } from "./FormsModule";
@@ -64,7 +64,10 @@ export default function SummaryPanel({
   laborRates,
   chargesConcept,
   lineEquipment,
+  chargesTest,
 }: {
+  /** A "Charges only" user-testing build: opens on Charges with these lines and locks. */
+  chargesTest?: ChargesTestSetup;
   mobile?: boolean;
   /**
    * The job's charges and their total — derived from the job (db/jobCharges).
@@ -112,7 +115,7 @@ export default function SummaryPanel({
   /** Charges: the job's live equipment for "Equipment attribution", with its "Add equipment". */
   lineEquipment?: LineEquipment;
 }) {
-  const [sub, setSub] = useState(chargesConcept != null ? "charges" : "tech-work");
+  const [sub, setSub] = useState(chargesConcept != null || chargesTest != null ? "charges" : "tech-work");
 
   // ---- Work summary (Figma 21833-91131) ----
   // Seeded from the DATABASE (2026-10-20): a completed or finalized job comes
@@ -223,7 +226,16 @@ export default function SummaryPanel({
       ) : sub === "charges" && jobById(jobId) != null ? (
         // The Charges segment (Figma 29380-42876, 2026-11-13) — it replaced the
         // labor-only ChargesTab. It reads and saves its own lines.
-        <ChargesSegment job={jobById(jobId)!} mobile={mobile} readOnly={readOnly} laborRates={laborRates} onAddLaborRate={onAddLaborRate} lineEquipment={lineEquipment} />
+        <ChargesSegment
+          job={jobById(jobId)!}
+          mobile={mobile}
+          readOnly={readOnly}
+          laborRates={laborRates}
+          onAddLaborRate={onAddLaborRate}
+          lineEquipment={lineEquipment}
+          initialLines={chargesTest?.lines}
+          {...(chargesTest != null && { editingLocks: chargesTest.editingLocks })}
+        />
       ) : sub === "signature" ? (
         <SignatureModule {...signatureView(signature)} />
       ) : (
