@@ -1,18 +1,13 @@
-import { ReactNode } from "react";
+import { Fragment, ReactNode } from "react";
 
-import AvatarDiscount from "../../../components/Avatar/AvatarDiscount";
-import AvatarLaborRate from "../../../components/Avatar/AvatarLaborRate";
-import AvatarOther from "../../../components/Avatar/AvatarOther";
-import AvatarProduct from "../../../components/Avatar/AvatarProduct";
 import { Divider } from "../../../components/Divider/Divider";
 import DisplayModule from "../../../components/DisplayModule/DisplayModule";
 import HintTrigger from "../../../components/Hint/HintTrigger";
 import HoverHint from "../../../components/Hint/HoverHint";
 import { Icon } from "../../../components/Icon/Icon";
-import ItemGroup from "../../../components/ItemGroup/ItemGroup";
+import ItemText from "../../../components/ItemText/ItemText/ItemText";
 import ItemTextBlock from "../../../components/ItemText/ItemText/ItemTextBlock";
 import { ItemTextLineColor } from "../../../components/ItemText/ItemText/ItemTextLine.types";
-import ListItem from "../../../components/ListItem/ListItem";
 import type { JobChargeLines } from "../../../app/store/AppStore";
 import type { Charge } from "../../../data/db";
 
@@ -36,14 +31,17 @@ import styles from "./ProfitabilityModule.module.scss";
 // breaks the number down per charge type.
 //
 //   Profitability = Subtotal − Cost
-//   Percent       = Profitability / Cost × 100, up to 1 decimal
+//   Percent       = MARGIN: Profitability / Subtotal × 100, up to 1 decimal
+//                   (was markup, Profitability / Cost — switched 2026-11-17
+//                   after the CEO's user-test feedback; SAMPro shows margin)
 //   Cost          = the sum of every line's cost (discounts have none)
 //   Subtotal      = Labor rates + Products + Other charges + Discounts
 //
 // States: profit (arrow up-right, success), loss (arrow down-left, error — the
-// percent carries NO minus, the amount does), zero ("0%" / "$0.00" strong, no
-// arrow), no cost ("N/A" — the percent cannot be calculated) and no lines at
-// all (every value placeholder).
+// percent carries NO minus, the amount does; a loss margin can pass 100%),
+// zero ("0%" / "$0.00" strong, no arrow), no subtotal ("N/A" — a Subtotal of
+// $0 or less leaves nothing to divide by) and no lines at all (every value
+// placeholder). A job with no cost is a real 100% margin, not N/A.
 
 type Kind = "labor" | "product" | "other" | "discount";
 
@@ -66,14 +64,7 @@ function typeSums(lines: JobChargeLines): TypeSum[] {
   ];
 }
 
-const AVATAR: Record<Kind, ReactNode> = {
-  labor: <AvatarLaborRate size="xl" />,
-  product: <AvatarProduct size="xl" />,
-  other: <AvatarOther size="xl" />,
-  discount: <AvatarDiscount size="xl" />,
-};
-
-// The compact rows' 14px icons — the same glyphs the avatars draw.
+// The hint rows' 14px type icons (the pricebook type icons).
 const ICON: Record<Kind, string> = {
   labor: "toolbox",
   product: "box-taped",
@@ -89,9 +80,9 @@ function signed(value: number): { text: string; color: ItemTextLineColor } {
   return { text: formatAmount(0), color: "strong" };
 }
 
-/** Profit ÷ cost × 100, up to 1 decimal, no sign (the arrow carries it). */
-function formatPercent(profit: number, cost: number): string {
-  const p = Math.round((Math.abs(profit) / cost) * 1000) / 10;
+/** The margin: profit ÷ subtotal × 100, up to 1 decimal, no sign (the arrow carries it). */
+function formatPercent(profit: number, subtotal: number): string {
+  const p = Math.round((Math.abs(profit) / subtotal) * 1000) / 10;
   return `${p.toLocaleString("en-US", { maximumFractionDigits: 1 })}%`;
 }
 
@@ -105,77 +96,102 @@ const COLOR_CLASS: Record<ItemTextLineColor, string> = {
 };
 
 // ---- the hints ----------------------------------------------------------------
+//
+// Figma 2026-11-17 redesign: every hint is a 16px-padded column, 16px between
+// its parts — the copy (heading/h3 title + caption, 4px apart), then one
+// 20px ItemText row per type. Figma draws the rows as ListItemBody, but the
+// code's ListItemBody forces a 40px row; ItemText is the part it wraps, so
+// the rows use it directly. A type with no lines reads "N/A" (placeholder).
 
-function HintCopy({ title, caption, compact }: { title: string; caption: string; compact?: boolean }) {
+const N_A = "N/A";
+
+function HintBody({ title, caption, children }: { title: string; caption: string; children: ReactNode }) {
   return (
-    <div className={compact ? styles.copyCompact : styles.copy}>
-      <span className={styles.copyTitle}>{title}</span>
-      <span className={styles.copyCaption}>{caption}</span>
+    <div className={styles.hintBody}>
+      <div className={styles.copy}>
+        <span className={styles.copyTitle}>{title}</span>
+        <span className={styles.copyCaption}>{caption}</span>
+      </div>
+      {children}
     </div>
   );
 }
 
-function HintTotal({ label, value, color }: { label: string; value: string; color: ItemTextLineColor }) {
+const typeIcon = (kind: Kind) => <Icon icon={ICON[kind]} size={14} container="square" />;
+const arrowIcon = (profit: number) => (profit === 0 ? undefined : <Icon icon={profit > 0 ? "arrow-up-right" : "arrow-down-left"} size={14} container="fixedHeight" />);
+
+/**
+ * A type's margin with its amount, e.g. "25% ($200.00)". The amount carries no
+ * sign — the arrow and the color do (Daniel, 2026-11-17). A $0 price leaves
+ * nothing to divide by: "N/A ($100.00)", still colored by the profit.
+ */
+function typeMargin(s: TypeSum): { text: string; color: ItemTextLineColor; profit: number } {
+  if (s.count === 0) return { text: N_A, color: "placeholder", profit: 0 };
+  const profit = round3(s.price - s.cost);
+  const color = signed(profit).color;
+  const amount = formatAmount(Math.abs(profit));
+  const percent = s.price > 0 ? formatPercent(profit, s.price) : N_A;
+  return { text: `${percent} (${amount})`, color, profit };
+}
+
+/** "↳ Cost" / "↳ Price" under a type: Regular, 12px in. */
+function SubRow({ label, value, empty }: { label: string; value: number; empty: boolean }) {
   return (
-    <div className={styles.total}>
-      <span className={styles.totalLabel}>{label}</span>
-      <span className={COLOR_CLASS[color]}>{value}</span>
-    </div>
+    <ItemText
+      title={label}
+      titleStyle="bodyRegular"
+      titleSlotLeft={<Icon icon="arrow-turn-down-right" size={14} container="square" />}
+      right={<ItemTextBlock align="right" title={empty ? N_A : formatAmount(value)} titleStyle="bodyRegular" titleColor={empty ? "placeholder" : "strong"} />}
+    />
   );
 }
 
-function ProfitabilityHint({ sums, profit }: { sums: TypeSum[]; profit: number }) {
-  const total = signed(profit);
+function ProfitabilityHint({ sums }: { sums: TypeSum[] }) {
+  const types = sums.filter((s) => s.kind !== "discount");
+  const discounts = sums.find((s) => s.kind === "discount")!;
+  const discount = discounts.count === 0 ? { text: N_A, color: "placeholder" as const } : signed(discounts.price);
   return (
-    <>
-      <HintCopy title="Profitability = Subtotal − Cost" caption="The difference between what the job was charged and what it cost the company." />
-      <ItemGroup>
-        {sums.map((s) => {
-          // A type with no lines: a placeholder "$0.00" and no caption.
-          if (s.count === 0) {
-            return <ListItem key={s.kind} avatar={AVATAR[s.kind]} title={s.label} right={<ItemTextBlock align="right" title={formatAmount(0)} titleColor="placeholder" />} />;
-          }
-          // Discounts have no cost — the row shows only what they take off.
-          if (s.kind === "discount") {
-            const v = signed(s.price);
-            return <ListItem key={s.kind} avatar={AVATAR[s.kind]} title={s.label} right={<ItemTextBlock align="right" title={v.text} titleColor={v.color} />} />;
-          }
-          const v = signed(s.price - s.cost);
-          return (
-            <ListItem
-              key={s.kind}
-              avatar={AVATAR[s.kind]}
-              title={s.label}
-              right={<ItemTextBlock align="right" variant="titleCaption" title={v.text} titleColor={v.color} caption={`${formatAmount(s.price)} − ${formatAmount(s.cost)}`} />}
-            />
-          );
-        })}
-      </ItemGroup>
-      <Divider contrast="high" padding="0 var(--size-4)" />
-      <HintTotal label="Profitability" value={total.text} color={total.color} />
-    </>
+    <HintBody title="Profitability breakdown" caption="The difference between what the job was charged and what it cost the company.">
+      {types.map((s) => {
+        const m = typeMargin(s);
+        return (
+          <Fragment key={s.kind}>
+            <div className={styles.typeBlock}>
+              <ItemText
+                title={s.label}
+                titleSlotLeft={typeIcon(s.kind)}
+                right={<ItemTextBlock align="right" title={m.text} titleColor={m.color} titleSlotLeft={arrowIcon(m.profit)} />}
+              />
+              <div className={styles.subRows}>
+                <SubRow label="Cost" value={s.cost} empty={s.count === 0} />
+                <SubRow label="Price" value={s.price} empty={s.count === 0} />
+              </div>
+            </div>
+            <Divider contrast="medium" />
+          </Fragment>
+        );
+      })}
+      <ItemText
+        title={discounts.label}
+        titleSlotLeft={typeIcon("discount")}
+        right={<ItemTextBlock align="right" title={discount.text} titleColor={discount.color} />}
+      />
+    </HintBody>
   );
 }
 
 function BreakdownHint({ title, caption, sums, value }: { title: string; caption: string; sums: TypeSum[]; value: (s: TypeSum) => number }) {
-  const total = round3(sums.reduce((acc, s) => acc + value(s), 0));
   return (
-    <>
-      <HintCopy compact title={title} caption={caption} />
-      <ItemGroup>
-        {sums.map((s) => (
-          <ListItem
-            key={s.kind}
-            size="compact"
-            title={s.label}
-            titleSlotLeft={<Icon icon={ICON[s.kind]} size={14} container="square" />}
-            right={<ItemTextBlock align="right" title={formatAmount(value(s))} titleColor={s.count === 0 ? "placeholder" : "strong"} />}
-          />
-        ))}
-      </ItemGroup>
-      <Divider contrast="high" padding="var(--size-1) var(--size-4) 0" />
-      <HintTotal label={title} value={formatAmount(total)} color="strong" />
-    </>
+    <HintBody title={title} caption={caption}>
+      {sums.map((s) => (
+        <ItemText
+          key={s.kind}
+          title={s.label}
+          titleSlotLeft={typeIcon(s.kind)}
+          right={<ItemTextBlock align="right" title={s.count === 0 ? N_A : formatAmount(value(s))} titleColor={s.count === 0 ? "placeholder" : "strong"} />}
+        />
+      ))}
+    </HintBody>
   );
 }
 
@@ -206,14 +222,18 @@ export default function ProfitabilityModule({ lines, mobile = false }: Profitabi
 
   // The big percent and the amount next to it.
   const amount = hasLines ? signed(profit) : { text: formatAmount(0), color: "placeholder" as const };
-  const percentText = !hasLines || cost === 0 ? "N/A" : formatPercent(profit, cost);
-  const percentColor: ItemTextLineColor = !hasLines || cost === 0 ? "placeholder" : amount.color;
-  const arrow = hasLines && cost !== 0 && profit !== 0 ? (profit > 0 ? "arrow-up-right" : "arrow-down-left") : null;
+  // The margin needs a positive Subtotal to divide by. With lines but no
+  // Subtotal (Figma "No Subtotal", e.g. a fully discounted job) the percent
+  // reads "N/A" yet keeps the loss's arrow and color.
+  const hasMargin = hasLines && subtotal > 0;
+  const percentText = hasMargin ? formatPercent(profit, subtotal) : "N/A";
+  const percentColor: ItemTextLineColor = hasLines ? amount.color : "placeholder";
+  const arrow = hasLines && profit !== 0 ? (profit > 0 ? "arrow-up-right" : "arrow-down-left") : null;
   const valueColor: ItemTextLineColor = hasLines ? "strong" : "placeholder";
 
   const profitabilityBox = (
     <div className={styles.mainBox}>
-      <BoxTitle label="Profitability" width={360} mobile={mobile} hint={<ProfitabilityHint sums={sums} profit={profit} />} />
+      <BoxTitle label="Profitability" width={360} mobile={mobile} hint={<ProfitabilityHint sums={sums} />} />
       <div className={styles.mainValues}>
         <div className={styles.percentRow}>
           {/* 28px is outside the Icon scale (8–24): sized by style, as Figma
@@ -228,14 +248,14 @@ export default function ProfitabilityModule({ lines, mobile = false }: Profitabi
 
   const costBox = (
     <div className={styles.box}>
-      <BoxTitle label="Cost" width={320} mobile={mobile} hint={<BreakdownHint title="Cost" caption="What the job cost the company" sums={sums.filter((s) => s.kind !== "discount")} value={(s) => s.cost} />} />
+      <BoxTitle label="Cost" width={320} mobile={mobile} hint={<BreakdownHint title="Cost breakdown" caption="What the job cost the company" sums={sums.filter((s) => s.kind !== "discount")} value={(s) => s.cost} />} />
       <span className={`${styles.value} ${COLOR_CLASS[valueColor]}`}>{formatAmount(cost)}</span>
     </div>
   );
 
   const subtotalBox = (
     <div className={styles.box}>
-      <BoxTitle label="Subtotal" width={320} mobile={mobile} hint={<BreakdownHint title="Subtotal" caption="What the job was charged" sums={sums} value={(s) => s.price} />} />
+      <BoxTitle label="Subtotal" width={320} mobile={mobile} hint={<BreakdownHint title="Subtotal breakdown" caption="What the job was charged" sums={sums} value={(s) => s.price} />} />
       <span className={`${styles.value} ${COLOR_CLASS[valueColor]}`}>{formatAmount(subtotal)}</span>
     </div>
   );

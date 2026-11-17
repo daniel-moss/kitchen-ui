@@ -5,7 +5,7 @@ import { chargesOf, discountsOf } from "../../../data/db";
 import type { Charge } from "../../../data/db";
 import { conceptMeta, Frame, JOB } from "../ChargesModule/conceptStories";
 
-import { round3 } from "./lineDisplay";
+import { laborAmount, otherAmount, productAmount, round3 } from "./lineDisplay";
 import ProfitabilityModule from "./ProfitabilityModule";
 
 // The "Profitability" module under the Subtotal in the Job Details Charges
@@ -81,12 +81,33 @@ export const Zero: Story = {
   ),
 };
 
-/** No line has a cost: the percent cannot be calculated — "N/A". */
+/** No line has a cost: everything charged is profit — a 100% margin. */
 export const NoCost: Story = {
   name: "No cost",
   render: () => (
     <Frame>
-      <ProfitabilityModule lines={costAt(0)} />
+      <ProfitabilityModule lines={costAt(0, { keepDiscounts: false })} />
+    </Frame>
+  ),
+};
+
+/** The same lines with ONE discount that takes off the whole charge. */
+function fullyDiscounted(): JobChargeLines {
+  const charged = round3(
+    LINES.labor.reduce((acc, c) => acc + laborAmount(c.labor!), 0) +
+      LINES.products.reduce((acc, c) => acc + productAmount(c.product!), 0) +
+      LINES.other.reduce((acc, c) => acc + otherAmount(c.other!), 0),
+  );
+  const first = LINES.discounts[0];
+  return { ...LINES, discounts: [{ ...first, discount: { ...first.discount!, discount: charged, quantity: 1 } }] };
+}
+
+/** The Subtotal is $0: there is nothing to divide by, so the margin is "N/A". */
+export const NoSubtotal: Story = {
+  name: "No subtotal",
+  render: () => (
+    <Frame>
+      <ProfitabilityModule lines={fullyDiscounted()} />
     </Frame>
   ),
 };

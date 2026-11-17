@@ -143,22 +143,23 @@
 
 // ---- hints ----------------------------------------------------------------
 
-// The hint's copy: title strong + caption subtle, 2px apart. 16px sides and
-// top; the Cost / Subtotal hints add 4px below.
-.copy,
-.copyCompact {
+// Figma 2026-11-17: the hint body is a 16px-padded column, 16px between parts.
+.hintBody {
   display: flex;
   flex-direction: column;
-  gap: var(--size-0_5); // 2px
-  padding: var(--size-4) var(--size-4) 0; // 16px 16px 0
+  gap: var(--size-4); // 16px
+  padding: var(--size-4); // 16px
 }
 
-.copyCompact {
-  padding-bottom: var(--size-1); // 4px
+// The copy: heading/h3 title + caption subtle, 4px apart.
+.copy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1); // 4px
 }
 
 .copyTitle {
-  @include font("body-500-compact"); // Inter Medium 14/20
+  @include font("heading-h3"); // Inter Semibold 16/24
   color: var(--text-strong);
 }
 
@@ -167,17 +168,17 @@
   color: var(--text-subtle);
 }
 
-// The total under the divider: heading/h4 on both sides, 16px padding.
-.total {
+// One type in the Profitability hint: its row, then Cost + Price 10px below.
+.typeBlock {
   display: flex;
-  align-items: center;
-  gap: var(--size-4); // 16px
-  padding: var(--size-4); // 16px
-  @include font("heading-h4"); // Inter Semibold 14/20
+  flex-direction: column;
+  gap: 10px; // raw: Figma 10, not on the --size scale
 }
 
-.totalLabel {
-  flex: 1 1 0;
-  min-width: 0;
-  color: var(--text-strong);
+// "↳ Cost" / "↳ Price": 8px apart, 12px in.
+.subRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px
+  padding-left: var(--size-3); // 12px
 }
