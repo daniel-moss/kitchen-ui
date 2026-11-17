@@ -522,6 +522,16 @@ resume, changeActiveStatus, pause, hold), editable in fields under each switch
 the db id index) are gone. A removed sub-status leaves its jobs with the plain
 status label.
 
+**Inventory locations** (`inventoryLocations`, 2026-11-16): the company's
+locations moved INTO the settings (they start as the db's
+`INVENTORY_LOCATIONS`). While Inventory is on, `InventoryLocationsSettings.tsx`
+lists them (active first, then A to Z): add and edit — name, type, plate
+number (trucks only), address, Active. No remove: production deactivates a
+location, because stock and job lines point at it. Every reader goes through
+`inventoryLocations()`, `activeInventoryLocations()` or `inventoryLocationOf(id)`
+(which falls back to the seed). With no active location the New product form
+locks Stock type on Non-inventory.
+
 **Check in / out rules** (2026-11-14, Demo-only): `COMPANY.checkInAfter`
 (start / resume / pause / hold → "in" | "out") is the GENERIC rule — where the
 tech ends up by default; a sub-status's own `checkInAfter` wins. It only

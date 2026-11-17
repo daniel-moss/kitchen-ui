@@ -1831,6 +1831,15 @@ export interface CompanySettings {
    */
   defaultTrackInventory: boolean;
   /**
+   * The company's inventory locations — the LIVE list (Daniel, 2026-11-16:
+   * the Demo settings page shows and edits them). `INVENTORY_LOCATIONS` is
+   * only its seed; read it through `inventoryLocations()` /
+   * `inventoryLocationOf()`. Production keeps them in Django, where Roopairs
+   * staff create them. A location is deactivated, never removed — stock and
+   * job lines point at it.
+   */
+  inventoryLocations: InventoryLocation[];
+  /**
    * The company's default QuickBooks accounts for an INVENTORY product —
    * → QUICKBOOKS_COGS_ACCOUNTS / QUICKBOOKS_ASSET_ACCOUNTS. Undefined = nobody
    * set it in Settings yet, or it was deleted in QuickBooks; the form then

@@ -2,18 +2,14 @@ import { ReactNode, createContext, useCallback, useContext, useState } from "rea
 
 import {
   COMPANY,
-  INVENTORY_LOCATIONS,
-  PRODUCT_LABELS,
   PRODUCT_SUBTYPES,
   QUICKBOOKS_ACCOUNTS,
   QUICKBOOKS_ASSET_ACCOUNTS,
   QUICKBOOKS_COGS_ACCOUNTS,
-  VENDORS,
 } from "../../data/db";
 import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewProductForm from "../../modules/Product/NewProductForm/NewProductForm";
 import { useAppStore } from "../store/AppStore";
-import { noop } from "../../stories/helpers";
 
 // ONE "New product" form for the whole app — the arrangement shell/taxRates.tsx
 // and shell/laborRates.tsx set up, for the same reason: the form is an overlay
@@ -37,12 +33,14 @@ const NewProductContext = createContext<() => void>(() => {});
 /** Opens the app's "New product" form. Safe to call from anywhere in the app. */
 export const useNewProduct = () => useContext(NewProductContext);
 
-const LABEL_POOL = PRODUCT_LABELS.map((label) => label.name);
 // Functions, not constants: the "Demo settings" page changes COMPANY at run time.
-/** The company's inventory setup — the Inventory module exists only with the feature on. */
+/**
+ * The company's inventory setup — the Stock type exists only with the feature
+ * on. The locations are the LIVE list the Demo settings page edits.
+ */
 const inventorySetup = () =>
   COMPANY.featureInventoryEnabled
-    ? { locations: INVENTORY_LOCATIONS, defaultTrackInventory: COMPANY.defaultTrackInventory }
+    ? { locations: COMPANY.inventoryLocations, defaultTrackInventory: COMPANY.defaultTrackInventory }
     : undefined;
 /** The Accounting module: QuickBooks Desktop on the Detailed Split scheme only. */
 const quickbooksSetup = () =>
@@ -76,24 +74,12 @@ export function ProductsProvider({ breakpoint = "auto", children }: { breakpoint
         requireSubtypes={COMPANY.requireSubtypes}
         useTaxes={COMPANY.useTaxes}
         defaultIsTaxable={COMPANY.pricebookDefaultTaxableProduct}
-        // Every vendor — the form offers the active ones and shows the
-        // inactive ones disabled.
-        vendors={VENDORS}
         inventory={inventorySetup()}
         quickbooks={quickbooksSetup()}
-        // The viewer is an admin, so the vendor list's "Add vendor" footer row
-        // is there — but the "New vendor" form is not built, so the row does
-        // nothing, like every unbuilt row in the Create menu. FLAGGED.
-        canCreateVendor
-        onCreateVendor={noop}
-        labelPool={LABEL_POOL}
-        // The duplicate-name and duplicate-barcode checks. Production's
-        // uniqueness spans every pricebook item of the company; the app only
-        // has these products, so that is what it can offer.
+        // The duplicate-name check. Production's uniqueness spans every
+        // pricebook item of the company; the app only has these products, so
+        // that is what it can offer.
         existingNames={products.map((item) => item.name)}
-        existingBarcodes={Object.fromEntries(
-          products.filter((item) => item.barcode).map((item) => [item.barcode as string, item.name]),
-        )}
         onCreated={(product) => {
           createProduct(product);
         }}

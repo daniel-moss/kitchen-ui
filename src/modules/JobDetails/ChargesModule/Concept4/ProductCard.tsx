@@ -1,7 +1,7 @@
 import AvatarProduct from "../../../../components/Avatar/AvatarProduct";
 import { Icon } from "../../../../components/Icon/Icon";
 import { formatCurrency } from "../../../../app/listData";
-import { INVENTORY_LOCATIONS, PRODUCT_SUBTYPES } from "../../../../data/db";
+import { inventoryLocationOf, PRODUCT_SUBTYPES } from "../../../../data/db";
 import type { ProductLine } from "../../../../data/db";
 import { LOCATION_TYPE_ICON, locationTitle } from "../../../Product/NewProductForm/InventoryLevelsField";
 import { productAmount } from "../lineDisplay";
@@ -22,7 +22,7 @@ interface ProductCardProps extends LineCardProps {
 }
 
 export default function ProductCard({ line, photo, ...card }: ProductCardProps) {
-  const location = line.inventoryLocationId != null ? INVENTORY_LOCATIONS.find((row) => row.id === line.inventoryLocationId) : undefined;
+  const location = inventoryLocationOf(line.inventoryLocationId);
 
   return (
     <LineCard

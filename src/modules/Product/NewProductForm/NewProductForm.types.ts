@@ -1,4 +1,4 @@
-import { DimensionUnit, InventoryLocation, PricebookSubtype, QuickbooksAccount, Vendor, WeightUnit } from "../../../data/db/types";
+import { DimensionUnit, InventoryLocation, PricebookSubtype, QuickbooksAccount, WeightUnit } from "../../../data/db/types";
 
 import { CostStrategy, PriceStrategy } from "./productRules";
 
@@ -121,76 +121,55 @@ export interface NewProductFormProps {
   onClose: () => void;
 
   /**
-   * The company's product subtypes. The Subtype field is "only shown if a
-   * company supports subtypes", so an empty list removes it. With EXACTLY ONE
-   * and `requireSubtypes` the field is filled and read-only.
+   * The company's product subtypes. The Create form shows Subtype ONLY when
+   * the company requires one; with exactly one it is pre-picked, read-only.
    */
   subtypes?: PricebookSubtype[];
   /** The company requires a subtype (`require_subtypes`). Default false. */
   requireSubtypes?: boolean;
+  /**
+   * The user has the "can't classify subtypes" flag. With required subtypes
+   * and 2 or more of them, the form opens as the "You can't create products"
+   * Prompt instead. Default false.
+   */
+  cannotClassifySubtypes?: boolean;
   /** The company uses taxes (`use_taxes`). False removes Taxability. Default true. */
   useTaxes?: boolean;
   /** What Taxability opens on — the company's product default. Default true (taxable). */
   defaultIsTaxable?: boolean;
 
   /**
-   * EVERY vendor, active and inactive. Only active ones can be picked; the
-   * inactive ones show, disabled, when they match the search or when no
-   * active vendor exists.
-   */
-  vendors?: Vendor[];
-  /**
-   * The user may create a vendor (`vendors_create_permission`). The vendor
-   * list's "Add vendor" footer row exists only then — its own annotation.
-   */
-  canCreateVendor?: boolean;
-  /**
-   * Opens the "New vendor" form above this one. The annotation: after creating
-   * a vendor the user comes back here with that vendor selected.
-   */
-  onCreateVendor?: () => void;
-  /**
-   * The Inventory module — only when the company enables the feature
-   * (`feature_inventory_enabled`). Undefined removes the module. Every
+   * Stock type — only when the company enables inventory
+   * (`feature_inventory_enabled`). Undefined removes the field. Every
    * location, active or not; with NO active location the Stock type is locked
    * on Non-inventory, whatever the default says.
    */
   inventory?: { locations: InventoryLocation[]; defaultTrackInventory: boolean };
   /**
-   * The Accounting module — only on QuickBooks Desktop with the "Detailed
-   * Split" line-item scheme. Undefined removes it. With no synced income
-   * account the form opens as the "Sync QuickBooks accounts first" Prompt.
+   * The account fields — only on QuickBooks Desktop with the "Detailed Split"
+   * line-item scheme. Undefined removes them. With no synced income account
+   * the form opens as the "Sync QuickBooks accounts first" Prompt instead.
    */
   quickbooks?: NewProductQuickbooks;
 
-  /** The workspace's product labels, by name. A label can also be created here. */
-  labelPool?: string[];
   /**
    * The names already taken, for the second Name error ("Product with this
    * name already exists"). Production checks case-insensitively.
    */
   existingNames?: string[];
-  /**
-   * The barcodes already registered, by product name — the Barcode field and
-   * the scanner both name the product a code belongs to.
-   */
-  existingBarcodes?: Record<string, string>;
-
-  /**
-   * Block Create. This is NOT validation — it is for a form that can not be
-   * saved at all yet: the button stays disabled however the fields are filled.
-   * Default false.
-   */
-  isCreateBlocked?: boolean;
 
   /**
    * Create. Return `false` (or a Promise of it) to say it FAILED: the form
    * shows an error toast and stays open with the values intact. On success
-   * the form closes and shows the "Product created" toast; taking the user to
-   * the Products list with the new product's side panel open is the caller's
-   * follow-up (the Create button's annotation).
+   * the form closes and shows the "Product created" toast.
    */
   onCreated?: (product: NewProduct) => void | boolean | Promise<void | boolean>;
+  /**
+   * Runs after a successful Create, once the form has closed — Figma's
+   * "Opens the SidePanel". No Product side panel exists yet (2026-11-16), so
+   * nothing passes it today.
+   */
+  onOpenCreated?: (product: NewProduct) => void;
 
   /** Presentation: "auto" (default) picks desktop ≥ 1024px, else mobile. */
   breakpoint?: "auto" | "desktop" | "mobile";

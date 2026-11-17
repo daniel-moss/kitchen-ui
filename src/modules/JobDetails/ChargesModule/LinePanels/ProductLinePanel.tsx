@@ -4,7 +4,7 @@ import AvatarProduct from "../../../../components/Avatar/AvatarProduct";
 import { Icon } from "../../../../components/Icon/Icon";
 import ValueDisplay from "../../../../components/ValueDisplay/ValueDisplay";
 import { formatCurrency } from "../../../../app/listData";
-import { INVENTORY_LOCATIONS, PRODUCT_SUBTYPES } from "../../../../data/db";
+import { inventoryLocationOf, PRODUCT_SUBTYPES } from "../../../../data/db";
 import type { Job, ProductItem, ProductLine } from "../../../../data/db";
 import { Breakpoint } from "../../../../hooks/useIsDesktop";
 import { joinWithSeparator } from "../../../../utils/textSeparator";
@@ -38,7 +38,7 @@ export interface ProductLinePanelProps {
 export default function ProductLinePanel({ open, onClose, job, product, title, line, onChange, onDelete, breakpoint }: ProductLinePanelProps) {
   const [editingGeneral, setEditingGeneral] = useState(false);
   const [editingPricing, setEditingPricing] = useState(false);
-  const location = INVENTORY_LOCATIONS.find((row) => row.id === line.inventoryLocationId);
+  const location = inventoryLocationOf(line.inventoryLocationId);
 
   const dialogProps = {
     start: () => productValuesOf(product, line),

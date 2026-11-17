@@ -1,4 +1,4 @@
-import { INVENTORY_LOCATIONS, PRODUCT_ITEMS } from "./db";
+import { COMPANY, INVENTORY_LOCATIONS, PRODUCT_ITEMS } from "./db";
 
 // HOW MUCH OF A PRODUCT EACH LOCATION HOLDS — production's `InventoryLevel`
 // (one row per product × location, `quantity_on_hand`). Added 2026-11-03 for
@@ -41,6 +41,24 @@ export const INVENTORY_LEVELS: InventoryLevel[] = [
 export const onHandAt = (productId: string, locationId: string) =>
   INVENTORY_LEVELS.find((level) => level.productId === productId && level.locationId === locationId)?.onHand ?? 0;
 
+/**
+ * The company's inventory locations, active and inactive — the LIVE list the
+ * Demo settings page edits (`COMPANY.inventoryLocations`). Read it when it is
+ * used, never into a module constant.
+ */
+export const inventoryLocations = () => COMPANY.inventoryLocations;
+
+/**
+ * One location by id. Falls back to the seed so a line that points at a
+ * location the settings no longer list still shows its name.
+ */
+export const inventoryLocationOf = (id: string | null | undefined) =>
+  id == null
+    ? undefined
+    : (COMPANY.inventoryLocations.find((row) => row.id === id) ?? INVENTORY_LOCATIONS.find((row) => row.id === id));
+
 /** The locations a product line can be taken from: every active one. */
 export const activeInventoryLocations = () =>
-  INVENTORY_LOCATIONS.filter((location) => location.isActive).sort((a, b) => a.name.localeCompare(b.name));
+  inventoryLocations()
+    .filter((location) => location.isActive)
+    .sort((a, b) => a.name.localeCompare(b.name));

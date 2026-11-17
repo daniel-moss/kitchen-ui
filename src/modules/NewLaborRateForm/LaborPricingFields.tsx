@@ -1,11 +1,11 @@
 import { useState } from "react";
 
-import TextField from "../../components/Fields/TextField/TextField";
 import Input from "../../components/Input/Input";
 import RadioGroup from "../../components/Radio/RadioGroup";
 import RadioItem from "../../components/Radio/RadioItem";
 import { LaborItem } from "../../data/db";
-import { decimalText, isBlank, isMoneyText, numberOf, padMoneyOnBlur, PriceStrategy } from "../Product/NewProductForm/productRules";
+import { isBlank, numberOf, padMoneyOnBlur, PriceStrategy } from "../Product/NewProductForm/productRules";
+import { CostField } from "../shared/pricebookFields";
 import PriceStrategyField, {
   EMPTY_PRICE_STRATEGY,
   PriceStrategyValues,
@@ -131,21 +131,13 @@ export default function LaborPricingFields({ state, showErrors }: LaborPricingFi
 
       {rateType != null && (
         <>
-          <Input label="Cost">
-            <TextField
-              value={cost}
-              onChange={(event) => isMoneyText(decimalText(event.target.value)) && setCost(decimalText(event.target.value))}
-              onBlur={() => {
-                setCost(padMoneyOnBlur(cost));
-                strategy.judge();
-              }}
-              keyboard="decimal"
-              prefix="$"
-              suffix={hourly ? "per hour" : undefined}
-              placeholder="0.00"
-              isValid={!(showErrors && missingCost)}
-            />
-          </Input>
+          <CostField
+            value={cost}
+            onChange={setCost}
+            onBlur={strategy.judge}
+            showErrors={showErrors && missingCost}
+            perHour={hourly}
+          />
 
           <PriceStrategyField state={strategy} showErrors={showErrors} perHour={hourly} />
         </>

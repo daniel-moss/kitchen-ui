@@ -2315,6 +2315,8 @@ export const COMPANY: CompanySettings = {
   // default, so an inventory product opens with them filled (2026-10-17).
   featureInventoryEnabled: true,
   defaultTrackInventory: false,
+  // The live list the Demo settings page edits (2026-11-16).
+  inventoryLocations: INVENTORY_LOCATIONS.map((location) => ({ ...location })),
   // This company uses forms (its list: FORM_TEMPLATES).
   featureFormsEnabled: true,
   quickbooksDefaultCogsAccountId: "qba-5010",

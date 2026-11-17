@@ -27,6 +27,7 @@ import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
 import { AppBottomBar, Page } from "./shell/appShell";
 import SubStatusList, { GenericReasonHelpFields } from "./SubStatusesSettings";
 import ChoiceField from "./ChoiceField";
+import InventoryLocationsSettings from "./InventoryLocationsSettings";
 import TechStatusesSettings from "./TechStatusesSettings";
 import { useCompanySettings } from "./store/CompanySettingsStore";
 
@@ -412,10 +413,13 @@ function SettingsForm({ mobile }: { mobile: boolean }) {
         />
       </FormModule>
 
-      <FormModule title="Inventory">
+      <FormModule
+        title="Inventory"
+        caption="Inventory locations are created by Roopairs support in production. Here they can be added and edited"
+      >
         <ToggleItem
           label="Inventory"
-          caption="Off: the New product form has no Inventory module"
+          caption="Off: the New product form has no Stock type"
           checked={settings.featureInventoryEnabled}
           onChange={(event) => update({ featureInventoryEnabled: event.target.checked })}
         />
@@ -426,6 +430,9 @@ function SettingsForm({ mobile }: { mobile: boolean }) {
           disabled={!settings.featureInventoryEnabled}
           onChange={(event) => update({ defaultTrackInventory: event.target.checked })}
         />
+        {/* The company's locations, while the feature is on (2026-11-16).
+            With none active, a new product is locked on Non-inventory. */}
+        {settings.featureInventoryEnabled && <InventoryLocationsSettings mobile={mobile} />}
       </FormModule>
     </FormModuleGroup>
   );

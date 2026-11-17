@@ -7,7 +7,15 @@ import Input from "../../components/Input/Input";
 import SelectListItem from "../../components/SelectList/SelectListItem";
 import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
 import { PricebookSubtype } from "../../data/db/types";
-import { MAX_NAME, NO_SUGGESTIONS, overLimitError } from "../Product/NewProductForm/productRules";
+import {
+  decimalText,
+  isBlank,
+  isMoneyText,
+  MAX_NAME,
+  NO_SUGGESTIONS,
+  overLimitError,
+  padMoneyOnBlur,
+} from "../Product/NewProductForm/productRules";
 
 import { SelectPopoverList, useSelectPopover } from "./selectPopover";
 
@@ -161,5 +169,52 @@ export function SubtypeField({ subtypes, required, value, onChange, showErrors, 
         </SelectListItemGroup>
       </SelectPopoverList>
     </>
+  );
+}
+
+// ---- Cost (3054-8673) -------------------------------------------------------
+
+interface CostFieldProps {
+  /** The typed text, as the field keeps it ("12.5", "100.00"). */
+  value: string;
+  onChange: (next: string) => void;
+  /**
+   * Runs after the field pads its value on blur — the owner judges its
+   * Price strategy verdict here ("Cost's blur takes its price verdict too").
+   */
+  onBlur?: () => void;
+  /** Create/Save was pressed — an empty Cost shows "Enter Cost". */
+  showErrors: boolean;
+  /** An HOURLY labor rate: "per hour" after the value. Default false. */
+  perHour?: boolean;
+}
+
+/**
+ * Cost. Must be filled in: always ("Missing Value" — checked by Create or
+ * Save, not while typing). Default: none. Input rules: only digits and a dot,
+ * a typed comma becomes a dot; up to 3 decimals and 7 digits before the dot;
+ * no minus; "$100" → "$100.00" when the field loses the focus; the decimal
+ * keyboard on a phone; "per hour" only for an Hourly labor rate.
+ *
+ * Moved from the Labor Rate page to Shared Fields on 2026-11-16, when the
+ * product "Create" form took it too.
+ */
+export function CostField({ value, onChange, onBlur, showErrors, perHour = false }: CostFieldProps) {
+  return (
+    <Input label="Cost">
+      <TextField
+        value={value}
+        onChange={(event) => isMoneyText(decimalText(event.target.value)) && onChange(decimalText(event.target.value))}
+        onBlur={() => {
+          onChange(padMoneyOnBlur(value));
+          onBlur?.();
+        }}
+        keyboard="decimal"
+        prefix="$"
+        suffix={perHour ? "per hour" : undefined}
+        placeholder="0.00"
+        isValid={!(showErrors && isBlank(value))}
+      />
+    </Input>
   );
 }

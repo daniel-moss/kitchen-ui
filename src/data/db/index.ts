@@ -220,7 +220,7 @@ export type { JobHistory, JobSession, JobTransition } from "./jobHistory";
 
 // What a job cost — labour, parts and fees, derived from the job (2026-09-28).
 export { chargesOf, chargesTotal, discountsOf, editingLocksOf, inventoryProductsOf } from "./jobCharges";
-export { activeInventoryLocations, INVENTORY_LEVELS, onHandAt } from "./inventoryLevels";
+export { activeInventoryLocations, INVENTORY_LEVELS, inventoryLocationOf, inventoryLocations, onHandAt } from "./inventoryLevels";
 export type { InventoryLevel } from "./inventoryLevels";
 export type { Charge, ChargeGroup, DiscountLine, LaborLine, OtherLine, ProductLine } from "./jobCharges";
 

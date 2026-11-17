@@ -7,13 +7,11 @@ import {
   COMPANY,
   INVENTORY_LOCATIONS,
   PRODUCT_ITEMS,
-  PRODUCT_LABELS,
   PRODUCT_SUBTYPES,
   ProductItem,
   QUICKBOOKS_ACCOUNTS,
   QUICKBOOKS_ASSET_ACCOUNTS,
   QUICKBOOKS_COGS_ACCOUNTS,
-  VENDORS,
 } from "../../../data/db";
 import { DeviceFrame } from "../../../stories/helpers";
 import NewProductForm from "../NewProductForm/NewProductForm";
@@ -92,7 +90,6 @@ const Demo = ({
         requireSubtypes={COMPANY.requireSubtypes}
         useTaxes={COMPANY.useTaxes}
         defaultIsTaxable={COMPANY.pricebookDefaultTaxableProduct}
-        vendors={VENDORS}
         inventory={{ locations: INVENTORY_LOCATIONS, defaultTrackInventory: COMPANY.defaultTrackInventory }}
         quickbooks={{
           revenueAccounts: QUICKBOOKS_ACCOUNTS,
@@ -101,10 +98,7 @@ const Demo = ({
           defaultCogsAccountId: COMPANY.quickbooksDefaultCogsAccountId,
           defaultAssetAccountId: COMPANY.quickbooksDefaultAssetAccountId,
         }}
-        labelPool={PRODUCT_LABELS.map((label) => label.name)}
         existingNames={list.map((product) => product.name)}
-        canCreateVendor
-        onCreateVendor={() => undefined}
         onCreated={(product) => setList((prev) => [...prev, toProductItem(product, prev.length)])}
         breakpoint={breakpoint}
       />

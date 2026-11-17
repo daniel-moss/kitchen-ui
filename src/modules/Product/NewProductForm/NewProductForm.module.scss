@@ -1,3 +1,15 @@
+// The form body: the fields stacked straight in the Dialog, 24px apart — the
+// node's body frame (`gap: --size-6`), with no FormModules around them.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  align-items: stretch;
+}
+
+// The rest of this file styles the parts the side panel will reuse (barcode
+// row, vendor cost cards); the Create form no longer shows them.
+
 // Barcode: the field fills the row and the scan button hugs the end, bottom
 // aligned so the icon sits on the field, not on its label (the node's 8px gap).
 .barcodeRow {

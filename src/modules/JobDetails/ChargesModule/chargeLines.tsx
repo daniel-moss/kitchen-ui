@@ -19,7 +19,7 @@ import {
   DISCOUNT_ITEMS,
   DISCOUNT_SUBTYPES,
   LABOR_ITEMS,
-  INVENTORY_LOCATIONS,
+  inventoryLocationOf,
   LABOR_SUBTYPES,
   OTHER_ITEMS,
   OTHER_SUBTYPES,
@@ -265,7 +265,7 @@ function LaborLineItem({ job, charge, mobile, defaultOpen, readOnly, rowStyle, d
 function ProductLineItem({ job, charge, mobile, defaultOpen, readOnly, rowStyle, draggable, isDragging, onOpen, onEdit, onDelete }: LineItemProps) {
   const product = charge.product!;
   const photo = PRODUCT_ITEMS.find((row) => row.id === charge.productId)?.imageUrl;
-  const location = product.inventoryLocationId != null ? INVENTORY_LOCATIONS.find((row) => row.id === product.inventoryLocationId) : undefined;
+  const location = inventoryLocationOf(product.inventoryLocationId);
 
   return (
     <ChargeLineRow

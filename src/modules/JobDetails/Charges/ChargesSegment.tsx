@@ -30,7 +30,7 @@ import {
   DISCOUNT_SUBTYPES,
   discountsOf,
   editingLocksOf,
-  INVENTORY_LOCATIONS,
+  inventoryLocationOf,
   LABOR_ITEMS,
   LABOR_SUBTYPES,
   OTHER_ITEMS,
@@ -554,7 +554,7 @@ function ChargesSegmentBody({
   const productRows = lines.products.map((charge) => {
     const product = charge.product!;
     const item = PRODUCT_ITEMS.find((row) => row.id === charge.productId);
-    const location = product.inventoryLocationId != null ? INVENTORY_LOCATIONS.find((row) => row.id === product.inventoryLocationId) : undefined;
+    const location = inventoryLocationOf(product.inventoryLocationId);
     return (
       <LineRow
         key={rowKey("product", charge)}

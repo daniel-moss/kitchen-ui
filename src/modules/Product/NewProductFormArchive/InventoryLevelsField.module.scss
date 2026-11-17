@@ -1,0 +1,178 @@
+@use "../../../styles/mixins/font" as *;
+
+// "Inventory levels" — a Label, the cards, the add button. The Vendor cost
+// field's rhythm (6px label ↔ cards, 8px between cards).
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-1_5);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2);
+}
+
+// ---- the edit card (DisplayModule body, Figma "Frame 1") ----
+
+// 16px padding, 24px between the rows; the PopoverFooter follows it.
+.editFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6);
+
+  padding: var(--size-4);
+}
+
+// On hand + On order share one row at BOTH breakpoints (the mobile node keeps
+// them side by side, 148px each).
+.pair {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// Target + Alert at inside the "Set target" card — side by side.
+.targetFields {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// ---- the saved card (Figma 4121-34006) ----
+
+// The card's body slot: 16 / 16 / 12 / 16, 10px between header, bar and
+// footer — 4px when there is no bar.
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2_5);
+
+  padding: var(--size-4) var(--size-4) var(--size-3);
+}
+
+.cardNoTarget {
+  gap: var(--size-1);
+}
+
+.header,
+.footer {
+  display: flex;
+  gap: var(--size-4);
+  align-items: center;
+}
+
+.name {
+  display: flex;
+  flex: 1;
+  gap: var(--size-2);
+  align-items: center;
+
+  min-width: 0;
+}
+
+.typeIcon {
+  color: var(--gray-12);
+}
+
+.title {
+  overflow: hidden;
+  flex: 1;
+
+  min-width: 0;
+
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include font("body-500-compact");
+}
+
+.numbers {
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--size-2);
+  align-items: center;
+
+  color: var(--text-strong);
+}
+
+.number {
+  @include font("body-500-compact");
+}
+
+.onOrder {
+  display: flex;
+  gap: var(--size-1);
+  align-items: center;
+}
+
+.caption {
+  overflow: hidden;
+
+  color: var(--text-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  @include font("caption-medium-400");
+
+  &:first-child {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// The bar plus the alert tick: a 2 × 12 gray-12 mark whose RIGHT edge sits at
+// alert ÷ target along the bar.
+.bar {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.alertTick {
+  position: absolute;
+  top: 50%;
+
+  width: 2px;
+  height: var(--size-3);
+
+  background: var(--gray-12);
+  border-radius: var(--border-radius-1);
+
+  transform: translate(-100%, -50%);
+}
+
+// The status colors — numbers, plus sign, on-order icon and the status word.
+.full {
+  color: var(--text-success);
+}
+
+.limited {
+  color: var(--text-warning);
+}
+
+.low {
+  color: var(--text-caution);
+}
+
+.depleted {
+  color: var(--text-error);
+}
+
+.placeholder {
+  color: var(--text-placeholder);
+}
