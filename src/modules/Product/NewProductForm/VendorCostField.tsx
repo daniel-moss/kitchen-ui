@@ -87,6 +87,25 @@ const vendorAddress = (vendor: Vendor) => {
   return parts.length > 0 ? parts.join(", ") : undefined;
 };
 
+/**
+ * The Vendors list's two halves: the ACTIVE vendors not yet on the product
+ * (the pair is unique) and the inactive ones. Shared with the side panel's
+ * "Vendor costs" tab, which opens the same list.
+ */
+export const vendorPickerOptions = (vendors: Vendor[], takenIds: Iterable<string>) => {
+  const taken = new Set(takenIds);
+  const option = (vendor: Vendor) => ({
+    id: vendor.id,
+    label: vendor.name,
+    caption: vendorAddress(vendor),
+    avatar: <AvatarVendor size="xl" />,
+  });
+  return {
+    active: vendors.filter((vendor) => vendor.isActive && !taken.has(vendor.id)).map(option),
+    inactive: vendors.filter((vendor) => !vendor.isActive).map(option),
+  };
+};
+
 export default function VendorCostField({
   vendors,
   costs,
@@ -110,15 +129,10 @@ export default function VendorCostField({
   const nameOf = (vendorId: string) => vendors.find((vendor) => vendor.id === vendorId)?.name ?? vendorId;
 
   // A vendor with a card is not offered again — the unique pair.
-  const taken = new Set(costs.map((cost) => cost.vendorId));
-  const option = (vendor: Vendor) => ({
-    id: vendor.id,
-    label: vendor.name,
-    caption: vendorAddress(vendor),
-    avatar: <AvatarVendor size="xl" />,
-  });
-  const active = vendors.filter((vendor) => vendor.isActive && !taken.has(vendor.id)).map(option);
-  const inactive = vendors.filter((vendor) => !vendor.isActive).map(option);
+  const { active, inactive } = vendorPickerOptions(
+    vendors,
+    costs.map((cost) => cost.vendorId),
+  );
 
   const openDraft = (vendorId: string) => {
     const existing = costs.find((cost) => cost.vendorId === vendorId);

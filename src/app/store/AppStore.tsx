@@ -1,13 +1,16 @@
 import { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
 
-import { LABOR_LABELS, PRODUCT_LABELS, StockStatus, TAX_RATE_LABELS } from "../../data/db";
+import { chargesOf, INVOICES, inventoryLevelsOf, jobById as seedJobById, LABOR_LABELS, PRODUCT_LABELS, StockStatus, TAX_RATE_LABELS } from "../../data/db";
+import type { InventoryLevel } from "../../data/db";
 import type { Charge } from "../../data/db";
 import { users } from "../../data/users";
 import { Job, JOBS as SEED_JOBS } from "../jobsData";
 import { LABOR_ROWS as SEED_LABOR_RATES, LaborRow } from "../laborData";
 import { PRODUCT_ROWS as SEED_PRODUCTS, ProductRow } from "../productsData";
 import type { ModuleFile } from "../../modules/FilesModule/FilesModule.types";
-import { NewProduct } from "../../modules/Product/NewProductForm/NewProductForm.types";
+import { NewProduct, NewProductVendorCost } from "../../modules/Product/NewProductForm/NewProductForm.types";
+import { vendorCostRowsOf } from "../../modules/Product/SidePanel/vendorCostRules";
+import { HistorySources } from "../../modules/shared/pricebookHistory";
 import { stockLevel } from "../../modules/Product/NewProductForm/productRules";
 import { TAX_RATE_ROWS as SEED_TAX_RATES, TaxRateRow } from "../taxRatesData";
 
@@ -83,6 +86,50 @@ export type LaborRatePatch = Partial<
   >
 >;
 
+/**
+ * The fields the "Product" side panel can change (its Details tab, 2026-11-17):
+ * the General and Pricing modules, labels, the two texts and the status flags.
+ */
+export type ProductPatch = Partial<
+  Pick<
+    ProductRow,
+    | "name"
+    | "subtypeId"
+    | "manufacturer"
+    | "partNumber"
+    | "barcode"
+    | "trackInventory"
+    | "costStrategy"
+    | "cost"
+    | "priceStrategy"
+    | "price"
+    | "fixedMarkup"
+    | "percentMarkup"
+    | "taxable"
+    | "labelIds"
+    | "summary"
+    | "notes"
+    | "status"
+    | "isActive"
+    | "lastModifiedAt"
+    | "stock"
+    | "quantity"
+    | "quantityDesired"
+    | "manualCost"
+    | "imageUrl"
+    | "quickbooksAccountId"
+    | "quickbooksCogsAccountId"
+    | "quickbooksAssetAccountId"
+    | "length"
+    | "width"
+    | "height"
+    | "dimensionUnit"
+    | "weight"
+    | "weightUnit"
+    | "preferredVendorId"
+  >
+>;
+
 /** What the "New labor rate" form collects, before the store gives it an id. */
 export interface NewLaborRateInput {
   name: string;
@@ -126,8 +173,34 @@ interface AppStoreValue {
 
   /** Every product — the seed plus anything created in this session. */
   products: ProductRow[];
+  productById: Map<string, ProductRow>;
+  updateProduct: (id: string, patch: ProductPatch) => void;
   /** Adds a product from the "New product" form and returns its id. */
   createProduct: (input: NewProduct) => string;
+  /** Removes a product. Only a product in Review can be deleted — the panel enforces that. */
+  deleteProduct: (id: string) => void;
+  /**
+   * A product's inventory levels — the demo database's rows until a demo
+   * edits one (the side panel's "Inventory levels" tab, 2026-11-18) or creates
+   * the product with some.
+   */
+  inventoryLevelsOf: (productId: string) => InventoryLevel[];
+  /** Saves one location's level and re-derives the list's Stock / Quantity columns. */
+  setInventoryLevel: (productId: string, level: InventoryLevel) => void;
+  /**
+   * A product's vendor costs — the demo database's rows until a demo edits
+   * them (the side panel's "Vendor costs" tab, 2026-11-19) or creates the
+   * product with some.
+   */
+  vendorCostsOf: (productId: string) => NewProductVendorCost[];
+  /**
+   * The LIVE sources of a pricebook item's "History" tab (2026-11-20): every
+   * job as it is in this session (a status changed on Job Details counts,
+   * dated when it changed) and its charge lines as edited, else as seeded.
+   */
+  historySources: HistorySources;
+  /** Saves a product's whole vendor cost list, with the Pricing module and preferred vendor it leads to. */
+  setVendorCosts: (productId: string, costs: NewProductVendorCost[], patch: ProductPatch) => void;
 
   /**
    * The Charges lines a demo has changed, by job id (Daniel, 2026-11-13: "they
@@ -280,6 +353,23 @@ const PRODUCT_LABEL_ID_OF = new Map(PRODUCT_LABELS.map((label) => [label.name, l
 /** Worst first — production's `lowest_inventory_status` keeps the worst level. */
 const STOCK_WORST: StockStatus[] = ["depleted", "low", "limited", "full"];
 
+type StockNumbers = Pick<InventoryLevel, "onHand" | "onOrder" | "target" | "alertAt">;
+
+/** "Not stocked": nothing on hand or on order, no target, no alert. */
+const isStocked = (level: StockNumbers) => level.onHand !== 0 || (level.onOrder ?? 0) !== 0 || !!level.target || !!level.alertAt;
+
+/** The list's three stock columns, derived from the levels the product is stocked at. */
+const stockColumnsOf = (allLevels: StockNumbers[]): Pick<ProductRow, "stock" | "quantity" | "quantityDesired"> => {
+  const levels = allLevels.filter(isStocked);
+  const statuses = levels.map((level) => stockLevel(level.onHand, level.onOrder ?? 0, level.target, level.alertAt) ?? "full");
+  const targets = levels.map((level) => level.target).filter((value): value is number => value != null);
+  return {
+    stock: statuses.length === 0 ? null : (STOCK_WORST.find((level) => statuses.includes(level)) ?? null),
+    quantity: levels.length === 0 ? null : levels.reduce((sum, level) => sum + level.onHand, 0),
+    quantityDesired: targets.length === 0 ? null : targets.reduce((sum, value) => sum + value, 0),
+  };
+};
+
 /**
  * A new product, as production would store it: CONFIRMED (someone here typed
  * it, so it is not in Review), active, and its list columns derived from what
@@ -291,15 +381,14 @@ const STOCK_WORST: StockStatus[] = ["depleted", "low", "limited", "full"];
  *   quantity         on hand summed over the locations
  *   quantityDesired  the targets summed (null when none is set)
  *
- * The vendor costs, inventory rows and QuickBooks accounts are not list
- * columns and the demo has no product side panel yet, so they are not kept.
+ * The inventory rows are kept beside the table (`levelEdits`), for the side
+ * panel's "Inventory levels" tab. The vendor costs and QuickBooks accounts
+ * are not list columns and have no panel tab yet, so they are not kept.
  * A label the picker INVENTED has no id in the demo database and is dropped,
  * like on the rates.
  */
 const seedNewProduct = (input: NewProduct, id: string): ProductRow => {
   const levels = input.trackInventory ? input.inventoryLevels : [];
-  const statuses = levels.map((level) => stockLevel(level.onHand, level.onOrder, level.target, level.alertAt) ?? "full");
-  const targets = levels.map((level) => level.target).filter((value): value is number => value != null);
   return {
     id,
     name: input.name,
@@ -326,11 +415,17 @@ const seedNewProduct = (input: NewProduct, id: string): ProductRow => {
     fixedMarkup: input.fixedMarkup,
     percentMarkup: input.percentMarkup,
     trackInventory: input.trackInventory,
-    stock: statuses.length === 0 ? null : (STOCK_WORST.find((level) => statuses.includes(level)) ?? null),
-    quantity: levels.length === 0 ? null : levels.reduce((sum, level) => sum + level.onHand, 0),
-    quantityDesired: targets.length === 0 ? null : targets.reduce((sum, value) => sum + value, 0),
+    // QuickBooks: the form's accounts; a new item waits for its first sync.
+    quickbooksAccountId: input.revenueAccountId,
+    quickbooksCogsAccountId: input.cogsAccountId,
+    quickbooksAssetAccountId: input.assetAccountId,
+    needsSyncing: true,
+    ...stockColumnsOf(levels),
     labelIds: input.labels.map((name) => PRODUCT_LABEL_ID_OF.get(name)).filter((value): value is string => value != null),
     lastModifiedAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    // The viewer — Lorne Riddle — created it.
+    createdById: 1,
   };
 };
 
@@ -381,10 +476,57 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const deleteLaborRate = laborRateTable.remove;
 
   const productTable = useEditableTable(SEED_PRODUCTS, byName);
-  const products = productTable.rows;
+  const { rows: products, byId: productById, update: updateProduct } = productTable;
+  // A product's levels once a demo touched them (edited in the panel, or
+  // created with the product); every other product reads the database.
+  const [levelEdits, setLevelEdits] = useState<Record<string, InventoryLevel[]>>({});
+  const levelsOfProduct = useCallback(
+    (productId: string) => levelEdits[productId] ?? inventoryLevelsOf(productId),
+    [levelEdits],
+  );
+
+  // The same for vendor costs.
+  const [costEdits, setCostEdits] = useState<Record<string, NewProductVendorCost[]>>({});
+  const vendorCostsOfProduct = useCallback(
+    (productId: string) => {
+      const product = productTable.byId.get(productId);
+      return costEdits[productId] ?? (product ? vendorCostRowsOf(product) : []);
+    },
+    [costEdits, productTable.byId],
+  );
+
   const createProduct = useCallback(
-    (input: NewProduct) => productTable.create(seedNewProduct(input, newId("product"))),
+    (input: NewProduct) => {
+      const id = productTable.create(seedNewProduct(input, newId("product")));
+      if (input.trackInventory && input.inventoryLevels.length > 0) {
+        setLevelEdits((current) => ({ ...current, [id]: input.inventoryLevels.map((level) => ({ productId: id, ...level })) }));
+      }
+      if (input.vendorCosts.length > 0) {
+        setCostEdits((current) => ({ ...current, [id]: input.vendorCosts }));
+        const preferred = input.vendorCosts.find((cost) => cost.isPreferred)?.vendorId;
+        productTable.update(id, { preferredVendorId: preferred, ...(input.costStrategy === "manual" ? { manualCost: input.cost } : {}) });
+      }
+      return id;
+    },
     [productTable],
+  );
+
+  const setVendorCosts = useCallback(
+    (productId: string, costs: NewProductVendorCost[], patch: ProductPatch) => {
+      setCostEdits((current) => ({ ...current, [productId]: costs }));
+      updateProduct(productId, patch);
+    },
+    [updateProduct],
+  );
+  const deleteProduct = productTable.remove;
+
+  const setInventoryLevel = useCallback(
+    (productId: string, level: InventoryLevel) => {
+      const next = [...levelsOfProduct(productId).filter((row) => row.locationId !== level.locationId), level];
+      setLevelEdits((current) => ({ ...current, [productId]: next }));
+      updateProduct(productId, stockColumnsOf(next));
+    },
+    [levelsOfProduct, updateProduct],
   );
 
   // ---- the Job Details Charges lines ------------------------------------------
@@ -392,6 +534,30 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const setChargeLines = useCallback((jobId: string, lines: JobChargeLines) => {
     setAllChargeLines((current) => ({ ...current, [jobId]: lines }));
   }, []);
+
+  // The pricebook History tab reads the jobs and charges AS THEY ARE NOW.
+  const historySources = useMemo<HistorySources>(() => {
+    const live = [];
+    for (const row of jobs) {
+      const seed = seedJobById(row.id);
+      if (seed == null) continue; // a job created this session has no charges to bill yet
+      live.push(
+        row.status === seed.status
+          ? seed
+          : { ...seed, status: row.status, statusChangedAt: row.lastModifiedAt ?? seed.statusChangedAt },
+      );
+    }
+    return {
+      jobs: live,
+      linesOf: (job) => {
+        const edited = chargeLines[job.id];
+        return edited != null
+          ? [...edited.labor, ...edited.products, ...edited.other, ...edited.discounts]
+          : chargesOf(job).flatMap((group) => group.items);
+      },
+      invoices: INVOICES,
+    };
+  }, [jobs, chargeLines]);
 
   // ---- the Job Details texts and files (2026-11-14) ------------------------------
   const [jobTexts, setAllJobTexts] = useState<Record<string, JobTexts>>({});
@@ -410,6 +576,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     () => ({
       chargeLines,
       setChargeLines,
+      historySources,
       jobTexts,
       setJobTexts,
       jobFiles,
@@ -428,9 +595,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       createLaborRate,
       deleteLaborRate,
       products,
+      productById,
+      updateProduct,
       createProduct,
+      deleteProduct,
+      inventoryLevelsOf: levelsOfProduct,
+      setInventoryLevel,
+      vendorCostsOf: vendorCostsOfProduct,
+      setVendorCosts,
     }),
     [
+      vendorCostsOfProduct,
+      setVendorCosts,
+      levelsOfProduct,
+      setInventoryLevel,
       jobs,
       jobById,
       updateJob,
@@ -445,7 +623,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       createLaborRate,
       deleteLaborRate,
       products,
+      productById,
+      updateProduct,
       createProduct,
+      deleteProduct,
+      historySources,
       chargeLines,
       setChargeLines,
       jobTexts,
@@ -496,3 +678,9 @@ export const useLaborRate = (id: string | null): LaborRow | undefined => {
 
 /** Every product, with this session's new ones — the Products list reads this. */
 export const useProducts = (): ProductRow[] => useAppStore().products;
+
+/** One product by id — undefined once it is deleted, or for an id that never existed. */
+export const useProduct = (id: string | null): ProductRow | undefined => {
+  const { productById } = useAppStore();
+  return id == null ? undefined : productById.get(id);
+};

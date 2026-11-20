@@ -1,9 +1,9 @@
-import { chargesOf, INVOICES, JOBS, LABOR_SUBTYPES, LaborItem, QUICKBOOKS_ACCOUNTS } from "../../data/db";
-import { HistoryRow, invoiceHistoryRow, jobHistoryRow } from "../EquipmentPanel/equipmentData";
+import { LABOR_SUBTYPES, LaborItem } from "../../data/db";
+import { HistoryRow } from "../EquipmentPanel/equipmentData";
 import { users } from "../../data/users";
 import { money } from "../NewLaborRateForm/rateMath";
-import { accountLabel } from "../Product/NewProductForm/AccountField";
-import { formatShortDateTime } from "../shared/dates";
+import { PricebookAccounting } from "../shared/pricebookAccounting";
+import { pricebookHistoryRows } from "../shared/pricebookHistory";
 
 // The QuickBooks brand tile — the same raster the Tax rate panel's "Created
 // By" states export (there is no vector in the design), reused rather than
@@ -95,7 +95,9 @@ export interface CreatedBy {
   color?: string;
 }
 
-export function createdByOf(rate: LaborItem): CreatedBy {
+// Takes only the two fields it reads, so every pricebook panel (the Product
+// panel's "Info" module too) shares the one rule.
+export function createdByOf(rate: { createdById?: number; quickbooksId?: string }): CreatedBy {
   const user = rate.createdById == null ? undefined : users.find((row) => row.id === rate.createdById);
   if (user != null) return { value: user.name, avatar: user.avatar, avatarShape: "circle" };
   // The system's name, not "Imported from …": it keeps the row on one line,
@@ -106,37 +108,8 @@ export function createdByOf(rate: LaborItem): CreatedBy {
   return { value: "Unknown", color: "var(--text-placeholder)" };
 }
 
-/**
- * The accounting sync status (Figma 25-5038). Two states, and the one that
- * looks like an absence is colored like one. The timestamp is NOT part of it —
- * it is the "Last sync" row below, so a rate can say "Not synced" and still
- * report when it last succeeded.
- *
- * Production reports only `needs_syncing` + `last_synced_at`, so a FAILED sync
- * is indistinguishable from "not synced yet" — it sets `has_sync_error` too,
- * but that never reaches the client.
- */
-export const syncStatusOf = (rate: LaborItem) =>
-  rate.needsSyncing || rate.syncedAt == null
-    ? { value: "Not synced", color: "var(--text-placeholder)", icon: undefined }
-    : { value: "Synced", color: "var(--text-success)", icon: "circle-check" };
-
-/**
- * When the rate last reached QuickBooks, or undefined when it never has — the
- * "Last sync" row is then not drawn at all ("Only shown if there is value",
- * its annotation).
- */
-export const lastSyncOf = (rate: LaborItem) => (rate.syncedAt == null ? undefined : formatShortDateTime(rate.syncedAt));
-
-/**
- * The rate's revenue account as the shared field writes it ("4010 · Service
- * Revenue", or the name alone), or undefined when it carries none — the row
- * then reads "No Revenue account".
- */
-export const accountNameOf = (rate: LaborItem) => {
-  const account = QUICKBOOKS_ACCOUNTS.find((row) => row.id === rate.quickbooksAccountId);
-  return account == null ? undefined : accountLabel(account);
-};
+// "Sync status", "Last sync" and the revenue account's name moved to the SHARED
+// pricebook Accounting module (modules/shared/pricebookAccounting, 2026-11-20).
 
 /**
  * The two "Warning" states (General and Accounting): a required value the
@@ -149,42 +122,17 @@ export const missingRequiredOf = (rate: LaborItem, { requireSubtypes, hasAccount
   account: hasAccounting && rate.quickbooksAccountId == null,
 });
 
-/**
- * The "History" tab's rows — where the labor rate was billed (the module's
- * annotation): "Only jobs and invoices. Only completed jobs without an
- * invoice — when an invoice is created out of that job, only the invoice is
- * shown. Every non-draft invoice."
- *
- * A job "uses" the rate when its charges were billed on it (`laborRateId`);
- * an invoice inherits its job's charges — the demo keeps no line items of its
- * own, so an invoice without a job never lists. (Production matches by the
- * line item's NAME instead of a link, so renaming a rate loses its history —
- * flagged to the devs.) Newest first, like the Equipment panel's History.
- */
-export function laborRateHistoryRows(rateId: string): HistoryRow[] {
-  const usesRate = new Set(
-    JOBS.filter((job) => chargesOf(job).some((group) => group.items.some((item) => item.laborRateId === rateId))).map((job) => job.id),
-  );
-  // A job is REPLACED by its invoice (Daniel, 2026-10-21) — so it leaves the
-  // list only once that invoice can show, i.e. is no longer a draft. A job
-  // whose invoice is still a draft stays listed. (Production drops the job as
-  // soon as any invoice exists, draft or not, which hides the work until the
-  // invoice is sent.) A job finalized WITHOUT an invoice — an estimate made
-  // from it, or "marked as invoiced" — stays listed too.
-  const invoiced = new Set(
-    INVOICES.filter((invoice) => invoice.jobId != null && invoice.status !== "draft").map((invoice) => invoice.jobId!),
-  );
+/** The rate's QuickBooks half, as the SHARED Accounting module reads it. */
+export const accountingOf = (rate: LaborItem): PricebookAccounting => ({
+  revenueAccountId: rate.quickbooksAccountId,
+  needsSyncing: rate.needsSyncing,
+  syncedAt: rate.syncedAt,
+});
 
-  const rows: HistoryRow[] = [];
-  for (const job of JOBS) {
-    if (!usesRate.has(job.id) || invoiced.has(job.id)) continue;
-    if (job.status !== "completed" && job.status !== "finalized") continue;
-    const row = jobHistoryRow(job);
-    if (row != null) rows.push(row);
-  }
-  for (const invoice of INVOICES) {
-    if (invoice.status === "draft" || invoice.jobId == null || !usesRate.has(invoice.jobId)) continue;
-    rows.push(invoiceHistoryRow(invoice));
-  }
-  return rows.sort((a, b) => b.changedAt - a.changedAt);
-}
+/**
+ * The "History" tab's rows — the SHARED pricebook rule
+ * (modules/shared/pricebookHistory): the jobs and invoices that billed this
+ * rate (`laborRateId` on a charge line).
+ */
+export const laborRateHistoryRows = (rateId: string): HistoryRow[] =>
+  pricebookHistoryRows((line) => line.laborRateId === rateId);

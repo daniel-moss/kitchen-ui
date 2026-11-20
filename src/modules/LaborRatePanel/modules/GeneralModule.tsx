@@ -1,35 +1,33 @@
-import Avatar from "../../../components/Avatar/Avatar";
-import AvatarUser from "../../../components/Avatar/AvatarUser";
-import BadgePricebookStatus from "../../../components/Badge/BadgePricebookStatus";
 import DisplayModule from "../../../components/DisplayModule/DisplayModule";
 import IconButton from "../../../components/IconButton/IconButton";
 import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../../components/ValueDisplay/ValueDisplayGroup";
 import { LaborItem } from "../../../data/db";
-import { formatShortDateTime } from "../../shared/dates";
-import { createdByOf, laborRateStatusOf, subtypeNameOf } from "../laborRateData";
+import { subtypeNameOf } from "../laborRateData";
 
-// The Labor rate panel's "General" module (Figma 1-7275). Six label–value
-// pairs, in the node's order: the status badge first, then the two fields the
-// edit form owns, then the three the system writes.
+// The Labor rate panel's "General" module (Figma 1-7275, Overview 1-7276):
+// the two values the edit form owns.
 //
-// Only Name and Subtype are editable — Status changes through the context menu
-// or the Review footer, and the last three are production's `created_by`,
-// `created_at` and `last_modified_at`, which nobody types. The money fields
-// are NOT here: they are the "Pricing" module below.
+//   Name      always.
+//   Subtype   "Only shown if a service company supports subtypes." Empty =
+//             ValueDisplay's own "No Subtype" placeholder.
+//
+// Status, Created by, Created at and Last modified moved to the SHARED "Info"
+// module at the bottom of the tab (Figma 3091-20086, 2026-11-20). The money
+// fields are the "Pricing" module below.
 
 interface GeneralModuleProps {
   rate: LaborItem;
   onEdit: () => void;
   /** Hidden while the rate is inactive, or without the edit permission. */
   canEdit?: boolean;
+  /** The company has subtypes. False drops the Subtype row. Default true. */
+  hasSubtypes?: boolean;
   /**
    * The company requires a subtype and the rate has none — the module's
    * "Warning" state ("Only shown if Subtype is required and missing").
    */
   missingSubtype?: boolean;
-  /** Review drops "Last modified" (the Review frame: 'No "Last modified"'). */
-  hideLastModified?: boolean;
   isLoading?: boolean;
 }
 
@@ -37,11 +35,10 @@ export default function GeneralModule({
   rate,
   onEdit,
   canEdit = true,
+  hasSubtypes = true,
   missingSubtype = false,
-  hideLastModified = false,
   isLoading = false,
 }: GeneralModuleProps) {
-  const createdBy = createdByOf(rate);
   const warn = missingSubtype && !isLoading;
 
   return (
@@ -49,8 +46,7 @@ export default function GeneralModule({
       title="General"
       status={warn ? "warning" : "none"}
       banner={warn ? { children: "This labor rate needs a subtype" } : undefined}
-      // While loading there is nothing to edit yet, so the header loses its
-      // button (the Loading frame draws the header with no right slot).
+      // While loading there is nothing to edit yet, so the header loses its button.
       slotRight={
         isLoading || !canEdit ? undefined : (
           <IconButton icon="pen" variant="ghost" size="md" aria-label="Edit general" onClick={onEdit} />
@@ -58,41 +54,9 @@ export default function GeneralModule({
       }
       content={
         <ValueDisplayGroup>
-          <ValueDisplay
-            label="Status"
-            kind="badge"
-            badge={<BadgePricebookStatus size="md" status={laborRateStatusOf(rate)} />}
-            isLoading={isLoading}
-          />
           <ValueDisplay label="Name" value={rate.name} isLoading={isLoading} />
-          {/* Nullable in production, and empty on every system-minted Review
-              item. The row then draws ValueDisplay's own "No Subtype"
-              placeholder — the empty-state convention (Daniel, 2026-10-08). */}
-          <ValueDisplay label="Subtype" value={subtypeNameOf(rate)} isWarning={warn} isLoading={isLoading} />
-          {/* Created BY comes before created AT: who made the rate is the
-              stronger fact, and the two timestamps then sit together.
-
-              Three cases, one row (node 24-4654) — a user with their round
-              photo, "QuickBooks Desktop" with the square brand tile, or the
-              placeholder-colored "Unknown" with no avatar at all. See
-              `createdByOf`. */}
-          <ValueDisplay
-            label="Created by"
-            value={createdBy.value}
-            valueColor={createdBy.color}
-            slotLeft={
-              createdBy.avatar == null ? undefined : createdBy.avatarShape === "square" ? (
-                // The logo is decorative — the value next to it says the name.
-                <Avatar size="xs" shape="square" content="image" imageSrc={createdBy.avatar} imageAlt="" />
-              ) : (
-                <AvatarUser size="xs" imageSrc={createdBy.avatar} />
-              )
-            }
-            isLoading={isLoading}
-          />
-          <ValueDisplay label="Created at" value={formatShortDateTime(rate.createdAt)} isLoading={isLoading} />
-          {!hideLastModified && (
-            <ValueDisplay label="Last modified" value={formatShortDateTime(rate.lastModifiedAt)} isLoading={isLoading} />
+          {hasSubtypes && (
+            <ValueDisplay label="Subtype" value={subtypeNameOf(rate)} isWarning={warn} isLoading={isLoading} />
           )}
         </ValueDisplayGroup>
       }

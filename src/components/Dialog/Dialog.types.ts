@@ -25,6 +25,18 @@ interface DialogBaseProps {
   onClose: () => void;
   /** The dialog title (shown in the header). */
   title: string;
+  /**
+   * Optional left slot on the TITLE — an Icon. The product's "Inventory level"
+   * dialog repeats its location card's type icon there (Figma 3200-50096,
+   * "Title Slot Left Icon"; added 2026-11-18).
+   */
+  titleLeftSlot?: ReactNode;
+  /**
+   * Optional avatar before the title — PopoverHeader's "Avatar" slot, xl. The
+   * product's vendor cost dialog shows the vendor there (Figma 3212-60869;
+   * added 2026-11-19).
+   */
+  avatar?: ReactNode;
   /** Optional caption line under the title (single line, truncates). */
   caption?: string;
   /** Optional left slot on the caption — an Icon (e.g. the owning object's icon). */

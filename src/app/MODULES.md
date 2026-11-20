@@ -423,6 +423,12 @@ form's QuickBooks notice warns about, and what the panel then shows.
 wired the same way one at a time. Keep `onRowClick` stable (`useCallback`):
 the table is memoised.
 
+**Products joined 2026-11-17** the same way: `shell/products.tsx` holds the
+"New product" form AND the "Product" side panel (`useOpenProduct(id)`; Details
+tab only, the other four tabs are empty), the store gained `productById` /
+`updateProduct` / `deleteProduct` / `useProduct`, a row click opens the panel,
+and Create opens the panel on the new product.
+
 **A Toaster was missing from the whole app.** Nothing outside the Job Details
 page mounted one, so every toast raised from a list, a form or a panel went
 nowhere — the "Job created" toast included, since 2026-09-28. `App.tsx` mounts
@@ -2715,3 +2721,14 @@ the current data:
   Client name, ascending on both phases.
 
 Never kill Daniel's Storybook; reuse the running one on :6006.
+
+## Pricebook History is live (2026-11-20)
+
+The Labor rate and Product side panels' "History" tab (the SHARED pricebook
+History, `modules/shared/pricebookHistory`) reads the store's
+`historySources`: every job as it is in this session — a status changed on
+Job Details counts, dated by its `lastModifiedAt` — and its charge lines as
+edited on Job Details, else as seeded. The shells (`shell/laborRates.tsx`,
+`shell/products.tsx`) build the rows and pass `historyRows`; a row opens its
+job (or invoice — still the Invoices list) on a NEW browser tab via
+`shell/pricebookHistory.ts`, the Equipment panel's rule.

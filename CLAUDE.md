@@ -340,6 +340,8 @@ Roughly, as of this handoff:
   edge fades and a plain vertical wheel.
 - **Steppers:** `StepItem`, `StepGroup`. **Tabs (`Tabs/`):** `TabItem`, `TabGroup`
   (contained tabs are 4px shorter; `isFullWidth` stretches tabs equally).
+  A TabItem never shrinks and its label never wraps (2026-11-17) — tabs that
+  do not fit scroll sideways in their scroller; only `isFullWidth` squeezes.
   TabItem `warning` (2026-08-05) turns the icon + label `--text-warning` and
   HOLDS that color in every state (selected, hover, press) — built for
   SidePanel's navigation, so it is scoped to the `default` + `container`
@@ -399,7 +401,13 @@ Roughly, as of this handoff:
   footer = PopoverFooter, optional `nav` = `SidePanelNavigation` (Figma
   28952-41216: the object row is 56px with 16px sides and a MEDIUM bottom
   divider, its tabs a TabGroup **underlined** stretching the row's full height
-  so the line lands on that divider, scrolling sideways with NO edge fade;
+  so the line lands on that divider, scrolling sideways with NO edge fade —
+  right up to the PANEL edges (2026-11-17: the 16px sides are spacers inside
+  the scroller, not row padding), and a clicked or focused tab scrolls into
+  view TOGETHER WITH its neighbours (2026-11-20: so the next / previous tab
+  can be seen and reached; the tab is centred when all three cannot fit),
+  with that 16px inset; a plain vertical mouse wheel scrolls the row sideways
+  (`hooks/useHorizontalWheel`, shared with TopBarNav / TopBarView);
   `topLevel` adds a second row above — a full-width **SegmentedControl** lg
   taking `Segment` children, 6px/16px padding and NO divider of its own). Body defaults: 16px padding + 16px gap
   (`bodyPadded={false}` opts out). `state="error" | "offline"` swaps the body

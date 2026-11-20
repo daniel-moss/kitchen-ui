@@ -104,6 +104,16 @@
   word-break: break-word;
 }
 
+// `isTruncated`: one line and an ellipsis, NO tooltip (Daniel, 2026-11-20);
+// it must be allowed to shrink inside the flex row.
+.textTruncated {
+  overflow: hidden;
+  min-width: 0;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  word-break: normal;
+}
+
 // A text value with `href`: the LinkButton underline (skip-ink off, lowered
 // offset, bolder line) on a value that still WRAPS. Hover / press dim it and
 // drop the line, like LinkButton.

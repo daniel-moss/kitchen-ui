@@ -1,0 +1,16 @@
+// The tab sits in the SidePanel body (16px inset, 16px between the search and
+// the cards). Between the cards — 10px (Figma "Gap: Cards").
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2_5); // 10px
+}
+
+// "No vendor costs" centers in the whole body (Figma "Empty", body CENTER).
+// "No vendors match" does NOT — it sits right under the search.
+.empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}

@@ -1,0 +1,56 @@
+// The header's context-menu card, anchored under its ellipsis button.
+// `--z-menu`, not `--z-modal`: the SidePanel portals itself, so a wrapper that
+// only matched the panel's z-index lost on DOM order (the Labor rate panel's
+// lesson).
+.anchoredMenu {
+  position: fixed;
+  z-index: var(--z-menu);
+}
+
+// An edit dialog's fields, stacked 24px apart — the same body the "Create"
+// form draws.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  align-items: stretch;
+}
+
+// Barcode: the field fills the row and the scan button hugs the end (the
+// node's 8px gap). TOP aligned: the field and the button are both 36px, and an
+// error message under the field must not pull the button down with it.
+.barcodeRow {
+  display: flex;
+  gap: var(--size-2); // 8px
+  align-items: flex-start;
+
+  > :first-child {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+// Manufacturer and Manufacturer part # share a row on desktop (frame
+// "MFG, Part #"); a phone stacks them like every other field.
+.fieldRow {
+  display: flex;
+  gap: var(--size-4); // 16px
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}
+
+.fieldRowStacked {
+  flex-direction: column;
+  gap: var(--size-6); // 24px, the form's own rhythm
+}
+
+// "Make preferred": the crown in the preferred add-on's amber (the same glyph
+// the "Create" form's vendor card uses).
+.preferredIcon {
+  color: var(--amber-9);
+}

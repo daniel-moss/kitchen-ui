@@ -1367,6 +1367,36 @@ export interface ProductItem {
    */
   costStrategy?: CostStrategy;
   /**
+   * The cost last TYPED under "Manual". Under a vendor strategy the trigger
+   * overwrites `cost`, but switching back to Manual (by hand, or by deleting
+   * the last vendor cost) brings this value back — $0.00 if none was ever set
+   * (Daniel, 2026-11-19). Absent = `cost` while the strategy is Manual, else 0.
+   */
+  manualCost?: number;
+  /**
+   * Production `preferred_vendor` (FK → Vendor, nullable). Exactly one of the
+   * product's vendor costs is preferred while it has any; the first one added
+   * gets it, and deleting it hands it to the next vendor A → Z.
+   */
+  preferredVendorId?: string;
+  /**
+   * → QUICKBOOKS_ACCOUNTS. Production `quickbooks_desktop_revenue_account_id`
+   * — required only on QuickBooks Desktop with the detailed line-item scheme,
+   * and a system-minted Review item skips that check, so those carry none.
+   */
+  quickbooksAccountId?: string;
+  /**
+   * → QUICKBOOKS_COGS_ACCOUNTS / QUICKBOOKS_ASSET_ACCOUNTS. Production
+   * `quickbooks_desktop_cogs_account_id` / `…_inventory_asset_account_id`.
+   * Never required; QuickBooks reads them only for an INVENTORY product.
+   */
+  quickbooksCogsAccountId?: string;
+  quickbooksAssetAccountId?: string;
+  /** Production `quickbooks_desktop_item_needs_syncing`. True renders as "Not synced". Absent = false. */
+  needsSyncing?: boolean;
+  /** When it last reached QuickBooks. Undefined = never. */
+  syncedAt?: string;
+  /**
    * Production `price_strategy` + the two adjustment columns. Absent =
    * "manual". Under a markup the trigger computes `price` from `cost`.
    */
@@ -1393,6 +1423,18 @@ export interface ProductItem {
   /** → PRODUCT_LABELS (production `PriceBookItemLabel`, company-written). */
   labelIds: string[];
   lastModifiedAt: string;
+  /** Production `created_at`. Added 2026-11-17 with the side panel's "Info" module. */
+  createdAt: string;
+  /**
+   * Production `created_by` (nullable) → `users`. Absent on a REVIEW item
+   * (the system mints it), an onboarding bulk load and a QuickBooks import.
+   */
+  createdById?: number;
+  /**
+   * Production `quickbooks_desktop_id`. No creator PLUS this key is what
+   * identifies a QuickBooks Desktop import (the LaborItem rule).
+   */
+  quickbooksId?: string;
 }
 
 /**
@@ -1557,10 +1599,32 @@ export interface InventoryLocation {
   id: string;
   name: string;
   type: "truck" | "warehouse" | "dropPoint";
-  /** The truck's licence plate. Shown before the name, only when it exists. */
+  /**
+   * The truck's licence plate (production `license_plate`, 10 characters).
+   * Shown before the name, only when it exists. Only a truck has one.
+   */
   plateNumber?: string;
-  /** The address "as written in the Django" — one free line, never split. */
+  /**
+   * The address on ONE line — production's `physical_address_formatted`,
+   * computed from the parts below (the Demo settings page rebuilds it on
+   * save; read it, never the parts, to show the address).
+   */
   address?: string;
+  /**
+   * The parts, production `PhysicalAddressEntity` (2026-11-19). All optional:
+   * Django marks the street required, but imported rows often have none — one
+   * large customer has no address on any of its 104 locations.
+   */
+  street?: string;
+  /** "Apartment, Suite, etc." */
+  unit?: string;
+  city?: string;
+  /** "State/Province" */
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  /** Production `notes` — staff-only free text. */
+  notes?: string;
   /** Deactivated locations stay in the data, like vendors. */
   isActive: boolean;
 }

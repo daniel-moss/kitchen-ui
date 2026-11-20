@@ -22,7 +22,11 @@ import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover"
 //     ordinary pickable row, the caption is the only link, searching the
 //     parent's name finds its sub-accounts, and the closed field shows the
 //     picked account alone).
-//   - Required: "Choose [label]" once Create was pressed.
+//   - Required: "Choose [label]" once Create was pressed. `optional` instead
+//     (Cost of goods / Inventory asset, Figma 3225-69833 / 3225-69867): the
+//     label says "(optional)", there is no error, and a clear button empties
+//     it. An optional field with one account is NOT locked read-only — the
+//     read-only rule is for a REQUIRED field with one option.
 //   - `defaultHelpText` is the "Pre-selected based on company default account"
 //     line; it shows only while the field still holds the default it opened
 //     with ("Hides when a user switches to another account").
@@ -54,16 +58,19 @@ export interface AccountFieldProps {
   label: string;
   accounts: QuickbooksAccount[];
   value: string | null;
-  onChange: (accountId: string) => void;
+  /** `null` = cleared (optional fields only). */
+  onChange: (accountId: string | null) => void;
   /** Shown while the value is still `defaultId`. */
   defaultId?: string;
   showErrors: boolean;
+  /** "(optional)": no error, and the field can be cleared. Default false (required). */
+  optional?: boolean;
   mobile: boolean;
 }
 
-export default function AccountField({ label, accounts, value, onChange, defaultId, showErrors, mobile }: AccountFieldProps) {
+export default function AccountField({ label, accounts, value, onChange, defaultId, showErrors, optional = false, mobile }: AccountFieldProps) {
   const pop = useSelectPopover(mobile);
-  const only = accounts.length === 1 ? accounts[0] : undefined;
+  const only = !optional && accounts.length === 1 ? accounts[0] : undefined;
   const parentOf = (account: QuickbooksAccount) =>
     account.parentId == null ? undefined : accounts.find((row) => row.id === account.parentId);
 
@@ -79,13 +86,19 @@ export default function AccountField({ label, accounts, value, onChange, default
 
   return (
     <>
-      <Input label={label} helpText={onDefault ? "Pre-selected based on company default account" : undefined}>
+      <Input
+        label={label}
+        labelCondition={optional ? "optional" : undefined}
+        helpText={onDefault ? "Pre-selected based on company default account" : undefined}
+      >
         <SelectField
           value={chosen ? accountLabel(chosen) : undefined}
           open={pop.open}
           onClick={(event: MouseEvent<HTMLDivElement>) => pop.toggle(event.currentTarget)}
-          isValid={!(showErrors && chosen == null)}
+          isValid={optional || !(showErrors && chosen == null)}
           errorMessage={`Choose ${label}`}
+          isClearable={optional && chosen != null}
+          onClear={() => onChange(null)}
         />
       </Input>
 

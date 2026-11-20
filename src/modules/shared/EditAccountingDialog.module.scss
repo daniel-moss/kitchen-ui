@@ -1,0 +1,8 @@
+// The form's body: the info banner and the account fields, 24px apart — the
+// rhythm every pricebook edit form uses.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6); // 24px
+  align-items: stretch;
+}

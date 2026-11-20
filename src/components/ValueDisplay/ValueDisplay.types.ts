@@ -42,7 +42,8 @@ type ValueKey =
   | "avatarLimit"
   | "files"
   | "loadingCount"
-  | "card";
+  | "card"
+  | "isTruncated";
 
 /** Marks every value prop the kind does NOT own as unusable. */
 type Only<K extends ValueKey> = { [P in Exclude<ValueKey, K>]?: never };
@@ -66,15 +67,16 @@ interface HorizontalBase extends ValueDisplayBase {
   slotRight?: ReactNode;
 }
 
-/** Horizontal text value. It wraps when it does not fit one line, with or without a `slotLeft` (which stays on the first line). */
+/** Horizontal text value. It wraps when it does not fit one line, with or without a `slotLeft` (which stays on the first line) — unless `isTruncated`. */
 export type ValueDisplayHorizontalTextProps = HorizontalBase &
-  Only<"value" | "valueColor" | "slotLeft" | "isWarning" | "href"> & {
+  Only<"value" | "valueColor" | "slotLeft" | "isWarning" | "href" | "isTruncated"> & {
     kind?: "text";
     /**
      * Makes the value a LINK — `mailto:` / `tel:` / a URL. It stays a wrapping
-     * text value (never truncates), drawn underlined like a LinkButton: the
-     * "Service company" module's email and phone (Figma 26990-60627, "Works as
-     * a link. Wraps. Never truncates"). A LinkButton value truncates instead.
+     * text value, drawn underlined like a LinkButton: the "Service company"
+     * module's email and phone (Figma 26990-60627, "Works as a link. Wraps.
+     * Never truncates"). A web link (http/https) opens in a new tab. With
+     * `isTruncated` it stays on one line instead (the product's Image URL).
      */
     href?: string;
     /** The value. Empty/undefined renders the "No [Label]" placeholder. */
@@ -91,6 +93,14 @@ export type ValueDisplayHorizontalTextProps = HorizontalBase &
      * 21958-9105).
      */
     isWarning?: boolean;
+    /**
+     * ONE line with an ellipsis, and NO tooltip — the exception to "a text
+     * value always wraps", for a value that is one long unbroken string, like
+     * a link (the product's Image URL, Figma 3225-66475 "Truncates"; Daniel,
+     * 2026-11-20). Pair it with a Copy button or an `href`, so the full value
+     * is still reachable. Default false.
+     */
+    isTruncated?: boolean;
   };
 
 /** Horizontal badge value — any badge element (size md). Truncates with a tooltip when space is short. */

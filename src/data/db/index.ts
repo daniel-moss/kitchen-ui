@@ -5,8 +5,8 @@
 //
 //   import { CLIENTS, locationsOf, warrantiesOf } from "../../data/db";
 
-import { BILLS, CLIENT_CONTACTS, COMPANY, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
-import { Bill, Client, ClientContact, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, LocationContact, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
+import { BILLS, CLIENT_CONTACTS, COMPANY, CLIENTS, CREDIT_NOTES, EQUIPMENT, EQUIPMENT_FILES, EQUIPMENT_LABELS, ESTIMATES, INVOICES, JOB_LABELS, JOB_SERIES, JOBS, LABOR_ITEMS, LOCATION_CONTACTS, LOCATIONS, PRODUCT_ITEMS, PURCHASE_ORDERS, SHIPPING_CARRIERS, SHIPPING_METHODS, TAX_RATE_ITEMS, TODAY, VENDORS, WARRANTIES } from "./db";
+import { Bill, Client, ClientContact, CreditNote, Equipment, EquipmentLabel, Estimate, Invoice, Job, JobLabel, JobSeries, JobSubStatusRecord, LaborItem, Location, LocationContact, ProductItem, PurchaseOrder, TaxRateItem, Vendor, Warranty } from "./types";
 
 export * from "./types";
 export {
@@ -47,6 +47,7 @@ export {
   PRODUCT_ITEMS,
   PRODUCT_LABELS,
   PRODUCT_SUBTYPES,
+  VENDOR_PART_COSTS,
   OTHER_ITEMS,
   OTHER_LABELS,
   OTHER_SUBTYPES,
@@ -144,6 +145,8 @@ export const warrantyById = (id: string): Warranty | undefined => WARRANTIES.fin
 export const taxRateItemById = (id: string): TaxRateItem | undefined => TAX_RATE_ITEMS.find((row) => row.id === id);
 /** One labor rate by id — what the "Labor rate" side panel is opened with. */
 export const laborItemById = (id: string): LaborItem | undefined => LABOR_ITEMS.find((row) => row.id === id);
+/** One product by id — what the "Product" side panel is opened with. */
+export const productItemById = (id: string): ProductItem | undefined => PRODUCT_ITEMS.find((row) => row.id === id);
 export const equipmentFilesOf = (equipmentId: string) => EQUIPMENT_FILES.filter((row) => row.equipmentId === equipmentId);
 export const jobsOf = (locationId: string) => JOBS.filter((row) => row.locationId === locationId);
 export const estimatesOf = (locationId: string) => ESTIMATES.filter((row) => row.locationId === locationId);
@@ -220,7 +223,7 @@ export type { JobHistory, JobSession, JobTransition } from "./jobHistory";
 
 // What a job cost — labour, parts and fees, derived from the job (2026-09-28).
 export { chargesOf, chargesTotal, discountsOf, editingLocksOf, inventoryProductsOf } from "./jobCharges";
-export { activeInventoryLocations, INVENTORY_LEVELS, inventoryLocationOf, inventoryLocations, onHandAt } from "./inventoryLevels";
+export { activeInventoryLocations, INVENTORY_LEVELS, inventoryLevelsOf, inventoryLocationOf, inventoryLocations, onHandAt } from "./inventoryLevels";
 export type { InventoryLevel } from "./inventoryLevels";
 export type { Charge, ChargeGroup, DiscountLine, LaborLine, OtherLine, ProductLine } from "./jobCharges";
 

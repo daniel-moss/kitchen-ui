@@ -1586,7 +1586,14 @@ export const PRODUCT_LABELS: PricebookLabel[] = [
  * Deliberate gaps, for the empty cells: parts with no manufacturer, no part
  * number, no subtype and no summary.
  */
-const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
+/**
+ * The LIST half of a product. The side panel's "Info" half (creator, created
+ * at, QuickBooks key) is added below by `withProductPanelFields`, so these
+ * rows stay as they were written — the LABOR_ITEMS arrangement.
+ */
+type ProductItemBase = Omit<ProductItem, "createdAt" | "createdById" | "quickbooksId">;
+
+const PRODUCT_ITEMS_BASE: ProductItemBase[] = [
   // ---- TRACKED catalog: refrigeration ----
   // Added 2026-11-03: the 48 in gasket the walk-in cooler repairs bill had no
   // pricebook product, so its job line had no cost, subtype or part #.
@@ -1662,6 +1669,71 @@ const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = [
   { id: "prod-legacy-ballast", name: "Fluorescent ballast, T12", status: "active", isActive: false, subtypeId: "electrical", summary: "T12 lamps are no longer stocked.", cost: 32, price: 88, taxable: true, manufacturer: "Advance", partNumber: "REL-2P32-SC", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-07T14:00:00" },
   { id: "prod-legacy-belt", name: "Conveyor toaster belt (legacy)", status: "active", isActive: false, subtypeId: "cooking", summary: "", cost: 76, price: 190, taxable: true, manufacturer: "Prince Castle", partNumber: "88-136S", trackInventory: false, stock: null, quantity: null, quantityDesired: null, labelIds: [], lastModifiedAt: "2026-06-12T09:20:00" },
 ];
+
+/**
+ * The SIDE PANEL's half of a product (added 2026-11-17 with the panel's
+ * "Details" tab), written only where a row has something of its own to say.
+ * Everything else takes the defaults in `withProductPanelFields`.
+ */
+const PRODUCT_PANEL_FIELDS: Record<string, Partial<ProductItem>> = {
+  // The panel's ACTIVE demo product — vendor costs, a barcode, a label, a
+  // description, and the only internal note.
+  "prod-r404a": {
+    createdById: 3,
+    createdAt: "2025-04-14T10:30:00",
+    notes: "Hazmat: ship by ground only. Log the recovered weight on the job before the cylinder leaves the site.",
+    // The "Vendor costs" tab's demo: the preferred vendor is NOT the A–Z
+    // first, so "preferred on top" shows; and a manual cost kept from before
+    // the strategy moved to "Min vendor cost".
+    preferredVendorId: "peninsula-parts",
+    manualCost: 250,
+    // Refrigerant books its cost to its own account.
+    quickbooksCogsAccountId: "qba-5020",
+    // The "Details" module's demo link (2026-11-20).
+    imageUrl: "https://www.chemours.com/images/freon-404a-24lb-cylinder.jpg",
+  },
+  "prod-evap-fan-motor": { preferredVendorId: "pacific-refrigeration" },
+  // An Inventory product with no COGS / asset account — both are optional.
+  "prod-door-gasket-36": { preferredVendorId: "golden-gate-supply", quickbooksCogsAccountId: undefined, quickbooksAssetAccountId: undefined },
+  "prod-txv-valve": { preferredVendorId: "pacific-refrigeration" },
+  // The two MARKUP strategies. Each markup agrees with the row's own cost and
+  // price, because production's trigger derives one from the other:
+  // 44 + 74 = 118, and 118 × 2.5 = 295.
+  "prod-defrost-timer": { priceStrategy: "fixedMarkup", fixedMarkup: 74 },
+  "prod-ice-water-pump": { priceStrategy: "percentMarkup", percentMarkup: 150, preferredVendorId: "peninsula-parts" },
+  // IMPORTED from QuickBooks: no creator plus a QuickBooks key.
+  "prod-condenser-fan-blade": { createdById: undefined, quickbooksId: "80000031-1726742400" },
+  // Bulk-loaded during onboarding, before QuickBooks was connected: no
+  // creator, no QuickBooks key, no revenue account (the Accounting "Warning"),
+  // never synced.
+  "prod-shelf-kit": { createdById: undefined, quickbooksAccountId: undefined, needsSyncing: true, syncedAt: undefined },
+};
+
+/**
+ * A REVIEW item is minted by the system from a free-text line item or a
+ * purchase order, straight through the ORM: it has no creator. Everything
+ * else was created by Lorne Riddle the day it was last modified.
+ */
+const withProductPanelFields = (row: ProductItemBase): ProductItem => ({
+  ...row,
+  createdAt: row.lastModifiedAt,
+  createdById: row.status === "review" ? undefined : 1,
+  // QuickBooks Desktop (the "Accounting" tab, 2026-11-20): a confirmed product
+  // books to "Parts & Materials" and was synced when last modified; an
+  // Inventory one also carries the company's default COGS / asset accounts. A
+  // Review item was minted by the system: no account, never synced.
+  ...(row.status === "review"
+    ? { needsSyncing: true }
+    : {
+        quickbooksAccountId: "qba-4030",
+        needsSyncing: false,
+        syncedAt: row.lastModifiedAt,
+        ...(row.trackInventory ? { quickbooksCogsAccountId: "qba-5010", quickbooksAssetAccountId: "qba-1300" } : {}),
+      }),
+  ...PRODUCT_PANEL_FIELDS[row.id],
+});
+
+const PRODUCT_ITEMS_AT_ANCHOR: ProductItem[] = PRODUCT_ITEMS_BASE.map(withProductPanelFields);
 
 /**
  * What each vendor charges for a product — production `VendorPartCost`, one
@@ -1790,11 +1862,11 @@ export const QUICKBOOKS_ASSET_ACCOUNTS: QuickbooksAccount[] = [
  * retired truck so the list has an "Inactive" row. Added 2026-10-17.
  */
 export const INVENTORY_LOCATIONS: InventoryLocation[] = [
-  { id: "inv-warehouse", name: "Main warehouse", type: "warehouse", address: "1450 Industrial Way, San Leandro, CA 94577", isActive: true },
+  { id: "inv-warehouse", name: "Main warehouse", type: "warehouse", address: "1450 Industrial Way, San Leandro, CA 94577", street: "1450 Industrial Way", city: "San Leandro", state: "CA", postalCode: "94577", isActive: true },
   { id: "inv-truck-mike", name: "Mike's truck", type: "truck", plateNumber: "8XKT214", isActive: true },
   { id: "inv-truck-ana", name: "Ana's truck", type: "truck", plateNumber: "7BRW559", isActive: true },
   { id: "inv-truck-spare", name: "Spare van", type: "truck", isActive: true },
-  { id: "inv-drop-oakland", name: "Oakland drop-point", type: "dropPoint", address: "300 Harrison St, Oakland, CA 94607", isActive: true },
+  { id: "inv-drop-oakland", name: "Oakland drop-point", type: "dropPoint", address: "300 Harrison St, Oakland, CA 94607", street: "300 Harrison St", city: "Oakland", state: "CA", postalCode: "94607", isActive: true },
   { id: "inv-truck-old", name: "Old service van", type: "truck", plateNumber: "5MNP802", isActive: false },
 ];
 

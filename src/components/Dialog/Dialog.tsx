@@ -76,6 +76,8 @@ export default function Dialog(props: DialogProps) {
     title,
     caption,
     captionLeftSlot,
+    titleLeftSlot,
+    avatar,
     titleHint = false,
     titleHintContent,
     breakpoint = "auto",
@@ -186,12 +188,13 @@ export default function Dialog(props: DialogProps) {
     ) : undefined;
 
   const titleContent = (
-    <PopoverHeaderContent>
+    <PopoverHeaderContent avatar={avatar}>
       <PopoverHeaderText
         variant={caption != null ? "titleCaption" : "title"}
         title={title}
         caption={caption}
         captionLeftSlot={captionLeftSlot}
+        titleLeftSlot={titleLeftSlot}
         titleRightSlot={titleHintSlot}
       />
     </PopoverHeaderContent>

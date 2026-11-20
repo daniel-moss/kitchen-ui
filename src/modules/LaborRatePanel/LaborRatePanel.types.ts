@@ -116,6 +116,11 @@ export interface LaborRatePanelProps extends LaborRatePanelActions {
    * (`PriceBookItem.clean`). Default true.
    */
   hasQuickbooksAccounting?: boolean;
+  /**
+   * The "History" tab's rows. Default: the demo database as seeded. The demo
+   * app passes rows built from its LIVE jobs and charge lines.
+   */
+  historyRows?: HistoryRow[];
   /** Which actions this user may take. See `LaborRatePermissions`. */
   permissions?: LaborRatePermissions;
 

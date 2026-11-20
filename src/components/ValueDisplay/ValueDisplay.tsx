@@ -259,7 +259,7 @@ export default function ValueDisplay(props: ValueDisplayProps) {
         </div>
       );
     } else {
-      const { value, valueColor, slotLeft, isWarning = false, href } = props;
+      const { value, valueColor, slotLeft, isWarning = false, href, isTruncated = false } = props;
       const color = isWarning ? "var(--text-warning)" : valueColor;
       const text = value == null || value === "" ? placeholder : value;
       content = (
@@ -274,11 +274,16 @@ export default function ValueDisplay(props: ValueDisplayProps) {
               matches every node that pairs an icon with a wrapping value. */}
           {slotLeft != null && <span className={styles.slotLeft}>{slotLeft}</span>}
           {href != null && value != null && value !== "" ? (
-            <a className={clsx(styles.text, styles.textLink)} href={href}>
+            <a
+              className={clsx(styles.text, styles.textLink, isTruncated && styles.textTruncated)}
+              href={href}
+              // A web link opens in a new tab; mailto: / tel: hand over to the app.
+              {...(/^https?:/i.test(href) ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
               {text}
             </a>
           ) : (
-            <span className={styles.text}>{text}</span>
+            <span className={clsx(styles.text, isTruncated && styles.textTruncated)}>{text}</span>
           )}
           {isWarning && (
             <span className={styles.warningIcon}>

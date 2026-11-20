@@ -45,3 +45,21 @@
     align-self: stretch;
   }
 }
+
+// Two short fields side by side (City + State, Postal code + Country); they
+// stack on a phone.
+.fieldRow {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    gap: var(--size-6);
+  }
+}

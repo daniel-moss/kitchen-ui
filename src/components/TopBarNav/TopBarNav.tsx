@@ -2,6 +2,8 @@ import { ReactNode, UIEvent, useLayoutEffect, useRef, useState } from "react";
 
 import clsx from "clsx";
 
+import useHorizontalWheel from "../../hooks/useHorizontalWheel";
+
 import { Divider } from "../Divider/Divider";
 import { TabGroupDefaultSizeContext } from "../Tabs/TabGroupDefaultSizeContext";
 import TopBarNavLiveUsers from "./TopBarNavLiveUsers";
@@ -39,21 +41,8 @@ function TabsScroller({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("resize", measure);
   });
 
-  // A plain vertical mouse wheel scrolls the tabs horizontally (no Shift
-  // needed). Native non-passive listener — React's onWheel can't
-  // preventDefault (it's registered passive).
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return undefined;
-    const onWheel = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return; // real horizontal input works natively
-      if (el.scrollWidth <= el.clientWidth) return;
-      el.scrollLeft += e.deltaY;
-      e.preventDefault();
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, []);
+  // A plain vertical mouse wheel scrolls the tabs horizontally (no Shift needed).
+  useHorizontalWheel(ref);
 
   const onScroll = (_e: UIEvent) => measure();
 

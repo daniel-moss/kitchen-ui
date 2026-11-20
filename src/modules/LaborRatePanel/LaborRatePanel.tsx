@@ -15,23 +15,24 @@ import SidePanel from "../../components/SidePanel/SidePanel";
 import SidePanelNavigation from "../../components/SidePanel/SidePanelNavigation";
 import TabItem from "../../components/Tabs/TabItem";
 import { toast } from "../../components/Toast/Toaster";
-import { LABOR_LABELS, LaborItem } from "../../data/db";
+import { LABOR_LABELS, LABOR_SUBTYPES, LaborItem } from "../../data/db";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import HistoryModule from "../EquipmentPanel/modules/HistoryModule";
+import AccountingModule from "../shared/AccountingModule";
+import EditAccountingDialog, { AccountingEdits } from "../shared/EditAccountingDialog";
 import { useAnchoredMenu } from "../shared/anchoredMenu";
 import EditNotesDialog from "../shared/EditNotesDialog";
 import { slot } from "../shared/helpers";
+import InfoModule from "../shared/InfoModule";
 import LabelsModule from "../shared/LabelsModule";
 import LabelsSelectList from "../shared/LabelsSelectList";
 import NotesModule from "../shared/NotesModule";
 
-import EditAccountingDialog from "./forms/EditAccountingDialog";
 import EditGeneralDialog from "./forms/EditGeneralDialog";
 import EditPricingDialog from "./forms/EditPricingDialog";
-import AccountingModule from "./modules/AccountingModule";
 import GeneralModule from "./modules/GeneralModule";
 import PricingModule from "./modules/PricingModule";
-import { laborRateHistoryRows, laborRateStatusOf, missingRequiredOf } from "./laborRateData";
+import { accountingOf, createdByOf, laborRateHistoryRows, laborRateStatusOf, missingRequiredOf } from "./laborRateData";
 import { LaborRateGeneral, LaborRatePanelProps, LaborRatePanelTab, LaborRatePricing } from "./LaborRatePanel.types";
 
 import styles from "./LaborRatePanel.module.scss";
@@ -100,6 +101,7 @@ export default function LaborRatePanel({
   onConfirm,
   onDelete,
   onOpenHistory,
+  historyRows,
   isLoading = false,
   state = "content",
   onRetry,
@@ -127,7 +129,7 @@ export default function LaborRatePanel({
   useEffect(() => setRecord(rate), [rate]);
   // A different rate starts on Details, like every opening.
   useEffect(() => setTab("details"), [rate.id]);
-  const history = useMemo(() => laborRateHistoryRows(record.id), [record.id]);
+  const history = useMemo(() => historyRows ?? laborRateHistoryRows(record.id), [historyRows, record.id]);
 
   // Labels are held by NAME: the picker can create one, which has no id yet.
   const [labels, setLabels] = useState<string[]>(() => labelNamesOf(rate));
@@ -180,9 +182,10 @@ export default function LaborRatePanel({
     setRecord((prev) => ({ ...prev, ...edits }));
   };
 
-  const saveAccounting = async (quickbooksAccountId: string) => {
-    if ((await onSaveAccounting?.(quickbooksAccountId)) === false) return false;
-    setRecord((prev) => ({ ...prev, quickbooksAccountId }));
+  const saveAccounting = async ({ revenueAccountId }: AccountingEdits) => {
+    if (revenueAccountId == null) return false;
+    if ((await onSaveAccounting?.(revenueAccountId)) === false) return false;
+    setRecord((prev) => ({ ...prev, quickbooksAccountId: revenueAccountId }));
   };
 
   const saveLabels = async (picked: string[]) => {
@@ -348,8 +351,8 @@ export default function LaborRatePanel({
                 rate={record}
                 onEdit={() => setEditingGeneral(true)}
                 canEdit={canEditModules}
+                hasSubtypes={LABOR_SUBTYPES.length > 0}
                 missingSubtype={missing.subtype}
-                hideLastModified={inReview}
                 isLoading={isLoading}
               />
 
@@ -392,12 +395,23 @@ export default function LaborRatePanel({
                 canEdit={canEditModules}
                 isLoading={isLoading}
               />
+
+              {/* The SHARED "Info" module — Status, Created by / at, Last
+                  modified moved here out of General (Figma 3091-20086,
+                  2026-11-20). */}
+              <InfoModule
+                status={laborRateStatusOf(record)}
+                createdBy={createdByOf(record)}
+                createdAt={record.createdAt}
+                lastModifiedAt={record.lastModifiedAt}
+                isLoading={isLoading}
+              />
             </>
           )}
 
           {tab === "accounting" && hasQuickbooksAccounting && (
             <AccountingModule
-              rate={record}
+              accounting={accountingOf(record)}
               onEdit={() => setEditingAccounting(true)}
               canEdit={canEditModules}
               hideSyncStatus={inReview}
@@ -474,7 +488,8 @@ export default function LaborRatePanel({
       <EditAccountingDialog
         open={editingAccounting}
         onClose={() => setEditingAccounting(false)}
-        rate={record}
+        itemNoun="labor rate"
+        accounting={accountingOf(record)}
         onSave={saveAccounting}
         breakpoint={breakpoint}
       />

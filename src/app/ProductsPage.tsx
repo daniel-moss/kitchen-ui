@@ -1,5 +1,8 @@
+import { useCallback } from "react";
+
+
 import { Page } from "./shell/appShell";
-import { useNewProduct } from "./shell/products";
+import { useNewProduct, useOpenProduct } from "./shell/products";
 import { PRODUCT_NOUN } from "./listData";
 import { PRODUCT_FILTERS } from "./productFilters";
 import { TABLE_COLUMNS, sortProducts } from "./productsTable";
@@ -66,14 +69,25 @@ export interface ProductsPageProps {
 // WIRED 2026-10-13: "New" opens the "New product" form, which lives at app
 // level (shell/products.tsx) because the Create menu reaches it from any page.
 // Since 2026-10-17 the rows come from the app store, so a product created
-// there shows up here. A row click still does nothing: there is no "Product"
-// side panel yet.
+// there shows up here. Since 2026-11-17 a row click opens the "Product" side
+// panel (shell/products.tsx; Details tab only).
 const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) => {
   const rows = useProducts();
   const openNewProduct = useNewProduct();
+  const openProduct = useOpenProduct();
+
+  // Stable — the table is memoised on its props (listTable.tsx).
+  const onRowClick = useCallback((row: ProductRow) => openProduct(row.id), [openProduct]);
 
   return (
-    <PricebookPage config={PRODUCTS_LIST} rows={rows} breakpoint={breakpoint} onNavigate={onNavigate} onCreate={openNewProduct} />
+    <PricebookPage
+      config={PRODUCTS_LIST}
+      rows={rows}
+      breakpoint={breakpoint}
+      onNavigate={onNavigate}
+      onCreate={openNewProduct}
+      onRowClick={onRowClick}
+    />
   );
 };
 

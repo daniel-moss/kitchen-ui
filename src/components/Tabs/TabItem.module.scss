@@ -27,6 +27,12 @@
   outline: none;
   cursor: pointer;
   max-width: 100%;
+  // A tab keeps its size and its label stays on ONE line; when the tabs do not
+  // fit, the group's scroller scrolls sideways instead (2026-11-17 — the
+  // Product panel's "Inventory levels" / "Vendor costs" wrapped onto two
+  // lines). A full-width group overrides the flex rule (TabGroup.module.scss).
+  flex-shrink: 0;
+  white-space: nowrap;
 
   color: var(--text-subtle);
   background: transparent;

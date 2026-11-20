@@ -137,10 +137,13 @@ export default function NewProductForm({
   const missingCost = isBlank(cost);
   // A list with ONE account has that account as its value (shown read-only).
   const revenueAccount = accountValue(quickbooks?.revenueAccounts ?? [], revenueAccountId);
-  const cogsAccount = accountValue(quickbooks?.cogsAccounts ?? [], cogsAccountId);
-  const assetAccount = accountValue(quickbooks?.assetAccounts ?? [], assetAccountId);
+  // Optional fields: the pick itself, never the "only account" stand-in.
+  const cogsAccount = cogsAccountId;
+  const assetAccount = assetAccountId;
   const missingRevenueAccount = hasAccounting && revenueAccount == null;
-  const missingInventoryAccounts = hasAccounting && trackInventory && (cogsAccount == null || assetAccount == null);
+  // Cost of goods and Inventory asset are OPTIONAL (Shared Tabs 3225-69833 /
+  // 3225-69867, 2026-11-20) — production never requires them either.
+  const missingInventoryAccounts = false;
 
   const blocked =
     nameProblems.missing ||
@@ -346,6 +349,7 @@ export default function NewProductForm({
                   value={cogsAccountId}
                   onChange={setCogsAccountId}
                   defaultId={quickbooks.defaultCogsAccountId}
+                  optional
                   showErrors={showErrors}
                   mobile={mobile}
                 />
@@ -355,6 +359,7 @@ export default function NewProductForm({
                   value={assetAccountId}
                   onChange={setAssetAccountId}
                   defaultId={quickbooks.defaultAssetAccountId}
+                  optional
                   showErrors={showErrors}
                   mobile={mobile}
                 />

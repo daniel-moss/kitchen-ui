@@ -1,0 +1,17 @@
+// The tab sits in the SidePanel body (16px inset, 16px between the search,
+// the stocked list and the "Not stocked" group). Inside a list — and between
+// the group's label and its cards — 10px.
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2_5); // 10px (Daniel, 2026-11-19)
+}
+
+// "No inventory locations" centers in the whole body (Figma body CENTER /
+// CENTER). "No locations match" does NOT — it sits right under the search.
+.empty {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}

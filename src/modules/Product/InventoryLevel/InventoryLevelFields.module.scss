@@ -1,0 +1,20 @@
+// The level's fields: 24px between the rows. The surface around it (the
+// form's edit card, the panel's Dialog) brings its own padding.
+.fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-6);
+}
+
+// On hand + On order, and Target + Alert at, share one row at BOTH
+// breakpoints (the mobile nodes keep them side by side).
+.pair {
+  display: flex;
+  gap: var(--size-4);
+
+  > * {
+    flex: 1;
+
+    min-width: 0;
+  }
+}

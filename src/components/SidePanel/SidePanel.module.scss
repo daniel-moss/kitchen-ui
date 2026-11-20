@@ -63,6 +63,10 @@
   gap: var(--size-4); // 16px between items
   padding: var(--size-4); // 16px on every side
   width: 100%;
+  // At least the full scroll area, so a body-level EmptyState can center in
+  // the space left (the Product panel's "No inventory locations", 2026-11-18).
+  // Shorter content still starts at the top.
+  min-height: 100%;
 }
 
 // error / offline: the EmptyState centers inside the body region, keeping the

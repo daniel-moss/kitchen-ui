@@ -6,10 +6,10 @@ import Toaster from "../../components/Toast/Toaster";
 import { LABOR_ITEMS, LABOR_LABELS, LaborItem, laborItemById } from "../../data/db";
 import { cap, DeviceFrame, noop } from "../../stories/helpers";
 
-import AccountingModule from "./modules/AccountingModule";
+import AccountingModule from "../shared/AccountingModule";
 import GeneralModule from "./modules/GeneralModule";
 import PricingModule from "./modules/PricingModule";
-import { laborRateStatusOf } from "./laborRateData";
+import { laborRateStatusOf, accountingOf } from "./laborRateData";
 import LaborRatePanel from "./LaborRatePanel";
 import { LaborRatePermissions } from "./LaborRatePanel.types";
 
@@ -260,7 +260,7 @@ export const Accounting: Story = {
         ["Review — no account: Warning, no sync rows", REVIEW],
       ]}
       render={(record) => (
-        <AccountingModule rate={record} onEdit={noop} hideSyncStatus={laborRateStatusOf(record) === "review"} />
+        <AccountingModule accounting={accountingOf(record)} onEdit={noop} hideSyncStatus={laborRateStatusOf(record) === "review"} />
       )}
     />
   ),

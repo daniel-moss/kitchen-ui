@@ -1,39 +1,19 @@
 import { useState } from "react";
 
-import clsx from "clsx";
-
 import Avatar from "../../../components/Avatar/Avatar";
 import Button from "../../../components/Button/Button";
-import Card from "../../../components/Card/Card";
-import CheckboxItem from "../../../components/Checkbox/CheckboxItem";
 import DisplayModule from "../../../components/DisplayModule/DisplayModule";
-import TextField from "../../../components/Fields/TextField/TextField";
 import { Icon } from "../../../components/Icon/Icon";
-import Input from "../../../components/Input/Input";
 import ItemTextLine from "../../../components/ItemText/ItemText/ItemTextLine";
 import Label from "../../../components/Label/Label";
 import LinkButton from "../../../components/LinkButton/LinkButton";
 import PopoverFooter from "../../../components/Popover/PopoverFooter";
-import ProgressBar from "../../../components/Progress/ProgressBar";
 import Prompt from "../../../components/Prompt/Prompt";
-import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
 import { InventoryLocation } from "../../../data/db/types";
-import { TEXT_SEPARATOR } from "../../../utils/textSeparator";
+import InventoryLevelCard, { LOCATION_TYPE_ICON, locationTitle } from "../InventoryLevel/InventoryLevelCard";
+import InventoryLevelFields, { draftErrors, draftOf, LevelDraft, levelOf } from "../InventoryLevel/InventoryLevelFields";
 
 import ActiveInactiveList from "./ActiveInactiveList";
-import {
-  decimalText,
-  isBlank,
-  isQuantityText,
-  isSignedQuantityText,
-  MAX_BIN,
-  NO_SUGGESTIONS,
-  numberOf,
-  overLimitError,
-  quantity,
-  StockLevel,
-  stockLevel,
-} from "./productRules";
 import { NewProductInventoryLevel } from "./NewProductForm.types";
 
 import styles from "./InventoryLevelsField.module.scss";
@@ -45,44 +25,21 @@ import styles from "./InventoryLevelsField.module.scss";
 //
 // A card has two shapes, like a vendor cost card:
 //
-//   the Card           icon · "[plate] · [name]" · on hand (+ on order) ·
-//                      a ProgressBar with the alert tick · "Bin: …" ·
-//                      "Target: 20 · Full". Clicking it opens the edit shape.
-//   the DisplayModule  On hand + On order · "Set target" (Target + Alert at)
-//                      · Bin location · a footer: Remove (only once saved) ·
-//                      Cancel · Done.
+//   the Card           InventoryLevelCard — shared with the Product side
+//                      panel's "Inventory levels" tab. Clicking it opens the
+//                      edit shape.
+//   the DisplayModule  InventoryLevelFields (also shared) · a footer: Remove
+//                      (only once saved) · Cancel · Done.
 //
 // ONE card is edited at a time; while it is open the other cards do not
 // respond, "Add inventory location" hides, and the form's Create scrolls back
 // here instead of creating.
 
-/** The location type's icon — the Avatar glyph the Figma location rows inherit. */
-export const LOCATION_TYPE_ICON: Record<InventoryLocation["type"], string> = {
-  warehouse: "warehouse",
-  truck: "truck",
-  dropPoint: "box",
-};
+// Kept as re-exports: other modules import them from here.
+export { LOCATION_TYPE_ICON, locationTitle };
 
-/** "8XKT214 · Mike's truck" — the plate only when the truck has one. */
-export const locationTitle = (location: InventoryLocation) =>
-  location.plateNumber ? `${location.plateNumber}${TEXT_SEPARATOR}${location.name}` : location.name;
-
-const STATUS_WORD: Record<StockLevel, string> = { full: "Full", limited: "Limited", low: "Low", depleted: "Depleted" };
-const STATUS_BAR: Record<StockLevel, string | undefined> = {
-  full: "var(--jade-9)",
-  limited: "var(--amber-9)",
-  low: "var(--orange-9)",
-  depleted: undefined,
-};
-
-interface DraftLevel {
+interface DraftLevel extends LevelDraft {
   locationId: string;
-  onHand: string;
-  onOrder: string;
-  hasTarget: boolean;
-  target: string;
-  alertAt: string;
-  binLocation: string;
   wasSaved: boolean;
 }
 
@@ -95,8 +52,6 @@ export interface InventoryLevelsFieldProps {
   onEditingChange?: (editing: boolean) => void;
   mobile: boolean;
 }
-
-const asText = (value?: number) => (value == null ? "" : String(value));
 
 export default function InventoryLevelsField({ locations, levels, onChange, onEditingChange, mobile }: InventoryLevelsFieldProps) {
   const [listOpen, setListOpen] = useState(false);
@@ -130,43 +85,16 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
   const openDraft = (locationId: string) => {
     const existing = levels.find((level) => level.locationId === locationId);
     setShowErrors(false);
-    setDraft({
-      locationId,
-      onHand: asText(existing?.onHand),
-      onOrder: existing && existing.onOrder !== 0 ? String(existing.onOrder) : "",
-      hasTarget: existing?.target != null,
-      target: asText(existing?.target),
-      alertAt: asText(existing?.alertAt),
-      binLocation: existing?.binLocation ?? "",
-      wasSaved: existing != null,
-    });
+    setDraft({ ...draftOf(existing), locationId, wasSaved: existing != null });
   };
-
-  // ---- the edit card's checks ----
-  const missingOnHand = draft != null && isBlank(draft.onHand);
-  const missingTarget = draft != null && draft.hasTarget && isBlank(draft.target);
-  const targetNotPositive = draft != null && draft.hasTarget && !missingTarget && numberOf(draft.target) <= 0;
-  const alertNotBelow =
-    draft != null && draft.hasTarget && !missingTarget && !isBlank(draft.alertAt) && numberOf(draft.alertAt) >= numberOf(draft.target);
-  const binTooLong = draft != null ? overLimitError(draft.binLocation, MAX_BIN) : undefined;
 
   const done = () => {
     if (draft == null) return;
-    if (missingOnHand || missingTarget || targetNotPositive || alertNotBelow || binTooLong) {
+    if (draftErrors(draft).any) {
       setShowErrors(true);
       return;
     }
-    const saved: NewProductInventoryLevel = {
-      locationId: draft.locationId,
-      onHand: numberOf(draft.onHand),
-      // "No value is treated as 0."
-      onOrder: numberOf(draft.onOrder),
-      // Unchecking "Set target" keeps the two values in the card while it is
-      // open, but a level saved without a target carries none.
-      target: draft.hasTarget ? numberOf(draft.target) : undefined,
-      alertAt: draft.hasTarget && !isBlank(draft.alertAt) ? numberOf(draft.alertAt) : undefined,
-      binLocation: draft.binLocation.trim(),
-    };
+    const saved: NewProductInventoryLevel = { locationId: draft.locationId, ...levelOf(draft) };
     onChange(
       draft.wasSaved ? levels.map((level) => (level.locationId === draft.locationId ? saved : level)) : [...levels, saved],
     );
@@ -195,67 +123,11 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
         content={
           <>
             <div className={styles.editFields}>
-              <div className={styles.pair}>
-                <Input label="On hand">
-                  <TextField
-                    value={draft.onHand}
-                    onChange={(event) => isSignedQuantityText(decimalText(event.target.value)) && setDraft({ ...draft, onHand: decimalText(event.target.value) })}
-                    placeholder="0"
-                    {...NO_SUGGESTIONS}
-                    isValid={!(showErrors && missingOnHand)}
-                  />
-                </Input>
-                <Input label="On order" labelCondition="optional">
-                  <TextField
-                    value={draft.onOrder}
-                    onChange={(event) => isQuantityText(decimalText(event.target.value)) && setDraft({ ...draft, onOrder: decimalText(event.target.value) })}
-                    keyboard="decimal"
-                    placeholder="0"
-                  />
-                </Input>
-              </div>
-
-              <CheckboxItem
-                variant="card"
-                icon="arrow-up-to-line"
-                label="Set target"
-                checked={draft.hasTarget}
-                onChange={(event) => setDraft({ ...draft, hasTarget: event.target.checked })}
-                content={
-                  <div className={styles.targetFields}>
-                    <Input label="Target">
-                      <TextField
-                        value={draft.target}
-                        onChange={(event) => isQuantityText(decimalText(event.target.value)) && setDraft({ ...draft, target: decimalText(event.target.value) })}
-                        keyboard="decimal"
-                        placeholder="0"
-                        isValid={!(showErrors && (missingTarget || targetNotPositive))}
-                        errorMessage={targetNotPositive ? "Must be greater than 0" : undefined}
-                      />
-                    </Input>
-                    <Input label="Alert at" labelCondition="optional">
-                      <TextField
-                        value={draft.alertAt}
-                        onChange={(event) => isQuantityText(decimalText(event.target.value)) && setDraft({ ...draft, alertAt: decimalText(event.target.value) })}
-                        keyboard="decimal"
-                        placeholder="0"
-                        isValid={!(showErrors && alertNotBelow)}
-                        errorMessage="Must be lower than Target"
-                      />
-                    </Input>
-                  </div>
-                }
+              <InventoryLevelFields
+                draft={draft}
+                onChange={(next) => setDraft({ ...draft, ...next })}
+                showErrors={showErrors}
               />
-
-              <Input label="Bin location" labelCondition="optional">
-                <TextField
-                  value={draft.binLocation}
-                  onChange={(event) => setDraft({ ...draft, binLocation: event.target.value })}
-                  {...NO_SUGGESTIONS}
-                  isValid={binTooLong == null}
-                  errorMessage={binTooLong}
-                />
-              </Input>
             </div>
             <PopoverFooter
               slotLeft={
@@ -290,10 +162,11 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
           draft?.locationId === level.locationId ? (
             <div key={level.locationId}>{editCard}</div>
           ) : (
-            <LevelCard
+            <InventoryLevelCard
               key={level.locationId}
               level={level}
               location={locationOf(level.locationId)}
+              fallbackTitle={level.locationId}
               onClick={draft == null ? () => openDraft(level.locationId) : undefined}
             />
           ),
@@ -331,79 +204,5 @@ export default function InventoryLevelsField({ locations, levels, onChange, onEd
         breakpoint={mobile ? "mobile" : "desktop"}
       />
     </div>
-  );
-}
-
-// ---- the saved card (Figma "Inventory Location" Card, 4121-34006) ----------
-
-interface LevelCardProps {
-  level: NewProductInventoryLevel;
-  location?: InventoryLocation;
-  onClick?: () => void;
-}
-
-function LevelCard({ level, location, onClick }: LevelCardProps) {
-  const status = stockLevel(level.onHand, level.onOrder, level.target, level.alertAt);
-  // The numbers take the status color; with no target they stay strong, and
-  // an on hand of zero or less turns the placeholder gray.
-  const numberClass = status ? styles[status] : undefined;
-  const onHandClass = status ? styles[status] : level.onHand <= 0 ? styles.placeholder : undefined;
-  const stock = level.onHand + level.onOrder;
-  const fill = level.target ? Math.max(0, Math.min(100, (stock / level.target) * 100)) : 0;
-
-  return (
-    <Card padding={0} style={{ width: "100%" }} onClick={onClick}>
-      <div className={clsx(styles.card, level.target == null && styles.cardNoTarget)}>
-        <div className={styles.header}>
-          <div className={styles.name}>
-            <Icon icon={location ? LOCATION_TYPE_ICON[location.type] : "box"} size={14} container="square" className={styles.typeIcon} />
-            <span className={styles.title}>{location ? locationTitle(location) : level.locationId}</span>
-          </div>
-          <div className={styles.numbers}>
-            <HoverTooltip text={`${quantity(level.onHand)} on hand`}>
-              <span className={clsx(styles.number, onHandClass)}>{quantity(level.onHand)}</span>
-            </HoverTooltip>
-            {/* "On order" only when there is some. */}
-            {level.onOrder > 0 && (
-              <>
-                <Icon icon="plus" pack="solid" size={10} className={numberClass} />
-                <HoverTooltip text={`${quantity(level.onOrder)} on order`}>
-                  <span className={clsx(styles.onOrder, numberClass)}>
-                    <span className={styles.number}>{quantity(level.onOrder)}</span>
-                    <Icon icon="truck-fast" size={14} />
-                  </span>
-                </HoverTooltip>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* "Only shown if the target provided. 100% = target." The tick marks
-            the alert level on the same scale. */}
-        {level.target != null && (
-          <div className={styles.bar}>
-            <ProgressBar value={fill} color={status ? STATUS_BAR[status] : undefined} isDecorative />
-            {level.alertAt != null && (
-              <span className={styles.alertTick} style={{ left: `${Math.min(100, (level.alertAt / level.target) * 100)}%` }} />
-            )}
-          </div>
-        )}
-
-        <div className={styles.footer}>
-          <span className={clsx(styles.caption, level.binLocation === "" && styles.placeholder)}>
-            {level.binLocation === "" ? "No Bin location" : `Bin: ${level.binLocation}`}
-          </span>
-          {status ? (
-            <span className={styles.caption}>
-              {`Target: ${quantity(level.target as number)}`}
-              {TEXT_SEPARATOR}
-              <span className={styles[status]}>{STATUS_WORD[status]}</span>
-            </span>
-          ) : (
-            <span className={clsx(styles.caption, styles.placeholder)}>No target</span>
-          )}
-        </div>
-      </div>
-    </Card>
   );
 }

@@ -53,6 +53,8 @@ const toProductItem = (product: NewProduct, index: number): ProductItem => ({
   quantityDesired: null,
   labelIds: [],
   lastModifiedAt: "2026-09-04T09:00:00",
+  createdAt: "2026-09-04T09:00:00",
+  createdById: 1,
 });
 
 const Demo = ({

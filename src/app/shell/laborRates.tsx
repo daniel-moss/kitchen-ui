@@ -1,10 +1,12 @@
-import { ReactNode, createContext, useCallback, useContext, useRef, useState } from "react";
+import { ReactNode, createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 
 import { COMPANY, LABOR_LABELS, LABOR_SUBTYPES, QUICKBOOKS_ACCOUNTS } from "../../data/db";
 import { Breakpoint } from "../../hooks/useIsDesktop";
 import LaborRatePanel from "../../modules/LaborRatePanel/LaborRatePanel";
 import NewLaborRateForm from "../../modules/NewLaborRateForm/NewLaborRateForm";
 import { useAppStore, useLaborRate } from "../store/AppStore";
+import { pricebookHistoryRows } from "../../modules/shared/pricebookHistory";
+import { openHistoryRow } from "./pricebookHistory";
 
 // ONE "New labor rate" form and ONE "Labor rate" side panel for the whole app
 // — the arrangement shell/taxRates.tsx set up, for the same reason: both are
@@ -47,7 +49,7 @@ const onQuickbooksDetailed = () =>
 const labelIdsOf = (names: string[]) => LABOR_LABELS.filter((label) => names.includes(label.name)).map((label) => label.id);
 
 export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoint?: Breakpoint; children: ReactNode }) {
-  const { laborRates, updateLaborRate, createLaborRate, deleteLaborRate } = useAppStore();
+  const { laborRates, updateLaborRate, createLaborRate, deleteLaborRate, historySources } = useAppStore();
 
   const [formOpen, setFormOpen] = useState(false);
   const [panelId, setPanelId] = useState<string | null>(null);
@@ -59,6 +61,12 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
   const closeForm = useCallback(() => setFormOpen(false), []);
   const openPanel = useCallback((id: string) => setPanelId(id), []);
   const closePanel = useCallback(() => setPanelId(null), []);
+
+  // The History tab reads the jobs and charge lines as they are in this session.
+  const historyRows = useMemo(
+    () => (panelId == null ? [] : pricebookHistoryRows((line) => line.laborRateId === panelId, historySources)),
+    [panelId, historySources],
+  );
 
   // The record is read from the store every render, so the panel shows the
   // same values the list does. It goes undefined when the rate is deleted,
@@ -108,6 +116,8 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
           <LaborRatePanel
             open={panelId != null}
             onClose={closePanel}
+            historyRows={historyRows}
+            onOpenHistory={openHistoryRow}
             rate={rate}
             labelPool={LABEL_POOL}
             existingNames={laborRates.map((row) => row.name)}

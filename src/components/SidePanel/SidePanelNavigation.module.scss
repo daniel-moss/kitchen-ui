@@ -6,7 +6,9 @@
 }
 
 // The OBJECT row (always present) — 56px tall, 16px sides, a divider along its
-// bottom edge. Drawn as a border with border-box sizing, so the row stays
+// bottom edge. The 16px sides belong to the SCROLLER, not the row (2026-11-17):
+// the tabs scroll right up to the panel's edges instead of being cut 16px
+// before them, and at rest they still start 16px in. Drawn as a border with border-box sizing, so the row stays
 // exactly 56px. Contrast MEDIUM (`--gray-a4`): it separates the navigation
 // from the body, so it is stronger than the group lines inside the body.
 // Figma 28952-41216 ("Object Nav").
@@ -17,7 +19,6 @@
   align-items: center;
 
   height: var(--size-14); // 56px
-  padding-inline: var(--size-4); // 16px
   border-bottom: 1px solid var(--gray-a4);
 }
 
@@ -56,5 +57,17 @@
 
   &::-webkit-scrollbar {
     display: none;
+  }
+
+  // The 16px sides, as two spacers INSIDE the scrolling content. Padding on
+  // the scroller itself would not do: browsers disagree on whether the END
+  // padding of a flex scroll container counts, so the last tab could stop
+  // flush with the edge. A spacer always scrolls with the tabs.
+  &::before,
+  &::after {
+    content: "";
+    flex: none;
+    width: var(--size-4); // 16px
+    align-self: stretch;
   }
 }
