@@ -33,6 +33,12 @@ export interface NewDiscountFormProps {
   /** The company requires a subtype (`require_subtypes`). Default false. */
   requireSubtypes?: boolean;
   /**
+   * The signed-in user has production's "can't classify subtypes" flag. With
+   * a required subtype and 2+ to choose from, the "You can't create
+   * discounts" Prompt replaces the form. Default false.
+   */
+  cannotClassifySubtypes?: boolean;
+  /**
    * The QuickBooks Desktop accounting block. PRESENT means the company is on
    * QuickBooks Desktop AND uses the "Detailed Split" line-item setup.
    * `accounts` are the synced INCOME accounts.

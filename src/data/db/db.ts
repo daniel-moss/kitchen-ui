@@ -1879,6 +1879,12 @@ export const QUICKBOOKS_VENDORS: QuickbooksVendor[] = [
   { id: "qb-marin", name: "Marin County Tax Collector" },
   { id: "qb-san-mateo", name: "San Mateo County Tax Collector" },
   { id: "qb-sf-treasurer", name: "SF Office of the Treasurer" },
+  // Not every QuickBooks vendor is a tax agency (2026-11-23): production
+  // offers the company's WHOLE vendor list for "Tax collection agency" — it
+  // keeps no "this is an agency" flag — so the demo list mixes them in.
+  { id: "qb-pacific-refrigeration", name: "Pacific Refrigeration Supply" },
+  { id: "qb-bay-crane", name: "Bay Area Crane Service" },
+  { id: "qb-golden-gate-supply", name: "Golden Gate Supply" },
 ];
 
 /**
@@ -2054,8 +2060,9 @@ type TaxRatePricebookFields = Pick<
 
 const TAX_RATE_PRICEBOOK_FIELDS: Record<string, TaxRatePricebookFields> = {
   "sf-sales": {
-    summary: "San Francisco combined sales tax.",
-    notes: "Covers the state, county and city portions. Review every January — the city portion moved in 2024.",
+    // Daniel's sample copy for the tax rate side panel (2026-11-23).
+    summary: "Sales tax for work and parts billed in San Francisco. Applied to every taxable line on the invoice.",
+    notes: "Use this rate only for locations inside San Francisco. Check the rate each January, when the city may change it.",
     labelIds: ["state", "county", "city"],
     createdAt: "2023-02-14T10:20:00",
     createdById: 1,

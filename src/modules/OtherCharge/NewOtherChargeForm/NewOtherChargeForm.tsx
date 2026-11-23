@@ -10,6 +10,7 @@ import { toast } from "../../../components/Toast/Toaster";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import AccountField, { accountValue } from "../../Product/NewProductForm/AccountField";
 import { isBlank, numberOf } from "../../Product/NewProductForm/productRules";
+import PricebookEntryPrompt, { entryPromptReason } from "../../shared/PricebookEntryPrompt";
 import PriceStrategyField, { priceStrategyBlocks, usePriceStrategy } from "../../shared/PriceStrategyField";
 import { CostField, NameField, nameIssues, SubtypeField, subtypeRules } from "../../shared/pricebookFields";
 
@@ -44,6 +45,7 @@ export default function NewOtherChargeForm({
   onClose,
   subtypes = [],
   requireSubtypes = false,
+  cannotClassifySubtypes = false,
   useTaxes = true,
   defaultIsTaxable = true,
   quickbooks,
@@ -171,6 +173,17 @@ export default function NewOtherChargeForm({
     onClose();
     onOpenCreated?.(charge);
   };
+
+  // An entry Prompt replaces the form when it could not be finished anyway
+  // (Shared Behavior, 2026-11-23).
+  const entryPrompt = entryPromptReason({
+    cannotClassifySubtypes,
+    requireSubtypes,
+    subtypeCount: subtypes.length,
+    accountCount: quickbooks?.accounts.length,
+  });
+  if (entryPrompt != null)
+    return <PricebookEntryPrompt open={open} reason={entryPrompt} noun="other charge" onClose={onClose} breakpoint={breakpoint} />;
 
   return (
     <Dialog

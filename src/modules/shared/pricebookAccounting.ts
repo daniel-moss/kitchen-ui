@@ -1,5 +1,5 @@
-import { COMPANY, QUICKBOOKS_ACCOUNTS, QUICKBOOKS_ASSET_ACCOUNTS, QUICKBOOKS_COGS_ACCOUNTS } from "../../data/db";
-import { QuickbooksAccount } from "../../data/db/types";
+import { COMPANY, QUICKBOOKS_ACCOUNTS, QUICKBOOKS_ASSET_ACCOUNTS, QUICKBOOKS_COGS_ACCOUNTS, QUICKBOOKS_VENDORS } from "../../data/db";
+import { QuickbooksAccount, QuickbooksVendor } from "../../data/db/types";
 import { accountLabel } from "../Product/NewProductForm/AccountField";
 
 import { formatShortDateTime } from "./dates";
@@ -19,6 +19,8 @@ export interface PricebookAccounting {
   cogsAccountId?: string;
   /** Production `quickbooks_desktop_inventory_asset_account_id` — Inventory products only. */
   assetAccountId?: string;
+  /** Production `quickbooks_desktop_tax_agency_vendor_id` — tax rates only, in place of the revenue account. */
+  taxAgencyVendorId?: string;
   /** Production `quickbooks_desktop_item_needs_syncing`. */
   needsSyncing?: boolean;
   /** When it last reached QuickBooks. Undefined = never. */
@@ -30,6 +32,8 @@ export interface PricebookAccountLists {
   revenue: QuickbooksAccount[];
   cogs: QuickbooksAccount[];
   asset: QuickbooksAccount[];
+  /** The company's QuickBooks Desktop vendors — a tax rate's collection agency comes from these. */
+  vendors: QuickbooksVendor[];
   defaultCogsId?: string;
   defaultAssetId?: string;
 }
@@ -39,6 +43,7 @@ export const DEMO_ACCOUNT_LISTS: PricebookAccountLists = {
   revenue: QUICKBOOKS_ACCOUNTS,
   cogs: QUICKBOOKS_COGS_ACCOUNTS,
   asset: QUICKBOOKS_ASSET_ACCOUNTS,
+  vendors: QUICKBOOKS_VENDORS,
   defaultCogsId: COMPANY.quickbooksDefaultCogsAccountId,
   defaultAssetId: COMPANY.quickbooksDefaultAssetAccountId,
 };

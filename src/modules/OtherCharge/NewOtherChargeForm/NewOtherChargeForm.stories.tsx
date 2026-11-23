@@ -35,6 +35,7 @@ const Demo = ({
   breakpoint,
   subtypes = OTHER_SUBTYPES,
   requireSubtypes = false,
+  cannotClassifySubtypes = false,
   useTaxes = true,
   quickbooks = QUICKBOOKS,
   fails = false,
@@ -42,6 +43,8 @@ const Demo = ({
   breakpoint: "desktop" | "mobile";
   subtypes?: typeof OTHER_SUBTYPES;
   requireSubtypes?: boolean;
+  /** The user has the "can't classify subtypes" flag. */
+  cannotClassifySubtypes?: boolean;
   useTaxes?: boolean;
   quickbooks?: NewOtherChargeFormProps["quickbooks"] | null;
   /** Create reports failure — the error toast, with the form left as it was. */
@@ -58,6 +61,7 @@ const Demo = ({
         onClose={() => setOpen(false)}
         subtypes={subtypes}
         requireSubtypes={requireSubtypes}
+        cannotClassifySubtypes={cannotClassifySubtypes}
         useTaxes={useTaxes}
         defaultIsTaxable={COMPANY.pricebookDefaultTaxableOther}
         quickbooks={quickbooks ?? undefined}
@@ -118,4 +122,18 @@ export const CreateFails: Story = {
   name: "Create Fails",
   parameters: { layout: "centered" },
   render: () => <Demo breakpoint="desktop" requireSubtypes fails />,
+};
+
+/** QuickBooks Desktop (Detailed Split) with no income account synced yet: the Prompt replaces the form. */
+export const NoSyncedAccounts: Story = {
+  name: '"No Synced Accounts" Prompt',
+  parameters: { layout: "centered" },
+  render: () => <Demo breakpoint="desktop" quickbooks={{ accounts: [] }} />,
+};
+
+/** The user can't classify subtypes, and the company requires one of 2+: the Prompt replaces the form. */
+export const CantClassifySubtypes: Story = {
+  name: '"Can\'t Classify Subtypes" Prompt',
+  parameters: { layout: "centered" },
+  render: () => <Demo breakpoint="desktop" requireSubtypes cannotClassifySubtypes />,
 };

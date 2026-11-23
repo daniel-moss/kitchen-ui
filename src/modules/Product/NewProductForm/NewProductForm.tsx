@@ -4,11 +4,11 @@ import Button from "../../../components/Button/Button";
 import Dialog from "../../../components/Dialog/Dialog";
 import Input from "../../../components/Input/Input";
 import PopoverFooter from "../../../components/Popover/PopoverFooter";
-import Prompt from "../../../components/Prompt/Prompt";
 import RadioGroup from "../../../components/Radio/RadioGroup";
 import RadioItem from "../../../components/Radio/RadioItem";
 import { toast } from "../../../components/Toast/Toaster";
 import useIsDesktop from "../../../hooks/useIsDesktop";
+import PricebookEntryPrompt, { entryPromptReason } from "../../shared/PricebookEntryPrompt";
 import PriceStrategyField, { priceStrategyBlocks, usePriceStrategy } from "../../shared/PriceStrategyField";
 import { CostField, NameField, nameIssues, SubtypeField, subtypeRules } from "../../shared/pricebookFields";
 
@@ -67,10 +67,6 @@ export default function NewProductForm({
   breakpoint = "auto",
 }: NewProductFormProps) {
   const mobile = !useIsDesktop(breakpoint);
-
-  // ---- the two entry Prompts ----
-  const noSyncedAccounts = quickbooks != null && quickbooks.revenueAccounts.length === 0;
-  const cantClassify = cannotClassifySubtypes && requireSubtypes && subtypes.length >= 2;
 
   // Subtype must be filled in only when the company requires it — so that is
   // the only time the Create form shows it. A lone subtype is pre-picked.
@@ -226,22 +222,16 @@ export default function NewProductForm({
     onOpenCreated?.(product);
   };
 
-  if (noSyncedAccounts || cantClassify)
-    return (
-      <Prompt
-        open={open}
-        title={noSyncedAccounts ? "Sync QuickBooks accounts first" : "You can't create products"}
-        body={
-          noSyncedAccounts
-            ? "No QuickBooks accounts have been synced yet. Run a sync in the QuickBooks Web Connector, then create the product."
-            : "Every product needs a subtype, and your account can’t choose one. Ask an admin to create the product."
-        }
-        hasCancel={false}
-        actionLabel="OK"
-        onAction={onClose}
-        breakpoint={breakpoint}
-      />
-    );
+  // An entry Prompt replaces the form when it could not be finished anyway
+  // (Shared Behavior, 2026-11-23).
+  const entryPrompt = entryPromptReason({
+    cannotClassifySubtypes,
+    requireSubtypes,
+    subtypeCount: subtypes.length,
+    accountCount: quickbooks?.revenueAccounts.length,
+  });
+  if (entryPrompt != null)
+    return <PricebookEntryPrompt open={open} reason={entryPrompt} noun="product" onClose={onClose} breakpoint={breakpoint} />;
 
   return (
     <Dialog

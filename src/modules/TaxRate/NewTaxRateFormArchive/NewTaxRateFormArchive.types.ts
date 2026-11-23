@@ -1,4 +1,4 @@
-import { QuickbooksVendor } from "../../data/db";
+import { QuickbooksVendor } from "../../../data/db";
 
 /** What the form hands back — one new tax rate (production `PriceBookItem`). */
 export interface NewTaxRate {

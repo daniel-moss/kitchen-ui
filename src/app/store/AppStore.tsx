@@ -56,10 +56,10 @@ export interface NewTaxRateInput {
   name: string;
   rate: number;
   quickbooksVendorId?: string;
-  /** Label NAMES, as the picker hands them back. */
-  labels: string[];
-  summary: string;
-  notes: string;
+  /** Label NAMES, as the picker hands them back. The 2026-11-23 form sends none — they are set in the panel. */
+  labels?: string[];
+  summary?: string;
+  notes?: string;
 }
 
 /**
@@ -359,9 +359,9 @@ const seedNewTaxRate = (input: NewTaxRateInput, id: string): TaxRateRow => ({
   status: "active",
   isActive: true,
   rate: input.rate,
-  summary: input.summary,
-  notes: input.notes,
-  labelIds: input.labels.map((name) => LABEL_ID_OF.get(name)).filter((value): value is string => value != null),
+  summary: input.summary ?? "",
+  notes: input.notes ?? "",
+  labelIds: (input.labels ?? []).map((name) => LABEL_ID_OF.get(name)).filter((value): value is string => value != null),
   createdAt: new Date().toISOString(),
   createdById: users[0].id,
   lastModifiedAt: new Date().toISOString(),

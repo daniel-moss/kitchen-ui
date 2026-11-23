@@ -43,6 +43,12 @@ export interface NewOtherChargeFormProps {
   /** The company requires a subtype (`require_subtypes`). Default false. */
   requireSubtypes?: boolean;
   /**
+   * The signed-in user has production's "can't classify subtypes" flag. With
+   * a required subtype and 2+ to choose from, the "You can't create other
+   * charges" Prompt replaces the form. Default false.
+   */
+  cannotClassifySubtypes?: boolean;
+  /**
    * The company uses taxes (`use_taxes`). False removes the Taxability field
    * altogether, the way production hides it. Default true.
    */

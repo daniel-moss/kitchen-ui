@@ -443,6 +443,13 @@ and Create opens the panel on the new charge.
 `useDiscount` (seeded from `chargesData.DISCOUNTS`), the Create menu's
 "Discount" item, row click and New on the Discounts list.
 
+**Tax rates rebuilt 2026-11-23** to the new design: `modules/TaxRate/NewTaxRateForm`
+(Name · Percentage · Tax collection agency, required fields only) and
+`modules/TaxRate/SidePanel` (Details + Accounting, no History);
+`shell/taxRates.tsx` mounts them, and the old form is
+`TaxRate/NewTaxRateFormArchive` (unwired). The entry Prompts of every
+pricebook "Create" form are one shared component, `shared/PricebookEntryPrompt`.
+
 **Job Details "View pricebook item" (2026-11-23)** opens the line's item in
 the APP's panel — `useOpenLaborRate` / `useOpenProduct` / `useOpenOtherCharge`
 / `useOpenDiscount` — so an edit there shows in the lists too. In a story

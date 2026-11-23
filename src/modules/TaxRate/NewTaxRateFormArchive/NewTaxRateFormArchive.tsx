@@ -1,26 +1,30 @@
 import { MouseEvent, useEffect, useRef, useState } from "react";
 
-import AlertBanner from "../../components/AlertBanner/AlertBanner";
-import Button from "../../components/Button/Button";
-import Dialog from "../../components/Dialog/Dialog";
-import EmptyState from "../../components/EmptyState/EmptyState";
-import SelectField from "../../components/Fields/SelectField/SelectField";
-import TextArea from "../../components/Fields/TextArea/TextArea";
-import TextField from "../../components/Fields/TextField/TextField";
-import FormModule from "../../components/FormModule/FormModule";
-import FormModuleGroup from "../../components/FormModule/FormModuleGroup";
-import Input from "../../components/Input/Input";
-import PopoverFooter from "../../components/Popover/PopoverFooter";
-import SelectListItem from "../../components/SelectList/SelectListItem";
-import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup";
-import { toast } from "../../components/Toast/Toaster";
-import useIsDesktop from "../../hooks/useIsDesktop";
-import LabelsField from "../shared/LabelsField";
-import { SelectPopoverList, useSelectPopover } from "../shared/selectPopover";
+import AlertBanner from "../../../components/AlertBanner/AlertBanner";
+import Button from "../../../components/Button/Button";
+import Dialog from "../../../components/Dialog/Dialog";
+import EmptyState from "../../../components/EmptyState/EmptyState";
+import SelectField from "../../../components/Fields/SelectField/SelectField";
+import TextArea from "../../../components/Fields/TextArea/TextArea";
+import TextField from "../../../components/Fields/TextField/TextField";
+import FormModule from "../../../components/FormModule/FormModule";
+import FormModuleGroup from "../../../components/FormModule/FormModuleGroup";
+import Input from "../../../components/Input/Input";
+import PopoverFooter from "../../../components/Popover/PopoverFooter";
+import SelectListItem from "../../../components/SelectList/SelectListItem";
+import SelectListItemGroup from "../../../components/SelectList/SelectListItemGroup";
+import { toast } from "../../../components/Toast/Toaster";
+import useIsDesktop from "../../../hooks/useIsDesktop";
+import LabelsField from "../../shared/LabelsField";
+import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover";
 
 import { isRateText, MAX_NAME, NAME_COUNTER_FROM, rateIssue } from "./rateRules";
-import { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateForm.types";
+import { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateFormArchive.types";
 
+// [ARCHIVE] — the tax rate form BEFORE the 2026-11-23 redesign, kept unwired
+// like the labor rate's and the product's. The live form is
+// modules/TaxRate/NewTaxRateForm.
+//
 // The reusable "New tax rate" form (Figma file dxBs07gWILPa0dhg04fjDR, section
 // 1-7817 — Desktop 1-7818 / Mobile 1-7826): a Dialog titled "New tax rate"
 // holding three FormModules.
@@ -39,7 +43,7 @@ import { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateForm.types";
 // only for a company on QuickBooks Desktop (see `quickbooks`), and has two
 // faces: the vendor list being there, or not (nothing synced yet).
 
-export default function NewTaxRateForm({
+export default function NewTaxRateFormArchive({
   open,
   onClose,
   labelPool = [],
@@ -338,4 +342,4 @@ export default function NewTaxRateForm({
 }
 
 // Re-exported so a consumer can type its handlers without reaching inside.
-export type { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateForm.types";
+export type { NewTaxRate, NewTaxRateFormProps } from "./NewTaxRateFormArchive.types";

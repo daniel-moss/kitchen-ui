@@ -10,6 +10,7 @@ import { toast } from "../../components/Toast/Toaster";
 import useIsDesktop from "../../hooks/useIsDesktop";
 import AccountField, { accountValue } from "../Product/NewProductForm/AccountField";
 import { isBlank } from "../Product/NewProductForm/productRules";
+import PricebookEntryPrompt, { entryPromptReason } from "../shared/PricebookEntryPrompt";
 import { NameField, nameIssues, SubtypeField, subtypeRules } from "../shared/pricebookFields";
 
 import LaborPricingFields, { useLaborPricing } from "./LaborPricingFields";
@@ -42,6 +43,7 @@ export default function NewLaborRateForm({
   onClose,
   subtypes = [],
   requireSubtypes = false,
+  cannotClassifySubtypes = false,
   useTaxes = true,
   defaultTaxable = false,
   quickbooks,
@@ -161,6 +163,17 @@ export default function NewLaborRateForm({
     onClose();
     onOpenCreated?.(laborRate);
   };
+
+  // An entry Prompt replaces the form when it could not be finished anyway
+  // (Shared Behavior, 2026-11-23).
+  const entryPrompt = entryPromptReason({
+    cannotClassifySubtypes,
+    requireSubtypes,
+    subtypeCount: subtypes.length,
+    accountCount: quickbooks?.accounts.length,
+  });
+  if (entryPrompt != null)
+    return <PricebookEntryPrompt open={open} reason={entryPrompt} noun="labor rate" onClose={onClose} breakpoint={breakpoint} />;
 
   return (
     <Dialog

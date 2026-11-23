@@ -38,7 +38,11 @@ import { SelectPopoverList, useSelectPopover } from "../../shared/selectPopover"
 //
 // Shared by every pricebook "Create" form (Figma "Shared Fields" → Revenue
 // Account 3054-11652) — the product form's three account lists and the labor
-// rate's one.
+// rate's one. With `noun="vendor"` it is the tax rate's "Tax collection
+// agency" (Shared Fields → Tax Collection Agency 3254-81195, 2026-11-23): the
+// same field over the company's QuickBooks Desktop VENDORS — a vendor has a
+// name only, so a row is the name; search "Vendor...", "No vendors match",
+// and "The only vendor synced from QuickBooks".
 
 export const accountLabel = (account: QuickbooksAccount) =>
   account.number ? `${account.number}${TEXT_SEPARATOR}${account.name}` : account.name;
@@ -65,10 +69,12 @@ export interface AccountFieldProps {
   showErrors: boolean;
   /** "(optional)": no error, and the field can be cleared. Default false (required). */
   optional?: boolean;
+  /** What the list holds — "account" (default) or "vendor" (the tax collection agency). */
+  noun?: "account" | "vendor";
   mobile: boolean;
 }
 
-export default function AccountField({ label, accounts, value, onChange, defaultId, showErrors, optional = false, mobile }: AccountFieldProps) {
+export default function AccountField({ label, accounts, value, onChange, defaultId, showErrors, optional = false, noun = "account", mobile }: AccountFieldProps) {
   const pop = useSelectPopover(mobile);
   const only = !optional && accounts.length === 1 ? accounts[0] : undefined;
   const parentOf = (account: QuickbooksAccount) =>
@@ -76,7 +82,7 @@ export default function AccountField({ label, accounts, value, onChange, default
 
   if (only)
     return (
-      <Input label={label} helpText="The only account synced from QuickBooks">
+      <Input label={label} helpText={`The only ${noun} synced from QuickBooks`}>
         <SelectField value={accountLabel(only)} readOnly />
       </Input>
     );
@@ -107,8 +113,8 @@ export default function AccountField({ label, accounts, value, onChange, default
         mobile={mobile}
         title={label}
         searchable
-        searchPlaceholder="Account..."
-        noResultsState={<EmptyState caption="No accounts match" />}
+        searchPlaceholder={noun === "vendor" ? "Vendor..." : "Account..."}
+        noResultsState={<EmptyState caption={`No ${noun}s match`} />}
       >
         <SelectListItemGroup>
           {[...accounts].sort(byAccount).map((account) => {

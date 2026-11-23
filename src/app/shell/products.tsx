@@ -16,6 +16,7 @@ import {
   QUICKBOOKS_ACCOUNTS,
   QUICKBOOKS_ASSET_ACCOUNTS,
   QUICKBOOKS_COGS_ACCOUNTS,
+  QUICKBOOKS_VENDORS,
 } from "../../data/db";
 import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewProductForm from "../../modules/Product/NewProductForm/NewProductForm";
@@ -209,6 +210,7 @@ export function ProductsProvider({
               revenue: QUICKBOOKS_ACCOUNTS,
               cogs: QUICKBOOKS_COGS_ACCOUNTS,
               asset: QUICKBOOKS_ASSET_ACCOUNTS,
+              vendors: QUICKBOOKS_VENDORS,
               defaultCogsId: COMPANY.quickbooksDefaultCogsAccountId,
               defaultAssetId: COMPANY.quickbooksDefaultAssetAccountId,
             }}

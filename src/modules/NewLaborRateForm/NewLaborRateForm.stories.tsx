@@ -36,8 +36,11 @@ const Demo = ({
   fails = false,
   slow = false,
   requireSubtypes = true,
+  cannotClassifySubtypes = false,
   quickbooks = { accounts: QUICKBOOKS_ACCOUNTS },
 }: {
+  /** The user has the "can't classify subtypes" flag. */
+  cannotClassifySubtypes?: boolean;
   breakpoint: "desktop" | "mobile";
   /** The company's labor subtypes — none, one, or the whole table. */
   subtypes?: typeof LABOR_SUBTYPES;
@@ -68,6 +71,7 @@ const Demo = ({
         onClose={() => setOpen(false)}
         subtypes={subtypes}
         requireSubtypes={requireSubtypes}
+        cannotClassifySubtypes={cannotClassifySubtypes}
         defaultTaxable
         quickbooks={quickbooks ?? undefined}
         existingNames={TAKEN_NAMES}
@@ -162,4 +166,18 @@ export const CreateFails: Story = {
   name: "Create Fails",
   parameters: { layout: "centered" },
   render: () => <Demo breakpoint="desktop" fails />,
+};
+
+/** QuickBooks Desktop (Detailed Split) with no income account synced yet: the Prompt replaces the form. */
+export const NoSyncedAccounts: Story = {
+  name: '"No Synced Accounts" Prompt',
+  parameters: { layout: "centered" },
+  render: () => <Demo breakpoint="desktop" quickbooks={{ accounts: [] }} />,
+};
+
+/** The user can't classify subtypes, and the company requires one of 2+: the Prompt replaces the form. */
+export const CantClassifySubtypes: Story = {
+  name: '"Can\'t Classify Subtypes" Prompt',
+  parameters: { layout: "centered" },
+  render: () => <Demo breakpoint="desktop" requireSubtypes cannotClassifySubtypes />,
 };

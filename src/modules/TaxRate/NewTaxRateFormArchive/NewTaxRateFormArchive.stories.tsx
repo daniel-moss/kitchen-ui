@@ -1,12 +1,12 @@
 import { useState } from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 
-import Button from "../../components/Button/Button";
-import Toaster from "../../components/Toast/Toaster";
-import { QUICKBOOKS_VENDORS, TAX_RATE_ITEMS, TAX_RATE_LABELS } from "../../data/db";
-import { DeviceFrame } from "../../stories/helpers";
+import Button from "../../../components/Button/Button";
+import Toaster from "../../../components/Toast/Toaster";
+import { QUICKBOOKS_VENDORS, TAX_RATE_ITEMS, TAX_RATE_LABELS } from "../../../data/db";
+import { DeviceFrame } from "../../../stories/helpers";
 
-import NewTaxRateForm from "./NewTaxRateForm";
+import NewTaxRateFormArchive from "./NewTaxRateFormArchive";
 
 // The reusable "New tax rate" form (Figma file "New Tax Rate Form — Current
 // Version", section 1-7817) — assembled from DS components and shared by every
@@ -18,7 +18,7 @@ import NewTaxRateForm from "./NewTaxRateForm";
 // the workspace is on QuickBooks Desktop, where production REQUIRES a tax rate
 // to name the agency it is collected for.
 const meta: Meta = {
-  title: 'Modules/Pricebook Items/Tax Rate/"New Tax Rate" Form',
+  title: 'Modules/Pricebook Items/Tax Rate/[Archive] "New Tax Rate" Form',
   parameters: { controls: { disable: true } },
 };
 
@@ -51,7 +51,7 @@ const Demo = ({
       <Button size="lg" variant="subtle" leftIcon="plus" onClick={() => setOpen(true)}>
         New tax rate
       </Button>
-      <NewTaxRateForm
+      <NewTaxRateFormArchive
         open={open}
         onClose={() => setOpen(false)}
         labelPool={LABEL_POOL}

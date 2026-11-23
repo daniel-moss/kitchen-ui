@@ -27,12 +27,17 @@ import styles from "./EditAccountingDialog.module.scss";
 //                            company's default with "Pre-selected based on
 //                            company default account" (3225-69833 / -69867).
 //
+// A TAX RATE (`isTaxRate`, 2026-11-23) edits "Tax collection agency" — the
+// company's QuickBooks vendors, required — instead of the revenue account, and
+// its banner says "during invoice or estimate creation", because a tax rate is
+// never a line item.
+//
 // Save "validates the fields, applies the changes, closes the Dialog, triggers
 // the Toast" ('"Accounting" module updated' / 'Couldn't update "Accounting"
 // module').
 
-/** What Save hands back — the three accounts. */
-export type AccountingEdits = Pick<PricebookAccounting, "revenueAccountId" | "cogsAccountId" | "assetAccountId">;
+/** What Save hands back — the three accounts, or a tax rate's agency. */
+export type AccountingEdits = Pick<PricebookAccounting, "revenueAccountId" | "cogsAccountId" | "assetAccountId" | "taxAgencyVendorId">;
 
 interface EditAccountingDialogProps {
   open: boolean;
@@ -42,6 +47,8 @@ interface EditAccountingDialogProps {
   accounting: PricebookAccounting;
   /** An "Inventory" product: adds the two inventory account fields. */
   showInventoryAccounts?: boolean;
+  /** A tax rate: the "Tax collection agency" field replaces every account field. */
+  isTaxRate?: boolean;
   /** The account lists and the company defaults. Default: the demo company's. */
   accounts?: PricebookAccountLists;
   /** Return `false` to say the save FAILED: the error toast shows and the form stays open. */
@@ -55,6 +62,7 @@ export default function EditAccountingDialog({
   itemNoun,
   accounting,
   showInventoryAccounts = false,
+  isTaxRate = false,
   accounts = DEMO_ACCOUNT_LISTS,
   onSave,
   breakpoint = "auto",
@@ -70,6 +78,7 @@ export default function EditAccountingDialog({
   const [revenueId, setRevenueId] = useState<string | null>(initial.revenue);
   const [cogsId, setCogsId] = useState<string | null>(initial.cogs);
   const [assetId, setAssetId] = useState<string | null>(initial.asset);
+  const [agencyId, setAgencyId] = useState<string | null>(accounting.taxAgencyVendorId ?? null);
   const [bannerOpen, setBannerOpen] = useState(true);
   const [showErrors, setShowErrors] = useState(false);
 
@@ -80,26 +89,31 @@ export default function EditAccountingDialog({
     setRevenueId(next.revenue);
     setCogsId(next.cogs);
     setAssetId(next.asset);
+    setAgencyId(accounting.taxAgencyVendorId ?? null);
     setBannerOpen(true);
     setShowErrors(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, accounting]);
 
   const revenue = accountValue(accounts.revenue, revenueId);
-  const dirty =
-    revenue !== (accounting.revenueAccountId ?? null) ||
-    (showInventoryAccounts && (cogsId !== initial.cogs || assetId !== initial.asset));
+  const agency = accountValue(accounts.vendors, agencyId);
+  const dirty = isTaxRate
+    ? agency !== (accounting.taxAgencyVendorId ?? null)
+    : revenue !== (accounting.revenueAccountId ?? null) ||
+      (showInventoryAccounts && (cogsId !== initial.cogs || assetId !== initial.asset));
 
   const save = async () => {
-    if (revenue == null) {
+    if (isTaxRate ? agency == null : revenue == null) {
       setShowErrors(true);
       return;
     }
-    const edits: AccountingEdits = {
-      revenueAccountId: revenue,
-      cogsAccountId: showInventoryAccounts ? (cogsId ?? undefined) : accounting.cogsAccountId,
-      assetAccountId: showInventoryAccounts ? (assetId ?? undefined) : accounting.assetAccountId,
-    };
+    const edits: AccountingEdits = isTaxRate
+      ? { taxAgencyVendorId: agency ?? undefined }
+      : {
+          revenueAccountId: revenue ?? undefined,
+          cogsAccountId: showInventoryAccounts ? (cogsId ?? undefined) : accounting.cogsAccountId,
+          assetAccountId: showInventoryAccounts ? (assetId ?? undefined) : accounting.assetAccountId,
+        };
     if ((await onSave(edits)) === false) {
       toast({
         type: "error",
@@ -137,17 +151,31 @@ export default function EditAccountingDialog({
       <div className={styles.fields}>
         {bannerOpen && (
           <AlertBanner type="card" status="info" orientation="vertical" onDismiss={() => setBannerOpen(false)}>
-            {`The ${itemNoun} won't be available for use in invoice or estimate line items until it's been synced with QuickBooks Desktop`}
+            {isTaxRate
+              ? `The ${itemNoun} won't be available for use during invoice or estimate creation until it's been synced with QuickBooks Desktop`
+              : `The ${itemNoun} won't be available for use in invoice or estimate line items until it's been synced with QuickBooks Desktop`}
           </AlertBanner>
         )}
-        <AccountField
-          label="Revenue account"
-          accounts={accounts.revenue}
-          value={revenueId}
-          onChange={setRevenueId}
-          showErrors={showErrors}
-          mobile={mobile}
-        />
+        {isTaxRate ? (
+          <AccountField
+            label="Tax collection agency"
+            noun="vendor"
+            accounts={accounts.vendors}
+            value={agencyId}
+            onChange={setAgencyId}
+            showErrors={showErrors}
+            mobile={mobile}
+          />
+        ) : (
+          <AccountField
+            label="Revenue account"
+            accounts={accounts.revenue}
+            value={revenueId}
+            onChange={setRevenueId}
+            showErrors={showErrors}
+            mobile={mobile}
+          />
+        )}
         {showInventoryAccounts && (
           <>
             <AccountField

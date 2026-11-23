@@ -20,9 +20,8 @@ import { formatShortDateTime } from "./dates";
 //   Created at     "Jan 1, 2027 at 12:00 PM".
 //   Last modified  the same format.
 //
-// Used by the Product and Labor rate panels (the labor rate since
-// 2026-11-20). The Tax rate panel still carries these rows inside its
-// "General" module — the older layout.
+// Used by every pricebook panel — labor rate, product, other charge,
+// discount and tax rate (the tax rate since its 2026-11-23 rebuild).
 
 interface InfoModuleProps {
   status: "active" | "inactive" | "review";

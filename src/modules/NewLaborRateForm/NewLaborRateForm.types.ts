@@ -53,6 +53,12 @@ export interface NewLaborRateFormProps {
    */
   requireSubtypes?: boolean;
   /**
+   * The signed-in user has production's "can't classify subtypes" flag. With
+   * a required subtype and 2+ to choose from, the "You can't create labor
+   * rates" Prompt replaces the form. Default false.
+   */
+  cannotClassifySubtypes?: boolean;
+  /**
    * The company uses taxes (`use_taxes`). False removes the Taxability field
    * altogether, the way production hides it. Default true.
    */

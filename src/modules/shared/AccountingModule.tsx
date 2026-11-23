@@ -11,8 +11,13 @@ import { accountNameIn, DEMO_ACCOUNT_LISTS, lastSyncOf, PricebookAccountLists, P
 // Overview 25-5032, Warning 3086-18644, Sync Status 25-5038).
 //
 // The tab only exists "when a service company uses QuickBooks Desktop AND
-// chose the 'Detailed Split' line-item setup" — the caller decides, because
-// only it knows the company.
+// chose the 'Detailed Split' line-item setup" — for a TAX RATE, with QuickBooks
+// Desktop "whatever the line-item setting" (2026-11-23). The caller decides,
+// because only it knows the company.
+//
+// A TAX RATE (`isTaxRate`) has no revenue account: its first row is "Tax
+// collection agency" (a QuickBooks vendor), and the warning "fires only when
+// Tax collection agency is missing".
 //
 //   Revenue account          always. Wraps.
 //   Cost of goods account    only for an "Inventory" product. Wraps.
@@ -28,6 +33,8 @@ interface AccountingModuleProps {
   accounting: PricebookAccounting;
   /** An "Inventory" product: adds Cost of goods + Inventory asset account. */
   showInventoryAccounts?: boolean;
+  /** A tax rate: "Tax collection agency" replaces "Revenue account". */
+  isTaxRate?: boolean;
   /** The account lists the names come from. Default: the demo company's. */
   accounts?: PricebookAccountLists;
   onEdit: () => void;
@@ -41,6 +48,7 @@ interface AccountingModuleProps {
 export default function AccountingModule({
   accounting,
   showInventoryAccounts = false,
+  isTaxRate = false,
   accounts = DEMO_ACCOUNT_LISTS,
   onEdit,
   canEdit = true,
@@ -50,7 +58,8 @@ export default function AccountingModule({
   const sync = syncStatusOf(accounting);
   const lastSync = lastSyncOf(accounting);
   const revenue = accountNameIn(accounts.revenue, accounting.revenueAccountId);
-  const missing = !isLoading && revenue == null;
+  const agency = accounts.vendors.find((vendor) => vendor.id === accounting.taxAgencyVendorId)?.name;
+  const missing = !isLoading && (isTaxRate ? agency == null : revenue == null);
 
   return (
     <DisplayModule
@@ -64,7 +73,11 @@ export default function AccountingModule({
       }
       content={
         <ValueDisplayGroup>
-          <ValueDisplay label="Revenue account" value={revenue} isWarning={missing} isLoading={isLoading} />
+          {isTaxRate ? (
+            <ValueDisplay label="Tax collection agency" value={agency} isWarning={missing} isLoading={isLoading} />
+          ) : (
+            <ValueDisplay label="Revenue account" value={revenue} isWarning={missing} isLoading={isLoading} />
+          )}
           {showInventoryAccounts && (
             <ValueDisplay
               label="Cost of goods account"

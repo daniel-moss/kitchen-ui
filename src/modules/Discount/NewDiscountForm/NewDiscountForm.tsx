@@ -7,6 +7,7 @@ import { toast } from "../../../components/Toast/Toaster";
 import useIsDesktop from "../../../hooks/useIsDesktop";
 import AccountField, { accountValue } from "../../Product/NewProductForm/AccountField";
 import { isBlank, numberOf } from "../../Product/NewProductForm/productRules";
+import PricebookEntryPrompt, { entryPromptReason } from "../../shared/PricebookEntryPrompt";
 import { NameField, nameIssues, SubtypeField, subtypeRules } from "../../shared/pricebookFields";
 
 import DiscountField from "./DiscountField";
@@ -32,6 +33,7 @@ export default function NewDiscountForm({
   onClose,
   subtypes = [],
   requireSubtypes = false,
+  cannotClassifySubtypes = false,
   quickbooks,
   existingNames = [],
   onCreated,
@@ -120,6 +122,17 @@ export default function NewDiscountForm({
     onClose();
     onOpenCreated?.(discount);
   };
+
+  // An entry Prompt replaces the form when it could not be finished anyway
+  // (Shared Behavior, 2026-11-23).
+  const entryPrompt = entryPromptReason({
+    cannotClassifySubtypes,
+    requireSubtypes,
+    subtypeCount: subtypes.length,
+    accountCount: quickbooks?.accounts.length,
+  });
+  if (entryPrompt != null)
+    return <PricebookEntryPrompt open={open} reason={entryPrompt} noun="discount" onClose={onClose} breakpoint={breakpoint} />;
 
   return (
     <Dialog
