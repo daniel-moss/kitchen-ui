@@ -5,6 +5,7 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewTaxRateForm from "../../modules/TaxRate/NewTaxRateForm/NewTaxRateForm";
 import TaxRatePanel from "../../modules/TaxRate/SidePanel/TaxRatePanel";
 import { useAppStore, useTaxRate } from "../store/AppStore";
+import { createListPanelContext, useListPanel, usePanelState } from "./listPanel";
 
 // ONE "New tax rate" form and ONE "Tax rate" side panel for the whole app —
 // the same arrangement the "New job" form uses (shell/newJob.tsx), and for the
@@ -26,12 +27,16 @@ import { useAppStore, useTaxRate } from "../store/AppStore";
 
 const NewTaxRateContext = createContext<() => void>(() => {});
 const OpenTaxRateContext = createContext<(id: string) => void>(() => {});
+const TaxRateListPanelContext = createListPanelContext();
 
 /** Opens the app's "New tax rate" form. Safe to call from anywhere in the app. */
 export const useNewTaxRate = () => useContext(NewTaxRateContext);
 
 /** Opens the "Tax rate" side panel on one rate. */
 export const useOpenTaxRate = () => useContext(OpenTaxRateContext);
+
+/** The TaxRate list's side of the panel — the open row, opening from a row, closing. */
+export const useTaxRateListPanel = () => useListPanel(TaxRateListPanelContext);
 
 const LABEL_POOL = TAX_RATE_LABELS.map((label) => label.name);
 
@@ -53,15 +58,13 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
   );
 
   const [formOpen, setFormOpen] = useState(false);
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const { panelId, fromList, open: openPanel, close: closePanel, listPanel } = usePanelState();
   const createdId = useRef<string | null>(null);
 
   // Stable, so a memoised consumer (the list's top bar, the table) does not
   // re-render on every app render.
   const openForm = useCallback(() => setFormOpen(true), []);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const openPanel = useCallback((id: string) => setPanelId(id), []);
-  const closePanel = useCallback(() => setPanelId(null), []);
 
   // The record is read from the store every render, so the panel shows the
   // same values the list does. It goes undefined when the rate is deleted,
@@ -71,6 +74,7 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
   return (
     <NewTaxRateContext.Provider value={openForm}>
       <OpenTaxRateContext.Provider value={openPanel}>
+        <TaxRateListPanelContext.Provider value={listPanel}>
         {children}
 
         <NewTaxRateForm
@@ -93,6 +97,8 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
           <TaxRatePanel
             open={panelId != null}
             onClose={closePanel}
+            // Opened from its list: non-modal, the list stays usable.
+            isModal={!fromList}
             rate={rate}
             labelPool={LABEL_POOL}
             existingNames={takenNames}
@@ -113,6 +119,7 @@ export function TaxRatesProvider({ breakpoint = "auto", children }: { breakpoint
             breakpoint={breakpoint}
           />
         )}
+        </TaxRateListPanelContext.Provider>
       </OpenTaxRateContext.Provider>
     </NewTaxRateContext.Provider>
   );

@@ -17,7 +17,7 @@ import { TableRowProps } from "./TableRow.types";
  * the cell heights round (40 header / 48 body) and makes the row pitch 41 and
  * 49 — the numbers a virtualized table must scroll by.
  */
-export function TableRow({ variant = "body", children, isClickable = false, onClick, className }: TableRowProps) {
+export function TableRow({ variant = "body", children, isClickable = false, onClick, isPressed = false, className }: TableRowProps) {
   // Only a clickable BODY row is interactive. Header rows never are.
   const isInteractive = variant === "body" && isClickable;
 
@@ -34,7 +34,8 @@ export function TableRow({ variant = "body", children, isClickable = false, onCl
       tabIndex={isInteractive ? 0 : undefined}
       onClick={isInteractive ? onClick : undefined}
       onKeyDown={isInteractive ? handleKeyDown : undefined}
-      className={clsx(styles.row, styles[variant], { [styles.clickable]: isInteractive }, className)}
+      aria-selected={isInteractive && isPressed ? true : undefined}
+      className={clsx(styles.row, styles[variant], { [styles.clickable]: isInteractive, [styles.pressed]: isInteractive && isPressed }, className)}
     >
       <div className={styles.cells}>{children}</div>
       <div className={styles.divider} />

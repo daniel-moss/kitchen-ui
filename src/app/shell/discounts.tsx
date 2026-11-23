@@ -6,6 +6,7 @@ import NewDiscountForm from "../../modules/Discount/NewDiscountForm/NewDiscountF
 import DiscountPanel from "../../modules/Discount/SidePanel/DiscountPanel";
 import { pricebookHistoryRows } from "../../modules/shared/pricebookHistory";
 import { useAppStore, useDiscount } from "../store/AppStore";
+import { createListPanelContext, useListPanel, usePanelState } from "./listPanel";
 import { openHistoryRow } from "./pricebookHistory";
 
 // ONE "New discount" form and ONE "Discount" side panel for the whole app
@@ -19,12 +20,16 @@ import { openHistoryRow } from "./pricebookHistory";
 
 const NewDiscountContext = createContext<() => void>(() => {});
 const OpenDiscountContext = createContext<(id: string) => void>(() => {});
+const DiscountListPanelContext = createListPanelContext();
 
 /** Opens the app's "New discount" form. Safe to call from anywhere in the app. */
 export const useNewDiscount = () => useContext(NewDiscountContext);
 
 /** Opens the "Discount" side panel on one discount. */
 export const useOpenDiscount = () => useContext(OpenDiscountContext);
+
+/** The Discount list's side of the panel — the open row, opening from a row, closing. */
+export const useDiscountListPanel = () => useListPanel(DiscountListPanelContext);
 
 const LABEL_POOL = DISCOUNT_LABELS.map((label) => label.name);
 
@@ -38,14 +43,12 @@ const hasQuickbooks = () =>
 
 export function DiscountsProvider({ breakpoint = "auto", children }: { breakpoint?: Breakpoint; children: ReactNode }) {
   const [formOpen, setFormOpen] = useState(false);
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const { panelId, fromList, open: openPanel, close: closePanel, listPanel } = usePanelState();
   const createdId = useRef<string | null>(null);
   const { discounts, createDiscount, updateDiscount, deleteDiscount, otherCharges, products, historySources } = useAppStore();
 
   const openForm = useCallback(() => setFormOpen(true), []);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const openPanel = useCallback((id: string) => setPanelId(id), []);
-  const closePanel = useCallback(() => setPanelId(null), []);
 
   // Read from the store every render; undefined once deleted, which closes the panel.
   const discount = useDiscount(panelId);
@@ -66,6 +69,7 @@ export function DiscountsProvider({ breakpoint = "auto", children }: { breakpoin
   return (
     <NewDiscountContext.Provider value={openForm}>
       <OpenDiscountContext.Provider value={openPanel}>
+        <DiscountListPanelContext.Provider value={listPanel}>
         {children}
 
         <NewDiscountForm
@@ -88,6 +92,8 @@ export function DiscountsProvider({ breakpoint = "auto", children }: { breakpoin
           <DiscountPanel
             open={panelId != null}
             onClose={closePanel}
+            // Opened from its list: non-modal, the list stays usable.
+            isModal={!fromList}
             discount={discount}
             labelPool={LABEL_POOL}
             existingNames={takenNames}
@@ -111,6 +117,7 @@ export function DiscountsProvider({ breakpoint = "auto", children }: { breakpoin
             breakpoint={breakpoint}
           />
         )}
+        </DiscountListPanelContext.Provider>
       </OpenDiscountContext.Provider>
     </NewDiscountContext.Provider>
   );

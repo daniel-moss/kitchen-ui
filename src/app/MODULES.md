@@ -450,6 +450,16 @@ and Create opens the panel on the new charge.
 `TaxRate/NewTaxRateFormArchive` (unwired). The entry Prompts of every
 pricebook "Create" form are one shared component, `shared/PricebookEntryPrompt`.
 
+**Pricebook lists ↔ non-modal side panel (2026-11-23, desktop only).** A row
+click opens the item's panel NON-MODAL (SidePanel `isModal={false}`: no scrim,
+no focus trap, no outside-click close); the row stays pressed (TableRow
+`isPressed`, the press fill held); clicking it again closes the panel, another
+row switches it; ↑ / ↓ move through the table's current order (not while
+typing, not while a modal holds the focus); leaving the page closes it. The
+state lives in `shell/listPanel.tsx` (`usePanelState`), used by all five
+pricebook providers; pages pass `selectedKey` / `onDeselect` to `PricebookPage`.
+Panels opened elsewhere (Create, Job Details) stay modal.
+
 **Job Details "View pricebook item" (2026-11-23)** opens the line's item in
 the APP's panel — `useOpenLaborRate` / `useOpenProduct` / `useOpenOtherCharge`
 / `useOpenDiscount` — so an edit there shows in the lists too. In a story

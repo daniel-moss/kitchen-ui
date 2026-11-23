@@ -81,3 +81,25 @@
     @include row-focus-ring($gap: 2px);
   }
 }
+
+// Keyboard navigation in progress (`html[data-keyboard-nav]`, set by a list
+// that moves its pressed row with ↑ / ↓): the mouse HOVER fill is hidden, so
+// only the pressed row is highlighted — the row under a resting pointer would
+// otherwise keep a second highlight. The list clears the flag on the next
+// real mouse move (Daniel, 2026-11-23).
+@media (hover: hover) {
+  :global(html[data-keyboard-nav]) .clickable:not(.pressed):hover {
+    background: var(--surface-level-first);
+  }
+}
+
+// Held pressed (`isPressed`): the press fill stays on, hover included, so the
+// row that opened the side panel reads as the current one.
+.clickable.pressed {
+  &,
+  &:hover {
+    background:
+      linear-gradient(var(--gray-a4), var(--gray-a4)),
+      var(--surface-level-first);
+  }
+}

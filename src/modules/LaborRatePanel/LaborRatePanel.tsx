@@ -106,6 +106,7 @@ export default function LaborRatePanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
 }: LaborRatePanelProps) {
   const mobile = !useIsDesktop(breakpoint);
 
@@ -343,6 +344,7 @@ export default function LaborRatePanel({
         state={state}
         onRetry={onRetry}
         breakpoint={breakpoint}
+        isModal={isModal}
       >
         <>
           {tab === "details" && (

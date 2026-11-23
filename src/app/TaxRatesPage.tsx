@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { Page } from "./shell/appShell";
-import { useNewTaxRate, useOpenTaxRate } from "./shell/taxRates";
+import { useTaxRateListPanel, useNewTaxRate } from "./shell/taxRates";
 import { useTaxRates } from "./store/AppStore";
 import { TAX_RATE_NOUN } from "./listData";
 import { PricebookListConfig, PricebookPage } from "./pricebookList";
@@ -61,10 +61,12 @@ export interface TaxRatesPageProps {
 const TaxRatesPage = ({ breakpoint = "auto", onNavigate }: TaxRatesPageProps) => {
   const rows = useTaxRates();
   const openNewTaxRate = useNewTaxRate();
-  const openTaxRate = useOpenTaxRate();
+  // Opened from a row, the panel is non-modal: the row stays pressed, ↑ / ↓
+  // move through the list, and a second click closes it (2026-11-23).
+  const { selectedId, openFromList, close } = useTaxRateListPanel();
 
   // Stable — the table is memoised on its props (listTable.tsx).
-  const onRowClick = useCallback((row: TaxRateRow) => openTaxRate(row.id), [openTaxRate]);
+  const onRowClick = useCallback((row: TaxRateRow) => openFromList(row.id), [openFromList]);
 
   return (
     <PricebookPage
@@ -74,6 +76,8 @@ const TaxRatesPage = ({ breakpoint = "auto", onNavigate }: TaxRatesPageProps) =>
       onNavigate={onNavigate}
       onCreate={openNewTaxRate}
       onRowClick={onRowClick}
+      selectedKey={selectedId}
+      onDeselect={close}
     />
   );
 };

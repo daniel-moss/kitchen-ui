@@ -82,9 +82,12 @@ export default function SidePanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
   className,
 }: SidePanelProps) {
   const isDesktop = useIsDesktop(breakpoint);
+  // Non-modal is a desktop idea — on mobile the panel fills the screen.
+  const nonModal = !isModal && isDesktop;
   const layerRef = useRef<HTMLDivElement>(null);
 
   // Where the panel renders. Normally <body> (it must cover the whole screen),
@@ -113,9 +116,11 @@ export default function SidePanel({
 
   // Overlay a11y — Escape dismisses, focus is trapped inside the panel and
   // returns to the trigger on close.
+  // Non-modal: the page stays usable, so focus is neither trapped nor moved
+  // back when the panel closes.
   useEscapeKey(open, onClose);
-  useRestoreFocus(open, layerRef);
-  useFocusTrap(layerRef, open);
+  useRestoreFocus(open && !nonModal, layerRef);
+  useFocusTrap(layerRef, open && !nonModal);
 
   // Closed: only the marker stays, so the root is known BEFORE the next open.
   if (!mounted) return <span ref={markerRef} hidden />;
@@ -208,10 +213,16 @@ export default function SidePanel({
         styles.layer,
         root === document.body && styles.layerFixed,
         isDesktop ? styles.scrim : styles.fullScreen,
+        nonModal && styles.nonModal,
         visible && styles.layerOpen,
         className,
       )}
-      onClick={isDesktop ? onScrimClick : undefined}
+      // A non-modal panel marks itself, so a page's keyboard handling can tell
+      // focus in the panel apart from focus in a modal opened over it.
+      data-side-panel={nonModal ? "non-modal" : undefined}
+      // The non-modal dim band: the panel plus its 12px margins on both sides.
+      style={nonModal ? ({ "--side-panel-band": `${PANEL_WIDTH + 24}px` } as CSSProperties) : undefined}
+      onClick={isDesktop && !nonModal ? onScrimClick : undefined}
     >
       <Popover
         header={header}

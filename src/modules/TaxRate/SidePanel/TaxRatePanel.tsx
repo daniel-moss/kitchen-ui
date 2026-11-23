@@ -83,6 +83,7 @@ export default function TaxRatePanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
 }: TaxRatePanelProps) {
   const mobile = !useIsDesktop(breakpoint);
 
@@ -302,6 +303,7 @@ export default function TaxRatePanel({
         state={state}
         onRetry={onRetry}
         breakpoint={breakpoint}
+        isModal={isModal}
       >
         <>
           {tab === "details" && (

@@ -54,6 +54,48 @@
   background-color: var(--pure-black-a5);
 }
 
+// Non-modal (desktop): the page stays usable, so the layer lets clicks
+// through — only the panel catches them — and the full-screen dim is gone.
+// What keeps the panel ELEVATED (Daniel, 2026-11-23: without the overlay it
+// "visually merges with the background") is a dim band right behind it:
+// --pure-black-a3 (black at 10%) from the screen edge, its 160px fade
+// starting 120px inside the panel's left margin and ending 40px past it — so
+// the dim frames the panel and a long, soft edge reaches the table (Daniel,
+// 2026-11-23: a3, 160px fade, offset −120px — after trying several a5 / a4 / a3
+// widths and offsets). It fades
+// in and out with the panel.
+.nonModal {
+  pointer-events: none;
+
+  &.layerOpen {
+    background-color: transparent;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      to left,
+      var(--pure-black-a3) 0,
+      var(--pure-black-a3) calc(var(--side-panel-band) - 120px),
+      transparent calc(var(--side-panel-band) + 40px)
+    );
+    opacity: 0;
+    transition: opacity 240ms ease;
+  }
+
+  &.layerOpen::before {
+    opacity: 1;
+  }
+
+  > * {
+    position: relative;
+    pointer-events: auto;
+  }
+}
+
 // The content slot — 16px on every side, 16px between items (Figma; both are
 // defaults the consumer can replace with bodyPadded={false}).
 .body {

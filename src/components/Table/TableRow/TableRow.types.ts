@@ -21,5 +21,12 @@ export interface TableRowProps {
   isClickable?: boolean;
   /** Called when a clickable row is clicked or activated by keyboard. */
   onClick?: () => void;
+  /**
+   * Keeps a clickable row in its PRESSED look while what it opened stays open
+   * — the pricebook lists' row while its side panel shows (Daniel,
+   * 2026-11-23: "the row should stay pressed while the side panel is open").
+   * The existing press fill, held. Default false.
+   */
+  isPressed?: boolean;
   className?: string;
 }

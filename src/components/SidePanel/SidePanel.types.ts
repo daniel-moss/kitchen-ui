@@ -90,5 +90,16 @@ export interface SidePanelProps {
    */
   breakpoint?: SidePanelBreakpoint;
 
+  /**
+   * Desktop only. `false` makes the panel NON-MODAL (Daniel, 2026-11-23, the
+   * pricebook lists): no scrim, the page behind stays clickable and
+   * reachable by keyboard, focus is not trapped, and a click outside does not
+   * close it — Escape and the ✕ still do. The consumer owns what the page
+   * does with that (a list's rows switch the panel's item, ↑ / ↓ move
+   * through them). Mobile is always full screen, so it ignores this.
+   * Default true.
+   */
+  isModal?: boolean;
+
   className?: string;
 }

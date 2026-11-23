@@ -5,6 +5,7 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 import LaborRatePanel from "../../modules/LaborRatePanel/LaborRatePanel";
 import NewLaborRateForm from "../../modules/NewLaborRateForm/NewLaborRateForm";
 import { useAppStore, useLaborRate } from "../store/AppStore";
+import { createListPanelContext, useListPanel, usePanelState } from "./listPanel";
 import { pricebookHistoryRows } from "../../modules/shared/pricebookHistory";
 import { openHistoryRow } from "./pricebookHistory";
 
@@ -26,12 +27,16 @@ import { openHistoryRow } from "./pricebookHistory";
 
 const NewLaborRateContext = createContext<() => void>(() => {});
 const OpenLaborRateContext = createContext<(id: string) => void>(() => {});
+const LaborRateListPanelContext = createListPanelContext();
 
 /** Opens the app's "New labor rate" form. Safe to call from anywhere in the app. */
 export const useNewLaborRate = () => useContext(NewLaborRateContext);
 
 /** Opens the "Labor rate" side panel on one rate. */
 export const useOpenLaborRate = () => useContext(OpenLaborRateContext);
+
+/** The LaborRate list's side of the panel — the open row, opening from a row, closing. */
+export const useLaborRateListPanel = () => useListPanel(LaborRateListPanelContext);
 
 const LABEL_POOL = LABOR_LABELS.map((label) => label.name);
 
@@ -52,15 +57,13 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
   const { laborRates, updateLaborRate, createLaborRate, deleteLaborRate, historySources } = useAppStore();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const { panelId, fromList, open: openPanel, close: closePanel, listPanel } = usePanelState();
   const createdId = useRef<string | null>(null);
 
   // Stable, so a memoised consumer (the list's top bar, the table) does not
   // re-render on every app render.
   const openForm = useCallback(() => setFormOpen(true), []);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const openPanel = useCallback((id: string) => setPanelId(id), []);
-  const closePanel = useCallback(() => setPanelId(null), []);
 
   // The History tab reads the jobs and charge lines as they are in this session.
   const historyRows = useMemo(
@@ -76,6 +79,7 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
   return (
     <NewLaborRateContext.Provider value={openForm}>
       <OpenLaborRateContext.Provider value={openPanel}>
+        <LaborRateListPanelContext.Provider value={listPanel}>
         {children}
 
         <NewLaborRateForm
@@ -116,6 +120,8 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
           <LaborRatePanel
             open={panelId != null}
             onClose={closePanel}
+            // Opened from its list: non-modal, the list stays usable.
+            isModal={!fromList}
             historyRows={historyRows}
             onOpenHistory={openHistoryRow}
             rate={rate}
@@ -140,6 +146,7 @@ export function LaborRatesProvider({ breakpoint = "auto", children }: { breakpoi
             breakpoint={breakpoint}
           />
         )}
+        </LaborRateListPanelContext.Provider>
       </OpenLaborRateContext.Provider>
     </NewLaborRateContext.Provider>
   );

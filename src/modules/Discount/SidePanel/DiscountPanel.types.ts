@@ -100,6 +100,12 @@ export interface DiscountPanelProps extends DiscountPanelActions {
   state?: "content" | "error" | "offline";
   onRetry?: () => void;
 
+  /**
+   * Desktop: `false` = NON-MODAL (no scrim, the page behind stays usable) —
+   * the panel opened from its pricebook list. Passed to SidePanel. Default true.
+   */
+  isModal?: boolean;
+
   /** Presentation: "auto" (default) picks desktop ≥ 1024px, else mobile. */
   breakpoint?: "auto" | "desktop" | "mobile";
 }

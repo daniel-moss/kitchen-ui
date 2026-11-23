@@ -6,6 +6,7 @@ import NewOtherChargeForm from "../../modules/OtherCharge/NewOtherChargeForm/New
 import OtherChargePanel from "../../modules/OtherCharge/SidePanel/OtherChargePanel";
 import { pricebookHistoryRows } from "../../modules/shared/pricebookHistory";
 import { useAppStore, useOtherCharge } from "../store/AppStore";
+import { createListPanelContext, useListPanel, usePanelState } from "./listPanel";
 import { openHistoryRow } from "./pricebookHistory";
 
 // ONE "New other charge" form and ONE "Other charge" side panel for the whole
@@ -22,12 +23,16 @@ import { openHistoryRow } from "./pricebookHistory";
 
 const NewOtherChargeContext = createContext<() => void>(() => {});
 const OpenOtherChargeContext = createContext<(id: string) => void>(() => {});
+const OtherChargeListPanelContext = createListPanelContext();
 
 /** Opens the app's "New other charge" form. Safe to call from anywhere in the app. */
 export const useNewOtherCharge = () => useContext(NewOtherChargeContext);
 
 /** Opens the "Other charge" side panel on one charge. */
 export const useOpenOtherCharge = () => useContext(OpenOtherChargeContext);
+
+/** The OtherCharge list's side of the panel — the open row, opening from a row, closing. */
+export const useOtherChargeListPanel = () => useListPanel(OtherChargeListPanelContext);
 
 const LABEL_POOL = OTHER_LABELS.map((label) => label.name);
 
@@ -41,7 +46,7 @@ const hasQuickbooks = () =>
 
 export function OtherChargesProvider({ breakpoint = "auto", children }: { breakpoint?: Breakpoint; children: ReactNode }) {
   const [formOpen, setFormOpen] = useState(false);
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const { panelId, fromList, open: openPanel, close: closePanel, listPanel } = usePanelState();
   const createdId = useRef<string | null>(null);
   const { otherCharges, createOtherCharge, updateOtherCharge, deleteOtherCharge, products, historySources } = useAppStore();
 
@@ -49,8 +54,6 @@ export function OtherChargesProvider({ breakpoint = "auto", children }: { breakp
   // every app render.
   const openForm = useCallback(() => setFormOpen(true), []);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const openPanel = useCallback((id: string) => setPanelId(id), []);
-  const closePanel = useCallback(() => setPanelId(null), []);
 
   // Read from the store every render, so the panel shows what the list shows.
   // It goes undefined when the charge is deleted, which closes the panel.
@@ -74,6 +77,7 @@ export function OtherChargesProvider({ breakpoint = "auto", children }: { breakp
   return (
     <NewOtherChargeContext.Provider value={openForm}>
       <OpenOtherChargeContext.Provider value={openPanel}>
+        <OtherChargeListPanelContext.Provider value={listPanel}>
         {children}
 
         <NewOtherChargeForm
@@ -100,6 +104,8 @@ export function OtherChargesProvider({ breakpoint = "auto", children }: { breakp
           <OtherChargePanel
             open={panelId != null}
             onClose={closePanel}
+            // Opened from its list: non-modal, the list stays usable.
+            isModal={!fromList}
             charge={charge}
             labelPool={LABEL_POOL}
             existingNames={takenNames}
@@ -124,6 +130,7 @@ export function OtherChargesProvider({ breakpoint = "auto", children }: { breakp
             breakpoint={breakpoint}
           />
         )}
+        </OtherChargeListPanelContext.Provider>
       </OpenOtherChargeContext.Provider>
     </NewOtherChargeContext.Provider>
   );

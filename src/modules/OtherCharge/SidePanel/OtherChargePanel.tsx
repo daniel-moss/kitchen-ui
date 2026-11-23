@@ -87,6 +87,7 @@ export default function OtherChargePanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
 }: OtherChargePanelProps) {
   const mobile = !useIsDesktop(breakpoint);
 
@@ -308,6 +309,7 @@ export default function OtherChargePanel({
         state={state}
         onRetry={onRetry}
         breakpoint={breakpoint}
+        isModal={isModal}
       >
         <>
           {tab === "details" && (

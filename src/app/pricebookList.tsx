@@ -1,4 +1,4 @@
-import { useCallback, useDeferredValue, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import TabGroup from "../components/Tabs/TabGroup";
@@ -307,7 +307,43 @@ export interface PricebookPageProps<TRow> {
    * the table is memoised, and a new lambda each render defeats it.
    */
   onRowClick?: (row: TRow) => void;
+  /**
+   * DESKTOP — the key of the row whose side panel is open (Daniel,
+   * 2026-11-23: "easier to scan and navigate"). With it:
+   *   - that row stays PRESSED;
+   *   - clicking it again calls `onDeselect` (closes the panel); clicking
+   *     another row calls `onRowClick` (the panel switches);
+   *   - ↑ / ↓ move to the previous / next row in the table's CURRENT order
+   *     (tab, filters, search, sort) — `onRowClick` with that row — and stop
+   *     at the ends. Not while typing in a field, and not while a modal
+   *     (an edit form, a Prompt, a menu) has the focus.
+   * Leaving the page calls `onDeselect` too. The panel itself must be
+   * NON-MODAL (SidePanel `isModal={false}`), or the page is unreachable.
+   */
+  selectedKey?: string | null;
+  /** Closes what `selectedKey` opened — see `selectedKey`. */
+  onDeselect?: () => void;
 }
+
+/** Is a key press meant for a field, not for the list? */
+const isTypingTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName));
+
+/**
+ * Is the focus somewhere the list's ↑ / ↓ may act — the page itself (a row,
+ * nothing focused) or the non-modal side panel? Anything else that holds the
+ * focus is a modal on top (it traps the focus), so the keys are its own.
+ */
+const focusAllowsListKeys = () => {
+  const active = document.activeElement;
+  return (
+    active == null ||
+    active === document.body ||
+    active.closest('[role="row"]') != null ||
+    active.closest('[data-side-panel="non-modal"]') != null
+  );
+};
 
 /** One shared empty list, so an untouched view keeps the same reference. */
 const EMPTY_SELECTION: FilterSelection = [];
@@ -319,8 +355,13 @@ export function PricebookPage<TRow>({
   rows = config.rows,
   onCreate,
   onRowClick,
+  selectedKey = null,
+  onDeselect,
 }: PricebookPageProps<TRow>) {
   const isDesktop = useIsDesktop(breakpoint);
+  // Desktop only: the mobile panel fills the screen, so there is nothing to
+  // keep pressed and no arrow keys.
+  const activeKey = isDesktop ? selectedKey : null;
   const [branch, setBranch] = useState<PricebookPhase>("active");
   const [tabs, setTabs] = useState<Record<PricebookPhase, string>>({ active: "all", inactive: "inactiveAll" });
   const tab = tabs[branch];
@@ -424,6 +465,77 @@ export function PricebookPage<TRow>({
   const lockedStatuses = tabById(branch, tab).statuses;
   const defs = viewFilters[tab]!;
 
+  // ---- the open row: pressed, toggled by a second click, moved with ↑ / ↓ ----
+
+  // Stable, like `onRowClick` itself — the table is memoised.
+  const { rowKey } = config;
+  const clickRow = useCallback(
+    (row: TRow) => {
+      if (activeKey != null && rowKey(row) === activeKey) onDeselect?.();
+      else onRowClick?.(row);
+    },
+    [activeKey, rowKey, onDeselect, onRowClick],
+  );
+
+  // The handlers read the latest rows / callbacks through a ref, so the key
+  // listener is attached once per open panel, not on every render.
+  const latest = useRef({ items, activeKey, onRowClick, onDeselect });
+  latest.current = { items, activeKey, onRowClick, onDeselect };
+
+  useEffect(() => {
+    if (activeKey == null) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+      if (event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
+      if (isTypingTarget(event.target) || !focusAllowsListKeys()) return;
+      const { items: list, activeKey: key, onRowClick: open } = latest.current;
+      const index = list.findIndex((row) => rowKey(row) === key);
+      if (index === -1) return;
+      const next = list[index + (event.key === "ArrowDown" ? 1 : -1)];
+      event.preventDefault();
+      // Keyboard navigation hides the mouse hover until the pointer really
+      // moves (TableRow's `html[data-keyboard-nav]` rule).
+      document.documentElement.dataset.keyboardNav = "";
+      // At the first / last row the keys stop.
+      if (next != null) open?.(next);
+    };
+    // Only a REAL move ends it: scrolling the pressed row into view can make
+    // the browser report the pointer over another row without it moving.
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.movementX !== 0 || event.movementY !== 0) delete document.documentElement.dataset.keyboardNav;
+    };
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("pointermove", onPointerMove);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("pointermove", onPointerMove);
+    };
+  }, [activeKey, rowKey]);
+
+  // The hover comes back once the panel is closed (or the page left), even
+  // without a mouse move.
+  useEffect(() => {
+    if (activeKey == null) delete document.documentElement.dataset.keyboardNav;
+  }, [activeKey]);
+  useEffect(() => () => void delete document.documentElement.dataset.keyboardNav, []);
+
+  // The pressed row follows the keys: it scrolls into view and takes the
+  // focus, so the next ↑ / ↓ starts from it. Only when the focus is already
+  // on the list — a click inside the panel must not pull it back.
+  useEffect(() => {
+    if (activeKey == null) return;
+    const frame = requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>('[role="row"][aria-selected="true"]');
+      if (row == null) return;
+      row.scrollIntoView({ block: "nearest" });
+      if (document.activeElement?.closest('[role="row"]') != null) row.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeKey]);
+
+  // Leaving the page closes the panel ("Leaving the page closes the panel").
+  useEffect(() => () => latest.current.onDeselect?.(), []);
+
   const table = (mobile: boolean) => (
     <ListTable
       rows={items}
@@ -432,7 +544,8 @@ export function PricebookPage<TRow>({
       columnsState={settings.columns}
       sort={sort}
       onSortChange={changeSort}
-      onRowClick={onRowClick}
+      onRowClick={clickRow}
+      pressedKey={mobile ? null : activeKey}
       mobile={mobile}
     />
   );

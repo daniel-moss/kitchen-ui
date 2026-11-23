@@ -87,6 +87,7 @@ export default function DiscountPanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
 }: DiscountPanelProps) {
   const mobile = !useIsDesktop(breakpoint);
 
@@ -308,6 +309,7 @@ export default function DiscountPanel({
         state={state}
         onRetry={onRetry}
         breakpoint={breakpoint}
+        isModal={isModal}
       >
         <>
           {tab === "details" && (

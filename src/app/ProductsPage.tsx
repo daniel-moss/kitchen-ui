@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 
 import { Page } from "./shell/appShell";
-import { useNewProduct, useOpenProduct } from "./shell/products";
+import { useProductListPanel, useNewProduct } from "./shell/products";
 import { PRODUCT_NOUN } from "./listData";
 import { PRODUCT_FILTERS } from "./productFilters";
 import { TABLE_COLUMNS, sortProducts } from "./productsTable";
@@ -74,10 +74,12 @@ export interface ProductsPageProps {
 const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) => {
   const rows = useProducts();
   const openNewProduct = useNewProduct();
-  const openProduct = useOpenProduct();
+  // Opened from a row, the panel is non-modal: the row stays pressed, ↑ / ↓
+  // move through the list, and a second click closes it (2026-11-23).
+  const { selectedId, openFromList, close } = useProductListPanel();
 
   // Stable — the table is memoised on its props (listTable.tsx).
-  const onRowClick = useCallback((row: ProductRow) => openProduct(row.id), [openProduct]);
+  const onRowClick = useCallback((row: ProductRow) => openFromList(row.id), [openFromList]);
 
   return (
     <PricebookPage
@@ -87,6 +89,8 @@ const ProductsPage = ({ breakpoint = "auto", onNavigate }: ProductsPageProps) =>
       onNavigate={onNavigate}
       onCreate={openNewProduct}
       onRowClick={onRowClick}
+      selectedKey={selectedId}
+      onDeselect={close}
     />
   );
 };

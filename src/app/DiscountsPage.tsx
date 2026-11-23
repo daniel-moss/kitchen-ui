@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { Page } from "./shell/appShell";
-import { useNewDiscount, useOpenDiscount } from "./shell/discounts";
+import { useDiscountListPanel, useNewDiscount } from "./shell/discounts";
 import { useDiscounts } from "./store/AppStore";
 import { chargeFilters } from "./chargeFilters";
 import { chargeColumns, sortCharges } from "./chargesTable";
@@ -52,10 +52,12 @@ export interface DiscountsPageProps {
 const DiscountsPage = ({ breakpoint = "auto", onNavigate }: DiscountsPageProps) => {
   const rows = useDiscounts();
   const openNewDiscount = useNewDiscount();
-  const openDiscount = useOpenDiscount();
+  // Opened from a row, the panel is non-modal: the row stays pressed, ↑ / ↓
+  // move through the list, and a second click closes it (2026-11-23).
+  const { selectedId, openFromList, close } = useDiscountListPanel();
 
   // Stable — the table is memoised on its props (listTable.tsx).
-  const onRowClick = useCallback((row: ChargeRow) => openDiscount(row.id), [openDiscount]);
+  const onRowClick = useCallback((row: ChargeRow) => openFromList(row.id), [openFromList]);
 
   return (
     <PricebookPage
@@ -65,6 +67,8 @@ const DiscountsPage = ({ breakpoint = "auto", onNavigate }: DiscountsPageProps) 
       onNavigate={onNavigate}
       onCreate={openNewDiscount}
       onRowClick={onRowClick}
+      selectedKey={selectedId}
+      onDeselect={close}
     />
   );
 };

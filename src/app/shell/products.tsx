@@ -22,6 +22,7 @@ import { Breakpoint } from "../../hooks/useIsDesktop";
 import NewProductForm from "../../modules/Product/NewProductForm/NewProductForm";
 import ProductPanel from "../../modules/Product/SidePanel/ProductPanel";
 import { useAppStore, useProduct } from "../store/AppStore";
+import { createListPanelContext, useListPanel, usePanelState } from "./listPanel";
 import { pricebookHistoryRows } from "../../modules/shared/pricebookHistory";
 import { openHistoryRow } from "./pricebookHistory";
 
@@ -45,12 +46,16 @@ import { openHistoryRow } from "./pricebookHistory";
 
 const NewProductContext = createContext<() => void>(() => {});
 const OpenProductContext = createContext<(id: string) => void>(() => {});
+const ProductListPanelContext = createListPanelContext();
 
 /** Opens the app's "New product" form. Safe to call from anywhere in the app. */
 export const useNewProduct = () => useContext(NewProductContext);
 
 /** Opens the "Product" side panel on one product. */
 export const useOpenProduct = () => useContext(OpenProductContext);
+
+/** The Product list's side of the panel — the open row, opening from a row, closing. */
+export const useProductListPanel = () => useListPanel(ProductListPanelContext);
 
 const LABEL_POOL = PRODUCT_LABELS.map((label) => label.name);
 
@@ -93,7 +98,7 @@ export function ProductsProvider({
   children: ReactNode;
 }) {
   const [formOpen, setFormOpen] = useState(false);
-  const [panelId, setPanelId] = useState<string | null>(null);
+  const { panelId, fromList, open: openPanel, close: closePanel, listPanel } = usePanelState();
   const createdId = useRef<string | null>(null);
   const {
     products,
@@ -111,8 +116,6 @@ export function ProductsProvider({
   // every app render.
   const openForm = useCallback(() => setFormOpen(true), []);
   const closeForm = useCallback(() => setFormOpen(false), []);
-  const openPanel = useCallback((id: string) => setPanelId(id), []);
-  const closePanel = useCallback(() => setPanelId(null), []);
 
   // Read from the store every render, so the panel shows what the list shows.
   // It goes undefined when the product is deleted, which closes the panel.
@@ -135,6 +138,7 @@ export function ProductsProvider({
   return (
     <NewProductContext.Provider value={openForm}>
       <OpenProductContext.Provider value={openPanel}>
+        <ProductListPanelContext.Provider value={listPanel}>
         {children}
 
         <NewProductForm
@@ -165,6 +169,8 @@ export function ProductsProvider({
           <ProductPanel
             open={panelId != null}
             onClose={closePanel}
+            // Opened from its list: non-modal, the list stays usable.
+            isModal={!fromList}
             product={product}
             labelPool={LABEL_POOL}
             existingNames={products.map((row) => row.name)}
@@ -238,6 +244,7 @@ export function ProductsProvider({
             breakpoint={breakpoint}
           />
         )}
+        </ProductListPanelContext.Provider>
       </OpenProductContext.Provider>
     </NewProductContext.Provider>
   );

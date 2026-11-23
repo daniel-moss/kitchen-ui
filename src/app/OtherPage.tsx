@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { Page } from "./shell/appShell";
-import { useNewOtherCharge, useOpenOtherCharge } from "./shell/otherCharges";
+import { useOtherChargeListPanel, useNewOtherCharge } from "./shell/otherCharges";
 import { useOtherCharges } from "./store/AppStore";
 import { chargeFilters } from "./chargeFilters";
 import { chargeColumns, sortCharges } from "./chargesTable";
@@ -49,10 +49,12 @@ export interface OtherPageProps {
 const OtherPage = ({ breakpoint = "auto", onNavigate }: OtherPageProps) => {
   const rows = useOtherCharges();
   const openNewOtherCharge = useNewOtherCharge();
-  const openOtherCharge = useOpenOtherCharge();
+  // Opened from a row, the panel is non-modal: the row stays pressed, ↑ / ↓
+  // move through the list, and a second click closes it (2026-11-23).
+  const { selectedId, openFromList, close } = useOtherChargeListPanel();
 
   // Stable — the table is memoised on its props (listTable.tsx).
-  const onRowClick = useCallback((row: ChargeRow) => openOtherCharge(row.id), [openOtherCharge]);
+  const onRowClick = useCallback((row: ChargeRow) => openFromList(row.id), [openFromList]);
 
   return (
     <PricebookPage
@@ -62,6 +64,8 @@ const OtherPage = ({ breakpoint = "auto", onNavigate }: OtherPageProps) => {
       onNavigate={onNavigate}
       onCreate={openNewOtherCharge}
       onRowClick={onRowClick}
+      selectedKey={selectedId}
+      onDeselect={close}
     />
   );
 };

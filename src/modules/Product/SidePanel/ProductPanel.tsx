@@ -125,6 +125,7 @@ export default function ProductPanel({
   state = "content",
   onRetry,
   breakpoint = "auto",
+  isModal = true,
 }: ProductPanelProps) {
   const mobile = !useIsDesktop(breakpoint);
 
@@ -504,6 +505,7 @@ export default function ProductPanel({
         state={state}
         onRetry={onRetry}
         breakpoint={breakpoint}
+        isModal={isModal}
       >
         <>
           {tab === "details" && (

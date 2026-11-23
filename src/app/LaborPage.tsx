@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 
 import { Page } from "./shell/appShell";
-import { useNewLaborRate, useOpenLaborRate } from "./shell/laborRates";
+import { useLaborRateListPanel, useNewLaborRate } from "./shell/laborRates";
 import { useLaborRates } from "./store/AppStore";
 import { LABOR_FILTERS } from "./laborFilters";
 import { TABLE_COLUMNS, sortLabor } from "./laborTable";
@@ -77,10 +77,12 @@ export interface LaborPageProps {
 const LaborPage = ({ breakpoint = "auto", onNavigate }: LaborPageProps) => {
   const rows = useLaborRates();
   const openNewLaborRate = useNewLaborRate();
-  const openLaborRate = useOpenLaborRate();
+  // Opened from a row, the panel is non-modal: the row stays pressed, ↑ / ↓
+  // move through the list, and a second click closes it (2026-11-23).
+  const { selectedId, openFromList, close } = useLaborRateListPanel();
 
   // Stable — the table is memoised on its props (listTable.tsx).
-  const onRowClick = useCallback((row: LaborRow) => openLaborRate(row.id), [openLaborRate]);
+  const onRowClick = useCallback((row: LaborRow) => openFromList(row.id), [openFromList]);
 
   return (
     <PricebookPage
@@ -90,6 +92,8 @@ const LaborPage = ({ breakpoint = "auto", onNavigate }: LaborPageProps) => {
       onNavigate={onNavigate}
       onCreate={openNewLaborRate}
       onRowClick={onRowClick}
+      selectedKey={selectedId}
+      onDeselect={close}
     />
   );
 };

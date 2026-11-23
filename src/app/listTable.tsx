@@ -123,6 +123,11 @@ interface ListTableProps<TRow> {
    * before 2026-09-26.
    */
   onRowClick?: (row: TRow) => void;
+  /**
+   * The key of the row whose object is open (the pricebook lists' side
+   * panel) — that row keeps its pressed look. Default: none.
+   */
+  pressedKey?: string | null;
 }
 
 // MEMOISED (2026-09-11). Re-rendering 78 rows × 17 columns costs 40-160ms, and
@@ -145,6 +150,7 @@ function ListTableInner<TRow>({
   onSortChange,
   mobile = false,
   onRowClick,
+  pressedKey = null,
 }: ListTableProps<TRow>) {
   // The three sorting props of a sortable header, from one place: the active
   // column shows its direction, every other one the neutral pair.
@@ -204,7 +210,12 @@ function ListTableInner<TRow>({
       }
     >
       {rows.map((row) => (
-        <TableRow key={rowKey(row)} isClickable onClick={onRowClick ? () => onRowClick(row) : noop}>
+        <TableRow
+          key={rowKey(row)}
+          isClickable
+          isPressed={pressedKey != null && rowKey(row) === pressedKey}
+          onClick={onRowClick ? () => onRowClick(row) : noop}
+        >
           {ordered.map((def) => (
             <Fragment key={def.key}>{def.cell(row, pinProps(def.key))}</Fragment>
           ))}
