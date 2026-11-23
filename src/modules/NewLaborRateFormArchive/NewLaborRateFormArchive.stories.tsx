@@ -23,7 +23,7 @@ import NewLaborRateFormArchive from "./NewLaborRateFormArchive";
 // Type a name the workspace already uses — "Standard labor", say — to see
 // "Labor rate with this name already exists".
 const meta: Meta = {
-  title: 'Modules/Labor Rate/[Archive] "Create" Form',
+  title: 'Modules/Pricebook Items/Labor Rate/[Archive] "Create" Form',
   parameters: { controls: { disable: true } },
 };
 

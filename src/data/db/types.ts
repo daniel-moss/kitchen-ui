@@ -1485,6 +1485,30 @@ export interface ChargeItem {
   /** → OTHER_LABELS / DISCOUNT_LABELS (production `PriceBookItemLabel`). */
   labelIds: string[];
   lastModifiedAt: string;
+
+  // ---- the "Other charge" side panel's fields (added 2026-11-23) -----------
+  // The lists never needed these. Same production model, same names as
+  // `ProductItem` carries. Optional on the type; every OTHER and DISCOUNT row
+  // is filled in `db.ts` (the "Discount" panel joined 2026-11-23). A discount
+  // is always "manual" — production rejects a markup on it.
+
+  /** Production `price_strategy`. Undefined = "manual". */
+  priceStrategy?: PriceStrategy;
+  /** Production `price_adjustment_amount` — only with "fixedMarkup". */
+  fixedMarkup?: number;
+  /** Production `price_adjustment_percent` — only with "percentMarkup". */
+  percentMarkup?: number;
+  /** Production `notes` — the "Internal notes" module. */
+  notes?: string;
+  createdAt?: string;
+  /** → `users` (production `created_by`, nullable). */
+  createdById?: number;
+  /** Production `quickbooks_desktop_revenue_account_id`. */
+  quickbooksAccountId?: string;
+  /** Production `quickbooks_desktop_id` — with no creator, a QuickBooks import. */
+  quickbooksId?: string;
+  needsSyncing?: boolean;
+  syncedAt?: string;
 }
 
 /**
@@ -1868,6 +1892,12 @@ export interface CompanySettings {
    * 2026-10-17).
    */
   pricebookDefaultTaxableProduct: boolean;
+  /**
+   * Production `pricebook_default_taxable_other` — what a new OTHER charge's
+   * Taxability opens on (the "New charge" form pre-selects it; added
+   * 2026-11-23).
+   */
+  pricebookDefaultTaxableOther: boolean;
 
   // ---- forms (added 2026-11-16) ----------------------------------------------
 

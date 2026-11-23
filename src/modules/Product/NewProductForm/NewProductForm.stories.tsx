@@ -33,7 +33,7 @@ import { NewProductFormProps } from "./NewProductForm.types";
 // The form before the 2026-11-16 redesign — vendors, scanner, inventory
 // levels and the rest — is '[Archive] "Create" Form'.
 const meta: Meta = {
-  title: 'Modules/Product/"Create" Form',
+  title: 'Modules/Pricebook Items/Product/"Create" Form',
   parameters: { controls: { disable: true } },
 };
 

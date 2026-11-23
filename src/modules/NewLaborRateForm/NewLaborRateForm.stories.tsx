@@ -20,7 +20,7 @@ import { useOpenCreatedPanel } from "./useOpenCreatedPanel";
 // database — type "Standard labor" to see "Labor rate with this name already
 // exists". Create opens the "Labor rate" side panel on the new rate.
 const meta: Meta = {
-  title: 'Modules/Labor Rate/"Create" Form',
+  title: 'Modules/Pricebook Items/Labor Rate/"Create" Form',
   parameters: { controls: { disable: true } },
 };
 

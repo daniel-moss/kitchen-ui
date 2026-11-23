@@ -18,7 +18,7 @@ import NewTaxRateForm from "./NewTaxRateForm";
 // the workspace is on QuickBooks Desktop, where production REQUIRES a tax rate
 // to name the agency it is collected for.
 const meta: Meta = {
-  title: 'Modules/Tax Rate/"New Tax Rate" Form',
+  title: 'Modules/Pricebook Items/Tax Rate/"New Tax Rate" Form',
   parameters: { controls: { disable: true } },
 };
 

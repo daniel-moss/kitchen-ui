@@ -35,7 +35,7 @@ import { vendorCostRowsOf } from "./vendorCostRules";
 //   prod-condenser-fan-blade imported from QuickBooks Desktop.
 //   prod-shelf-kit           "Unknown" creator (an onboarding load).
 const meta: Meta = {
-  title: "Modules/Product/Side Panel",
+  title: "Modules/Pricebook Items/Product/Side Panel",
   parameters: { controls: { disable: true } },
 };
 

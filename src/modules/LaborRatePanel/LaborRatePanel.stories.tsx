@@ -28,7 +28,7 @@ import { LaborRatePermissions } from "./LaborRatePanel.types";
 //   helper-labor          "Unknown" creator (an onboarding load), never synced.
 //   travel-labor          edited since its last sync — the "Not synced" case.
 const meta: Meta = {
-  title: "Modules/Labor Rate/Side Panel",
+  title: "Modules/Pricebook Items/Labor Rate/Side Panel",
   parameters: { controls: { disable: true } },
 };
 

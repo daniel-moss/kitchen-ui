@@ -10,6 +10,8 @@ import { useRoute } from "./routing/useRoute";
 
 import { Page, Sidebar } from "./shell/appShell";
 import { LaborRatesProvider } from "./shell/laborRates";
+import { DiscountsProvider } from "./shell/discounts";
+import { OtherChargesProvider } from "./shell/otherCharges";
 import { ProductsProvider } from "./shell/products";
 import { NewJobProvider } from "./shell/newJob";
 import { TaxRatesProvider } from "./shell/taxRates";
@@ -208,6 +210,9 @@ const App = ({ breakpoint = "auto", initialPage = "jobs" }: AppProps) => {
 // page. `ProductsProvider` (2026-10-13) holds the "New product" form only —
 // there is no Product side panel yet, and the form can not save until the
 // Inventory section is designed, so it reads the database and not the store.
+// `OtherChargesProvider` (2026-11-23) holds the "New other charge" form and
+// the "Other charge" side panel, on the store; `DiscountsProvider` the same
+// pair for discounts.
 //
 // `CompanySettingsProvider` (2026-11-12) is OUTERMOST: it writes the "Demo
 // settings" into the database's COMPANY during its first render, before
@@ -220,7 +225,11 @@ export default function AppWithStore(props: AppProps) {
           <LaborRatesProvider breakpoint={props.breakpoint}>
             <TaxRatesProvider breakpoint={props.breakpoint}>
               <ProductsProvider breakpoint={props.breakpoint}>
-                <App {...props} />
+                <OtherChargesProvider breakpoint={props.breakpoint}>
+                  <DiscountsProvider breakpoint={props.breakpoint}>
+                    <App {...props} />
+                  </DiscountsProvider>
+                </OtherChargesProvider>
               </ProductsProvider>
             </TaxRatesProvider>
           </LaborRatesProvider>

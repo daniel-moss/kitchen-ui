@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from "react";
+import { ReactNode, useMemo, useRef, useState } from "react";
 
 import AvatarDiscount from "../../../components/Avatar/AvatarDiscount";
 import AvatarLaborRate from "../../../components/Avatar/AvatarLaborRate";
@@ -22,7 +22,11 @@ import { toast } from "../../../components/Toast/Toaster";
 import HoverTooltip from "../../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../../components/ValueDisplay/ValueDisplayGroup";
-import { JobChargeLines, useOptionalAppStore } from "../../../app/store/AppStore";
+import { useOpenDiscount } from "../../../app/shell/discounts";
+import { useOpenLaborRate } from "../../../app/shell/laborRates";
+import { useOpenOtherCharge } from "../../../app/shell/otherCharges";
+import { useOpenProduct } from "../../../app/shell/products";
+import { JobChargeLines, seedNewDiscount, seedNewOtherCharge, seedNewProduct, useOptionalAppStore } from "../../../app/store/AppStore";
 import {
   chargesOf,
   COMPANY,
@@ -37,18 +41,27 @@ import {
   OTHER_SUBTYPES,
   PRODUCT_ITEMS,
   PRODUCT_SUBTYPES,
+  QUICKBOOKS_ACCOUNTS,
+  QUICKBOOKS_ASSET_ACCOUNTS,
+  QUICKBOOKS_COGS_ACCOUNTS,
 } from "../../../data/db";
 import type { Charge, ChargeItem, Job, LaborItem, ProductItem } from "../../../data/db";
 import type { User } from "../../../data/users";
 import { usersById } from "../../../data/users";
 import { Breakpoint } from "../../../hooks/useIsDesktop";
 import { joinWithSeparator } from "../../../utils/textSeparator";
+import NewDiscountForm from "../../Discount/NewDiscountForm/NewDiscountForm";
 import DiscountSelectList from "../../Discount/DiscountSelectList/DiscountSelectList";
+import DiscountPanel from "../../Discount/SidePanel/DiscountPanel";
 import LaborRatePanel from "../../LaborRatePanel/LaborRatePanel";
 import LaborRateSelectList from "../../LaborRateSelectList/LaborRateSelectList";
+import NewOtherChargeForm from "../../OtherCharge/NewOtherChargeForm/NewOtherChargeForm";
 import OtherChargeSelectList from "../../OtherCharge/OtherChargeSelectList/OtherChargeSelectList";
+import OtherChargePanel from "../../OtherCharge/SidePanel/OtherChargePanel";
 import { LOCATION_TYPE_ICON, locationTitle } from "../../Product/NewProductForm/InventoryLevelsField";
+import NewProductForm from "../../Product/NewProductForm/NewProductForm";
 import ProductSelectList from "../../Product/ProductSelectList/ProductSelectList";
+import ProductPanel from "../../Product/SidePanel/ProductPanel";
 import { useAnchoredMenu } from "../../shared/anchoredMenu";
 
 import { LineEquipment, LineEquipmentProvider } from "./lineEquipment";
@@ -89,9 +102,10 @@ import styles from "./ChargesSegment.module.scss";
 //     draggable, non-clickable rows (no Delete since 2026-11-14), and a "Done"
 //     Button replaces the header's buttons. ONE module at a time, and entering
 //     it collapses the open rows (Daniel);
-//   - "View pricebook item" opens the labor rate's side panel; products, other
-//     charges and discounts have no side panel yet, so it is inactive there
-//     (Daniel);
+//   - "View pricebook item" opens the line's pricebook item in its side panel
+//     — labor rate, product, other charge or discount (2026-11-23). In the
+//     demo app it is the app's own panel, so an edit there shows everywhere;
+//     in a story of its own, a panel this segment renders;
 //   - every amount shows 2 to 3 decimals (`formatAmount`, Daniel);
 //   - a line SOMEONE ELSE is editing is locked, in every module (Figma
 //     "Shared Behavior", 29733-54808, 2026-11-16): their live avatar before
@@ -336,6 +350,13 @@ type LineForm =
   | { kind: "other"; item: ChargeItem; chargeId?: string }
   | { kind: "discount"; item: ChargeItem; chargeId?: string };
 
+/** The pricebook item a line's "View pricebook item" opens. */
+type PricebookPanel =
+  | { kind: "labor"; item: LaborItem }
+  | { kind: "product"; item: ProductItem }
+  | { kind: "other"; item: ChargeItem }
+  | { kind: "discount"; item: ChargeItem };
+
 /** What the Delete prompt and toast call a line. */
 const NOUN: Record<Kind, string> = { labor: "labor rate", product: "product", other: "charge", discount: "discount" };
 
@@ -458,7 +479,51 @@ function ChargesSegmentBody({
     setForm(next);
     setFormOpen(true);
   };
-  const [ratePanel, setRatePanel] = useState<LaborItem | null>(null);
+
+  // "Add charge" in the Other charges list opens the "New other charge" form
+  // (2026-11-23). A charge made here is saved to the pricebook — the app store,
+  // or this segment's own list in a story — and its line form opens next, as
+  // if it had been picked from the list. No side panel: a job is not the
+  // pricebook (the form's `onOpenCreated` rule).
+  const store = useOptionalAppStore();
+  const [addingCharge, setAddingCharge] = useState(false);
+  const [localCharges, setLocalCharges] = useState<ChargeItem[]>([]);
+  const otherCharges = store?.otherCharges ?? [...OTHER_ITEMS, ...localCharges];
+  // A ref, not state: the form calls onCreated and onOpenCreated in one go.
+  const createdCharge = useRef<ChargeItem | null>(null);
+
+  // The same for "Add product" in the Products list.
+  const [addingProduct, setAddingProduct] = useState(false);
+  const [localProducts, setLocalProducts] = useState<ProductItem[]>([]);
+  const products = store?.products ?? [...PRODUCT_ITEMS, ...localProducts];
+  const createdProduct = useRef<ProductItem | null>(null);
+
+  // The same for "Add discount" in the Discounts list.
+  const [addingDiscount, setAddingDiscount] = useState(false);
+  const [localDiscounts, setLocalDiscounts] = useState<ChargeItem[]>([]);
+  const discounts = store?.discounts ?? [...DISCOUNT_ITEMS, ...localDiscounts];
+  const createdDiscount = useRef<ChargeItem | null>(null);
+
+  // "View pricebook item": the app's panel for the item's type, or — in a
+  // story outside the app — a panel rendered right here.
+  const openLaborRate = useOpenLaborRate();
+  const openProduct = useOpenProduct();
+  const openOtherCharge = useOpenOtherCharge();
+  const openDiscount = useOpenDiscount();
+  const [localPanel, setLocalPanel] = useState<PricebookPanel | null>(null);
+  const viewPricebook = (panel: PricebookPanel) => {
+    if (store == null) {
+      setLocalPanel(panel);
+    } else if (panel.kind === "labor") {
+      openLaborRate(panel.item.id);
+    } else if (panel.kind === "product") {
+      openProduct(panel.item.id);
+    } else if (panel.kind === "other") {
+      openOtherCharge(panel.item.id);
+    } else {
+      openDiscount(panel.item.id);
+    }
+  };
 
   const setList = (kind: Kind, update: (list: Charge[]) => Charge[]) =>
     setLines((current) => ({ ...current, [LIST_OF[kind]]: update(current[LIST_OF[kind]]) }));
@@ -532,7 +597,7 @@ function ChargesSegmentBody({
           )
         }
         onEdit={() => rate != null && openForm({ kind: "labor", item: rate, chargeId: charge.id })}
-        onPricebook={rate != null ? () => setRatePanel(rate) : undefined}
+        onPricebook={rate != null ? () => viewPricebook({ kind: "labor", item: rate }) : undefined}
         details={
           <ValueDisplayGroup>
             {/* The demo company has subtypes enabled, so the row always shows. */}
@@ -553,7 +618,7 @@ function ChargesSegmentBody({
 
   const productRows = lines.products.map((charge) => {
     const product = charge.product!;
-    const item = PRODUCT_ITEMS.find((row) => row.id === charge.productId);
+    const item = products.find((row) => row.id === charge.productId);
     const location = inventoryLocationOf(product.inventoryLocationId);
     return (
       <LineRow
@@ -567,6 +632,7 @@ function ChargesSegmentBody({
           <ItemTextBlock align="right" variant="titleCaption" title={formatAmount(productAmount(product))} caption={`${formatAmount(product.price)} × ${product.quantity}`} />
         }
         onEdit={() => item != null && openForm({ kind: "product", item, chargeId: charge.id })}
+        onPricebook={item != null ? () => viewPricebook({ kind: "product", item }) : undefined}
         details={
           <ValueDisplayGroup>
             <ValueDisplay label="Manufacturer" value={product.manufacturer} />
@@ -590,7 +656,7 @@ function ChargesSegmentBody({
 
   const otherRows = lines.other.map((charge) => {
     const other = charge.other!;
-    const item = OTHER_ITEMS.find((row) => row.id === charge.otherChargeId);
+    const item = otherCharges.find((row) => row.id === charge.otherChargeId);
     return (
       <LineRow
         key={rowKey("other", charge)}
@@ -598,6 +664,7 @@ function ChargesSegmentBody({
         avatar={<AvatarOther size="xl" />}
         right={<ItemTextBlock align="right" variant="titleCaption" title={formatAmount(otherAmount(other))} caption={`${formatAmount(other.price)} × ${other.quantity}`} />}
         onEdit={() => item != null && openForm({ kind: "other", item, chargeId: charge.id })}
+        onPricebook={item != null ? () => viewPricebook({ kind: "other", item }) : undefined}
         details={
           <ValueDisplayGroup>
             <ValueDisplay label="Subtype" value={subtypeName(OTHER_SUBTYPES, other.subtypeId)} />
@@ -615,7 +682,7 @@ function ChargesSegmentBody({
 
   const discountRows = lines.discounts.map((charge) => {
     const discount = charge.discount!;
-    const item = DISCOUNT_ITEMS.find((row) => row.id === charge.discountId);
+    const item = discounts.find((row) => row.id === charge.discountId);
     return (
       <LineRow
         key={rowKey("discount", charge)}
@@ -631,6 +698,7 @@ function ChargesSegmentBody({
           />
         }
         onEdit={() => item != null && openForm({ kind: "discount", item, chargeId: charge.id })}
+        onPricebook={item != null ? () => viewPricebook({ kind: "discount", item }) : undefined}
         details={
           <ValueDisplayGroup>
             <ValueDisplay label="Subtype" value={subtypeName(DISCOUNT_SUBTYPES, discount.subtypeId)} />
@@ -689,25 +757,109 @@ function ChargesSegmentBody({
       <ProductSelectList
         open={listOpen === "product"}
         onClose={() => setListOpen(null)}
-        products={PRODUCT_ITEMS}
+        products={products}
         onSelect={(item) => openForm({ kind: "product", item })}
-        onAddProduct={noop}
+        onAddProduct={() => setAddingProduct(true)}
+        breakpoint={breakpoint}
+      />
+      <NewProductForm
+        open={addingProduct}
+        onClose={() => setAddingProduct(false)}
+        subtypes={PRODUCT_SUBTYPES}
+        requireSubtypes={COMPANY.requireSubtypes}
+        useTaxes={COMPANY.useTaxes}
+        defaultIsTaxable={COMPANY.pricebookDefaultTaxableProduct}
+        inventory={
+          COMPANY.featureInventoryEnabled
+            ? { locations: COMPANY.inventoryLocations, defaultTrackInventory: COMPANY.defaultTrackInventory }
+            : undefined
+        }
+        quickbooks={
+          COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed"
+            ? {
+                revenueAccounts: QUICKBOOKS_ACCOUNTS,
+                cogsAccounts: QUICKBOOKS_COGS_ACCOUNTS,
+                assetAccounts: QUICKBOOKS_ASSET_ACCOUNTS,
+                defaultCogsAccountId: COMPANY.quickbooksDefaultCogsAccountId,
+                defaultAssetAccountId: COMPANY.quickbooksDefaultAssetAccountId,
+              }
+            : undefined
+        }
+        existingNames={products.map((row) => row.name)}
+        onCreated={(input) => {
+          const id = store?.createProduct(input) ?? `product-new-${Date.now().toString(36)}`;
+          const created = seedNewProduct(input, id);
+          if (store == null) setLocalProducts((current) => [...current, created]);
+          createdProduct.current = created;
+        }}
+        // The new product goes straight onto the job: its line form opens.
+        onOpenCreated={() => {
+          if (createdProduct.current != null) openForm({ kind: "product", item: createdProduct.current });
+        }}
         breakpoint={breakpoint}
       />
       <OtherChargeSelectList
         open={listOpen === "other"}
         onClose={() => setListOpen(null)}
-        charges={OTHER_ITEMS}
+        charges={otherCharges}
         onSelect={(item) => openForm({ kind: "other", item })}
-        onAddCharge={noop}
+        onAddCharge={() => setAddingCharge(true)}
+        breakpoint={breakpoint}
+      />
+      <NewOtherChargeForm
+        open={addingCharge}
+        onClose={() => setAddingCharge(false)}
+        subtypes={OTHER_SUBTYPES}
+        requireSubtypes={COMPANY.requireSubtypes}
+        useTaxes={COMPANY.useTaxes}
+        defaultIsTaxable={COMPANY.pricebookDefaultTaxableOther}
+        quickbooks={
+          COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed"
+            ? { accounts: QUICKBOOKS_ACCOUNTS }
+            : undefined
+        }
+        existingNames={otherCharges.map((row) => row.name)}
+        onCreated={(input) => {
+          const id = store?.createOtherCharge(input) ?? `other-new-${Date.now().toString(36)}`;
+          const created = seedNewOtherCharge(input, id);
+          if (store == null) setLocalCharges((current) => [...current, created]);
+          createdCharge.current = created;
+        }}
+        // The new charge goes straight onto the job: its line form opens.
+        onOpenCreated={() => {
+          if (createdCharge.current != null) openForm({ kind: "other", item: createdCharge.current });
+        }}
         breakpoint={breakpoint}
       />
       <DiscountSelectList
         open={listOpen === "discount"}
         onClose={() => setListOpen(null)}
-        discounts={DISCOUNT_ITEMS}
+        discounts={discounts}
         onSelect={(item) => openForm({ kind: "discount", item })}
-        onAddDiscount={noop}
+        onAddDiscount={() => setAddingDiscount(true)}
+        breakpoint={breakpoint}
+      />
+      <NewDiscountForm
+        open={addingDiscount}
+        onClose={() => setAddingDiscount(false)}
+        subtypes={DISCOUNT_SUBTYPES}
+        requireSubtypes={COMPANY.requireSubtypes}
+        quickbooks={
+          COMPANY.accountingIntegration === "quickbooksDesktop" && COMPANY.quickbooksLineItemScheme === "splitDetailed"
+            ? { accounts: QUICKBOOKS_ACCOUNTS }
+            : undefined
+        }
+        existingNames={discounts.map((row) => row.name)}
+        onCreated={(input) => {
+          const id = store?.createDiscount(input) ?? `disc-new-${Date.now().toString(36)}`;
+          const created = seedNewDiscount(input, id);
+          if (store == null) setLocalDiscounts((current) => [...current, created]);
+          createdDiscount.current = created;
+        }}
+        // The new discount goes straight onto the job: its line form opens.
+        onOpenCreated={() => {
+          if (createdDiscount.current != null) openForm({ kind: "discount", item: createdDiscount.current });
+        }}
         breakpoint={breakpoint}
       />
 
@@ -720,7 +872,7 @@ function ChargesSegmentBody({
           rate={form.item}
           line={editing(lines.labor, (charge) => charge.labor)}
           onSubmit={(line) => commit("labor", form.item.name, { labor: line, laborRateId: form.item.id })}
-          onOpenRate={() => setRatePanel(form.item)}
+          onOpenRate={() => viewPricebook({ kind: "labor", item: form.item })}
           breakpoint={breakpoint}
         />
       )}
@@ -773,16 +925,26 @@ function ChargesSegmentBody({
         />
       )}
 
-      {/* Pricebook, and "Click here" in a labor form's Cost help: the rate's side panel. */}
-      {ratePanel != null && (
+      {/* "View pricebook item", and "Click here" in a labor form's Cost help,
+          in a story outside the demo app (the app opens its own panels). */}
+      {localPanel?.kind === "labor" && (
         <LaborRatePanel
           open
-          onClose={() => setRatePanel(null)}
-          rate={ratePanel}
+          onClose={() => setLocalPanel(null)}
+          rate={localPanel.item}
           requireSubtypes={COMPANY.requireSubtypes}
           useTaxes={COMPANY.useTaxes}
           breakpoint={breakpoint}
         />
+      )}
+      {localPanel?.kind === "product" && (
+        <ProductPanel open onClose={() => setLocalPanel(null)} product={localPanel.item} requireSubtypes={COMPANY.requireSubtypes} useTaxes={COMPANY.useTaxes} breakpoint={breakpoint} />
+      )}
+      {localPanel?.kind === "other" && (
+        <OtherChargePanel open onClose={() => setLocalPanel(null)} charge={localPanel.item} requireSubtypes={COMPANY.requireSubtypes} useTaxes={COMPANY.useTaxes} breakpoint={breakpoint} />
+      )}
+      {localPanel?.kind === "discount" && (
+        <DiscountPanel open onClose={() => setLocalPanel(null)} discount={localPanel.item} requireSubtypes={COMPANY.requireSubtypes} breakpoint={breakpoint} />
       )}
     </div>
   );

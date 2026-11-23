@@ -1,4 +1,8 @@
+import { useCallback } from "react";
+
 import { Page } from "./shell/appShell";
+import { useNewOtherCharge, useOpenOtherCharge } from "./shell/otherCharges";
+import { useOtherCharges } from "./store/AppStore";
 import { chargeFilters } from "./chargeFilters";
 import { chargeColumns, sortCharges } from "./chargesTable";
 import { ChargeRow, OTHER, chargeSearch } from "./chargesData";
@@ -39,8 +43,27 @@ export interface OtherPageProps {
   onNavigate: (next: Page) => void;
 }
 
-const OtherPage = ({ breakpoint = "auto", onNavigate }: OtherPageProps) => (
-  <PricebookPage config={OTHER_LIST} breakpoint={breakpoint} onNavigate={onNavigate} />
-);
+// WIRED 2026-11-23: the rows come from the app store, "New" opens the "New
+// other charge" form and a row click opens the "Other charge" side panel (both
+// in shell/otherCharges.tsx), so a charge created or edited there shows here.
+const OtherPage = ({ breakpoint = "auto", onNavigate }: OtherPageProps) => {
+  const rows = useOtherCharges();
+  const openNewOtherCharge = useNewOtherCharge();
+  const openOtherCharge = useOpenOtherCharge();
+
+  // Stable — the table is memoised on its props (listTable.tsx).
+  const onRowClick = useCallback((row: ChargeRow) => openOtherCharge(row.id), [openOtherCharge]);
+
+  return (
+    <PricebookPage
+      config={OTHER_LIST}
+      rows={rows}
+      breakpoint={breakpoint}
+      onNavigate={onNavigate}
+      onCreate={openNewOtherCharge}
+      onRowClick={onRowClick}
+    />
+  );
+};
 
 export default OtherPage;

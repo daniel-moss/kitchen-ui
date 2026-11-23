@@ -13,7 +13,7 @@ import OtherChargeSelectList from "./OtherChargeSelectList";
 // "No charges match". There is no "New charge" form yet, so "Add charge" only
 // closes the list.
 const meta: Meta = {
-  title: "Modules/Other Charge/Select List",
+  title: "Modules/Pricebook Items/Other Charge/Select List",
   parameters: { controls: { disable: true } },
 };
 

@@ -25,7 +25,7 @@ import { TaxRatePermissions } from "./TaxRatePanel.types";
 //   tax-labor-exempt  "Unknown" creator (an onboarding load) and never synced.
 //   tax-marin         Edited since its last sync — the other "Not synced" case.
 const meta: Meta = {
-  title: 'Modules/Tax Rate/"Tax Rate" Side Panel',
+  title: 'Modules/Pricebook Items/Tax Rate/"Tax Rate" Side Panel',
   parameters: { controls: { disable: true } },
 };
 

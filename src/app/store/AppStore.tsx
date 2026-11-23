@@ -9,6 +9,9 @@ import { LABOR_ROWS as SEED_LABOR_RATES, LaborRow } from "../laborData";
 import { PRODUCT_ROWS as SEED_PRODUCTS, ProductRow } from "../productsData";
 import type { ModuleFile } from "../../modules/FilesModule/FilesModule.types";
 import { NewProduct, NewProductVendorCost } from "../../modules/Product/NewProductForm/NewProductForm.types";
+import { NewOtherCharge } from "../../modules/OtherCharge/NewOtherChargeForm/NewOtherChargeForm.types";
+import { NewDiscount } from "../../modules/Discount/NewDiscountForm/NewDiscountForm.types";
+import { ChargeRow, DISCOUNTS, OTHER } from "../chargesData";
 import { vendorCostRowsOf } from "../../modules/Product/SidePanel/vendorCostRules";
 import { HistorySources } from "../../modules/shared/pricebookHistory";
 import { stockLevel } from "../../modules/Product/NewProductForm/productRules";
@@ -84,6 +87,36 @@ export type LaborRatePatch = Partial<
     | "isActive"
     | "lastModifiedAt"
   >
+>;
+
+/**
+ * The fields the "Other charge" side panel can change (2026-11-23): the
+ * General and Pricing modules, accounting, labels, the two texts and the
+ * status flags.
+ */
+export type OtherChargePatch = Partial<
+  Pick<
+    ChargeRow,
+    | "name"
+    | "subtypeId"
+    | "cost"
+    | "priceStrategy"
+    | "price"
+    | "fixedMarkup"
+    | "percentMarkup"
+    | "taxable"
+    | "labelIds"
+    | "summary"
+    | "notes"
+    | "status"
+    | "isActive"
+    | "quickbooksAccountId"
+  >
+>;
+
+/** The fields the "Discount" side panel can change (2026-11-23). */
+export type DiscountPatch = Partial<
+  Pick<ChargeRow, "name" | "subtypeId" | "price" | "labelIds" | "summary" | "notes" | "status" | "isActive" | "quickbooksAccountId">
 >;
 
 /**
@@ -199,6 +232,24 @@ interface AppStoreValue {
    * dated when it changed) and its charge lines as edited, else as seeded.
    */
   historySources: HistorySources;
+
+  /** Every other charge — the seed plus anything created in this session, edits applied. */
+  otherCharges: ChargeRow[];
+  otherChargeById: Map<string, ChargeRow>;
+  updateOtherCharge: (id: string, patch: OtherChargePatch) => void;
+  /** Adds a charge from the "New other charge" form and returns its id. */
+  createOtherCharge: (input: NewOtherCharge) => string;
+  /** Removes a charge. Only a charge in Review can be deleted — the panel enforces that. */
+  deleteOtherCharge: (id: string) => void;
+
+  /** Every discount — the seed plus anything created in this session, edits applied. */
+  discounts: ChargeRow[];
+  discountById: Map<string, ChargeRow>;
+  updateDiscount: (id: string, patch: DiscountPatch) => void;
+  /** Adds a discount from the "New discount" form and returns its id. */
+  createDiscount: (input: NewDiscount) => string;
+  /** Removes a discount. Only a discount in Review can be deleted — the panel enforces that. */
+  deleteDiscount: (id: string) => void;
   /** Saves a product's whole vendor cost list, with the Pricing module and preferred vendor it leads to. */
   setVendorCosts: (productId: string, costs: NewProductVendorCost[], patch: ProductPatch) => void;
 
@@ -387,7 +438,53 @@ const stockColumnsOf = (allLevels: StockNumbers[]): Pick<ProductRow, "stock" | "
  * A label the picker INVENTED has no id in the demo database and is dropped,
  * like on the rates.
  */
-const seedNewProduct = (input: NewProduct, id: string): ProductRow => {
+/** A new other charge as the lists and the panel read it. */
+export const seedNewOtherCharge = (input: NewOtherCharge, id: string): ChargeRow => ({
+  id,
+  name: input.name,
+  status: "active",
+  isActive: true,
+  subtypeId: input.subtypeId ?? null,
+  summary: "",
+  notes: "",
+  cost: input.cost,
+  price: input.price,
+  priceStrategy: input.priceStrategy,
+  fixedMarkup: input.fixedMarkup,
+  percentMarkup: input.percentMarkup,
+  taxable: input.isTaxable,
+  labelIds: [],
+  // QuickBooks: the form's account; a new item waits for its first sync.
+  quickbooksAccountId: input.quickbooksAccountId,
+  needsSyncing: true,
+  lastModifiedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  // The viewer — Lorne Riddle — created it.
+  createdById: 1,
+});
+
+/** A new discount as the lists and the panel read it. Never taxable, no cost, always Manual. */
+export const seedNewDiscount = (input: NewDiscount, id: string): ChargeRow => ({
+  id,
+  name: input.name,
+  status: "active",
+  isActive: true,
+  subtypeId: input.subtypeId ?? null,
+  summary: "",
+  notes: "",
+  cost: 0,
+  price: input.price,
+  priceStrategy: "manual",
+  taxable: false,
+  labelIds: [],
+  quickbooksAccountId: input.quickbooksAccountId,
+  needsSyncing: true,
+  lastModifiedAt: new Date().toISOString(),
+  createdAt: new Date().toISOString(),
+  createdById: 1,
+});
+
+export const seedNewProduct = (input: NewProduct, id: string): ProductRow => {
   const levels = input.trackInventory ? input.inventoryLevels : [];
   return {
     id,
@@ -529,6 +626,22 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [levelsOfProduct, updateProduct],
   );
 
+  const otherChargeTable = useEditableTable(OTHER.rows, byName);
+  const { rows: otherCharges, byId: otherChargeById, update: updateOtherCharge } = otherChargeTable;
+  const createOtherCharge = useCallback(
+    (input: NewOtherCharge) => otherChargeTable.create(seedNewOtherCharge(input, newId("other"))),
+    [otherChargeTable],
+  );
+  const deleteOtherCharge = otherChargeTable.remove;
+
+  const discountTable = useEditableTable(DISCOUNTS.rows, byName);
+  const { rows: discounts, byId: discountById, update: updateDiscount } = discountTable;
+  const createDiscount = useCallback(
+    (input: NewDiscount) => discountTable.create(seedNewDiscount(input, newId("disc"))),
+    [discountTable],
+  );
+  const deleteDiscount = discountTable.remove;
+
   // ---- the Job Details Charges lines ------------------------------------------
   const [chargeLines, setAllChargeLines] = useState<Record<string, JobChargeLines>>({});
   const setChargeLines = useCallback((jobId: string, lines: JobChargeLines) => {
@@ -603,8 +716,28 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setInventoryLevel,
       vendorCostsOf: vendorCostsOfProduct,
       setVendorCosts,
+      otherCharges,
+      otherChargeById,
+      updateOtherCharge,
+      createOtherCharge,
+      deleteOtherCharge,
+      discounts,
+      discountById,
+      updateDiscount,
+      createDiscount,
+      deleteDiscount,
     }),
     [
+      otherCharges,
+      otherChargeById,
+      updateOtherCharge,
+      createOtherCharge,
+      deleteOtherCharge,
+      discounts,
+      discountById,
+      updateDiscount,
+      createDiscount,
+      deleteDiscount,
       vendorCostsOfProduct,
       setVendorCosts,
       levelsOfProduct,
@@ -683,4 +816,22 @@ export const useProducts = (): ProductRow[] => useAppStore().products;
 export const useProduct = (id: string | null): ProductRow | undefined => {
   const { productById } = useAppStore();
   return id == null ? undefined : productById.get(id);
+};
+
+/** Every other charge, with this session's new ones — the Other charges list reads this. */
+export const useOtherCharges = (): ChargeRow[] => useAppStore().otherCharges;
+
+/** One other charge by id — undefined once it is deleted, or for an id that never existed. */
+export const useOtherCharge = (id: string | null): ChargeRow | undefined => {
+  const { otherChargeById } = useAppStore();
+  return id == null ? undefined : otherChargeById.get(id);
+};
+
+/** Every discount, with this session's new ones — the Discounts list reads this. */
+export const useDiscounts = (): ChargeRow[] => useAppStore().discounts;
+
+/** One discount by id — undefined once it is deleted, or for an id that never existed. */
+export const useDiscount = (id: string | null): ChargeRow | undefined => {
+  const { discountById } = useAppStore();
+  return id == null ? undefined : discountById.get(id);
 };

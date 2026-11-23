@@ -17,6 +17,8 @@ import { noop } from "../../stories/helpers";
 
 import { useNewJob } from "./newJob";
 import { useNewLaborRate } from "./laborRates";
+import { useNewDiscount } from "./discounts";
+import { useNewOtherCharge } from "./otherCharges";
 import { useNewProduct } from "./products";
 import { useNewTaxRate } from "./taxRates";
 
@@ -111,11 +113,15 @@ export const createMenu = ({
   onCreateJob,
   onCreateLaborRate,
   onCreateProduct,
+  onCreateOtherCharge,
+  onCreateDiscount,
   onCreateTaxRate,
 }: {
   onCreateJob: () => void;
   onCreateLaborRate: () => void;
   onCreateProduct: () => void;
+  onCreateOtherCharge: () => void;
+  onCreateDiscount: () => void;
   onCreateTaxRate: () => void;
 }) => (
   <MenuItemGroup>
@@ -156,8 +162,8 @@ export const createMenu = ({
         <MenuItemGroup>
           <MenuItem label="Labor rate" slotLeft={slot(semanticIcons.laborRate)} onClick={onCreateLaborRate} />
           <MenuItem label="Product" slotLeft={slot(semanticIcons.product)} onClick={onCreateProduct} />
-          <MenuItem label="Other charge" slotLeft={slot(semanticIcons.other)} />
-          <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} />
+          <MenuItem label="Other charge" slotLeft={slot(semanticIcons.other)} onClick={onCreateOtherCharge} />
+          <MenuItem label="Discount" slotLeft={slot(semanticIcons.discount)} onClick={onCreateDiscount} />
           <MenuItem label="Tax rate" slotLeft={slot(semanticIcons.taxRate)} onClick={onCreateTaxRate} />
         </MenuItemGroup>
       }
@@ -369,6 +375,8 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
   const openNewJob = useNewJob();
   const openNewLaborRate = useNewLaborRate();
   const openNewProduct = useNewProduct();
+  const openNewOtherCharge = useNewOtherCharge();
+  const openNewDiscount = useNewDiscount();
   const openNewTaxRate = useNewTaxRate();
 
   return (
@@ -384,6 +392,8 @@ export const Sidebar = ({ page, onNavigate }: { page: Page; onNavigate: (next: P
         onCreateJob: openNewJob,
         onCreateLaborRate: openNewLaborRate,
         onCreateProduct: openNewProduct,
+        onCreateOtherCharge: openNewOtherCharge,
+        onCreateDiscount: openNewDiscount,
         onCreateTaxRate: openNewTaxRate,
       })}
       bottomItems={bottomItems(page, onNavigate)}
@@ -419,6 +429,8 @@ export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (ne
   const openNewJob = useNewJob();
   const openNewLaborRate = useNewLaborRate();
   const openNewProduct = useNewProduct();
+  const openNewOtherCharge = useNewOtherCharge();
+  const openNewDiscount = useNewDiscount();
   const openNewTaxRate = useNewTaxRate();
 
   return (
@@ -457,6 +469,14 @@ export const AppBottomBar = ({ page, onNavigate }: { page: Page; onNavigate: (ne
           onCreateProduct: () => {
             setCreateOpen(false);
             openNewProduct();
+          },
+          onCreateOtherCharge: () => {
+            setCreateOpen(false);
+            openNewOtherCharge();
+          },
+          onCreateDiscount: () => {
+            setCreateOpen(false);
+            openNewDiscount();
           },
           onCreateTaxRate: () => {
             setCreateOpen(false);

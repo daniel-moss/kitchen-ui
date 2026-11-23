@@ -429,6 +429,25 @@ tab only, the other four tabs are empty), the store gained `productById` /
 `updateProduct` / `deleteProduct` / `useProduct`, a row click opens the panel,
 and Create opens the panel on the new product.
 
+**Other charges joined 2026-11-23** the same way: `shell/otherCharges.tsx`
+holds the "New other charge" form AND the "Other charge" side panel
+(`useNewOtherCharge` / `useOpenOtherCharge(id)`), the store gained
+`otherCharges` / `otherChargeById` / `updateOtherCharge` / `createOtherCharge`
+/ `deleteOtherCharge` / `useOtherCharge` (seeded from `chargesData.OTHER`), the
+Create menu's "Other charge" item opens the form, a row click opens the panel,
+and Create opens the panel on the new charge.
+
+**Discounts joined 2026-11-23** the same way: `shell/discounts.tsx`
+(`useNewDiscount` / `useOpenDiscount(id)`), store `discounts` /
+`discountById` / `updateDiscount` / `createDiscount` / `deleteDiscount` /
+`useDiscount` (seeded from `chargesData.DISCOUNTS`), the Create menu's
+"Discount" item, row click and New on the Discounts list.
+
+**Job Details "View pricebook item" (2026-11-23)** opens the line's item in
+the APP's panel — `useOpenLaborRate` / `useOpenProduct` / `useOpenOtherCharge`
+/ `useOpenDiscount` — so an edit there shows in the lists too. In a story
+outside the app (no store) the Charges segment renders the panel itself.
+
 **A Toaster was missing from the whole app.** Nothing outside the Job Details
 page mounted one, so every toast raised from a list, a form or a panel went
 nowhere — the "Job created" toast included, since 2026-09-28. `App.tsx` mounts

@@ -1834,6 +1834,9 @@ export const QUICKBOOKS_ACCOUNTS: QuickbooksAccount[] = [
   { id: "qba-warranty-labor", name: "Warranty Labor", parentId: "qba-4020" },
   { id: "qba-consulting", name: "Consulting Income" },
   { id: "qba-misc", name: "Miscellaneous Income" },
+  // A contra-income account the discounts book to (2026-11-23) — production's
+  // company setting `quickbooks_desktop_invoice_discount_revenue_account`.
+  { id: "qba-4900", number: "4900", name: "Discounts Given" },
 ];
 
 /**
@@ -1888,8 +1891,8 @@ export const QUICKBOOKS_VENDORS: QuickbooksVendor[] = [
  * system from free-text line items (cost 0, its auto-create default, no
  * subtype and no summary) and 4 INACTIVE legacy charges (all confirmed).
  */
-const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = [
-  { id: "other-trip-charge", name: "Trip charge", status: "active", isActive: true, subtypeId: "travel", summary: "Standard travel to site within the service area.", cost: 18, price: 65, taxable: false, labelIds: [], lastModifiedAt: "2026-08-21T14:30:00" },
+const OTHER_ITEMS_BASE: ChargeItem[] = [
+  { id: "other-trip-charge", name: "Trip charge", status: "active", isActive: true, subtypeId: "travel", summary: "Covers travel to and from the customer's site within 30 miles. Charged once per visit.", cost: 18, price: 65, taxable: false, labelIds: [], lastModifiedAt: "2026-08-21T14:30:00" },
   { id: "other-mileage", name: "Mileage, per mile", status: "active", isActive: true, subtypeId: "travel", summary: "Billed per mile beyond the 25-mile service radius.", cost: 0.4, price: 1.25, taxable: false, labelIds: ["pass-through"], lastModifiedAt: "2026-07-30T10:15:00" },
   { id: "other-after-hours-trip", name: "After-hours trip charge", status: "active", isActive: true, subtypeId: "travel", summary: "Travel outside business hours.", cost: 30, price: 125, taxable: false, labelIds: ["after-hours"], lastModifiedAt: "2026-08-25T20:10:00" },
   { id: "other-permit", name: "Permit fee", status: "active", isActive: true, subtypeId: "permits", summary: "City permit pulled for the job; billed at cost.", cost: 145, price: 145, taxable: false, labelIds: ["pass-through", "compliance"], lastModifiedAt: "2026-08-11T11:00:00" },
@@ -1919,6 +1922,51 @@ const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = [
 ];
 
 /**
+ * The SIDE PANEL's half of an other charge (added 2026-11-23 with the "Other
+ * charge" panel), written only where a row has something of its own to say.
+ * Everything else takes the defaults in `withOtherPanelFields`.
+ */
+const OTHER_PANEL_FIELDS: Record<string, Partial<ChargeItem>> = {
+  // The panel's ACTIVE demo charge — Daniel's sample copy (2026-11-23).
+  "other-trip-charge": {
+    createdById: 3,
+    createdAt: "2025-03-10T09:00:00",
+    notes: "Add this charge to every visit outside the city. Waive it for customers with a service agreement.",
+  },
+  // The two MARKUP strategies. Each markup agrees with the row's own cost and
+  // price, because production derives one from the other: 30 + 95 = 125, and
+  // 40 × 2.75 = 110.
+  "other-after-hours-trip": { priceStrategy: "fixedMarkup", fixedMarkup: 95 },
+  "other-refrigerant-reclaim": { priceStrategy: "percentMarkup", percentMarkup: 175 },
+  // IMPORTED from QuickBooks: no creator plus a QuickBooks key.
+  "other-crane": { createdById: undefined, quickbooksId: "80000044-1726742400" },
+  // Bulk-loaded during onboarding, before QuickBooks was connected: no
+  // creator, no QuickBooks key, no revenue account (the Accounting "Warning"),
+  // never synced.
+  "other-restocking": { createdById: undefined, quickbooksAccountId: undefined, needsSyncing: true, syncedAt: undefined },
+};
+
+/**
+ * The Product rule: a REVIEW item is minted by the system from a free-text
+ * line item, so it has no creator, no account and was never synced. Every
+ * other charge was created by Lorne Riddle the day it was last modified and
+ * books to "Miscellaneous Income".
+ */
+const withOtherPanelFields = (row: ChargeItem): ChargeItem => ({
+  ...row,
+  priceStrategy: "manual",
+  notes: "",
+  createdAt: row.lastModifiedAt,
+  createdById: row.status === "review" ? undefined : 1,
+  ...(row.status === "review"
+    ? { needsSyncing: true }
+    : { quickbooksAccountId: "qba-misc", needsSyncing: false, syncedAt: row.lastModifiedAt }),
+  ...OTHER_PANEL_FIELDS[row.id],
+});
+
+const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = OTHER_ITEMS_BASE.map(withOtherPanelFields);
+
+/**
  * The DISCOUNTS pricebook — production `PriceBookItem` rows of the discount
  * type ("DISC"). EVERY price is zero or negative (production's sign rule),
  * every `cost` is 0 and every `taxable` is false, because production's form
@@ -1928,8 +1976,8 @@ const OTHER_ITEMS_AT_ANCHOR: ChargeItem[] = [
  * INACTIVE. The confirmed set spans $15 to $2,500 off, so the node's own
  * ladder ($100 through $5,000) has something to answer at every step.
  */
-const DISCOUNT_ITEMS_AT_ANCHOR: ChargeItem[] = [
-  { id: "disc-contract-labor", name: "Service agreement labor discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Labor credit for locations on a service agreement.", cost: 0, price: -25, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:30:00" },
+const DISCOUNT_ITEMS_BASE: ChargeItem[] = [
+  { id: "disc-contract-labor", name: "Service agreement labor discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Discount for locations with an active service agreement. Applied to every visit covered by the agreement.", cost: 0, price: -25, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:30:00" },
   { id: "disc-contract-parts", name: "Service agreement parts discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Contract rate on parts.", cost: 0, price: -15, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-08-21T14:35:00" },
   { id: "disc-pm-bundle", name: "PM bundle discount", status: "active", isActive: true, subtypeId: "agreement", summary: "Applied when four quarterly visits are booked together.", cost: 0, price: -300, taxable: false, labelIds: ["contract"], lastModifiedAt: "2026-07-25T08:00:00" },
   { id: "disc-first-visit", name: "New client first-visit discount", status: "active", isActive: true, subtypeId: "promotional", summary: "One-time welcome credit on a first job.", cost: 0, price: -50, taxable: false, labelIds: ["one-time"], lastModifiedAt: "2026-08-11T11:00:00" },
@@ -1951,6 +1999,45 @@ const DISCOUNT_ITEMS_AT_ANCHOR: ChargeItem[] = [
   { id: "disc-covid-relief", name: "Reopening relief discount", status: "active", isActive: false, subtypeId: "goodwill", summary: "", cost: 0, price: -250, taxable: false, labelIds: [], lastModifiedAt: "2026-06-02T11:30:00" },
   { id: "disc-paper-invoice", name: "Paperless billing credit", status: "active", isActive: false, subtypeId: null, summary: "", cost: 0, price: -5, taxable: false, labelIds: [], lastModifiedAt: "2026-06-01T09:00:00" },
 ];
+
+/**
+ * The SIDE PANEL's half of a discount (added 2026-11-23 with the "Discount"
+ * panel), written only where a row has something of its own to say.
+ * Everything else takes the defaults in `withDiscountPanelFields`.
+ */
+const DISCOUNT_PANEL_FIELDS: Record<string, Partial<ChargeItem>> = {
+  // The panel's ACTIVE demo discount — Daniel's sample copy (2026-11-23).
+  "disc-contract-labor": {
+    createdById: 3,
+    createdAt: "2025-02-17T10:00:00",
+    notes: "Check the agreement end date before you add this discount. Ask a manager before using it on a visit the agreement does not cover.",
+  },
+  // IMPORTED from QuickBooks: no creator plus a QuickBooks key.
+  "disc-loyalty": { createdById: undefined, quickbooksId: "80000052-1726742400" },
+  // Bulk-loaded during onboarding: no creator, no revenue account (the
+  // Accounting "Warning"), never synced.
+  "disc-prepay": { createdById: undefined, quickbooksAccountId: undefined, needsSyncing: true, syncedAt: undefined },
+};
+
+/**
+ * The Other charge rule: a REVIEW item is minted by the system, so it has no
+ * creator, no account and was never synced. Every other discount was created
+ * by Lorne Riddle the day it was last modified and books to "Discounts Given".
+ * A discount never follows a markup (production rejects it), so it is Manual.
+ */
+const withDiscountPanelFields = (row: ChargeItem): ChargeItem => ({
+  ...row,
+  priceStrategy: "manual",
+  notes: "",
+  createdAt: row.lastModifiedAt,
+  createdById: row.status === "review" ? undefined : 1,
+  ...(row.status === "review"
+    ? { needsSyncing: true }
+    : { quickbooksAccountId: "qba-4900", needsSyncing: false, syncedAt: row.lastModifiedAt }),
+  ...DISCOUNT_PANEL_FIELDS[row.id],
+});
+
+const DISCOUNT_ITEMS_AT_ANCHOR: ChargeItem[] = DISCOUNT_ITEMS_BASE.map(withDiscountPanelFields);
 
 /**
  * The pricebook fields of the four rates that are ALSO the `TAX_RATES` rows —
@@ -2382,6 +2469,8 @@ export const COMPANY: CompanySettings = {
   pricebookDefaultTaxableLabor: false,
   // A new product opens TAXABLE — the "New product" Figma pre-selects it.
   pricebookDefaultTaxableProduct: true,
+  // A new other charge opens TAXABLE too — the "New charge" Figma pre-selects it.
+  pricebookDefaultTaxableOther: true,
   // Inventory is ON for this company, and a new product opens as
   // non-inventory (the Figma's pre-selected card). Both accounts have a
   // default, so an inventory product opens with them filled (2026-10-17).

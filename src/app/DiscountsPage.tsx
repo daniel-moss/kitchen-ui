@@ -1,4 +1,8 @@
+import { useCallback } from "react";
+
 import { Page } from "./shell/appShell";
+import { useNewDiscount, useOpenDiscount } from "./shell/discounts";
+import { useDiscounts } from "./store/AppStore";
 import { chargeFilters } from "./chargeFilters";
 import { chargeColumns, sortCharges } from "./chargesTable";
 import { ChargeRow, DISCOUNTS, chargeSearch } from "./chargesData";
@@ -43,8 +47,26 @@ export interface DiscountsPageProps {
   onNavigate: (next: Page) => void;
 }
 
-const DiscountsPage = ({ breakpoint = "auto", onNavigate }: DiscountsPageProps) => (
-  <PricebookPage config={DISCOUNTS_LIST} breakpoint={breakpoint} onNavigate={onNavigate} />
-);
+// WIRED 2026-11-23: rows from the app store, "New" opens the "New discount"
+// form and a row click opens the "Discount" side panel (shell/discounts.tsx).
+const DiscountsPage = ({ breakpoint = "auto", onNavigate }: DiscountsPageProps) => {
+  const rows = useDiscounts();
+  const openNewDiscount = useNewDiscount();
+  const openDiscount = useOpenDiscount();
+
+  // Stable — the table is memoised on its props (listTable.tsx).
+  const onRowClick = useCallback((row: ChargeRow) => openDiscount(row.id), [openDiscount]);
+
+  return (
+    <PricebookPage
+      config={DISCOUNTS_LIST}
+      rows={rows}
+      breakpoint={breakpoint}
+      onNavigate={onNavigate}
+      onCreate={openNewDiscount}
+      onRowClick={onRowClick}
+    />
+  );
+};
 
 export default DiscountsPage;

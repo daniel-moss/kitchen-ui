@@ -25,7 +25,7 @@ import ProductSelectList from "./ProductSelectList";
 // "No products match". "Add product" opens the "New product" form, and the
 // product it creates shows in the list too.
 const meta: Meta = {
-  title: "Modules/Product/Select List",
+  title: "Modules/Pricebook Items/Product/Select List",
   parameters: { controls: { disable: true } },
 };
 

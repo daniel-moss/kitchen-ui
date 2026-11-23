@@ -17,7 +17,7 @@ import LaborRateSelectList from "./LaborRateSelectList";
 // and its Create opens the "Labor rate" side panel on the new rate — which
 // then shows in the list too.
 const meta: Meta = {
-  title: "Modules/Labor Rate/Select List",
+  title: "Modules/Pricebook Items/Labor Rate/Select List",
   parameters: { controls: { disable: true } },
 };
 

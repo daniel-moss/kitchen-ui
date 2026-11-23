@@ -13,7 +13,7 @@ import DiscountSelectList from "./DiscountSelectList";
 // "No discounts match". There is no "New discount" form yet, so "Add discount" only
 // closes the list.
 const meta: Meta = {
-  title: "Modules/Discount/Select List",
+  title: "Modules/Pricebook Items/Discount/Select List",
   parameters: { controls: { disable: true } },
 };
 
