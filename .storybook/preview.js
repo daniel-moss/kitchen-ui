@@ -1145,6 +1145,8 @@ const preview = {
                 ["Desktop", "Mobile", "One Vendor", "No QuickBooks", '"No Synced Vendors" Prompt', "Create Fails"],
                 '[Archive] "New Tax Rate" Form',
                 ["Desktop", "Mobile", "No QuickBooks Integration", "Create Fails"],
+                "Select List",
+                ["Desktop", "Mobile", "No Tax Rates", "No Tax Rates / Mobile", "No Permission"],
                 "Side Panel",
                 [
                   "Desktop",
