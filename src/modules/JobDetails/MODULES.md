@@ -66,8 +66,7 @@ status colour), then a last group that always ends with **Download PDF**.
 | Active | ghost **Actions** · solid **Complete** | Change active status (if the company has active sub-statuses) · Pause · Hold · Reschedule ⟋ Download PDF |
 | Paused | ghost **Actions** · solid **Resume** | Change pause status · Hold · Reschedule ⟋ Download PDF |
 | On hold | ghost **Actions** · solid **Resume** | Change hold status · Reschedule ⟋ Send summary · Download PDF |
-| Completed | ghost **Actions** · solid **Mark as ⌄** · solid **Create ⌄** — all three share the mobile row equally | Change completed status (solid orange `circle-check`; opens nothing yet) · Resume ⟋ desktop: Create recall · Send summary · Download PDF / mobile: Send summary · Create recall · Download PDF |
-| Completed + a DRAFT invoice or estimate | desktop: ghost **Actions** · ghost **Create recall** · ghost **Send summary** / mobile: ghost **Actions** · ghost **Send summary** | Change completed status · Resume ⟋ desktop: Download PDF / mobile: Create recall · Download PDF |
+| Completed | ghost **Actions** + the billing buttons — 15 cases, see "The completed bar" below | Change completed status (solid orange `circle-check`; opens nothing yet) · Resume (hidden while a draft exists) ⟋ Create recall · Send summary · Download PDF — one order on both breakpoints |
 | Finalized | ghost **Send summary** · ghost **Create recall** · ghost **Download PDF** (mobile: an icon button) | — none |
 | Cancelled | ghost **Download PDF** | — none |
 
@@ -75,12 +74,25 @@ status colour), then a last group that always ends with **Download PDF**.
 in the bar and in the menu. `hasRecall` is seeded from the db (`recallOf`)
 and turns on after "Create recall".
 
-**The draft-child bar** (Figma 27348-25428): the system already sees the
-invoice or estimate, but cannot finalize the job while it is a draft, so
-"Mark as" and "Create" hide; the "Actions" menu stays (Figma 27348-28420 /
-27348-28422, 2026-10-27). `hasDraftChild` is seeded from the db (a
-`draft` invoice or estimate with this `jobId`); "Create invoice" / "Create
-estimate" turn it on, standing in for saving a draft, since no form opens yet.
+**The completed bar** (Figma 24567-138760, rebuilt 2026-11-25; `billingButtons`
++ `CompletedButtons` in JobDetails.tsx). The job's PARENT decides the pairs: a
+job made from an estimate, or a recall, gets the invoice pair only; any other
+job (no parent, or a series job) gets both. "Create …" needs the feature on
+(`COMPANY.featureInvoicesEnabled` / `featureEstimatesEnabled`) and the create
+permission; "Mark as …" needs only full job edit — a feature that is off does
+not hide it (billing in another tool). A DRAFT child replaces every billing
+button with "Resume draft …" (feature on + edit permission) and hides the other
+pair. Permissions are `COMPANY.viewerPermissions`; both are switched on the
+Demo settings page. More than two billing buttons fold a pair into a menu
+button ("Mark as ⌄" subtle, then "Create ⌄" solid). Mobile widths are the
+node's (Daniel, 2026-11-25): Actions alone fills; Actions + one button → Actions
+hugs, the button fills; two billing buttons → icon-only Actions, except
+"Mark as ⌄" + "Create ⌄"; two plain buttons share equally and drop their
+icons; next to a menu button the last button fills. "Create invoice /
+estimate" save a draft with the next free id (no form yet), so the bar shows
+"Resume draft …" and Related lists it under "Converted into". Test jobs:
+JOB-1216 (from EST-2263), JOB-1217 (recall of JOB-1204), JOB-1218 (draft
+INV-3164), JOB-1219 (draft EST-2264).
 
 **Every Download PDF opens the "Download PDF" form** (Figma 24592-39416,
 rebuilt 2026-10-27; `"Download PDF" Form/DownloadPdfForm.tsx`): one RadioGroup
@@ -97,11 +109,9 @@ link"; toasts "Job's link copied" / "Couldn't copy the job's link".
 
 Two rules worth keeping:
 
-- **The overflow trigger is a LABELLED ghost button on every status**, never an
-  icon-only ellipsis. `ActionButtons.actionsButton()` builds the one version,
-  and on MOBILE it stretches like every other button — including the
-  completed job's three-button row, where the node draws it hugging at 96px
-  and Daniel chose the even split instead (2026-10-06).
+- **The overflow trigger is a LABELLED ghost button**, built once by
+  `ActionButtons.actionsButton()`. The one exception is the completed bar on
+  mobile, where two billing buttons leave no room (Daniel, 2026-11-25).
 - **"Mark as" and "Create" are NOT repeated in the overflow menu.** Each has
   its own bar button with its own menu, and one definition of the items
   (`markAsMenuItems` / `createMenuItems`) feeds it.
@@ -280,10 +290,9 @@ built but never shown: it renders only when the company configures ACTIVE
 sub-statuses, and the demo company has them off by Daniel's 2026-09-28
 decision. Same situation as the active menu's "Change job active status".
 
-**The completed job's Mark-as / Create pair does not follow production yet.**
-Production splits the whole completed phase on `is_job_walk` — see the
-`completed-job-billing-actions` memory. The demo's `Job.type` is only
-`"new" | "recall"`, so there is no job walk to split on.
+**The completed job's billing buttons follow the NEW rule, not production's.**
+Production splits on `is_job_walk`; the updated design has no job type, so the
+job's parent decides (see "The completed bar" above).
 
 ## The PUBLIC view (2026-10-20)
 
@@ -304,7 +313,7 @@ designed yet.
 | Scheduling / Assignees | no Est. duration; names only, no tracked time or status |
 | Job properties | Job ID, Source, Source ID, Date received — no Branch (moved), no Received by (Daniel, 2026-10-20 — the node still draws it), no Created / Last modified |
 | Job contacts | existing contacts only, no module without any; menu = Preview · Copy email · Copy phone; the Contact panel opens in its public view |
-| Related | Created from (jobbed parent estimate) + Recall to only; no module without either |
+| Related | Created from (jobbed parent estimate) + Recall to only — no Recall, Converted into or Connected to; no module without a parent |
 | Service tab | no Priority, no Tech instructions; Equipment / Files only when not empty; Equipment rows end with a chevron and open the panel's public view |
 | Summary | Tech work + Signature — no Charges (not designed); Forms = public COMPLETED forms, flat, chevron, preview without a menu; Work summary only when written; no Notes to dispatcher(s) |
 
@@ -313,3 +322,10 @@ when the job was made from an estimate (`parentEstimateOf` — only a JOBBED
 estimate is a parent; an estimate awaiting approval was written FOR the job),
 and a parent estimate LOCKS the service location. The third parent, a series,
 cannot be checked: the db does not link jobs to series yet.
+
+**Related, 2026-11-25** (Figma "Related" Module / Overview 21780-13733): rows in
+the node's order — Created from · Recall · Recall to · **Converted into** (every
+invoice or estimate made from the job, DRAFTS included — the page passes them
+as `convertedInto`, because "Create invoice / estimate" adds one) · **Connected
+to** (POs whose `associatedJobIds` hold the job). "Belongs to" (the series) is
+not drawn — no series link in the db. The new rows open nothing yet.

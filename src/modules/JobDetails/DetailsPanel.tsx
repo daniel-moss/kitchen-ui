@@ -32,8 +32,9 @@ import SelectListItemGroup from "../../components/SelectList/SelectListItemGroup
 import HoverTooltip from "../../components/Tooltip/HoverTooltip";
 import ValueDisplay from "../../components/ValueDisplay/ValueDisplay";
 import ValueDisplayGroup from "../../components/ValueDisplay/ValueDisplayGroup";
-import { COMPANY, JOB_LABELS, clientContactById, jobById, jobLabelsOf, locationContactById, parentEstimateOf, recallOf } from "../../data/db";
+import { COMPANY, JOB_LABELS, PURCHASE_ORDERS, clientContactById, jobById, jobLabelsOf, locationContactById, parentEstimateOf, recallOf } from "../../data/db";
 import { AvatarEstimateStatus } from "../../components/Avatar/AvatarEstimate.types";
+import type { AvatarInvoiceStatus } from "../../components/Avatar/AvatarInvoice.types";
 import AvatarEstimate from "../../components/Avatar/AvatarEstimate";
 import SourceAvatar from "../../content/sources";
 
@@ -81,6 +82,11 @@ import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 // built — the pencil buttons are display-only (noop). All values are the
 // Figma demo values.
 
+/** An invoice or estimate made from the job, with the status its avatar shows. */
+export type ConvertedObject =
+  | { kind: "invoice"; id: string; status: AvatarInvoiceStatus }
+  | { kind: "estimate"; id: string; status: string };
+
 interface DetailsPanelProps {
   /** Mobile presentation: contact menus open as drawers. */
   mobile?: boolean;
@@ -115,6 +121,12 @@ interface DetailsPanelProps {
   recallTo?: string | null;
   /** Opens the recalled job — the Related row navigates to it in the same tab. */
   onOpenJob?: (id: string) => void;
+  /**
+   * Every invoice or estimate made from the job — the Related "Converted
+   * into" rows, drafts included. The page owns the list, because "Create
+   * invoice / estimate" adds a draft to it. Default none.
+   */
+  convertedInto?: ConvertedObject[];
   /** The job's service location (owned by the shell — it clears the equipment on change). */
   location: JobLocation;
   onLocationChange: (next: JobLocation) => void;
@@ -373,11 +385,10 @@ const EmptyContactRow = ({ label, onAdd, locked = false }: { label: string; onAd
 
 // ---- Related ----------------------------------------------------------------
 
-// Related rows: only "Recall to", mirroring the job picked in the Service
-// module (Daniel, 2026-07-22: Belongs to / Converted into / Connected to /
-// Recall removed; 2026-07-28: the "Created from" estimate removed too — the
-// demo job has NO parent objects, so the Location module's edit rule makes
-// sense). The whole module hides when no recall job is set.
+// Related rows (Figma "Related" Module / Overview 21780-13733, 2026-11-25): in
+// the node's order — Belongs to, Created from, Recall, Recall to, Converted
+// into, Connected to — each only if it exists. "Belongs to" (the job's
+// series) is not drawn: the demo db does not link a job to its series yet.
 
 // ---- Labels ------------------------------------------------------------------
 
@@ -398,7 +409,7 @@ const LABEL_POOL: string[] = JOB_LABELS.map((label) => label.name);
 
 // ---- the panel ---------------------------------------------------------------
 
-export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, onReschedule, assignees, onAssigneesChange, assigneeStats, job, locked = false, isPublicView = false, companyHasLogo = true, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob }: DetailsPanelProps) {
+export default function DetailsPanel({ mobile = false, scheduling, onSchedulingChange, onReschedule, assignees, onAssigneesChange, assigneeStats, job, locked = false, isPublicView = false, companyHasLogo = true, recallTo = null, location, onLocationChange, locations, onAddLocation, equipmentCount, jobProperties, onJobPropertiesChange, jobSources, onCreateJobSource, lastModified, onJobChange, onContactChange, onLabelsChange, billing, onBillingChange, onOpenJob, convertedInto = [] }: DetailsPanelProps) {
   // ---- job contacts ----
   const [reporter, setReporter] = useState<JobContact | null>(INITIAL_REPORTER);
   const [supervisor, setSupervisor] = useState<JobContact | null>(INITIAL_SUPERVISOR);
@@ -1040,18 +1051,24 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
 
   // Public view: the client sees the job's PARENTS only — the estimate it was
   // created from and the job it recalls — never "Recall", the job that
-  // recalls this one. With neither, there is no module (the node's annotation).
+  // recalls this one, nor what was made from the job or ordered for it. With
+  // no parent, there is no module (the node's annotation).
   const shownRecalledBy = isPublicView ? undefined : recalledBy;
-  const hasRelated = parentEstimate != null || recallTo != null || shownRecalledBy != null;
+  const shownConverted = isPublicView ? [] : convertedInto;
+  const shownPOs = isPublicView ? [] : PURCHASE_ORDERS.filter((po) => po.associatedJobIds.includes(jobId));
+  const hasRelated =
+    parentEstimate != null || recallTo != null || shownRecalledBy != null || shownConverted.length > 0 || shownPOs.length > 0;
   const relatedBlock =
     isPublicView && !hasRelated ? null : (
     <>
       {/* Related — each row shown only if it exists: "Created from" is the
-          estimate this job was made from (back on 2026-10-20 — Daniel: only
-          when there IS a parent estimate), "Recall to" is the job THIS one
-          recalls (it mirrors the Service module's pick), "Recall" is the job
-          that recalls THIS one (Figma 24735-109840). With none, the module is
-          the caption-only EmptyState (Figma 21136-58230). */}
+          estimate this job was made from, "Recall" is the job that recalls
+          THIS one (Figma 24735-109840), "Recall to" is the job THIS one
+          recalls (it mirrors the Service module's pick), "Converted into" is
+          an invoice or estimate made from the job — drafts too, once saved
+          (the node's annotation) — and "Connected to" a purchase order
+          bought for it. With none, the module is the caption-only EmptyState
+          (Figma 21136-58230). */}
       <DisplayModule
         title="Related"
         content={
@@ -1069,17 +1086,6 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                   onClick={noop}
                 />
               )}
-              {recallTo != null && (
-                <ListItem
-                  variant="titleCaptionReversed"
-                  title={recallTo}
-                  caption="Recall to"
-                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recallTo)} />}
-                  slotRight={<ListItemSlotIcon icon="angle-right" />}
-                  isClickable
-                  onClick={() => onOpenJob?.(recallTo)}
-                />
-              )}
               {shownRecalledBy != null && (
                 <ListItem
                   variant="titleCaptionReversed"
@@ -1091,6 +1097,50 @@ export default function DetailsPanel({ mobile = false, scheduling, onSchedulingC
                   onClick={() => onOpenJob?.(shownRecalledBy.id)}
                 />
               )}
+              {recallTo != null && (
+                <ListItem
+                  variant="titleCaptionReversed"
+                  title={recallTo}
+                  caption="Recall to"
+                  avatar={<AvatarJob size="xl" status={jobAvatarStatus(recallTo)} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={() => onOpenJob?.(recallTo)}
+                />
+              )}
+              {/* The Invoice and Estimate pages are not built — these rows
+                  open nothing yet. */}
+              {shownConverted.map((object) => (
+                <ListItem
+                  key={object.id}
+                  variant="titleCaptionReversed"
+                  title={object.id}
+                  caption="Converted into"
+                  avatar={
+                    object.kind === "invoice" ? (
+                      <AvatarInvoice size="xl" status={object.status} />
+                    ) : (
+                      <AvatarEstimate size="xl" status={estimateAvatarStatus(object.status)} />
+                    )
+                  }
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={noop}
+                />
+              ))}
+              {/* The Purchase order page is not built — opens nothing yet. */}
+              {shownPOs.map((po) => (
+                <ListItem
+                  key={po.id}
+                  variant="titleCaptionReversed"
+                  title={po.id}
+                  caption="Connected to"
+                  avatar={<AvatarPO size="xl" status={po.status} />}
+                  slotRight={<ListItemSlotIcon icon="angle-right" />}
+                  isClickable
+                  onClick={noop}
+                />
+              ))}
             </div>
           ) : (
             <EmptyState caption="No related objects" />

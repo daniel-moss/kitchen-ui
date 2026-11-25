@@ -59,6 +59,7 @@ function readSaved(): CompanySettings {
     merged.subStatuses = { ...COMPANY_DEFAULTS.subStatuses, ...saved.subStatuses };
     merged.reasonHelpTexts = { ...COMPANY_DEFAULTS.reasonHelpTexts, ...saved.reasonHelpTexts };
     merged.checkInAfter = { ...COMPANY_DEFAULTS.checkInAfter, ...saved.checkInAfter };
+    merged.viewerPermissions = { ...COMPANY_DEFAULTS.viewerPermissions, ...saved.viewerPermissions };
     return structuredClone(merged) as unknown as CompanySettings;
   } catch {
     return structuredClone(COMPANY_DEFAULTS);

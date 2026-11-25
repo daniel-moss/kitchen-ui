@@ -21,6 +21,7 @@ import {
   QUICKBOOKS_ASSET_ACCOUNTS,
   QUICKBOOKS_COGS_ACCOUNTS,
   QuickbooksAccount,
+  ViewerPermissions,
 } from "../data/db";
 import useIsDesktop, { Breakpoint } from "../hooks/useIsDesktop";
 
@@ -71,6 +72,15 @@ const SUB_STATUS_ROWS: {
     label: "On hold sub-statuses",
     caption: "The Hold dialog asks for an on hold status",
   },
+];
+
+const VIEWER_PERMISSION_ROWS: { key: keyof ViewerPermissions; label: string; caption: string }[] = [
+  { key: "editJobsFull", label: "Edit jobs (full)", caption: 'Off: a completed job has no "Mark as invoiced" or "Mark as estimated"' },
+  { key: "createJobs", label: "Create jobs", caption: 'Off: no "Create recall"' },
+  { key: "createEstimates", label: "Create estimates", caption: 'Off: a completed job has no "Create estimate"' },
+  { key: "editEstimates", label: "Edit estimates", caption: 'Off: a completed job has no "Resume draft estimate"' },
+  { key: "createInvoices", label: "Create invoices", caption: 'Off: a completed job has no "Create invoice"' },
+  { key: "editInvoices", label: "Edit invoices", caption: 'Off: a completed job has no "Resume draft invoice"' },
 ];
 
 const JOB_ID_MODES: {
@@ -297,6 +307,37 @@ function SettingsForm({ mobile }: { mobile: boolean }) {
             }
           />
         )}
+      </FormModule>
+
+      {/* Estimates + invoices (Daniel, 2026-11-25): the two features behind a
+          completed job's billing actions. */}
+      <FormModule title="Estimates and invoices">
+        <ToggleItem
+          label="Estimates"
+          caption={'Off: a completed job has no "Create estimate" or "Resume draft estimate". "Mark as estimated" stays'}
+          checked={settings.featureEstimatesEnabled}
+          onChange={(event) => update({ featureEstimatesEnabled: event.target.checked })}
+        />
+        <ToggleItem
+          label="Invoices"
+          caption={'Off: a completed job has no "Create invoice" or "Resume draft invoice". "Mark as invoiced" stays'}
+          checked={settings.featureInvoicesEnabled}
+          onChange={(event) => update({ featureInvoicesEnabled: event.target.checked })}
+        />
+      </FormModule>
+
+      {/* The signed-in user's permissions (Daniel, 2026-11-25). Lorne is an
+          admin, so all of them are on by default. */}
+      <FormModule title="Viewer permissions" caption="What Lorne Riddle may do. Only the permissions the Demo reads are listed">
+        {VIEWER_PERMISSION_ROWS.map((row) => (
+          <ToggleItem
+            key={row.key}
+            label={row.label}
+            caption={row.caption}
+            checked={settings.viewerPermissions[row.key]}
+            onChange={(event) => update({ viewerPermissions: { ...settings.viewerPermissions, [row.key]: event.target.checked } })}
+          />
+        ))}
       </FormModule>
 
       <FormModule title="Time tracking">

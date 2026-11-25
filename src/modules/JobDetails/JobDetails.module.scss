@@ -231,6 +231,19 @@
   min-width: 0;
 }
 
+// The completed bar's mobile widths (Figma 24567-138760): `fill` takes the rest
+// of the row from its own width; `share` splits the row equally, but never
+// below its label — a label that does not fit half keeps its width.
+.fill {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.share {
+  flex: 1 1 0;
+  min-width: max-content;
+}
+
 // Marks an empty content area (Figma's violet placeholder fill).
 .placeholder {
   box-sizing: border-box;
@@ -286,13 +299,14 @@
 }
 
 // The pill: 40px tall, 8px corners, 12px side padding, 10px icon↔text gap,
-// lg/down shadow. Left-aligned 16px from the screen edge. It was a FULL-radius
+// lg/down shadow. Right-aligned 16px from the screen edge (moved from the left
+// by Daniel, 2026-11-23). It was a FULL-radius
 // pill with 16px sides until 2026-10-05 (Figma 24358-37536 / 24596-41067 /
 // 24357-35073 — all three states changed together).
 .pill {
   position: absolute;
   bottom: var(--size-3); // 12px above the action bar
-  left: var(--size-4); // 16px
+  right: var(--size-4); // 16px
   box-sizing: border-box;
   display: flex;
   gap: var(--size-2_5); // 10px

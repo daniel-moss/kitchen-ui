@@ -21,7 +21,7 @@ import JobDetails from "./JobDetails";
 
 const JOBS: Record<string, string> = {
   "JOB-1209": "Finalized",
-  "JOB-1204": "Completed",
+  "JOB-1218": "Completed",
   "JOB-1211": "Recall",
   "JOB-1206": "Created from an estimate",
   "JOB-1208": "On hold",

@@ -1740,6 +1740,27 @@ export interface ReasonHelpTexts {
   hold: string;
 }
 
+/**
+ * What the signed-in user may do — a trimmed mirror of production
+ * `UserPermissions`, holding only the levels the Demo reads. Each is a yes/no:
+ * production has NONE / RESTRICTED / FULL, and the Demo needs only the level
+ * the checked action asks for.
+ */
+export interface ViewerPermissions {
+  /** `jobs_edit_permission` FULL — "Mark as invoiced" / "Mark as estimated". */
+  editJobsFull: boolean;
+  /** `jobs_create_permission` — "Create recall". */
+  createJobs: boolean;
+  /** `estimates_create_permission` — "Create estimate". */
+  createEstimates: boolean;
+  /** `estimates_edit_permission` — "Resume draft estimate". */
+  editEstimates: boolean;
+  /** `invoices_create_permission` — "Create invoice". */
+  createInvoices: boolean;
+  /** `invoices_edit_permission` — "Resume draft invoice". */
+  editInvoices: boolean;
+}
+
 export interface CompanySettings {
   /**
    * The service company's own name — what the sidebar header carries (Daniel,
@@ -1910,6 +1931,25 @@ export interface CompanySettings {
    * backend on request, so the company cannot edit that list.
    */
   featureFormsEnabled: boolean;
+
+  // ---- estimates + invoices (added 2026-11-25) -----------------------------
+
+  /**
+   * Production `entitlement_estimates_enabled`. Off: a completed job offers no
+   * "Create estimate" and no "Resume draft estimate". "Mark as estimated"
+   * stays — a company may estimate in another tool (Daniel, 2026-11-25).
+   */
+  featureEstimatesEnabled: boolean;
+  /** Production `entitlement_invoices_enabled` — the same rule for invoices. */
+  featureInvoicesEnabled: boolean;
+
+  /**
+   * The SIGNED-IN USER's permissions — Demo-only. They belong to the user, not
+   * to the company, but they live here because the Demo settings page edits
+   * them together with the company's settings and saves them the same way.
+   * The demo viewer is an admin, so every one is on by default.
+   */
+  viewerPermissions: ViewerPermissions;
 
   // ---- inventory + product accounting (added 2026-10-17) -------------------
 

@@ -58,7 +58,8 @@ import { JobContact } from "./contacts";
 import { Billing } from "./BillingForm";
 import DetailsPanel from "./DetailsPanel";
 import { JobLocation, LOCATIONS } from "./jobData";
-import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, inventoryProductsOf, jobById, recallOf, subStatusesFor } from "../../data/db";
+import { chargesOf, chargesTotal, COMPANY, ESTIMATES, INVOICES, inventoryProductsOf, jobById, parentEstimateOf, recallOf, subStatusesFor, TODAY } from "../../data/db";
+import type { ConvertedObject } from "./DetailsPanel";
 import type { LaborItem } from "../../data/db/types";
 import { useCurrentJobId, CurrentJobIdProvider } from "./currentJob";
 import { seedActivity, seedLifecycle, seedSessions, seedSignature, seedEquipmentIds, seedEquipmentPool, seedJobState, seedLocation, seedScheduling } from "./jobSeed";
@@ -417,7 +418,7 @@ const DoneButtons = ({
       <Button size="lg" variant="ghost" leftIcon="paper-plane" className={grow} onClick={actions.onResendSummary}>
         Send summary
       </Button>
-      {!hasRecall && (
+      {!hasRecall && COMPANY.viewerPermissions.createJobs && (
         <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" className={grow} onClick={actions.onCreateRecall}>
           Create recall
         </Button>
@@ -460,6 +461,8 @@ interface JobActions {
   onCreateInvoice: () => void;
   onCreateEstimate: () => void;
   onCreateRecall: () => void;
+  /** "Resume draft invoice / estimate" — nothing opens yet: no form is built. */
+  onResumeDraft: () => void;
   /** Opens the "Download PDF" form — every Download PDF button and menu item. */
   onDownloadPdf: () => void;
 }
@@ -470,14 +473,172 @@ interface MenuTrigger {
   open: boolean;
 }
 
+/** A draft invoice or estimate made from the job — it keeps the job Completed. */
+interface DraftChild {
+  kind: "invoice" | "estimate";
+  id: string;
+}
+
+/** Which of a completed job's billing actions show. */
+interface BillingButtons {
+  createInvoice: boolean;
+  markInvoiced: boolean;
+  createEstimate: boolean;
+  markEstimated: boolean;
+  /** A draft the viewer may resume. Set, it is the ONLY billing button. */
+  resumeDraft: DraftChild["kind"] | null;
+}
+
+/**
+ * The completed-job billing rules (Daniel, 2026-11-24/25; Figma 24567-138760).
+ *
+ * - A job with a PARENT — made from an estimate, or a recall — gets the
+ *   invoice actions only: its pricing already happened. Any other job (no
+ *   parent, or a series job) gets both pairs.
+ * - "Create …" needs the feature on and the create permission. "Mark as …"
+ *   needs only full job edit: it is for work billed in another tool, so a
+ *   feature that is off does not hide it.
+ * - A DRAFT child replaces every billing action with "Resume draft …" (feature
+ *   on + the edit permission), and hides the other pair too. A saved child
+ *   finalizes the job, so it never reaches this bar.
+ *
+ * Reads `COMPANY` when called — the Demo settings change it at run time.
+ */
+const billingButtons = (hasParent: boolean, draft: DraftChild | null): BillingButtons => {
+  const can = COMPANY.viewerPermissions;
+  if (draft != null) {
+    const canResume =
+      draft.kind === "invoice"
+        ? COMPANY.featureInvoicesEnabled && can.editInvoices
+        : COMPANY.featureEstimatesEnabled && can.editEstimates;
+    return { createInvoice: false, markInvoiced: false, createEstimate: false, markEstimated: false, resumeDraft: canResume ? draft.kind : null };
+  }
+  return {
+    createInvoice: COMPANY.featureInvoicesEnabled && can.createInvoices,
+    markInvoiced: can.editJobsFull,
+    createEstimate: !hasParent && COMPANY.featureEstimatesEnabled && can.createEstimates,
+    markEstimated: !hasParent && can.editJobsFull,
+    resumeDraft: null,
+  };
+};
+
+/** One billing button of the completed bar. A `menu` button opens its own menu. */
+interface BillingSpec {
+  label: string;
+  icon?: string;
+  variant: "solid" | "subtle";
+  onClick?: () => void;
+  menu?: MenuTrigger;
+}
+
+/**
+ * A completed job's bar (Figma 24567-138760, every row of its four frames).
+ *
+ * Which buttons: when a row would hold more than two billing buttons, a pair
+ * folds into one menu button — both "Mark as" items into "Mark as ⌄" (subtle),
+ * then both "Create" items into "Create ⌄" (solid). "Mark as …" is subtle next
+ * to a Create button and solid without one; Create and Resume draft are solid.
+ *
+ * Desktop: the labelled "Actions" first, every button hugs, every button keeps
+ * its icon.
+ *
+ * Mobile — the widths are the frames' own (Daniel, 2026-11-25: follow Figma):
+ * - "Actions" alone fills the bar; with one button it hugs and the button fills.
+ * - With two billing buttons the bar has no room for the labelled "Actions",
+ *   so it becomes the icon-only ellipsis — EXCEPT when both are menu buttons
+ *   ("Mark as ⌄" + "Create ⌄" are short enough).
+ * - Two plain buttons share the rest EQUALLY and drop their icons; a label
+ *   that does not fit its half keeps its own width and the other button takes
+ *   the rest ("Mark as invoiced" 137 · "Mark as estimated" 154 in the node).
+ * - Next to a menu button the LAST button fills and the rest hug.
+ */
+const CompletedButtons = ({
+  billing,
+  actions,
+  markAsMenu,
+  createMenu,
+  actionsButton,
+  onMenu,
+  menuPressed,
+  mobile,
+}: {
+  billing: BillingButtons;
+  actions: JobActions;
+  markAsMenu: MenuTrigger;
+  createMenu: MenuTrigger;
+  actionsButton: (extraClass?: string) => ReactNode;
+  onMenu: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  menuPressed: boolean;
+  mobile: boolean;
+}) => {
+  const specs: BillingSpec[] = [];
+  if (billing.resumeDraft != null) {
+    const invoice = billing.resumeDraft === "invoice";
+    specs.push({
+      label: invoice ? "Resume draft invoice" : "Resume draft estimate",
+      icon: invoice ? "circle-dollar" : "clock",
+      variant: "solid",
+      onClick: actions.onResumeDraft,
+    });
+  } else {
+    const markCount = Number(billing.markInvoiced) + Number(billing.markEstimated);
+    const createCount = Number(billing.createInvoice) + Number(billing.createEstimate);
+    const markVariant = createCount > 0 ? "subtle" : "solid";
+    if (markCount === 2 && createCount > 0) {
+      specs.push({ label: "Mark as", variant: "subtle", menu: markAsMenu });
+    } else {
+      if (billing.markInvoiced) specs.push({ label: "Mark as invoiced", icon: "circle-dollar", variant: markVariant, onClick: actions.onMarkInvoiced });
+      if (billing.markEstimated) specs.push({ label: "Mark as estimated", icon: "clock", variant: markVariant, onClick: actions.onMarkEstimated });
+    }
+    if (createCount === 2 && markCount > 0) {
+      specs.push({ label: "Create", variant: "solid", menu: createMenu });
+    } else {
+      if (billing.createInvoice) specs.push({ label: "Create invoice", icon: "circle-dollar", variant: "solid", onClick: actions.onCreateInvoice });
+      if (billing.createEstimate) specs.push({ label: "Create estimate", icon: "clock", variant: "solid", onClick: actions.onCreateEstimate });
+    }
+  }
+
+  const twoPlain = specs.length === 2 && specs.every((spec) => spec.menu == null);
+  const iconOnlyActions = mobile && specs.length === 2 && !specs.every((spec) => spec.menu != null);
+  const widthClass = (index: number) => {
+    if (!mobile) return undefined;
+    if (twoPlain) return styles.share;
+    return index === specs.length - 1 ? styles.fill : undefined;
+  };
+
+  return (
+    <>
+      {iconOnlyActions ? (
+        <IconButton icon="ellipsis" variant="ghost" size="lg" aria-label="Actions" isPressed={menuPressed} onClick={onMenu} />
+      ) : (
+        actionsButton(mobile && specs.length === 0 ? styles.fill : undefined)
+      )}
+      {specs.map((spec, index) => (
+        <Button
+          key={spec.label}
+          size="lg"
+          variant={spec.variant}
+          leftIcon={spec.menu == null && !(mobile && twoPlain) ? spec.icon : undefined}
+          rightIcon={spec.menu != null ? "angle-down" : undefined}
+          className={widthClass(index)}
+          isPressed={spec.menu?.open}
+          noDebounce={spec.menu != null}
+          onClick={spec.menu != null ? spec.menu.onActions : spec.onClick}
+        >
+          {spec.label}
+        </Button>
+      ))}
+    </>
+  );
+};
+
 // The primary-actions row. Every status opens with the same ghost "Actions"
 // button (leading `ellipsis`) that opens the overflow menu, then its own
 // buttons:
 //   upcoming/pastDue → Start      unscheduled → Schedule
 //   active           → Complete   paused / held → Resume
-//   completed        → "Mark as" + "Create"   (Figma 24567-138761 / 138767)
-//   completed with a DRAFT child → "Actions" + Create recall (desktop only)
-//                      + Send summary (Figma 27348-25428 / 27348-25432)
+//   completed        → its billing buttons, 15 cases (CompletedButtons;
+//                      Figma 24567-138760)
 //   finalized        → NO Actions button and no menu: Send summary + Create
 //                      recall + Download PDF (DoneButtons; Figma 24568-141430)
 //   cancelled        → NO Actions button and no menu: Download PDF IS the
@@ -490,7 +651,7 @@ const ActionButtons = ({
   markAsMenu,
   createMenu,
   hasRecall,
-  hasDraftChild,
+  billing,
   mobile = false,
 }: {
   status: JobStatus;
@@ -501,8 +662,8 @@ const ActionButtons = ({
   createMenu: MenuTrigger;
   /** The job already has a recall job — "Create recall" is hidden. */
   hasRecall: boolean;
-  /** A completed job has a DRAFT invoice or estimate made from it. */
-  hasDraftChild: boolean;
+  /** A completed job's billing buttons — see `billingButtons`. */
+  billing: BillingButtons;
   /**
    * The mobile ActionBar is a full-width row, so its buttons stretch. In the
    * desktop top bar they hug instead (Daniel, 2026-10-04).
@@ -540,58 +701,18 @@ const ActionButtons = ({
   if (status === "finalized") {
     return <DoneButtons actions={actions} hasRecall={hasRecall} mobile={mobile} />;
   }
-  // A completed job with a DRAFT invoice or estimate (Figma 27348-25428 /
-  // 27348-25432): the system already sees the child, but cannot finalize the
-  // job while that child is a draft, so "Mark as" and "Create" hide. The
-  // "Actions" menu stays. The phone bar fits two, so Create recall moves into
-  // the menu there.
-  if (status === "completed" && hasDraftChild) {
-    return (
-      <>
-        {actionsButton(grow)}
-        {!mobile && !hasRecall && (
-          <Button size="lg" variant="ghost" leftIcon="clock-rotate-left" onClick={actions.onCreateRecall}>
-            Create recall
-          </Button>
-        )}
-        <Button size="lg" variant="ghost" leftIcon="paper-plane" className={grow} onClick={actions.onResendSummary}>
-          Send summary
-        </Button>
-      </>
-    );
-  }
   if (status === "completed") {
-    // All THREE share the mobile bar equally (Daniel, 2026-10-06) — the node
-    // draws "Actions" hugging at 96px, and he chose the even split instead, so
-    // the row matches every other status. Both other buttons OPEN A MENU, so
-    // each holds its pressed look while its menu shows (the SidebarNav
-    // Create-button pattern).
     return (
-      <>
-        {actionsButton(grow)}
-        <Button
-          size="lg"
-          variant="solid"
-          rightIcon="angle-down"
-          className={grow}
-          isPressed={markAsMenu.open}
-          noDebounce
-          onClick={markAsMenu.onActions}
-        >
-          Mark as
-        </Button>
-        <Button
-          size="lg"
-          variant="solid"
-          rightIcon="angle-down"
-          className={grow}
-          isPressed={createMenu.open}
-          noDebounce
-          onClick={createMenu.onActions}
-        >
-          Create
-        </Button>
-      </>
+      <CompletedButtons
+        billing={billing}
+        actions={actions}
+        markAsMenu={markAsMenu}
+        createMenu={createMenu}
+        actionsButton={actionsButton}
+        onMenu={onMenu}
+        menuPressed={menuPressed}
+        mobile={mobile}
+      />
     );
   }
   if (status === "unscheduled") {
@@ -686,7 +807,6 @@ const jobActionMenuItems = ({
   onClose,
   hasRecall,
   hasDraftChild,
-  mobile = false,
 }: {
   status: JobStatus;
   actions: JobActions;
@@ -695,35 +815,24 @@ const jobActionMenuItems = ({
   /** The job already has a recall job — "Create recall" is hidden. */
   hasRecall: boolean;
   /**
-   * A completed job has a DRAFT invoice or estimate: Send summary (and, on
-   * desktop, Create recall) are bar buttons, so the menu drops them.
+   * A completed job has a DRAFT invoice or estimate — "Resume" hides.
    */
   hasDraftChild: boolean;
-  /**
-   * A completed job's last group lists Send summary and Create recall in a
-   * different order per breakpoint (Figma 24567-138774 vs 24567-138776).
-   */
-  mobile?: boolean;
 }) => {
   const pdfGroup = <MenuItemGroup>{pdfMenuItem(onClose, actions)}</MenuItemGroup>;
   const sendSummary = <MenuItem label="Send summary" slotLeft={slot("paper-plane")} onClick={actions.onResendSummary} />;
   const reschedule = <MenuItem label="Reschedule" slotLeft={slot("calendar-lines-pen")} onClick={actions.onReschedule} />;
   const hold = <MenuItem label="Hold" slotLeft={slot("circle-stop", "solid", "var(--crimson-a9)")} onClick={actions.onHold} />;
-  // A completed job (Figma 24567-138776 desktop / 24567-138774 mobile): two
-  // status actions, then recall / summary / PDF. The Create and Mark-as
-  // actions are NOT here — each has its own button in the bar.
+  // A completed job (Figma 24567-138776 desktop / 24567-138774 mobile — one
+  // order on both since 2026-11-25): two status actions, then Create recall,
+  // Send summary, Download PDF. The billing actions are NOT here — they are
+  // the bar's buttons.
   //
-  // With a DRAFT child (Figma 27348-28422 desktop / 27348-28420 mobile) the
-  // last group keeps only what the bar does not show: Download PDF, and on
-  // mobile Create recall before it.
-  //
-  // Resume is annotated "only shown if there is no invoice or estimate
-  // created out of this job" — but a non-draft child finalizes the job, so on
-  // a completed job the item always shows (the draft frames draw it too).
+  // Resume hides while a DRAFT invoice or estimate exists (the node's
+  // annotation; production gates it the same way): a saved child finalizes
+  // the job, so on a completed job only a draft can be that child.
+  // Create recall needs the create-jobs permission too.
   if (status === "completed") {
-    const recall = !hasRecall && (
-      <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
-    );
     return (
       <>
         <MenuItemGroup>
@@ -732,17 +841,15 @@ const jobActionMenuItems = ({
             slotLeft={slot("circle-check", "solid", "var(--orange-a9)")}
             onClick={actions.onChangeCompleted}
           />
-          <MenuItem label="Resume" slotLeft={slot("circle-play", "solid", "var(--jade-a9)")} onClick={actions.onResume} />
+          {!hasDraftChild && (
+            <MenuItem label="Resume" slotLeft={slot("circle-play", "solid", "var(--jade-a9)")} onClick={actions.onResume} />
+          )}
         </MenuItemGroup>
         <MenuItemGroup>
-          {hasDraftChild ? (
-            mobile && recall
-          ) : (
-            <>
-              {mobile ? sendSummary : recall}
-              {mobile ? recall : sendSummary}
-            </>
+          {!hasRecall && COMPANY.viewerPermissions.createJobs && (
+            <MenuItem label="Create recall" slotLeft={slot("clock-rotate-left")} onClick={actions.onCreateRecall} />
           )}
+          {sendSummary}
           {pdfMenuItem(onClose, actions)}
         </MenuItemGroup>
       </>
@@ -1233,7 +1340,7 @@ const SessionBar = ({
   );
 };
 
-// The MOBILE session pill — floats 12px above the action bar, left-aligned,
+// The MOBILE session pill — floats 12px above the action bar, right-aligned,
 // on every status but Unscheduled / Cancelled. Running session: tomato pill
 // with the solid status icon + live time (tap → the session drawer — Figma
 // 24191-72816). Idle on an ACTIVE job: amber warning "Check in" pill
@@ -1494,15 +1601,44 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // 27348-25494). Seeded from the db; "Create recall" makes one, so it hides
   // right after.
   const [hasRecall, setHasRecall] = useState(() => recallOf(record.id) != null);
-  // A DRAFT invoice or estimate made from the job (Figma 27348-25428): a
-  // completed job then shows the finished bar, without "Mark as" / "Create".
-  // Seeded from the db; "Create invoice" / "Create estimate" stand for saving
-  // one as a draft, since no form opens yet.
-  const [hasDraftChild, setHasDraftChild] = useState(
-    () =>
-      INVOICES.some((i) => i.jobId === record.id && i.status === "draft") ||
-      ESTIMATES.some((e) => e.jobId === record.id && e.status === "draft"),
-  );
+  // A DRAFT invoice or estimate made from the job: a completed job then shows
+  // only "Resume draft …" (Figma 24567-138760). Seeded from the db; "Create
+  // invoice" / "Create estimate" stand for saving one as a draft with a new
+  // id, since no form opens yet.
+  const [draftChild, setDraftChild] = useState<DraftChild | null>(() => {
+    const invoice = INVOICES.find((row) => row.jobId === record.id && row.status === "draft");
+    if (invoice != null) return { kind: "invoice", id: invoice.id };
+    const estimate = ESTIMATES.find((row) => row.jobId === record.id && row.status === "draft");
+    return estimate != null ? { kind: "estimate", id: estimate.id } : null;
+  });
+  const createDraft = (kind: DraftChild["kind"]) => {
+    // The next free number of the table — "INV-3165", "EST-2265".
+    const ids = (kind === "invoice" ? INVOICES : ESTIMATES).map((row) => Number(row.id.split("-")[1]));
+    setDraftChild({ kind, id: `${kind === "invoice" ? "INV" : "EST"}-${Math.max(...ids) + 1}` });
+  };
+  // The Related module's "Converted into" rows: every invoice or estimate made
+  // from the job (an estimate the job was made FROM is its parent, not a
+  // child), plus a draft "created" in this session.
+  const convertedInto = useMemo<ConvertedObject[]>(() => {
+    const rows: ConvertedObject[] = [
+      ...INVOICES.filter((row) => row.jobId === record.id).map((row) => ({
+        kind: "invoice" as const,
+        id: row.id,
+        status: row.status === "outstanding" && new Date(row.dueAt) < TODAY ? ("overdue" as const) : row.status,
+      })),
+      ...ESTIMATES.filter((row) => row.jobId === record.id && row.status !== "jobbed").map((row) => ({
+        kind: "estimate" as const,
+        id: row.id,
+        status: row.status,
+      })),
+    ];
+    if (draftChild != null && !rows.some((row) => row.id === draftChild.id)) rows.push({ ...draftChild, status: "draft" });
+    return rows;
+  }, [record.id, draftChild]);
+  // A PARENT — the estimate the job was made from, or the job it recalls —
+  // limits a completed job to the invoice actions. The recall is the Service
+  // module's live value, so changing the type there updates the bar.
+  const hasParentEstimate = parentEstimateOf(record.id) != null;
   // The Activity tab: how long the job has been in the "Active" status.
   const lifecycle = useJobLifecycle(job, scheduling, seedLifecycle(record));
   const [startOpen, setStartOpen] = useState(false);
@@ -1531,8 +1667,8 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // from "Resend summary" on a completed / finalized job.
   const [sendSummaryOpen, setSendSummaryOpen] = useState(false);
   const [downloadPdfOpen, setDownloadPdfOpen] = useState(false);
-  // The job was made from an estimate — the Download PDF form offers its PDF.
-  const hasParentEstimate = ESTIMATES.some((e) => e.jobId === record.id && e.status === "jobbed");
+  // (`hasParentEstimate`, above, also makes the Download PDF form offer the
+  // estimate's PDF.)
   // HOW it was opened: the Complete flow hands over to it (leading button
   // "Skip" — it is a step of that flow), or the user asked for it themselves
   // through "Resend summary" (leading button "Cancel").
@@ -2480,12 +2616,15 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     onCreateInvoice: () => {
       closeActionMenus();
       logCreatedFrom("invoice");
-      setHasDraftChild(true);
+      createDraft("invoice");
     },
     onCreateEstimate: () => {
       closeActionMenus();
       logCreatedFrom("estimate");
-      setHasDraftChild(true);
+      createDraft("estimate");
+    },
+    onResumeDraft: () => {
+      closeActionMenus();
     },
     onCreateRecall: () => {
       closeActionMenus();
@@ -2501,7 +2640,11 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   return {
     jobId: record.id,
     hasRecall,
-    hasDraftChild,
+    draftChild,
+    // Read at every render: the Demo settings and the Service module's type
+    // can change it.
+    billingButtons: billingButtons(hasParentEstimate || serviceValues.type === "recall", draftChild),
+    convertedInto,
     charges,
     chargesSubtotal,
     actionMenu,
@@ -2924,7 +3067,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
               markAsMenu={s.markAsMenu}
               createMenu={s.createMenu}
               hasRecall={s.hasRecall}
-              hasDraftChild={s.hasDraftChild}
+              billing={s.billingButtons}
             />
             )
           }
@@ -3020,7 +3163,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
             <DetailsPanel isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule} onReschedule={() => s.setRescheduleOpen(true)}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} convertedInto={s.convertedInto} />
           </ScrollArea>
         </div>
       {/* The actions overflow menu card — it leads with Download PDF on every
@@ -3029,7 +3172,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
       {s.actionMenu.pos != null && (
         <div ref={s.actionMenu.cardRef} className={styles.contextMenu} style={{ left: s.actionMenu.pos.left, top: s.actionMenu.pos.top }}>
           <Menu open={s.actionMenu.open} onClose={s.actionMenu.close} breakpoint="desktop">
-            {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.hasDraftChild })}
+            {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.draftChild != null })}
           </Menu>
         </div>
       )}
@@ -3249,7 +3392,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
           <DetailsPanel mobile isPublicView={isPublicView} companyHasLogo={companyHasLogo} scheduling={s.scheduling} onSchedulingChange={s.confirmSchedule} onReschedule={() => s.setRescheduleOpen(true)}
           assignees={s.assignees}
           onAssigneesChange={s.changeAssignees}
-          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} />
+          assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} convertedInto={s.convertedInto} />
             ) : t === "service" ? (
               <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
             ) : t === "timesheet" ? (
@@ -3333,7 +3476,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
           markAsMenu={s.markAsMenu}
           createMenu={s.createMenu}
           hasRecall={s.hasRecall}
-          hasDraftChild={s.hasDraftChild}
+          billing={s.billingButtons}
           mobile
         />
         )}
@@ -3355,7 +3498,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
         drawerHeader={<JobMenuHeader />}
         breakpoint="mobile"
       >
-        {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.hasDraftChild, mobile: true })}
+        {jobActionMenuItems({ status: s.job.status, actions: s.actions, onClose: s.actionMenu.close, hasRecall: s.hasRecall, hasDraftChild: s.draftChild != null })}
       </Menu>
       {/* A completed job's two button menus become drawers on mobile, under the
           same job header as the overflow menu (Figma 24590-203977 / 24590-204300). */}

@@ -945,7 +945,10 @@ const JOBS_AT_ANCHOR: Job[] = [
     locationId: "harbour-pier",
     serviceId: "ice-machine",
     serviceName: "Ice machine descale",
-    status: "completed",
+    // FINALIZED (2026-11-25, was "completed"): it has a saved invoice, and a
+    // saved invoice finalizes its job — only a DRAFT child leaves a job
+    // Completed.
+    status: "finalized",
     priority: 4,
     scheduledFor: "2026-08-20T07:00:00",
     durationMinutes: 60,
@@ -956,9 +959,11 @@ const JOBS_AT_ANCHOR: Job[] = [
     branchId: "san-francisco",
     sourceId: "direct",
     receivedAt: "2026-08-14T09:45:00",
-    // Completed on the visit; invoiced the next day (INV-3101, Aug 21).
-    statusChangedAt: "2026-08-20T08:10:00",
-    lastModifiedAt: "2026-08-21T09:00:00",
+    // Completed on the visit; invoiced the next day (INV-3101, Aug 21), which
+    // finalized it.
+    statusChangedAt: "2026-08-21T10:00:00",
+    statusChangedById: 4,
+    lastModifiedAt: "2026-08-21T10:00:00",
   },
   {
     id: "JOB-1205",
@@ -1168,6 +1173,96 @@ const JOBS_AT_ANCHOR: Job[] = [
     statusChangedAt: "2026-09-03T13:45:00",
     lastModifiedAt: "2026-09-03T13:45:00",
   },
+  // ---- completed jobs for the billing actions (added 2026-11-25) -----------
+  // One completed job per case of the completed-job action rules (Figma
+  // 24567-138760): made from an estimate, a recall, and a draft invoice / a
+  // draft estimate waiting to be resumed.
+  {
+    // Made from the approved estimate EST-2263 — invoice actions only.
+    id: "JOB-1216",
+    locationId: "wildwood-airport",
+    serviceId: "walk-in-cooler",
+    serviceName: "Walk-in cooler compressor replacement",
+    status: "completed",
+    priority: 2,
+    scheduledFor: "2026-09-02T08:00:00",
+    durationMinutes: 240,
+    assigneeIds: [1, 3],
+    equipmentIds: ["eq-wa-walkin"],
+    labelIds: [],
+    type: "new",
+    branchId: "san-francisco",
+    sourceId: "direct",
+    receivedAt: "2026-08-24T10:00:00",
+    statusChangedAt: "2026-09-02T12:40:00",
+    statusChangedById: 1,
+    lastModifiedAt: "2026-09-02T12:40:00",
+  },
+  {
+    // A recall of JOB-1204 — the ice machine scaled up again. Invoice actions only.
+    id: "JOB-1217",
+    locationId: "harbour-pier",
+    serviceId: "ice-machine",
+    serviceName: "Ice machine descale",
+    status: "completed",
+    priority: 3,
+    scheduledFor: "2026-09-01T09:00:00",
+    durationMinutes: 60,
+    assigneeIds: [2],
+    equipmentIds: ["eq-hp-ice"],
+    labelIds: [],
+    type: "recall",
+    recallToId: "JOB-1204",
+    branchId: "san-francisco",
+    sourceId: "direct",
+    receivedAt: "2026-08-28T15:30:00",
+    statusChangedAt: "2026-09-01T10:05:00",
+    statusChangedById: 2,
+    lastModifiedAt: "2026-09-01T10:05:00",
+  },
+  {
+    // Its invoice INV-3164 was saved as a DRAFT — "Resume draft invoice".
+    id: "JOB-1218",
+    locationId: "bayside-commissary",
+    serviceId: "fryer-service",
+    serviceName: "Fryer service and calibration",
+    status: "completed",
+    priority: 3,
+    scheduledFor: "2026-09-03T07:30:00",
+    durationMinutes: 150,
+    assigneeIds: [1],
+    equipmentIds: ["eq-bc-fryer"],
+    labelIds: [],
+    type: "new",
+    branchId: "san-francisco",
+    sourceId: "direct",
+    receivedAt: "2026-08-27T09:15:00",
+    statusChangedAt: "2026-09-03T10:20:00",
+    statusChangedById: 1,
+    lastModifiedAt: "2026-09-03T11:00:00",
+  },
+  {
+    // An inspection whose repair quote EST-2264 was saved as a DRAFT — "Resume
+    // draft estimate".
+    id: "JOB-1219",
+    locationId: "northpoint-hotel",
+    serviceId: "hood-cleaning",
+    serviceName: "Grill hood inspection",
+    status: "completed",
+    priority: 4,
+    scheduledFor: "2026-09-03T13:00:00",
+    durationMinutes: 60,
+    assigneeIds: [1, 6],
+    equipmentIds: ["eq-np-hood"],
+    labelIds: [],
+    type: "new",
+    branchId: "san-francisco",
+    sourceId: "direct",
+    receivedAt: "2026-08-29T08:45:00",
+    statusChangedAt: "2026-09-03T14:10:00",
+    statusChangedById: 1,
+    lastModifiedAt: "2026-09-03T14:40:00",
+  },
   // ---- the mass of the jobs list (moved into the db 2026-09-11) ------------
   // The Filters prototype's 64-job table, formerly generated per prototype
   // (jobsData.ts, seeded mulberry32, seed 20260817) — MATERIALIZED here
@@ -1250,6 +1345,10 @@ const ESTIMATES_AT_ANCHOR: Estimate[] = [
   // Invoiced as INV-3104 (same 2,190.50 at North Point).
   { id: "EST-2203", locationId: "northpoint-hotel", equipmentIds: ["eq-np-walkin"], serviceId: "freezer-seal", serviceName: "Walk-in freezer door assembly", status: "invoiced", labelIds: ["replacement"], total: 2190.5, issuedAt: "2026-08-25T10:00:00", dueAt: "2026-09-24T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-27T14:10:00", statusChangedById: 3, lastModifiedAt: "2026-08-27T14:10:00", lastViewedAt: "2026-08-27T09:15:00" },
   // Won and turned into the quarterly service job (JOB-1206).
+  // The two billing-action estimates (2026-11-25): EST-2263 made JOB-1216
+  // (its parent), EST-2264 is a DRAFT written from JOB-1219 (its child).
+  { id: "EST-2263", locationId: "wildwood-airport", jobId: "JOB-1216", equipmentIds: ["eq-wa-walkin"], serviceId: "walk-in-cooler", serviceName: "Walk-in cooler compressor replacement", status: "jobbed", labelIds: ["replacement"], total: 3920.0, issuedAt: "2026-08-19T10:00:00", dueAt: "2026-09-18T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-08-24T10:00:00", statusChangedById: 1, lastModifiedAt: "2026-08-24T10:00:00", lastViewedAt: "2026-08-21T16:30:00" },
+  { id: "EST-2264", locationId: "northpoint-hotel", jobId: "JOB-1219", equipmentIds: ["eq-np-hood"], serviceId: "hood-cleaning", serviceName: "Hood exhaust fan replacement", status: "draft", labelIds: [], total: 2150.0, issuedAt: "2026-09-03T14:40:00", dueAt: "2026-10-03T17:00:00", downPayment: "notRequired", statusChangedAt: null, lastModifiedAt: "2026-09-03T14:40:00" },
   { id: "EST-2204", locationId: "bayside-commissary", jobId: "JOB-1206", equipmentIds: ["eq-bc-oven"], serviceId: "combi-oven", serviceName: "Combi oven annual contract", status: "jobbed", labelIds: ["contract-renewal", "preventive-plan"], total: 5400.0, issuedAt: "2026-07-18T09:00:00", dueAt: "2026-08-17T17:00:00", downPayment: "paid", statusChangedAt: "2026-08-05T11:00:00", statusChangedById: 5, lastModifiedAt: "2026-08-05T11:00:00", lastViewedAt: "2026-07-20T13:25:00" },
   { id: "EST-2205", locationId: "harbour-marina", serviceName: "Kitchen build-out consultation", status: "lost", labelIds: ["budgetary"], total: 8900.0, issuedAt: "2026-06-11T14:30:00", dueAt: "2026-07-11T17:00:00", downPayment: "notRequired", statusChangedAt: "2026-07-02T10:00:00", lastModifiedAt: "2026-07-02T10:00:00", lastViewedAt: "2026-06-15T16:45:00" },
   // Sent but never opened (no lastViewedAt) — the "Seen" column's gap.
@@ -2487,6 +2586,17 @@ export const COMPANY: CompanySettings = {
   inventoryLocations: INVENTORY_LOCATIONS.map((location) => ({ ...location })),
   // This company uses forms (its list: FORM_TEMPLATES).
   featureFormsEnabled: true,
+  // Both billing features are on, and the viewer (an admin) may do everything.
+  featureEstimatesEnabled: true,
+  featureInvoicesEnabled: true,
+  viewerPermissions: {
+    editJobsFull: true,
+    createJobs: true,
+    createEstimates: true,
+    editEstimates: true,
+    createInvoices: true,
+    editInvoices: true,
+  },
   quickbooksDefaultCogsAccountId: "qba-5010",
   quickbooksDefaultAssetAccountId: "qba-1300",
 };
@@ -2498,7 +2608,9 @@ export const COMPANY: CompanySettings = {
 // mass below them is materialized from `scripts/regenerate-db-rows.mjs
 // invoices 2026-09-04` (seed 20260914), the estimates mass's pattern.
 const INVOICES_AT_ANCHOR: Invoice[] = [
-  // Paid two weeks into its Net 15 — JOB-1204's completed ice-machine call.
+  // JOB-1218's invoice, saved as a DRAFT (2026-11-25) — the job stays Completed.
+  { id: "INV-3164", locationId: "bayside-commissary", jobId: "JOB-1218", equipmentIds: ["eq-bc-fryer"], serviceId: "fryer-service", serviceName: "Fryer service and calibration", status: "draft", labelIds: [], total: 485.0, amountPaid: 0, issuedAt: "2026-09-03T11:00:00", dueAt: "2026-09-18T17:00:00", statusChangedAt: null, lastModifiedAt: "2026-09-03T11:00:00" },
+  // Paid two weeks into its Net 15 — JOB-1204's ice-machine call.
   { id: "INV-3101", locationId: "harbour-pier", jobId: "JOB-1204", equipmentIds: ["eq-hp-ice"], serviceId: "ice-machine", serviceName: "Ice machine descale", status: "paid", labelIds: [], total: 320.0, amountPaid: 320.0, issuedAt: "2026-08-21T10:00:00", dueAt: "2026-09-05T17:00:00", statusChangedAt: "2026-09-02T10:30:00", statusChangedById: 4, lastModifiedAt: "2026-09-02T10:30:00", lastViewedAt: "2026-08-30T14:00:00" },
   // Its Net 30 ran out on Aug 31, so the badge reads OVERDUE (derived — the
   // stored status stays "outstanding"). The invoice that finalized JOB-1209.
