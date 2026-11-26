@@ -53,7 +53,6 @@ const TIME_FORMAT = new Intl.DateTimeFormat("en-US", {
  * Joined by "at" (Daniel, 2026-09-04): a date with its time is one compound
  * value, so it never uses the separator dot — and this string already holds
  * two commas, so a third would blur; "at" is the style guides' other joiner.
- * FLAGGED: the Figma node still draws the old " ・ ".
  */
 export function exactTimestamp(date: Date): string {
   return `${DATE_FORMAT_WITH_YEAR.format(date)} at ${TIME_FORMAT.format(date)}`;

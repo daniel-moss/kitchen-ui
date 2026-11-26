@@ -1,0 +1,30 @@
+@use "../../styles/mixins/font" as *;
+
+// A text field's edit as one paragraph (Figma "Sublog" title=false — body/400
+// spacious, text-strong). Keeps the author's own line breaks.
+.root {
+  display: block;
+  white-space: pre-wrap;
+  color: var(--text-strong);
+
+  @include font("body-400-spacious"); // Inter Regular 14/22
+}
+
+// Words taken out — the same struck gray-a8 as every other removed value.
+.removed {
+  color: var(--gray-a8);
+  text-decoration: line-through;
+  text-decoration-skip-ink: none;
+}
+
+// Words put in. A background on the run itself, so a run that wraps paints one
+// box per line.
+.added {
+  background: var(--amber-a4);
+}
+
+// A replacement with no space between the two sides would run the struck word
+// straight into the highlighted one.
+.removed + .added {
+  margin-left: 2px;
+}

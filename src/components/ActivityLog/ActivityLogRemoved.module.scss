@@ -1,0 +1,15 @@
+@use "../../styles/mixins/font" as *;
+
+// A removed value: regular / gray-a8 / struck through. The value icon of an
+// ActivityLogValue inside reads `--activity-log-value-icon` first, so it drops
+// its own tint here. Icons and avatars sit in inline-flex boxes, so the line
+// never crosses them.
+.removed {
+  --activity-log-value-icon: var(--gray-a8);
+
+  color: var(--gray-a8);
+  text-decoration: line-through;
+  text-decoration-skip-ink: none;
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}

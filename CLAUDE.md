@@ -642,6 +642,10 @@ but flag them). Check `src/**/*.mdx` for the current list of built pages —
   `storybook-component-doc` skill (`.claude/skills/` one level up) — the
   procedure, the block-by-block mapping, and the rule that Figma prose carries
   no numbers while mdx prose carries token + px.
+- **Docs spacing is padding, not margin:** `storybook-docs.css` zeroes every
+  block's margin with `!important`, so a gap needs its own `!important` rule.
+  A markdown table straight after a preview gets 80px (`--size-20`) that way
+  — the standard section-end spacer, without its divider (Daniel, 2026-11-26).
 - **Props-table gotcha:** `<ArgTypes>` is fed by react-docgen, which CANNOT
   read JSDoc off a **union** props type — it renders an empty table (no
   descriptions, no types). When `<Name>Props` is a union (ListItem's variant

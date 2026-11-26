@@ -1,12 +1,15 @@
 import ActivityLog from "../../components/ActivityLog/ActivityLog";
 import ActivityLogGroup from "../../components/ActivityLog/ActivityLogGroup";
 import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
-import Em from "../../components/ActivityLog/ActivityLogEmphasis";
+import Muted from "../../components/ActivityLog/ActivityLogRemoved";
+import ActivityLogSubtle from "../../components/ActivityLog/ActivityLogSubtle";
+import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
+import ActivityLogValue from "../../components/ActivityLog/ActivityLogValue";
 import AvatarUser from "../../components/Avatar/AvatarUser";
 import { Icon } from "../../components/Icon/Icon";
 
 import { ActivityEvent, ValueIcon } from "./activityEvents";
-import ActivityUpdateLog, { Muted, PeopleValue, PersonValue, ReasonSubLog, ValueGlyph } from "./ActivityUpdateLog";
+import ActivityUpdateLog, { glyph, PeopleValue, PersonValue } from "./ActivityUpdateLog";
 // The Activity tab renders CONCEPT 1 of the Job lifecycle module; the other
 // four live beside it in ./JobLifecycleModule/ and take the same props, so
 // any of them can be swapped in here to try it (Daniel, 2026-08-07).
@@ -15,6 +18,9 @@ import { LifecycleRow } from "./jobState";
 import { categoryIcon } from "./TimesheetPanel";
 
 import styles from "./ActivityPanel.module.scss";
+
+// The connecting words of a log sentence — the sentence itself is strong.
+const S = ActivityLogSubtle;
 
 const MONTH_LABEL = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
 
@@ -28,16 +34,17 @@ const EquipmentText = ({ event }: { event: ActivityEvent }) => {
   const removed = event.removed ?? [];
   return (
     <>
-      <Em>{event.user.name}</Em>{" "}
+      {event.user.name}
       {added.length > 0 && (
         <>
-          added equipment <Em>{added.join(", ")}</Em>
+          <S> added equipment </S>
+          {added.join(", ")}
         </>
       )}
-      {added.length > 0 && removed.length > 0 && " "}
       {removed.length > 0 && (
         <>
-          {added.length > 0 ? "and removed" : "removed"} equipment <Muted>{removed.join(", ")}</Muted>
+          <S> {added.length > 0 ? "and removed" : "removed"} equipment </S>
+          <Muted>{removed.join(", ")}</Muted>
         </>
       )}
     </>
@@ -60,7 +67,9 @@ const ContactText = ({ event }: { event: ActivityEvent }) => {
     // 24487-43423) — the role alone did not say who was taken off.
     return (
       <>
-        <Em>{event.user.name}</Em> removed <Em>{event.role}:</Em>
+        {event.user.name}
+        <S> removed </S>
+        {event.role}:
         <Muted>
           <PersonValue name={before ?? ""} avatar={event.contactBeforeAvatar ?? ""} />
         </Muted>
@@ -70,24 +79,23 @@ const ContactText = ({ event }: { event: ActivityEvent }) => {
   if (before == null) {
     return (
       <>
-        <Em>{event.user.name}</Em> added{" "}
-        <Em>
-          {event.role}:
-          <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
-        </Em>
+        {event.user.name}
+        <S> added </S>
+        {event.role}:
+        <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
       </>
     );
   }
   return (
     <>
-      <Em>{event.user.name}</Em> updated <Em>{event.role}:</Em>
+      {event.user.name}
+      <S> updated </S>
+      {event.role}:
       <Muted>
         <PersonValue name={before} avatar={event.contactBeforeAvatar ?? ""} />
       </Muted>
-      <Em>
-        {" →"}
-        <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
-      </Em>
+      {" →"}
+      <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
     </>
   );
 };
@@ -102,16 +110,19 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
   const noun = (list: string[]) => (list.length === 1 ? "label" : "labels");
   return (
     <>
-      <Em>{event.user.name}</Em>{" "}
+      {event.user.name}
       {added.length > 0 && (
         <>
-          added {noun(added)} <Em>{added.join(", ")}</Em>
+          <S> added {noun(added)} </S>
+          {added.join(", ")}
         </>
       )}
-      {added.length > 0 && removed.length > 0 && " "}
       {removed.length > 0 && (
         <>
-          {added.length > 0 ? "and removed" : "removed"} {noun(removed)}{" "}
+          <S>
+            {" "}
+            {added.length > 0 ? "and removed" : "removed"} {noun(removed)}{" "}
+          </S>
           <Muted>{removed.join(", ")}</Muted>
         </>
       )}
@@ -138,25 +149,21 @@ const TIME_SYMBOLS: Partial<Record<ActivityEvent["kind"], string>> = {
 // status SWITCH does not, because that icon is already its symbol.
 const TimeStatusText = ({ event }: { event: ActivityEvent }) => (
   <>
-    <Em>{event.user.name}</Em>
+    {event.user.name}
     {event.kind === "checkout" ? (
-      " checked out"
+      <S> checked out</S>
     ) : event.kind === "checkin" && !event.status ? (
       // Checked in with no status — the company has the tech statuses off.
-      " checked in"
+      <S> checked in</S>
     ) : event.kind === "checkin" ? (
       <>
-        {" "}
-        checked in with status
-        <Em>
-          <ValueGlyph icon={statusIcon(event.status)} />
-          {event.status}
-        </Em>
+        <S> checked in with status</S>
+        <ActivityLogValue icon={glyph(statusIcon(event.status))}>{event.status ?? ""}</ActivityLogValue>
       </>
     ) : (
       <>
-        {" "}
-        changed status to <Em>{event.status}</Em>
+        <S> changed status to </S>
+        {event.status}
       </>
     )}
   </>
@@ -166,23 +173,25 @@ const TimeStatusText = ({ event }: { event: ActivityEvent }) => (
 // range. The icon goes in front of the status only in the SESSION logs (Daniel,
 // 2026-08-05) — their timeline glyph is the stopwatch, so nothing repeats; the
 // check-in / status logs already carry that icon as their symbol.
-export const SessionValue = ({ status, range, muted = false }: { status?: string; range?: string; muted?: boolean }) => (
-  <>
-    <ValueGlyph icon={statusIcon(status)} muted={muted} />
+// Inside ActivityLogRemoved (a deleted session) the icon turns gray-a8 by
+// itself. `isLeading` when a plain space already sits before it.
+export const SessionValue = ({ status, range, isLeading = false }: { status?: string; range?: string; isLeading?: boolean }) => (
+  <ActivityLogValue icon={glyph(statusIcon(status))} isLeading={isLeading}>
     {/* No status (the company has the tech statuses off) → the range alone. */}
-    {status ? `${status}: ` : ""}
-    {range}
-  </>
+    {`${status ? `${status}: ` : ""}${range ?? ""}`}
+  </ActivityLogValue>
 );
 
 // A session added or deleted: the whole session is the value, so the added one
 // is emphasised and the deleted one is struck through.
 const SessionText = ({ event }: { event: ActivityEvent }) => {
   const deleted = event.kind === "sessionDeleted";
-  const value = <SessionValue status={event.status} range={event.sessionRange} muted={deleted} />;
+  const value = <SessionValue status={event.status} range={event.sessionRange} />;
   return (
     <>
-      <Em>{event.user.name}</Em> {deleted ? "deleted" : "added"} time session{deleted ? <Muted>{value}</Muted> : <Em>{value}</Em>}
+      {event.user.name}
+      <S> {deleted ? "deleted" : "added"} time session</S>
+      {deleted ? <Muted>{value}</Muted> : value}
     </>
   );
 };
@@ -194,31 +203,29 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
   if (log == null) return null;
   return (
     <>
-      <Em>{event.user.name}</Em>
-      {log.text}
-      {log.label != null && <Em>{log.label}: </Em>}
+      {event.user.name}
+      <S>{log.text}</S>
+      {log.label != null && `${log.label}: `}
       {log.strikeValue != null && <Muted>{log.strikeValue}</Muted>}
       {log.people != null ? (
-        <Em>
-          <PeopleValue people={log.people} />
-        </Em>
+        <PeopleValue people={log.people} />
       ) : (
         log.value != null &&
         (log.valueLink ? (
-          <Em>
-            <span className={styles.link}>{log.value}</span>
-          </Em>
+          <span className={styles.link}>{log.value}</span>
+        ) : log.strikeValue != null ? (
+          ` → ${log.value}`
         ) : (
-          <Em>{log.strikeValue != null ? ` → ${log.value}` : log.value}</Em>
+          log.value
         ))
       )}
-      {log.tailText}
+      {log.tailText != null && <S>{log.tailText}</S>}
       {log.tailPeople != null ? (
         <Muted>
           <PeopleValue people={log.tailPeople} />
         </Muted>
       ) : (
-        log.tailValue != null && (log.tailStrike ? <Muted>{log.tailValue}</Muted> : <Em>{log.tailValue}</Em>)
+        log.tailValue != null && (log.tailStrike ? <Muted>{log.tailValue}</Muted> : log.tailValue)
       )}
     </>
   );
@@ -278,7 +285,7 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   date={event.date}
                   symbol={<Icon icon="stopwatch" size={14} />}
                   verb="updated time session"
-                  subject={<SessionValue status={event.status} range={event.sessionRange} />}
+                  subject={<SessionValue status={event.status} range={event.sessionRange} isLeading />}
                 />
               ) : event.kind === "checkin" || event.kind === "checkout" || event.kind === "status" ? (
                 <ActivityLogItem
@@ -322,7 +329,7 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   {/* undefined, not false — `false` would still read as a child
                       and open an empty accordion. */}
                   {event.jobStatus?.reason ? (
-                    <ReasonSubLog title={event.jobStatus.reasonTitle ?? "Reason"} value={event.jobStatus.reason} />
+                    <ActivityLogSubItem title={event.jobStatus.reasonTitle ?? "Reason"} caption={event.jobStatus.reason} />
                   ) : undefined}
                 </ActivityLogItem>
               ) : event.kind === "labels" ? (
@@ -357,7 +364,8 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   symbol={<AvatarUser size="xs" imageSrc={event.user.avatar} />}
                   text={
                     <>
-                      <Em>{event.user.name}</Em> created the job
+                      {event.user.name}
+                      <S> created the job</S>
                     </>
                   }
                   date={event.date}

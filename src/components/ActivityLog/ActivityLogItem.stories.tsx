@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import ActivityLogItem from "./ActivityLogItem";
 import ActivityLogSubItem from "./ActivityLogSubItem";
-import Em from "./ActivityLogEmphasis";
+import Subtle from "./ActivityLogSubtle";
 import { ActivityLogItemPosition } from "./ActivityLogItem.types";
 import AvatarUser from "../Avatar/AvatarUser";
 import Avatar from "../Avatar/Avatar";
@@ -34,7 +34,7 @@ const editSymbol = <Icon icon="pen" size={14} />;
 
 const editedText = (
   <>
-    <Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em>
+    Lorne Riddle<Subtle> edited </Subtle>Series end date → Jan 1, 2027
   </>
 );
 
@@ -101,7 +101,7 @@ export const Symbols: Story = {
             symbol={<AvatarUser size="xs" />}
             text={
               <>
-                <Em>Lorne Riddle</Em> created the job series
+                Lorne Riddle<Subtle> created the job series</Subtle>
               </>
             }
             date={ago(HOUR)}
@@ -116,7 +116,7 @@ export const Symbols: Story = {
             symbol={<Avatar shape="square" content="image" size="xs" />}
             text={
               <>
-                <Em>Cold storage unit</Em> was attached to the job
+                Cold storage unit<Subtle> was attached to the job</Subtle>
               </>
             }
             date={ago(HOUR)}
@@ -202,7 +202,7 @@ export const TextWraps: Story = {
         symbol={editSymbol}
         text={
           <>
-            <Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em>
+            Lorne Riddle<Subtle> edited </Subtle>Series end date → Jan 1, 2027
           </>
         }
         date={ago(24 * HOUR)}

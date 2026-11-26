@@ -1,0 +1,29 @@
+// A value icon inside a log line (DS doc "Log", value icons).
+
+// The 6px space before the icon. A separate inline-block, OUTSIDE the
+// unbreakable pair: the line can break between it and the pair, so a wrapped
+// icon starts its line flush and this space ends the line above, where it
+// shows nothing (Figma: the text before the icon carries the 6px "Text
+// Margins", the icon only its 6px on the right).
+.gap {
+  display: inline-block;
+  width: var(--size-1_5); // 6px
+}
+
+// The icon and the first word of its value never separate.
+.pair {
+  white-space: nowrap;
+}
+
+// One line tall (20px) with the 14px icon centred in it, sitting on the top of
+// the line box — the glyph lands on the line's optical centre on whichever
+// line it wraps to. inline-FLEX keeps a strikethrough from crossing it.
+.icon {
+  display: inline-flex;
+  align-items: center;
+  height: var(--size-5); // 20px = the compact line height
+  vertical-align: top;
+  margin-right: var(--size-1_5); // 6px — icon → value
+  color: var(--activity-log-value-icon, inherit);
+  text-decoration: none;
+}

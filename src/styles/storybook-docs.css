@@ -471,6 +471,15 @@
   border-collapse: collapse;
 }
 
+/* A table straight after a preview sits --size-20 (80px) below it — the
+   standard section-end spacer, without its divider (Daniel, 2026-11-26,
+   ActivityLog › States). A table takes no padding, so this is a margin, and
+   the !important beats the zero-margin rule on every block, like the
+   preview + preview rule. */
+.sbdocs .sbdocs-content > .sbdocs-preview + table:not(.docblock-argstable) {
+  margin-top: var(--size-20) !important; /* 80 */
+}
+
 /* A header cell is centered by default in HTML, which leaves it out of line
    with the column it labels. Every prose table here reads as a list, so the
    headers align left with their body cells. */

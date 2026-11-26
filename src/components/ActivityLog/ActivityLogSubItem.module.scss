@@ -1,12 +1,19 @@
 @use "../../styles/mixins/font" as *;
 
-// ActivityLogSubItem — one changed field inside an expanded log. A 20px icon
-// box + a two-line text block (field name over the value change).
+// ActivityLogSubItem — one detail inside an open log (Figma "Sublog"): a low
+// divider on top, 8px, then the content.
 .root {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2); // 8px — divider ↔ content
+  width: 100%;
+}
+
+// title = true: a 20px icon box + the field name over the change.
+.content {
   display: flex;
   align-items: flex-start;
   gap: var(--size-2); // 8px — icon ↔ text
-  width: 100%;
 }
 
 .icon {
@@ -24,7 +31,6 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .title {
@@ -33,23 +39,30 @@
   @include font("body-500-compact"); // Inter Medium 14/20
 }
 
+// The arrow and the new value are text-strong; only the old value differs.
 .caption {
-  color: var(--text-subtle);
+  color: var(--text-strong);
 
   @include font("body-400-compact"); // Inter Regular 14/20
 }
 
-// The replaced value — struck through, one step lighter than the caption.
+// title = false: the caption alone, as a paragraph.
+.captionSpacious {
+  color: var(--text-strong);
+
+  @include font("body-400-spacious"); // Inter Regular 14/22
+}
+
+// The replaced value — struck through in gray-a8, with its icon.
 .oldValue {
-  color: var(--gray-a9);
+  --activity-log-value-icon: var(--gray-a8);
+
+  color: var(--gray-a8);
   text-decoration: line-through;
   text-decoration-skip-ink: none;
 }
 
-// The new value carries the meaning, so it is emphasised. A CLEARED field has
-// no new value: "No value" then stays in the plain caption style.
-.newValue {
-  color: var(--gray-12);
-
-  @include font("body-500-compact");
+// A CLEARED field has no new value: "No value" stays subtle.
+.empty {
+  color: var(--text-subtle);
 }

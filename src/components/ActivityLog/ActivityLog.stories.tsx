@@ -1,63 +1,77 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import { CSSProperties, ReactNode } from "react";
 
 import ActivityLog from "./ActivityLog";
 import ActivityLogGroup from "./ActivityLogGroup";
 import ActivityLogItem from "./ActivityLogItem";
 import ActivityLogSubItem from "./ActivityLogSubItem";
-import Em from "./ActivityLogEmphasis";
+import ActivityLogTextChange from "./ActivityLogTextChange";
+import ActivityLogUpdate from "./ActivityLogUpdate";
+import ActivityLogValue from "./ActivityLogValue";
+import Subtle from "./ActivityLogSubtle";
+import Removed from "./ActivityLogRemoved";
+import { shortTimestamp } from "./timestamp";
 import AvatarUser from "../Avatar/AvatarUser";
 import Avatar from "../Avatar/Avatar";
 import { Icon } from "../Icon/Icon";
-import { cap, docsFrame } from "../../stories/helpers";
+import Tooltip from "../Tooltip/Tooltip";
+import { docsFrame, PSEUDO_ALL } from "../../stories/helpers";
 
-// Offsets from the real clock — the relative labels then read correctly and
-// still render identically on every screenshot run.
+// The previews copy the Figma Documentation page (24130-5398) preview by
+// preview: placeholder content ("Text", "N ago", diamonds-4, "Title") where
+// the page shows the structure, real sentences where it shows a case.
+
+// Offsets from the real clock — relative labels read correctly and render the
+// same on every screenshot run.
 const ago = (ms: number) => new Date(Date.now() - ms);
 const MIN = 60_000;
 const HOUR = 60 * MIN;
 const DAY = 24 * HOUR;
 
-const monthsAgo = (n: number) => {
-  const d = new Date();
-  d.setDate(1);
-  d.setMonth(d.getMonth() - n);
-  return d;
-};
-const yearsAgo = (n: number) => {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() - n);
-  return d;
-};
-
-// A given day of last month. Past a week a log shows its DATE, so the examples
-// have to sit in the month their group header names — set the day BEFORE the
-// month or a 31st would overflow into the wrong one.
-const lastMonthDay = (day: number, hour = 9) => {
+const MONTH_LABEL = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
+const thisMonth = () => MONTH_LABEL.format(new Date());
+const lastMonth = () => {
   const d = new Date();
   d.setDate(1);
   d.setMonth(d.getMonth() - 1);
-  d.setDate(day);
-  d.setHours(hour, 0, 0, 0);
-  return d;
+  return MONTH_LABEL.format(d);
 };
 
-const MONTH_LABEL = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
-const monthLabel = (d: Date) => MONTH_LABEL.format(d);
-const thisMonth = () => monthLabel(new Date());
-const lastMonth = () => monthLabel(lastMonthDay(1));
+const generic = <Icon icon="diamonds-4" size={14} />;
+const pen = <Icon icon="pen" size={14} />;
+const stopwatch = <Icon icon="stopwatch" size={14} />;
+const person = <AvatarUser size="xs" />;
 
-const userSymbol = <AvatarUser size="xs" />;
-const editSymbol = <Icon icon="pen" size={14} />;
+// The priority values the Figma previews use, with their real icons.
+const priorityMedium = <Icon icon="duotone-solid-priority-medium" pack="custom-duotone" size={14} container="fixedHeight" />;
+const priorityHigh = <Icon icon="solid-priority-high" pack="custom" size={14} container="fixedHeight" />;
 
-const created = (
+const createdJob = (
   <>
-    <Em>Lorne Riddle</Em> created the job series
+    Lorne Riddle<Subtle> created the job</Subtle>
   </>
 );
-const edited = (
+
+// The Anatomy / Cases sentence, written out by hand so each run can be seen.
+const prioritySentence = (
   <>
-    <Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em>
+    Lorne Riddle<Subtle> updated </Subtle>Priority:
+    <Removed>
+      <ActivityLogValue icon={priorityMedium}>Medium</ActivityLogValue>
+    </Removed>
+    {" →"}
+    <ActivityLogValue icon={priorityHigh}>High</ActivityLogValue>
   </>
+);
+
+const TEXT_BEFORE =
+  "Walk-in cooler is not holding temperature. Kitchen staff reported it climbing above 45°F overnight, and product is at risk. Please check the compressor first.";
+const TEXT_AFTER =
+  "Walk-in cooler is not holding temperature. Kitchen staff reported it climbing above 50°F overnight, and product is at risk. Please check the compressor and the door seal first.";
+
+/** A column of examples, 80px apart unless the Figma preview packs them. */
+const Stack = ({ children, gap = 0, style }: { children: ReactNode; gap?: number; style?: CSSProperties }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap, ...style }}>{children}</div>
 );
 
 const meta: Meta<typeof ActivityLog> = {
@@ -76,269 +90,413 @@ export const Hero: Story = {
     <div style={docsFrame}>
       <ActivityLog>
         <ActivityLogGroup label={thisMonth()}>
-          <ActivityLogItem
-            symbol={userSymbol}
-            text={
-              <>
-                <Em>Ava Chen</Em> created the visit
-              </>
-            }
-            date={ago(20 * MIN)}
+          <ActivityLogUpdate
+            person="Lorne Riddle"
+            changes={[{ label: "Service", oldValue: "Standard repair", newValue: "Cooler maintenance" }]}
+            date={ago(10_000)}
+          />
+          <ActivityLogUpdate
+            person="Lorne Riddle"
+            changes={[
+              {
+                label: "Scheduled for",
+                oldValue: "Monday, January 1, 2026 at 12:00 PM",
+                newValue: "Tuesday, January 2, 2026 at 12:00 PM",
+              },
+              { label: "Est. duration", oldValue: "1 hr 30 min", newValue: "2 hr" },
+            ]}
+            label="3d ago"
+            defaultOpen
           />
           <ActivityLogItem
-            symbol={editSymbol}
+            symbol={stopwatch}
             text={
               <>
-                <Em>Lorne Riddle</Em> edited 3 fields
+                Lorne Riddle<Subtle> updated time session </Subtle>
+                Working: Mon, Jan 1 at 11:30 AM → Mon, Jan 1 at 2:30 PM
               </>
             }
-            date={ago(5 * HOUR)}
-          >
-            <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-            <ActivityLogSubItem title="Repeat every" oldValue="2 weeks" newValue="1 week" />
-            <ActivityLogSubItem title="Repeat on" oldValue="Mon, Wed" newValue="Tue, Wed" />
-          </ActivityLogItem>
-        </ActivityLogGroup>
-
-        <ActivityLogGroup label={lastMonth()}>
-          <ActivityLogItem
-            symbol={editSymbol}
-            text={
-              <>
-                <Em>Ava Chen</Em> cleared <Em>Purchase order</Em>
-              </>
-            }
-            date={lastMonthDay(20, 11)}
-          >
-            <ActivityLogSubItem title="Purchase order" oldValue="PO-10241" />
-          </ActivityLogItem>
-          <ActivityLogItem symbol={editSymbol} text={edited} date={lastMonthDay(12, 14)}>
-            <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-          </ActivityLogItem>
-          <ActivityLogItem symbol={userSymbol} text={created} date={lastMonthDay(8)} />
+            label="3d ago"
+          />
+          <ActivityLogItem symbol={person} text={createdJob} label="4d ago" />
         </ActivityLogGroup>
       </ActivityLog>
     </div>
   ),
 };
 
-export const Playground: Story = { ...Hero };
+export const Playground: Story = { ...Hero, parameters: { layout: "centered" } };
 
-// ---- log group ----------------------------------------------------------
+// ---- anatomy ------------------------------------------------------------
 
-export const GroupAccordion: Story = {
-  render: () => (
-    <div style={docsFrame}>
-      <ActivityLog>
-        <ActivityLogGroup label={thisMonth()}>
-          <ActivityLogItem symbol={userSymbol} text={created} date={ago(20 * MIN)} />
-          <ActivityLogItem symbol={editSymbol} text={edited} date={ago(3 * HOUR)}>
-            <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-          </ActivityLogItem>
-        </ActivityLogGroup>
-        <ActivityLogGroup label={lastMonth()} defaultOpen={false}>
-          <ActivityLogItem symbol={userSymbol} text={created} date={lastMonthDay(8)} />
-        </ActivityLogGroup>
-      </ActivityLog>
-    </div>
-  ),
-};
-
-// ---- log stack ----------------------------------------------------------
-
-export const LogStack: Story = {
+export const AnatomyGroup: Story = {
   render: () => (
     <div style={docsFrame}>
       <ActivityLogGroup label={thisMonth()}>
-        <ActivityLogItem symbol={editSymbol} text={edited} date={ago(HOUR)} />
-        <ActivityLogItem symbol={editSymbol} text={edited} date={ago(3 * HOUR)} />
-        <ActivityLogItem symbol={editSymbol} text={edited} date={ago(5 * HOUR)} />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
       </ActivityLogGroup>
     </div>
   ),
 };
 
-export const StackOfTwo: Story = {
+export const AnatomyLog: Story = {
   render: () => (
     <div style={docsFrame}>
-      <ActivityLogGroup label={thisMonth()}>
-        <ActivityLogItem symbol={editSymbol} text={edited} date={ago(HOUR)} />
-        <ActivityLogItem symbol={editSymbol} text={edited} date={ago(3 * HOUR)} />
-      </ActivityLogGroup>
+      <ActivityLogItem position="single" symbol={pen} text={prioritySentence} label="4d ago" />
     </div>
   ),
 };
 
-export const SingleLog: Story = {
+export const AnatomySymbol: Story = {
   render: () => (
     <div style={docsFrame}>
-      <ActivityLogGroup label={thisMonth()}>
-        <ActivityLogItem symbol={userSymbol} text={created} date={ago(45 * MIN)} />
+      <Stack gap={80}>
+        <ActivityLogItem position="center" symbol={<Avatar size="xs" />} text="Text" label="N ago" />
+        <ActivityLogItem position="center" symbol={generic} text="Text" label="N ago" />
+      </Stack>
+    </div>
+  ),
+};
+
+export const AnatomySpacer: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Stack>
+        <ActivityLogItem position="center" symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem position="bottom" symbol={generic} text="Text" label="N ago" />
+      </Stack>
+    </div>
+  ),
+};
+
+export const AnatomyAccordion: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={[
+          {
+            label: "Scheduled for",
+            oldValue: "Monday, January 1, 2026 at 12:00 PM",
+            newValue: "Tuesday, January 2, 2026 at 12:00 PM",
+          },
+          { label: "Est. duration", oldValue: "1 hr 30 min", newValue: "2 hr" },
+        ]}
+        position="center"
+        label="3d ago"
+        defaultOpen
+      />
+    </div>
+  ),
+};
+
+export const AnatomySubLog: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogSubItem title="Service" oldValue="Standard labor" newValue="Cooler maintenance" />
+    </div>
+  ),
+};
+
+// ---- groups -------------------------------------------------------------
+
+const twoGroups = (open: boolean) => (
+  <div style={docsFrame}>
+    <ActivityLog>
+      <ActivityLogGroup label={thisMonth()} open={open}>
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
       </ActivityLogGroup>
+      <ActivityLogGroup label={lastMonth()} open={open}>
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+        <ActivityLogItem symbol={generic} text="Text" label="N ago" />
+      </ActivityLogGroup>
+    </ActivityLog>
+  </div>
+);
+
+export const GroupsOpen: Story = { render: () => twoGroups(true) };
+export const GroupsClosed: Story = { render: () => twoGroups(false) };
+
+// ---- timeline -----------------------------------------------------------
+
+export const TimelinePositions: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <Stack>
+        <ActivityLogItem position="top" symbol={generic} text="Top" label="N ago" />
+        <ActivityLogItem position="center" symbol={generic} text="Center" label="N ago" />
+        <ActivityLogItem position="bottom" symbol={generic} text="Bottom" label="N ago" />
+      </Stack>
+    </div>
+  ),
+};
+
+export const TimelineSingle: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogItem position="single" symbol={generic} text="Single" label="N ago" />
     </div>
   ),
 };
 
 // ---- log ----------------------------------------------------------------
 
-export const Symbols: Story = {
+const sessionStatus = (
+  <>
+    Lorne Riddle<Subtle> updated time session </Subtle>Status: <Removed>Working</Removed> → Travelling
+  </>
+);
+
+export const LogSymbols: Story = {
   render: () => (
-    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-      <div>
-        <div style={cap}>user avatar — the person who acted</div>
-        <ActivityLogItem position="single" symbol={userSymbol} text={created} date={ago(HOUR)} />
-      </div>
-      <div>
-        <div style={cap}>object avatar — the object the event is about</div>
-        <ActivityLogItem
-          position="single"
-          symbol={<Avatar shape="square" content="image" size="xs" />}
-          text={
-            <>
-              <Em>Cold storage unit</Em> was attached to the job
-            </>
-          }
-          date={ago(HOUR)}
-        />
-      </div>
-      <div>
-        <div style={cap}>icon — a change to the object</div>
-        <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={ago(HOUR)} />
+    <div style={docsFrame}>
+      <Stack gap={80}>
+        <ActivityLogItem position="single" symbol={person} text={createdJob} label="N ago" />
+        <ActivityLogItem position="single" symbol={stopwatch} text={sessionStatus} label="N ago" />
+      </Stack>
+    </div>
+  ),
+};
+
+export const LogWraps: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <div style={{ width: 320, margin: "0 auto" }}>
+        <ActivityLogItem position="single" symbol={stopwatch} text={sessionStatus} label="N ago" />
       </div>
     </div>
   ),
 };
 
-export const TextWraps: Story = {
+export const LogValueIcons: Story = {
   render: () => (
-    <div style={{ ...docsFrame, maxWidth: 460 }}>
-      <ActivityLogItem
+    <div style={docsFrame} data-hug>
+      <Stack gap={80} style={{ alignItems: "center" }}>
+        <div style={{ width: 500 }}>
+          <ActivityLogItem position="single" symbol={pen} text={prioritySentence} label="4d ago" />
+        </div>
+        {/* Narrow on purpose: "[icon] High" wraps and starts the line flush. */}
+        <div style={{ width: 340 }}>
+          <ActivityLogItem position="single" symbol={pen} text={prioritySentence} label="4d ago" />
+        </div>
+      </Stack>
+    </div>
+  ),
+};
+
+// The log's own timestamp style: body-400-compact, --text-subtle.
+const stampStyle: CSSProperties = { color: "var(--text-subtle)", font: "var(--font-body-400-compact)" };
+
+export const Timestamps: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 24 }}>
+        {[ago(10_000), ago(MIN), ago(HOUR), ago(DAY), ago(30 * DAY)].map((d, i) => (
+          <span key={i} style={stampStyle}>
+            {shortTimestamp(d)}
+          </span>
+        ))}
+      </div>
+    </div>
+  ),
+};
+
+export const TimestampTooltip: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        {/* Above the time, so placement "top" — the tongue points down at it. */}
+        <Tooltip placement="top" text="Mon, Jan 1, 2026 at 12:00 PM" />
+        <span style={stampStyle}>1d ago</span>
+      </div>
+    </div>
+  ),
+};
+
+export const AccordionClosed: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogItem position="center" symbol={generic} text="Text" label="N ago">
+        <ActivityLogSubItem title="Title" oldValue="[old_value]" newValue="[new_value]" />
+      </ActivityLogItem>
+    </div>
+  ),
+};
+
+export const AccordionOpen: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogItem position="center" symbol={generic} text="Text" label="N ago" defaultOpen>
+        <ActivityLogSubItem title="Title" oldValue="[old_value]" newValue="[new_value]" />
+        <ActivityLogSubItem title="Title" oldValue="[old_value]" newValue="[new_value]" />
+      </ActivityLogItem>
+    </div>
+  ),
+};
+
+// ---- cases --------------------------------------------------------------
+
+export const CaseOneField: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={[
+          { label: "Priority", oldValue: "Medium", oldIcon: priorityMedium, newValue: "High", newIcon: priorityHigh },
+        ]}
         position="single"
-        symbol={editSymbol}
-        text={
-          <>
-            <Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em>
-          </>
-        }
-        date={ago(DAY)}
+        label="4d ago"
       />
     </div>
   ),
 };
 
-export const TimestampScale: Story = {
-  render: () => {
-    const samples: [string, Date][] = [
-      ["0–59 seconds", ago(30_000)],
-      ["1–59 minutes", ago(MIN)],
-      ["1–23 hours", ago(HOUR)],
-      ["1–6 days", ago(DAY)],
-      ["7 days and older — the date takes over", ago(9 * DAY)],
-      ["months back — still the date", monthsAgo(3)],
-      ["years back — the group header carries the year", yearsAgo(2)],
-    ];
-    return (
-      <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-        {samples.map(([caption, date]) => (
-          <div key={caption}>
-            <div style={cap}>{caption}</div>
-            <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={date} />
-          </div>
-        ))}
-      </div>
-    );
-  },
-};
-
-// ---- accordion ----------------------------------------------------------
-
-export const AccordionClosedAndOpen: Story = {
-  render: () => (
-    <div style={{ ...docsFrame, display: "flex", flexDirection: "column", gap: "var(--size-20)" }}>
-      <div>
-        <div style={cap}>closed</div>
-        <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={ago(HOUR)}>
-          <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-        </ActivityLogItem>
-      </div>
-      <div>
-        <div style={cap}>open — the connectors drop away</div>
-        <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={ago(HOUR)} defaultOpen>
-          <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-        </ActivityLogItem>
-      </div>
-    </div>
-  ),
-};
-
-// ---- event types --------------------------------------------------------
-
-export const EventObjectCreated: Story = {
+export const CaseValueAdded: Story = {
   render: () => (
     <div style={docsFrame}>
-      <ActivityLogItem position="single" symbol={userSymbol} text={created} date={ago(HOUR)} />
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={[{ label: "PO number", oldValue: "", newValue: "4471" }]}
+        position="single"
+        label="Just now"
+      />
     </div>
   ),
 };
 
-export const EventSingleFieldModified: Story = {
+export const CaseValueCleared: Story = {
   render: () => (
     <div style={docsFrame}>
-      <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={ago(HOUR)} defaultOpen>
-        <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-      </ActivityLogItem>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={[{ label: "PO number", oldValue: "4471", newValue: "" }]}
+        position="single"
+        label="Just now"
+      />
     </div>
   ),
 };
 
-export const EventFieldFilledIn: Story = {
+export const CaseTextField: Story = {
   render: () => (
     <div style={docsFrame}>
-      <ActivityLogItem position="single" symbol={editSymbol} text={edited} date={ago(HOUR)} defaultOpen>
-        <ActivityLogSubItem title="Series end date" newValue="Jan 1, 2027" />
-      </ActivityLogItem>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={[{ label: "Description", oldValue: TEXT_BEFORE, newValue: TEXT_AFTER, isText: true }]}
+        position="single"
+        label="Just now"
+        defaultOpen
+      />
     </div>
   ),
 };
 
-export const EventSingleFieldCleared: Story = {
+const sourceChanges = [
+  { label: "Source", oldValue: "Direct {Phone, email, etc.}", newValue: "ServiceChannel (SC)" },
+  { label: "Source ID", oldValue: "3454876", newValue: "298734" },
+  { label: "Branch", oldValue: "Headquarters", newValue: "San Francisco" },
+  { label: "Received by", oldValue: "Lorne Riddle", newValue: "Ava Chen" },
+];
+
+export const CaseSeveralFields: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={sourceChanges.slice(0, 3)}
+        position="single"
+        label="Just now"
+        defaultOpen
+      />
+    </div>
+  ),
+};
+
+export const CaseMoreThanThree: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogUpdate person="Lorne Riddle" changes={sourceChanges} position="single" label="Just now" />
+    </div>
+  ),
+};
+
+// ---- sub-logs -----------------------------------------------------------
+
+export const SubLogTitle: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogUpdate
+        person="Lorne Riddle"
+        changes={sourceChanges.slice(0, 2)}
+        position="single"
+        label="Just now"
+        defaultOpen
+      />
+    </div>
+  ),
+};
+
+export const SubLogNoTitle: Story = {
   render: () => (
     <div style={docsFrame}>
       <ActivityLogItem
         position="single"
-        symbol={editSymbol}
+        symbol={pen}
         text={
           <>
-            <Em>Lorne Riddle</Em> cleared <Em>Series end date</Em>
+            Lorne Riddle<Subtle> updated </Subtle>Description
           </>
         }
-        date={ago(HOUR)}
+        label="Just now"
         defaultOpen
       >
-        <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" />
+        <ActivityLogSubItem caption={TEXT_BEFORE} />
       </ActivityLogItem>
     </div>
   ),
 };
 
-export const EventBatchModified: Story = {
+export const SubLogTextChange: Story = {
   render: () => (
     <div style={docsFrame}>
       <ActivityLogItem
         position="single"
-        symbol={editSymbol}
+        symbol={pen}
         text={
           <>
-            <Em>Lorne Riddle</Em> edited 3 fields
+            Lorne Riddle<Subtle> updated </Subtle>Description
           </>
         }
-        date={ago(HOUR)}
+        label="Just now"
         defaultOpen
       >
-        <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-        <ActivityLogSubItem title="Repeat every" oldValue="2 weeks" newValue="1 week" />
-        <ActivityLogSubItem title="Repeat on" oldValue="Mon, Wed" newValue="Tue, Wed" />
+        <ActivityLogSubItem caption={<ActivityLogTextChange oldText={TEXT_BEFORE} newText={TEXT_AFTER} />} />
       </ActivityLogItem>
     </div>
   ),
 };
+
+// ---- states -------------------------------------------------------------
+
+const STATES = ["default", "hover", "press", "focus"] as const;
+
+const stateLogs = (open: boolean) => (
+  <div style={docsFrame}>
+    <Stack gap={24}>
+      {STATES.map((state) => (
+        <div key={state} className={state === "default" ? undefined : PSEUDO_ALL[state]}>
+          <ActivityLogItem position="center" symbol={generic} text="Text" label="N ago" open={open}>
+            <ActivityLogSubItem title="Title" oldValue="[old_value]" newValue="[new_value]" />
+          </ActivityLogItem>
+        </div>
+      ))}
+    </Stack>
+  </div>
+);
+
+export const StatesClosed: Story = { render: () => stateLogs(false) };
+export const StatesOpen: Story = { render: () => stateLogs(true) };

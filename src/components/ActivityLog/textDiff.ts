@@ -1,10 +1,9 @@
-// Word-level text diff for the Activity tab's long-text update logs (Figma
-// 24489-50029). Instead of stacking the old paragraph above the new one, the
-// log shows ONE merged paragraph: removed words struck through, added words on
-// an amber highlight, everything else plain.
+// Word-level text diff behind ActivityLogTextChange (Figma "Sublog" title=false,
+// DS doc "Sub-logs"). Instead of stacking the old paragraph above the new one,
+// the log shows ONE merged paragraph: removed words struck through, added words
+// on an amber highlight, everything else plain.
 //
-// PROTOTYPE-LOCAL like the rest of the update-log work — no DS component and no
-// dependency; this is the classic LCS diff plus one cleanup pass.
+// No dependency — this is the classic LCS diff plus one cleanup pass.
 
 export type DiffKind = "equal" | "removed" | "added";
 

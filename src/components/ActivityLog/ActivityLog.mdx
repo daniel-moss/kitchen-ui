@@ -1,16 +1,22 @@
 import { Meta, Canvas, ArgTypes } from "@storybook/blocks";
 
+import { DocCaption } from "../../stories/DocCaption";
 import { FigmaLinks } from "../../stories/FigmaLinks";
+import { TEXT_SEPARATOR } from "../../utils/textSeparator";
 import * as ActivityLogStories from "./ActivityLog.stories";
 import * as ActivityLogGroupStories from "./ActivityLogGroup.stories";
 import * as ActivityLogItemStories from "./ActivityLogItem.stories";
 import * as ActivityLogSubItemStories from "./ActivityLogSubItem.stories";
+import * as ActivityLogUpdateStories from "./ActivityLogUpdate.stories";
+import * as ActivityLogValueStories from "./ActivityLogValue.stories";
 
 <Meta of={ActivityLogStories} />
 
 # ActivityLog
 
-We use **ActivityLog** for listing object events.
+A timeline of what happened to one object. Logs are grouped by month, and each
+log is one sentence with a symbol and a time. A log with more details opens to
+show its sub-logs.
 
 <FigmaLinks
   component="https://www.figma.com/design/ArSNpC1K8KiEvjCRHTzaLd/Design-System?node-id=24129-2417"
@@ -21,187 +27,340 @@ We use **ActivityLog** for listing object events.
 
 ```tsx
 <ActivityLog>
-  <ActivityLogGroup label="August 2026">
-    <ActivityLogItem symbol={<AvatarUser size="xs" />} text={<><Em>Lorne Riddle</Em> created the job series</>} date={createdAt} />
-    <ActivityLogItem symbol={<Icon icon="pen" size={14} />} text={<><Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em></>} date={editedAt}>
-      <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" newValue="Jan 1, 2027" />
-    </ActivityLogItem>
+  <ActivityLogGroup label="November 2026">
+    <ActivityLogUpdate
+      person="Lorne Riddle"
+      changes={[{ label: "Priority", oldValue: "Medium", newValue: "High" }]}
+      date={updatedAt}
+    />
+    <ActivityLogItem symbol={<AvatarUser size="xs" />} text={<>Lorne Riddle<Subtle> created the job</Subtle></>} date={createdAt} />
   </ActivityLogGroup>
 </ActivityLog>
 ```
 
 ↳&nbsp;&nbsp;[Anatomy](#anatomy)<br />
-↳&nbsp;&nbsp;[Behavior](#behavior)<br />
+↳&nbsp;&nbsp;[When to use](#when-to-use)<br />
+↳&nbsp;&nbsp;[Groups](#groups)<br />
+↳&nbsp;&nbsp;[Timeline](#timeline)<br />
+↳&nbsp;&nbsp;[Log](#log)<br />
+↳&nbsp;&nbsp;[Cases](#cases)<br />
+↳&nbsp;&nbsp;[Sub-logs](#sub-logs)<br />
+↳&nbsp;&nbsp;[States](#states)<br />
+↳&nbsp;&nbsp;[Accessibility](#accessibility)<br />
+↳&nbsp;&nbsp;[Usage](#usage)<br />
 ↳&nbsp;&nbsp;[Props](#props)
 
 ## Anatomy
 
-Four components stack into one log:
+An activity log is a stack of month groups. Each group has a header and holds
+its logs. **ActivityLog** is the list of groups; **ActivityLogGroup** is one
+month — a
+<a href="/?path=/docs/components-grouplabel--docs" target="_top">GroupLabel</a>
+(`variant="secondary"`, `isAccordion`) over its logs, `--size-2` (8px) below
+it. The logs sit 0px apart, so the line joins from log to log.
 
-**ActivityLog** is the list of month groups, `--size-4` (16px) apart.
-**ActivityLogGroup** is one month: a
-<a href="/?path=/story/components-grouplabel--playground" target="_top">GroupLabel</a>
-(`variant="secondary"`, `accordion`) over the log stack, `--size-2` (8px)
-below it. **ActivityLogItem** is one event. **ActivityLogSubItem** is one line
-of event detail inside an expanded event.
+<DocCaption>A month group with its header and logs.</DocCaption>
 
-A log row is a `--size-5` (20px) symbol in a `--size-7` (28px) connector
-column, then the log text and the timestamp `--size-4` (16px) apart, with
-`--size-2` (8px) padding above and below — `--size-9` (36px) for a one-line
-log. The row has `--size-2` (8px) side padding and a `--border-radius-2` (8px)
-radius.
+<Canvas of={ActivityLogStories.AnatomyGroup} />
 
-The vertical line through the symbols is the timeline. It is drawn in
-`--gray-a4`: a 4px segment above the symbol, and a segment from below the
-symbol down through the `--size-2` (8px) gap to the next log.
+A log (**ActivityLogItem**) has a symbol on the timeline, a sentence and a
+time. Its row has `--size-2` (8px) padding on the left and `--size-3` (12px) on
+the right, `--size-2` (8px) above and below the text, and a `--border-radius-2`
+(8px) radius. The symbol column is `--size-7` (28px): a `--size-5` (20px)
+symbol plus 8px to the text. The time sits `--size-3` (12px) after the
+sentence, in body-400-compact `--text-subtle`. The sentence is
+body-500-compact `--text-strong` by default, so the person, the field and the
+new value need nothing; **ActivityLogSubtle** sets the connecting words in
+body-400-compact `--text-subtle`, and **ActivityLogRemoved** draws the old
+value in body-400-compact `--gray-a8`, struck through. A value icon is 14px with `--size-1_5` (6px) after it; the 6px
+before it belongs to the text in front of it (see [Log](#log)).
 
-<Canvas of={ActivityLogStories.LogStack} />
+<DocCaption>accordion = false</DocCaption>
 
-An expanded event adds its details below the row: a
-<a href="/?path=/docs/components-divider--docs" target="_top">Divider</a>
-then the sub-items, `--size-2` (8px) apart, inset `--size-9` (36px) from the
-left so they line up under the log text.
+<Canvas of={ActivityLogStories.AnatomyLog} />
 
-<Canvas of={ActivityLogStories.EventBatchModified} />
+The symbol is an avatar or an icon — an `AvatarUser` at `size="xs"` or an
+`Icon` at 14px. The line around it joins the logs. It is 1px `--gray-a4`: 4px
+above the symbol, and from below the symbol to the row's bottom.
 
-## Behavior
+<DocCaption>{`symbol = avatar${TEXT_SEPARATOR}symbol = icon`}</DocCaption>
 
-### Grouped by month, newest first
+<Canvas of={ActivityLogStories.AnatomySymbol} />
 
-Logs are grouped by the month they happened in. Both the groups and the logs
-inside a group read newest to oldest, so the most recent activity sits at the
-**top** — that is what someone opening an object wants to see first. A group is
-only rendered when it has logs — **ActivityLog** does not sort or group
-anything, it renders the groups you give it in order.
+Between two logs, a short spacer carries the line down to the next symbol. It
+is `--size-2` (8px) tall, with the line centred in a 20px box under the symbol.
+It belongs to the log above, so the last log in a stack has none.
 
-### Groups collapse
+<DocCaption>position = center</DocCaption>
 
-A group is an accordion and starts **open**. Clicking the header collapses it.
+<Canvas of={ActivityLogStories.AnatomySpacer} />
 
-<Canvas of={ActivityLogStories.GroupAccordion} />
+An accordion log adds a caret — a 12px solid `caret-down`, `--size-3` (12px)
+after the time, `--gray-a9` at rest and `--gray-12` while hovered, pressed or
+focused. When it is open, it holds its sub-logs: `--size-9` (36px) from the
+left so they line up under the sentence, `--size-2` (8px) on the right and at
+the bottom, `--size-2` (8px) apart.
 
-### The stack draws the timeline
+<DocCaption>{`accordion = true${TEXT_SEPARATOR}open = true`}</DocCaption>
 
-Each log draws only the connectors it needs, and it works this out from where
-it sits in the stack — the first log has no line above, the last one no line
-below. Nothing is passed down; a log in the middle connects on both sides.
+<Canvas of={ActivityLogStories.AnatomyAccordion} />
 
-With two logs there is no middle.
+A sub-log (**ActivityLogSubItem**) has a low-contrast divider on top, then
+`--size-2` (8px) below it the icon, the field name and the change. The icon is
+a 14px `arrow-turn-down-right` in a 20px box, `--size-2` (8px) before the text.
+The field name is body-500-compact `--text-strong`; the change is
+body-400-compact.
 
-<Canvas of={ActivityLogStories.StackOfTwo} />
+<DocCaption>title set</DocCaption>
 
-A single log has no timeline at all.
+<Canvas of={ActivityLogStories.AnatomySubLog} />
 
-<Canvas of={ActivityLogStories.SingleLog} />
+## When to use
 
-`position` can force one of `top` / `center` / `bottom` / `single`, but in a
-real list you leave it out.
+Use an activity log to show the history of one object, newest first. It records
+what people and the system did. It is not a place for notes or messages, and it
+never asks the user to act.
 
-### Symbol
+## Groups
 
-The symbol says who or what the event is about — a `size="xs"` (20px)
-<a href="/?path=/story/components-avatar--playground" target="_top">Avatar</a>
-for a person or an object, or a `size={14}`
-<a href="/?path=/story/components-icon--playground" target="_top">Icon</a>
-for a change. Without one, a log shows the generic `diamonds-4` event icon.
+Logs are grouped by month, with the newest month on top. A month appears only
+when it has logs. A group is open by default, and the user can close it from
+its header. Groups sit `--size-4` (16px) apart. The component renders the
+groups and logs in the order it is given — sorting and grouping are the
+consumer's.
 
-<Canvas of={ActivityLogStories.Symbols} />
+<DocCaption>open = true</DocCaption>
 
-### Text
+<Canvas of={ActivityLogStories.GroupsOpen} />
 
-The log sentence is the `text` prop. Its base style is regular
-`--text-subtle`; the parts that carry the meaning — the user's name, a field
-name, a new value — go in **ActivityLogEmphasis**, which makes them medium
-`--text-strong`:
+<DocCaption>open = false</DocCaption>
 
-```tsx
-<ActivityLogItem text={<><Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em></>} />
-```
+<Canvas of={ActivityLogStories.GroupsClosed} />
 
-Event copy differs per event type, so the component never writes the sentence
-for you. Sentences take **no period** at the end.
+## Timeline
 
-Long text wraps. The timestamp does not — it stays on the first line.
+The line on the left joins the logs into a timeline. Its shape comes from where
+the log sits in the stack. The component reads that from the DOM — the first
+child is the top, the last is the bottom — so `position` is only for forcing
+one, as these previews do.
 
-<Canvas of={ActivityLogStories.TextWraps} />
+<DocCaption>{`position = top${TEXT_SEPARATOR}position = center${TEXT_SEPARATOR}position = bottom`}</DocCaption>
+
+<Canvas of={ActivityLogStories.TimelinePositions} />
+
+A stack of two logs has only a top log and a bottom log. A bottom log and a
+single log have no spacer, because no log comes after them. A single log has no
+line at all.
+
+<DocCaption>position = single</DocCaption>
+
+<Canvas of={ActivityLogStories.TimelineSingle} />
+
+## Log
+
+The symbol shows what kind of event the log is. An icon names its type, such as
+a stopwatch for a time session or a form for a Forms update. An avatar shows who
+created the object.
+
+<DocCaption>{`symbol = avatar${TEXT_SEPARATOR}symbol = icon`}</DocCaption>
+
+<Canvas of={ActivityLogStories.LogSymbols} />
+
+The sentence wraps, and it never ends with a full stop. Names and values are
+strong, and the words between them are lighter, so the eye finds what changed.
+The consumer writes the sentence and marks the lighter runs with
+`ActivityLogSubtle` and `ActivityLogRemoved` — plain text is strong.
+
+<DocCaption>The sentence wraps onto a second line.</DocCaption>
+
+<Canvas of={ActivityLogStories.LogWraps} />
+
+A value that has its own icon, such as a priority or a status, shows that icon
+before it. The icon and its value never break across two lines. When they move
+to a new line, the icon starts at the edge with no space before it. Wrap the
+value in **ActivityLogValue** with its `icon`: it keeps the icon with the
+value's first word, and draws the 6px before the icon as its own box in front of
+them, so a line break leaves that space at the end of the line above. Inside
+`ActivityLogRemoved` the icon turns `--gray-a8`; elsewhere `iconColor` tints it.
+
+<DocCaption>Values with their icons.</DocCaption>
+
+<Canvas of={ActivityLogStories.LogValueIcons} />
 
 ### Timestamp
 
-Pass `date` and the component writes the label itself: `Just now` (0–59
-seconds), `Nmin ago` (1–59 minutes), `Nh ago` (1–23 hours), `Nd ago` (1–6
-days) — and from **7 days** on, the date instead: `May 12`.
+The time is relative while the event is recent. After a week it becomes a date,
+because "9d ago" makes the reader count. The month group already gives the
+year. The component works this out from `date`: `Just now` under a minute, then
+`Nmin ago`, `Nh ago`, `Nd ago` up to six days, then `Jan 1`.
 
-Relative time only beats a date while the event is recent. Past a week it
-makes the reader work out what "3mo ago" means, and it repeats what the month
-group header already says. The date carries no year, because the header is
-always `Month YYYY`.
+<DocCaption>{`Just now${TEXT_SEPARATOR}1min ago${TEXT_SEPARATOR}1h ago${TEXT_SEPARATOR}1d ago${TEXT_SEPARATOR}Jan 1`}</DocCaption>
 
-<Canvas of={ActivityLogStories.TimestampScale} />
+<Canvas of={ActivityLogStories.Timestamps} />
 
-Hovering the timestamp shows a
-<a href="/?path=/story/components-tooltip--playground" target="_top">Tooltip</a>
-with the exact moment — `Mon, Jan 1, 2026 at 12:00 PM`. The tooltip **always**
-writes the year: it is the one place that says exactly when an event happened,
-so it never leaves the year to be worked out. `label` and `tooltipLabel`
-override the two strings when a caller needs something else.
+Hovering the time shows the exact date and time, always with the year. Date and
+time are joined by "at", never by the separator dot. `label` and
+`tooltipLabel` override either text; an empty `tooltipLabel` drops the tooltip.
+
+<DocCaption>The tooltip with the exact date and time.</DocCaption>
+
+<Canvas of={ActivityLogStories.TimestampTooltip} />
 
 ### Accordion
 
-A log with children becomes an accordion: the whole row toggles, and the event
-details appear below it. The open row rests filled in `--gray-a3`, so its
-hover, press and focus fills each step one further up the scale.
+A log with more details is an accordion and opens to show them. A log without
+details is plain and has no caret. An open log loses its timeline line, so its
+details read as one block. A log becomes an accordion when it has children;
+`open` / `defaultOpen` / `onOpenChange` control it.
 
-An **open** log drops its connectors — the details block breaks the timeline
-anyway.
+<DocCaption>{`children set${TEXT_SEPARATOR}open = false`}</DocCaption>
 
-<Canvas of={ActivityLogStories.AccordionClosedAndOpen} />
+<Canvas of={ActivityLogStories.AccordionClosed} />
 
-A log **without** children is static: no caret, no fill, no focus.
+<DocCaption>{`children set${TEXT_SEPARATOR}open = true`}</DocCaption>
 
-## Event types
+<Canvas of={ActivityLogStories.AccordionOpen} />
 
-Each event type follows its own copy pattern.
+## Cases
 
-### Object created
+A log takes a different shape depending on what changed. When one ordinary
+field changes, the sentence says everything. When the change needs more space,
+the log becomes an accordion. **ActivityLogUpdate** builds all of these from a
+list of `changes` — pass the fields in form order and it picks the case.
 
-Someone created the object. The symbol is that person's avatar. There are no
-further details, so this event is **not** an accordion.
+### One field changed
 
-**\[user\]** created the \[object type\]
+The sentence names the person, the field, the old value and the new value. There
+are no sub-logs, so the log is not an accordion. The old value is
+body-400-compact `--gray-a8`, struck through; the arrow and the new value are
+body-500-compact `--text-strong`.
 
-<Canvas of={ActivityLogStories.EventObjectCreated} />
+<DocCaption>one change</DocCaption>
 
-### Single field modified
+<Canvas of={ActivityLogStories.CaseOneField} />
 
-Someone changed one field. The symbol is an icon, and the event is **always**
-an accordion — the detail shows the old value struck through and the new one
-emphasised.
+### Value added
 
-**\[user\]** edited **\[field\] → \[new value\]**
+When the field was empty before, "No value" takes the place of the old value.
+It is crossed out like any old value. Leave `oldValue` out, or pass "".
 
-<Canvas of={ActivityLogStories.EventSingleFieldModified} />
+<DocCaption>{`one change${TEXT_SEPARATOR}oldValue empty`}</DocCaption>
 
-When the field had no value before, "No value" takes the old value's place.
+<Canvas of={ActivityLogStories.CaseValueAdded} />
 
-<Canvas of={ActivityLogStories.EventFieldFilledIn} />
+### Value cleared
 
-### Single field cleared
+When the field is emptied, "No value" takes the place of the new value. It stays
+plain — body-400-compact `--text-subtle` — because an empty field is not a new
+value.
 
-Someone emptied one field. The detail shows the old value struck through and
-"No value" after it — plain, because an empty field is not a new value.
+<DocCaption>{`one change${TEXT_SEPARATOR}newValue empty`}</DocCaption>
 
-**\[user\]** cleared **\[field\]**
+<Canvas of={ActivityLogStories.CaseValueCleared} />
 
-<Canvas of={ActivityLogStories.EventSingleFieldCleared} />
+### Text field changed
 
-### Batch of fields modified
+A text field can be too long for a sentence. So the log becomes an accordion,
+and its one sub-log shows the full text and exactly what was edited. Mark the
+change `isText`; the sub-log has no title and its text is body-400-spacious.
 
-Someone changed more than one field. The row counts them; the details list one
-sub-item per field.
+<DocCaption>{`one change${TEXT_SEPARATOR}isText`}</DocCaption>
 
-**\[user\]** edited \[N\] fields
+<Canvas of={ActivityLogStories.CaseTextField} />
 
-<Canvas of={ActivityLogStories.EventBatchModified} />
+### Several fields changed
+
+The sentence names the fields that changed, and the log becomes an accordion.
+Each field gets its own sub-log with its name and icon. The whole field list is
+body-500-compact `--text-strong`, commas and "and" included.
+
+<DocCaption>three changes</DocCaption>
+
+<Canvas of={ActivityLogStories.CaseSeveralFields} />
+
+The sentence names up to three fields, in the order of the form. With more than
+three, it names the first two and counts the rest. Commas separate the names,
+and "and" comes before the last one. The rule is `formatFieldList` in
+`fieldList.ts`; `subject` replaces the list when the fields belong to one
+object, such as a time session.
+
+<DocCaption>More than three fields changed.</DocCaption>
+
+<Canvas of={ActivityLogStories.CaseMoreThanThree} />
+
+## Sub-logs
+
+A sub-log shows the change to one field inside an open log. It has the field
+name and icon, then the old value and the new value. The old value is
+body-400-compact `--gray-a8`, struck through; the arrow and the new value are
+body-400-compact `--text-strong`. `oldIcon` / `newIcon` add value icons.
+
+<DocCaption>title set</DocCaption>
+
+<Canvas of={ActivityLogStories.SubLogTitle} />
+
+Only a text field changed on its own drops the title and icon. Its text is set
+with more space between the lines, because it reads as a paragraph, not a short
+value: leave `title` out and the caption becomes body-400-spacious
+`--text-strong`.
+
+<DocCaption>title not set</DocCaption>
+
+<Canvas of={ActivityLogStories.SubLogNoTitle} />
+
+A text change shows the whole text. Removed words are crossed out, added words
+are highlighted, and the rest stays as it is. The text is never cut, because the
+accordion already keeps the log short. **ActivityLogTextChange** diffs the two
+texts word by word: removed words `--gray-a8` struck through, added words on an
+`--amber-a4` background, the rest `--text-strong`, all body-400-spacious. It
+keeps the author's line breaks.
+
+<DocCaption>A text change with removed and added words.</DocCaption>
+
+<Canvas of={ActivityLogStories.SubLogTextChange} />
+
+## States
+
+Only an accordion log reacts to the pointer, because only it does something. A
+plain log has no states. A log that is hovered, pressed or focused hides its
+timeline line, so the highlight reads as one shape. The spacer below it stays.
+Hover only applies on devices that can hover (`@media (hover: hover)`), so a tap
+leaves no sticky highlight.
+
+<DocCaption>{`open = false${TEXT_SEPARATOR}default${TEXT_SEPARATOR}hovered${TEXT_SEPARATOR}pressed${TEXT_SEPARATOR}focused`}</DocCaption>
+
+<Canvas of={ActivityLogStories.StatesClosed} />
+
+An open log has a background, so it reads as one block with its sub-logs. Each
+state is one step darker.
+
+<DocCaption>{`open = true${TEXT_SEPARATOR}default${TEXT_SEPARATOR}hovered${TEXT_SEPARATOR}pressed${TEXT_SEPARATOR}focused`}</DocCaption>
+
+<Canvas of={ActivityLogStories.StatesOpen} />
+
+| State | Closed | Open |
+| --- | --- | --- |
+| Default | none | `--gray-a3` |
+| Hovered | `--gray-a3` | `--gray-a4` |
+| Pressed | `--gray-a4` | `--gray-a5` |
+| Focused | 2px `--gray-12` ring, 2px gap, `--gray-a3` fill with `--border-radius-1` (4px) corners | the same ring, `--gray-a4` fill |
+
+The focus ring sits inside the log's bounds, so nothing moves when it appears.
+
+## Accessibility
+
+Tab moves between the group headers and the accordion logs, and Enter or Space
+toggles them. An accordion log is announced as a button that is expanded or
+collapsed. The symbol, the line and the value icons are hidden from screen
+readers, so the sentence has to make sense on its own.
+
+## Usage
+
+| Page | What it shows |
+| --- | --- |
+| Job Details › Activity | Every change to the job, its schedule, people, items and files |
+| Series Details › Activity | Changes to the series and the jobs it creates |
+| Request Details › Activity | Changes to the request until it becomes a job |
 
 ## Props
 
@@ -220,3 +379,14 @@ sub-item per field.
 ### ActivityLogSubItem
 
 <ArgTypes of={ActivityLogSubItemStories} />
+
+### ActivityLogUpdate
+
+<ArgTypes of={ActivityLogUpdateStories} />
+
+### ActivityLogValue
+
+<ArgTypes of={ActivityLogValueStories} />
+
+`ActivityLogSubtle` and `ActivityLogRemoved` take only `children`.
+`ActivityLogTextChange` takes `oldText` and `newText` (strings).

@@ -1,0 +1,9 @@
+@use "../../styles/mixins/font" as *;
+
+// The connecting words of a log sentence. The sentence around them is
+// body/500 compact text-strong; these are body/400 compact text-subtle.
+.subtle {
+  color: var(--text-subtle);
+
+  @include font("body-400-compact"); // Inter Regular 14/20
+}

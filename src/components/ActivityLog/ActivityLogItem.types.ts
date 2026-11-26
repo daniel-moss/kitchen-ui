@@ -9,15 +9,17 @@ export type ActivityLogItemPosition = "top" | "center" | "bottom" | "single";
 
 export interface ActivityLogItemProps extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
   /**
-   * The 20px symbol on the timeline — the event's "who / what". An `Avatar`
-   * (`size="xs"`) for a person, or an `Icon` (`size={14}`) for a system action.
-   * Default: an `Icon` with "diamonds-4" (the generic event symbol).
+   * The 20px symbol on the timeline — what kind of event the log is. An `Icon`
+   * (`size={14}`) names the event type (a stopwatch for a time session, a
+   * form for a Forms update); an `AvatarUser` (`size="xs"`) shows who created
+   * the object. Default: an `Icon` with "diamonds-4" (the generic event symbol).
    */
   symbol?: ReactNode;
   /**
-   * The log sentence. The base run is regular `--text-subtle`; wrap the parts
-   * that carry the meaning (user name, field name, new value) in
-   * `ActivityLogEmphasis`. Wraps onto more lines when it does not fit.
+   * The log sentence. It is body/500 compact `--text-strong` by default, so
+   * names, fields and new values need no wrapper; mark the connecting words
+   * with `ActivityLogSubtle` and a removed value with `ActivityLogRemoved`.
+   * Wraps onto more lines when it does not fit.
    */
   text: ReactNode;
 
@@ -46,7 +48,11 @@ export interface ActivityLogItemProps extends Omit<HTMLAttributes<HTMLDivElement
   /** Position in the stack. Leave it out — the stack position decides. */
   position?: ActivityLogItemPosition;
 
-  /** The event details — `ActivityLogSubItem`s, one per changed field. */
+  /**
+   * The event details — `ActivityLogSubItem`s, one per changed field. Each one
+   * draws its own divider on top. For field changes prefer `ActivityLogUpdate`,
+   * which decides between a plain log and an accordion by the "Cases" rules.
+   */
   children?: ReactNode;
   className?: string;
 }

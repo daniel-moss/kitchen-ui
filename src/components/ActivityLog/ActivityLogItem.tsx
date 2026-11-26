@@ -2,7 +2,6 @@ import { KeyboardEvent } from "react";
 import clsx from "clsx";
 
 import useControllableState from "../../hooks/useControllableState";
-import { Divider } from "../Divider/Divider";
 import { Icon } from "../Icon/Icon";
 import HoverTooltip from "../Tooltip/HoverTooltip";
 
@@ -106,12 +105,8 @@ export default function ActivityLogItem({
         {isAccordion && (
           <div className={clsx(styles.collapse, isOpen && styles.collapseOpen)}>
             <div className={styles.collapseInner}>
-              <div className={styles.subStack}>
-                {/* 8px more on the right than the stack's own 8 → the line
-                    stops 16px from the card edge (Daniel, 2026-08-04). */}
-                <Divider padding="0 var(--size-2) 0 0" />
-                {children}
-              </div>
+              {/* Each sub-log draws its own divider on top (Figma "Sublog"). */}
+              <div className={styles.subStack}>{children}</div>
             </div>
           </div>
         )}

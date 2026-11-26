@@ -37,8 +37,12 @@ export const ValueCases: Story = {
         <ActivityLogSubItem title="Series end date" newValue="Jan 1, 2027" />
       </div>
       <div>
-        <div style={cap}>cleared — no new value, so nothing is emphasised</div>
+        <div style={cap}>cleared — "No value" stays subtle</div>
         <ActivityLogSubItem title="Series end date" oldValue="Jan 4, 2027" />
+      </div>
+      <div>
+        <div style={cap}>no title — a text field changed on its own</div>
+        <ActivityLogSubItem caption="The whole text, set as a paragraph." />
       </div>
       <div>
         <div style={cap}>free caption — details that are not a value change</div>

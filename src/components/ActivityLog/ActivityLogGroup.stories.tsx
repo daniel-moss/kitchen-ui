@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import ActivityLogGroup from "./ActivityLogGroup";
 import ActivityLogItem from "./ActivityLogItem";
 import ActivityLogSubItem from "./ActivityLogSubItem";
-import Em from "./ActivityLogEmphasis";
+import Subtle from "./ActivityLogSubtle";
 import AvatarUser from "../Avatar/AvatarUser";
 import { Icon } from "../Icon/Icon";
 import { cap } from "../../stories/helpers";
@@ -29,7 +29,7 @@ const logs = (
       symbol={editSymbol}
       text={
         <>
-          <Em>Ava Chen</Em> edited 3 fields
+          Ava Chen<Subtle> edited </Subtle>3 fields
         </>
       }
       date={ago(20 * MIN)}
@@ -42,7 +42,7 @@ const logs = (
       symbol={editSymbol}
       text={
         <>
-          <Em>Lorne Riddle</Em> edited <Em>Series end date → Jan 1, 2027</Em>
+          Lorne Riddle<Subtle> edited </Subtle>Series end date → Jan 1, 2027
         </>
       }
       date={ago(3 * HOUR)}
@@ -53,7 +53,7 @@ const logs = (
       symbol={<AvatarUser size="xs" />}
       text={
         <>
-          <Em>Lorne Riddle</Em> created the job series
+          Lorne Riddle<Subtle> created the job series</Subtle>
         </>
       }
       date={ago(6 * HOUR)}

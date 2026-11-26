@@ -20,7 +20,7 @@
 .row {
   display: flex;
   align-items: flex-start;
-  padding: 0 var(--size-2); // 8px
+  padding: 0 var(--size-3) 0 var(--size-2); // 12px right / 8px left (Figma "Header")
 }
 
 // ---- connector column: [4px line] symbol [line down] --------------------
@@ -76,17 +76,19 @@
   min-width: 0;
   display: flex;
   align-items: flex-start;
-  gap: var(--size-4); // 16px — text ↔ timestamp
+  gap: var(--size-3); // 12px — text ↔ timestamp (Figma "Content")
   padding: var(--size-2) 0; // 8px
 }
 
-// The sentence is subtle; ActivityLogEmphasis lifts the meaningful runs.
+// The sentence is strong by default (Figma `↳ text`: body/500 compact,
+// text-strong); ActivityLogSubtle lightens the connecting words and
+// ActivityLogRemoved the value that is gone.
 .text {
   flex: 1 1 0;
   min-width: 0;
-  color: var(--text-subtle);
+  color: var(--text-strong);
 
-  @include font("body-400-compact"); // Inter Regular 14/20
+  @include font("body-500-compact"); // Inter Medium 14/20
 }
 
 .timestampWrap {
@@ -104,9 +106,10 @@
   flex: none;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  width: 14px; // Figma "Caret Container"
   height: var(--size-9); // 36px — one text line + its padding
-  padding-left: var(--size-3); // 12px
-  padding-right: var(--size-1); // 4px
+  padding-left: var(--size-3); // 12px — timestamp ↔ caret
   color: var(--gray-a9);
   transition: color 120ms ease;
 }
@@ -182,11 +185,22 @@
   display: flex;
 }
 
-// An EXPANDED log drops its connectors — the details block breaks the line
-// anyway, so keeping it would point at nothing (Figma, "Accordion" isOpen).
+// An OPEN log, and a log that is hovered, pressed or focused, drops its
+// connector lines, so the fill reads as one shape (Figma: those variants use
+// the `single` connector). The spacer below stays — it sits outside the fill.
 .open .lineTop,
-.open .lineBottom {
+.open .lineBottom,
+.interactive:active .lineTop,
+.interactive:active .lineBottom,
+.interactive:focus-visible .lineTop,
+.interactive:focus-visible .lineBottom {
   visibility: hidden;
+}
+@media (hover: hover) {
+  .interactive:hover .lineTop,
+  .interactive:hover .lineBottom {
+    visibility: hidden;
+  }
 }
 
 // ---- interaction (a log without an accordion is static) -----------------
@@ -204,8 +218,10 @@
 .interactive:active {
   @include row-press-fill;
 }
+// Focus = the inset ring (Figma "Focus Container"): 2px gray-12 at the bounds,
+// a 2px gap, then the fill with 4px corners. Nothing moves.
 .interactive:focus-visible {
-  @include row-focus-ring;
+  @include row-focus-ring-inset(var(--gray-a3), var(--border-radius-1));
 }
 
 // An OPEN accordion rests filled, so each state steps one further up the scale.
@@ -220,8 +236,11 @@
 .interactive.open:active {
   @include row-press-fill(var(--gray-a5));
 }
+// The resting fill would show in the ring's gap — the inner fill takes over.
 .interactive.open:focus-visible {
-  @include row-focus-ring($fill: var(--gray-a4));
+  background: transparent;
+
+  @include row-focus-ring-inset(var(--gray-a4), var(--border-radius-1));
 }
 
 @media (hover: hover) {
