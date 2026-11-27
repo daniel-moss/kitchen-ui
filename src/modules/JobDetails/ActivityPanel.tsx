@@ -5,8 +5,11 @@ import Muted from "../../components/ActivityLog/ActivityLogRemoved";
 import ActivityLogSubtle from "../../components/ActivityLog/ActivityLogSubtle";
 import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
 import ActivityLogValue from "../../components/ActivityLog/ActivityLogValue";
+import Avatar from "../../components/Avatar/Avatar";
 import AvatarUser from "../../components/Avatar/AvatarUser";
 import { Icon } from "../../components/Icon/Icon";
+
+import roopairsAvatar from "../../assets/roopairs-avatar.jpg";
 
 import { ActivityEvent, ValueIcon } from "./activityEvents";
 import ActivityUpdateLog, { glyph, PeopleValue, PersonValue } from "./ActivityUpdateLog";
@@ -124,6 +127,35 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
             {added.length > 0 ? "and removed" : "removed"} {noun(removed)}{" "}
           </S>
           <Muted>{removed.join(", ")}</Muted>
+        </>
+      )}
+    </>
+  );
+};
+
+// The system's user id — "Roopairs" acts when nobody did (seedActivity).
+const SYSTEM_ID = -1;
+
+// The job's creation (Figma 24433-52739): "created the job", plus the object
+// it came from. The id is emphasised like every other value — the node draws
+// it Medium and NOT underlined, unlike the "created a related invoice" logs.
+const CREATED_VIA_TEXT = {
+  series: " created the job via job series ",
+  estimate: " created the job from estimate ",
+  recall: " created the job as a recall of ",
+};
+
+const CreatedText = ({ event }: { event: ActivityEvent }) => {
+  const via = event.createdVia;
+  return (
+    <>
+      {event.user.name}
+      {via == null ? (
+        <S> created the job</S>
+      ) : (
+        <>
+          <S>{CREATED_VIA_TEXT[via.kind]}</S>
+          {via.id}
         </>
       )}
     </>
@@ -359,15 +391,19 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   date={event.date}
                 />
               ) : (
+                // The job's creation (Figma 24433-52739). A person gets their
+                // avatar; the system ("Roopairs", a rolling series making its
+                // next job) gets the square logo avatar.
                 <ActivityLogItem
                   key={event.id}
-                  symbol={<AvatarUser size="xs" imageSrc={event.user.avatar} />}
-                  text={
-                    <>
-                      {event.user.name}
-                      <S> created the job</S>
-                    </>
+                  symbol={
+                    event.user.id === SYSTEM_ID ? (
+                      <Avatar size="xs" shape="square" content="image" imageSrc={roopairsAvatar} />
+                    ) : (
+                      <AvatarUser size="xs" imageSrc={event.user.avatar} />
+                    )
                   }
+                  text={<CreatedText event={event} />}
                   date={event.date}
                 />
               ),

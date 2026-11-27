@@ -115,6 +115,12 @@ export interface ActivityEvent {
   sessionRange?: string;
   /** Job-status events — the timeline glyph and the sentence, in parts. */
   jobStatus?: JobStatusLog;
+  /**
+   * The "created" event only — the object the job came from (Figma
+   * 24433-52739): a job series, an estimate, or the job it recalls. Unset = a
+   * job created on its own. Production never combines them.
+   */
+  createdVia?: { kind: "series" | "estimate" | "recall"; id: string };
 }
 
 /**

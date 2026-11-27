@@ -1,5 +1,5 @@
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
-import { completedAt, historyOf, jobById, locationById, locationContactsOf, startedAt } from "../../data/db";
+import { completedAt, historyOf, JOB_SERIES, jobById, JOBS, locationById, locationContactsOf, parentEstimateOf, startedAt } from "../../data/db";
 import { users, usersById } from "../../data/users";
 import type { ActivityEvent, JobStatusLog } from "./activityEvents";
 import { Job } from "../shared/jobRow";
@@ -271,12 +271,33 @@ export function seedActivity(job: Job): ActivityEvent[] {
   const dbJob = jobById(job.id);
   if (dbJob == null) return [];
   const visit = job.scheduledFor == null ? null : new Date(job.scheduledFor);
+
+  // What the job was created from (Figma 24433-52739). Production allows only
+  // one: a job with a parent estimate or a recall cannot start a series.
+  const parentEstimate = parentEstimateOf(dbJob.id);
+  const createdVia: ActivityEvent["createdVia"] =
+    dbJob.seriesId != null
+      ? { kind: "series", id: dbJob.seriesId }
+      : parentEstimate != null
+        ? { kind: "estimate", id: parentEstimate.id }
+        : dbJob.recallToId != null
+          ? { kind: "recall", id: dbJob.recallToId }
+          : undefined;
+  // A rolling series makes its next jobs by itself, so "Roopairs" created
+  // them. Its FIRST job — the earliest visit — was created by a person, and
+  // so is every job of an upfront series (all made when the series was set up).
+  const series = dbJob.seriesId == null ? undefined : JOB_SERIES.find((row) => row.id === dbJob.seriesId);
+  const firstOfSeries = JOBS.filter((row) => row.seriesId === dbJob.seriesId && row.scheduledFor != null).sort((a, b) =>
+    (a.scheduledFor ?? "").localeCompare(b.scheduledFor ?? "")
+  )[0];
+  const createdBySystem = series?.type === "rolling" && firstOfSeries?.id !== dbJob.id;
+
   return historyOf(dbJob).transitions.map((t, index) => {
     const at = new Date(t.at);
     const glyph = GLYPH[t.status] ?? GLYPH.draft;
     // Past due is the clock and Finalized is the system — neither is a person.
     const actor =
-      t.byUserId == null || t.status === "finalized"
+      t.byUserId == null || t.status === "finalized" || (index === 0 && createdBySystem)
         ? SYSTEM
         : usersById.get(t.byUserId) ?? users[0];
     return {
@@ -284,7 +305,7 @@ export function seedActivity(job: Job): ActivityEvent[] {
       kind: index === 0 ? "created" : "jobStatus",
       date: at,
       user: actor,
-      ...(index === 0 ? {} : { jobStatus: { ...glyph, ...sentence(t.status, at, t.note, visit) } }),
+      ...(index === 0 ? { createdVia } : { jobStatus: { ...glyph, ...sentence(t.status, at, t.note, visit) } }),
     } as ActivityEvent;
   });
 }

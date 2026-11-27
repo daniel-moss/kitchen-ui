@@ -157,8 +157,8 @@ export interface JobSeries {
   /**
    * Production's `open_jobs_count` annotation — the series' jobs currently
    * in flight (scheduled / active / paused / on hold / completed; NOT
-   * pending, finalized or cancelled). Stored directly: the demo does not
-   * link jobs to their series, so there is nothing to count from.
+   * pending, finalized or cancelled). Stored directly: only a few demo jobs
+   * carry a `seriesId`, so there is not enough to count from.
    */
   openJobsCount: number;
   /** ISO. */
@@ -562,6 +562,12 @@ export interface Job {
    * it as "Recall to" and the Related module mirrors the row.
    */
   recallToId?: string;
+  /**
+   * The JOB_SERIES row that made this job (production `Job.series`). Never
+   * set together with `recallToId` or a parent estimate — production does
+   * not allow a series on a job with a parent.
+   */
+  seriesId?: string;
   /**
    * The COMPANY BRANCH handling the job — a BRANCHES id. The dispatcher picks
    * it when creating the job (the "New job" form's Branch field; with a single
