@@ -3168,6 +3168,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
             ) : tab === "activity" ? (
               <div className={styles.mainContent}>
                 <ActivityPanel
+                  onOpenJob={onOpenJob}
                   billableSec={s.lifecycle.billableSec}
                   lifecycleSec={s.lifecycle.lifecycleSec}
                   breakdown={s.lifecycle.breakdown}
@@ -3476,6 +3477,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
               />
             ) : t === "activity" ? (
               <ActivityPanel
+                  onOpenJob={onOpenJob}
             mobile
             billableSec={s.lifecycle.billableSec}
             lifecycleSec={s.lifecycle.lifecycleSec}

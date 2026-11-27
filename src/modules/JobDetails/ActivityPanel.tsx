@@ -1,3 +1,5 @@
+import clsx from "clsx";
+
 import ActivityLog from "../../components/ActivityLog/ActivityLog";
 import ActivityLogGroup from "../../components/ActivityLog/ActivityLogGroup";
 import ActivityLogItem from "../../components/ActivityLog/ActivityLogItem";
@@ -88,16 +90,16 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
 const SYSTEM_ID = -1;
 
 // The job's creation (Figma 24433-52739): "created the job", plus the object
-// it came from. The id is a LINK — strong and underlined, like the "created a
-// related invoice" logs (Daniel, 2026-11-27). Like those, it does not navigate
-// in the prototype.
+// it came from. The id is a LINK — strong and underlined (Daniel, 2026-11-27).
+// A recalled JOB opens that job; estimates and series have no page in the
+// prototype yet, so their ids only look like links (as in the Related module).
 const CREATED_VIA_TEXT = {
   series: " created the job via job series ",
   estimate: " created the job from estimate ",
   recall: " created the job as a recall of ",
 };
 
-const CreatedText = ({ event }: { event: ActivityEvent }) => {
+const CreatedText = ({ event, onOpenJob }: { event: ActivityEvent; onOpenJob?: (id: string) => void }) => {
   const via = event.createdVia;
   return (
     <>
@@ -107,7 +109,24 @@ const CreatedText = ({ event }: { event: ActivityEvent }) => {
       ) : (
         <>
           <S>{CREATED_VIA_TEXT[via.kind]}</S>
-          <span className={styles.link}>{via.id}</span>
+          {via.kind === "recall" && onOpenJob != null ? (
+            // A real anchor, so it can open in a new tab; a plain click stays
+            // in the app.
+            <a
+              className={clsx(styles.link, styles.linkActive)}
+              href={`#/jobs/${via.id}`}
+              onClick={(e) => {
+                // Cmd / Ctrl / Shift-click: let the browser open a new tab.
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                e.preventDefault();
+                onOpenJob(via.id);
+              }}
+            >
+              {via.id}
+            </a>
+          ) : (
+            <span className={styles.link}>{via.id}</span>
+          )}
         </>
       )}
     </>
@@ -225,12 +244,14 @@ export interface ActivityPanelProps {
   breakdown: LifecycleRow[];
   /** The job's events, OLDEST first — the log shows them newest first. */
   events: ActivityEvent[];
+  /** Opens another job — a log's JOB id link (a recall's original job). */
+  onOpenJob?: (id: string) => void;
 }
 
 // The "Activity" tab. The Job lifecycle module (which REPLACED the two stat
 // widgets, Figma 24560-134494), then the activity log. Events so far: the
 // job's creation + module updates (the update-log rules Daniel is testing).
-export default function ActivityPanel({ mobile = false, billableSec, lifecycleSec, breakdown, events }: ActivityPanelProps) {
+export default function ActivityPanel({ mobile = false, billableSec, lifecycleSec, breakdown, events, onOpenJob }: ActivityPanelProps) {
   // Newest first, grouped by month — the group header names the month.
   const groups: { label: string; items: ActivityEvent[] }[] = [];
   for (const event of [...events].reverse()) {
@@ -387,7 +408,7 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                       <AvatarUser size="xs" imageSrc={event.user.avatar} />
                     )
                   }
-                  text={<CreatedText event={event} />}
+                  text={<CreatedText event={event} onOpenJob={onOpenJob} />}
                   date={event.date}
                 />
               ),

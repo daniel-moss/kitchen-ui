@@ -16,3 +16,10 @@
   text-decoration: underline;
   text-underline-position: from-font;
 }
+
+// A link that really opens something (a recalled job). It keeps the sentence's
+// strong color; only the pointer changes.
+.linkActive {
+  color: inherit;
+  cursor: pointer;
+}
