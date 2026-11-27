@@ -88,8 +88,9 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
 const SYSTEM_ID = -1;
 
 // The job's creation (Figma 24433-52739): "created the job", plus the object
-// it came from. The id is emphasised like every other value — the node draws
-// it Medium and NOT underlined, unlike the "created a related invoice" logs.
+// it came from. The id is a LINK — strong and underlined, like the "created a
+// related invoice" logs (Daniel, 2026-11-27). Like those, it does not navigate
+// in the prototype.
 const CREATED_VIA_TEXT = {
   series: " created the job via job series ",
   estimate: " created the job from estimate ",
@@ -106,7 +107,7 @@ const CreatedText = ({ event }: { event: ActivityEvent }) => {
       ) : (
         <>
           <S>{CREATED_VIA_TEXT[via.kind]}</S>
-          {via.id}
+          <span className={styles.link}>{via.id}</span>
         </>
       )}
     </>
