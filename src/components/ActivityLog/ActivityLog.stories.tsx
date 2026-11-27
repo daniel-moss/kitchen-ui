@@ -16,6 +16,7 @@ import Avatar from "../Avatar/Avatar";
 import { Icon } from "../Icon/Icon";
 import Tooltip from "../Tooltip/Tooltip";
 import { docsFrame, PSEUDO_ALL } from "../../stories/helpers";
+import { users } from "../../data/users";
 
 // The previews copy the Figma Documentation page (24130-5398) preview by
 // preview: placeholder content ("Text", "N ago", diamonds-4, "Title") where
@@ -284,6 +285,41 @@ export const LogValueIcons: Story = {
           <ActivityLogItem position="single" symbol={pen} text={prioritySentence} label="4d ago" />
         </div>
       </Stack>
+    </div>
+  ),
+};
+
+// A person as a value: their xxs avatar before the name. The comma sits on the
+// name before it — the next value's own 6px space follows it.
+const personValue = (name: string) => {
+  const user = users.find((u) => u.name === name);
+  return (
+    <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={user?.avatar} />} isWhole>
+      {name}
+    </ActivityLogValue>
+  );
+};
+
+// Figma's avatar preview: an Assignees change — the removed people struck
+// through (their avatars keep their colour), then the new ones.
+const assigneesSentence = (
+  <>
+    Lorne Riddle<Subtle> unassigned</Subtle>
+    <Removed>
+      {personValue("Thiago Cummings")},{personValue("Amy Lowery")}
+    </Removed>
+    <Subtle> and assigned</Subtle>
+    {personValue("Kate Charles")},{personValue("Dirk Horton")}
+  </>
+);
+
+export const LogValueAvatars: Story = {
+  render: () => (
+    <div style={docsFrame} data-hug>
+      {/* 476px — the Figma preview's width, so the list wraps the same way. */}
+      <div style={{ width: 476, margin: "0 auto" }}>
+        <ActivityLogItem position="single" symbol={<Icon icon="user" size={14} />} text={assigneesSentence} label="4d ago" />
+      </div>
     </div>
   ),
 };

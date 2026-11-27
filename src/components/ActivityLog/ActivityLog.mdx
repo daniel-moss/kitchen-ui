@@ -187,6 +187,19 @@ them, so a line break leaves that space at the end of the line above. Inside
 
 <Canvas of={ActivityLogStories.LogValueIcons} />
 
+A value that is a person shows their avatar before the name. It follows the
+same rules as an icon. The avatar and the name never break across two lines,
+and a new line starts with the avatar at the edge. In a list of people, each
+name has its own avatar. Pass an `AvatarUser` at `size="xxs"` (16px) as the
+`icon` of **ActivityLogValue**, with `isWhole` so the whole name stays with
+it; it gets the same `--size-1_5` (6px) after it.
+The comma sits right after the name before it. Inside `ActivityLogRemoved` the
+name is struck through, but the avatar keeps its colours.
+
+<DocCaption>Values with their avatars.</DocCaption>
+
+<Canvas of={ActivityLogStories.LogValueAvatars} />
+
 ### Timestamp
 
 The time is relative while the event is recent. After a week it becomes a date,

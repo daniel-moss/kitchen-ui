@@ -19,8 +19,14 @@ export interface ActivityLogValueProps extends HTMLAttributes<HTMLSpanElement> {
    */
   isLeading?: boolean;
   /**
-   * The value text. A string keeps only its first word with the icon; the rest
-   * wraps normally.
+   * Keep the WHOLE value on one line with its icon — a person's name next to
+   * their avatar never breaks. Default false: only the first word stays with
+   * the icon, so a long value can still wrap.
+   */
+  isWhole?: boolean;
+  /**
+   * The value text. A string keeps only its first word with the icon (unless
+   * `isWhole`); the rest wraps normally.
    */
   children: ReactNode;
 }

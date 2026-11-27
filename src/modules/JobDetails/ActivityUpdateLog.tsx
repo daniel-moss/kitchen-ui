@@ -20,7 +20,9 @@ export const glyph = (icon?: ValueIcon) =>
 
 /** A person as a log value: their xxs avatar, then their name. */
 export const PersonValue = ({ name, avatar }: { name: string; avatar: string }) => (
-  <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={avatar} />}>{name}</ActivityLogValue>
+  <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={avatar} />} isWhole>
+    {name}
+  </ActivityLogValue>
 );
 
 /** A list of people as ONE value (Assignees). The comma sits tight against the

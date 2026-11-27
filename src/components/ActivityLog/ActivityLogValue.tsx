@@ -12,6 +12,7 @@ export default function ActivityLogValue({
   icon,
   iconColor,
   isLeading = false,
+  isWhole = false,
   children,
   className,
   ...rest
@@ -28,7 +29,8 @@ export default function ActivityLogValue({
   // session's "Working: Mon, Jan 1 at 11:30 AM → …") must still wrap.
   let head = children;
   let tail: string | null = null;
-  if (typeof children === "string") {
+  // A person's name stays whole with its avatar (`isWhole`).
+  if (typeof children === "string" && !isWhole) {
     const space = children.indexOf(" ");
     if (space > 0) {
       head = children.slice(0, space);
