@@ -13,7 +13,7 @@ import { Icon } from "../../components/Icon/Icon";
 import roopairsAvatar from "../../assets/roopairs-avatar.jpg";
 
 import { ActivityEvent, ValueIcon } from "./activityEvents";
-import ActivityUpdateLog, { FieldSubLog, glyph, PeopleValue, PersonValue } from "./ActivityUpdateLog";
+import ActivityUpdateLog, { FieldSubLog, glyph, PeopleValue } from "./ActivityUpdateLog";
 // The Activity tab renders CONCEPT 1 of the Job lifecycle module; the other
 // four live beside it in ./JobLifecycleModule/ and take the same props, so
 // any of them can be swapped in here to try it (Daniel, 2026-08-07).
@@ -51,55 +51,6 @@ const EquipmentText = ({ event }: { event: ActivityEvent }) => {
           <Muted>{added.length > 0 ? removed.join(", ") : joinWithAnd(removed)}</Muted>
         </>
       )}
-    </>
-  );
-};
-
-// A job-contact change (Figma 24487-43383). Three shapes from one event:
-// the slot was FILLED, REPLACED, or EMPTIED. The replaced name renders struck
-// through in gray-a8 like every other old value, and each contact carries its
-// xxs avatar (Daniel, 2026-08-04). The removed shape names no contact, so it
-// has no avatar. The avatars bring their own 6px gaps — that is why the
-// sentence has no plain space before them.
-// "added" is my verb — Figma documents only the updated and removed logs
-// (Daniel picked it over reusing "updated … No value →", 2026-08-03).
-const ContactText = ({ event }: { event: ActivityEvent }) => {
-  const before = event.contactBefore;
-  const after = event.contactAfter;
-  if (after == null) {
-    // The removed log NAMES the contact that left, struck through (Figma
-    // 24487-43423) — the role alone did not say who was taken off.
-    return (
-      <>
-        {event.user.name}
-        <S> removed </S>
-        {event.role}:
-        <Muted>
-          <PersonValue name={before ?? ""} avatar={event.contactBeforeAvatar ?? ""} />
-        </Muted>
-      </>
-    );
-  }
-  if (before == null) {
-    return (
-      <>
-        {event.user.name}
-        <S> added </S>
-        {event.role}:
-        <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
-      </>
-    );
-  }
-  return (
-    <>
-      {event.user.name}
-      <S> updated </S>
-      {event.role}:
-      <Muted>
-        <PersonValue name={before} avatar={event.contactBeforeAvatar ?? ""} />
-      </Muted>
-      {" →"}
-      <PersonValue name={after} avatar={event.contactAfterAvatar ?? ""} />
     </>
   );
 };
@@ -396,13 +347,23 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   date={event.date}
                 />
               ) : event.kind === "contact" ? (
-                // Figma 24487-43383 (2026-08-05): the PEN symbol — `user` now
-                // belongs to the Assignees module logs.
-                <ActivityLogItem
+                // The standard DS update log (Daniel, 2026-11-27 — it had its
+                // own "added" / "removed" verbs): a filled slot is "Value
+                // added" (~~No value~~ → name), an emptied one "Value cleared"
+                // (~~name~~ → No value). Each contact keeps its avatar.
+                <ActivityUpdateLog
                   key={event.id}
-                  symbol={<Icon icon="pen" size={14} />}
-                  text={<ContactText event={event} />}
+                  userName={event.user.name}
                   date={event.date}
+                  changes={[
+                    {
+                      label: event.role ?? "",
+                      oldValue: event.contactBefore ?? "",
+                      newValue: event.contactAfter ?? "",
+                      oldPeople: event.contactBefore == null ? undefined : [{ name: event.contactBefore, avatar: event.contactBeforeAvatar ?? "" }],
+                      newPeople: event.contactAfter == null ? undefined : [{ name: event.contactAfter, avatar: event.contactAfterAvatar ?? "" }],
+                    },
+                  ]}
                 />
               ) : event.kind === "equipment" ? (
                 // Figma 24450-60498 — ONE log per change, naming every piece it
