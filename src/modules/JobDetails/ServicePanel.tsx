@@ -25,7 +25,7 @@ import { EQUIPMENT_LABELS, Equipment as EquipmentRecord, equipmentById, jobById 
 import { useCurrentJobId } from "./currentJob";
 import { Equipment, EquipmentAvatar, equipmentCaptionText, equipmentIncomplete, equipmentLabel, equipmentTitle } from "./equipment";
 import EquipmentForm, { EquipmentFormValues } from "./EquipmentForm";
-import FilesModule from "./FilesModule";
+import FilesModule, { FilesLog } from "./FilesModule";
 import ServiceForm, { PRIORITIES, ServiceValues } from "./ServiceForm";
 import { noop, slot, useAnchoredMenu } from "./shared";
 
@@ -190,7 +190,10 @@ export default function ServicePanel({
   isPublicView = false,
   readOnly = false,
   onOpenJob,
+  onFilesLog,
 }: {
+  /** The Files module's changes, for the activity log. */
+  onFilesLog?: (log: FilesLog) => void;
   mobile?: boolean;
   serviceValues: ServiceValues;
   onServiceChange: (next: ServiceValues) => void;
@@ -405,7 +408,7 @@ export default function ServicePanel({
 
       {/* Files — list/cards toggle, Public/Private groups, per-file menus,
           empty states, and the file-limit banner (Figma "Files" doc). */}
-      <FilesModule mobile={mobile} isPublicView={isPublicView} readOnly={readOnly} />
+      <FilesModule mobile={mobile} isPublicView={isPublicView} readOnly={readOnly} onLog={onFilesLog} />
     </div>
   );
 }

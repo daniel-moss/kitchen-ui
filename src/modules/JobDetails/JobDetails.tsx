@@ -2,7 +2,6 @@ import { MouseEvent as ReactMouseEvent, ReactNode, useEffect, useMemo, useRef, u
 
 import clsx from "clsx";
 
-import { joinWithAnd } from "../../components/ActivityLog/fieldList";
 import Avatar from "../../components/Avatar/Avatar";
 import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import ItemText from "../../components/ItemText/ItemText/ItemText";
@@ -84,6 +83,7 @@ import type { ChargesTestSetup } from "./Charges/ChargesSegment";
 import type { ChargesConceptNumber } from "./ChargesModule/ChargesConcept";
 import SummaryPanel from "./SummaryPanel";
 import TimesheetForm from "./TimesheetForm";
+import { FilesLog } from "./FilesModule";
 import { FormsLog, JobFormsProvider } from "./FormsModule";
 import { SignatureResult } from "./SignatureModule";
 import SessionForm, { Meridiem, SessionDraft } from "./SessionForm";
@@ -2175,13 +2175,13 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     if (log.kind === "added") {
       pushEvent({
         kind: "forms",
-        jobStatus: { ...forms, text: ` added ${log.names.length === 1 ? "a form" : "forms"} `, value: joinWithAnd(log.names) },
+        jobStatus: { ...forms, text: ` added ${log.names.length === 1 ? "a form" : "forms"} `, value: log.names.join(", ") },
       });
     } else if (log.kind === "removed") {
       // The removed names are struck through, like every value that is gone.
       pushEvent({
         kind: "forms",
-        jobStatus: { ...forms, text: ` removed ${log.names.length === 1 ? "a form" : "forms"} `, strikeValue: joinWithAnd(log.names) },
+        jobStatus: { ...forms, text: ` removed ${log.names.length === 1 ? "a form" : "forms"} `, strikeValue: log.names.join(", ") },
       });
     } else if (log.kind === "visibility") {
       pushEvent({
@@ -2199,6 +2199,34 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     } else {
       const verb = log.kind === "completed" ? " completed a form " : " saved changes to a form ";
       pushEvent({ kind: "forms", jobStatus: { ...forms, text: verb, value: log.name } });
+    }
+  };
+
+  // The "Files" module's logs (Figma 24453-26236): "added a file / files"
+  // (file-plus), "removed a file / files" struck through (file-minus), and
+  // "updated <name> visibility to Private | Public" (lock | globe).
+  const logFiles = (log: FilesLog) => {
+    if (log.kind === "added" || log.kind === "removed") {
+      const noun = log.names.length === 1 ? "a file" : "files";
+      const names = log.names.join(", ");
+      pushEvent({
+        kind: "files",
+        jobStatus:
+          log.kind === "added"
+            ? { ...moduleGlyph("file-plus"), text: ` added ${noun} `, value: names }
+            : { ...moduleGlyph("file-minus"), text: ` removed ${noun} `, strikeValue: names },
+      });
+    } else {
+      pushEvent({
+        kind: "files",
+        jobStatus: {
+          ...moduleGlyph(log.visibility === "private" ? "lock" : "globe"),
+          text: " updated ",
+          value: log.name,
+          tailText: " visibility to ",
+          tailValue: log.visibility === "private" ? "Private" : "Public",
+        },
+      });
     }
   };
 
@@ -2750,6 +2778,7 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     finalizeJob,
     signature,
     logForms,
+    logFiles,
     logTextProperty,
     changeActiveOpen,
     setChangeActiveOpen,
@@ -3097,7 +3126,7 @@ const DesktopShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate,
                 the Service panel gets the same cap as the Placeholder. */}
             {tab === "service" ? (
               <div className={styles.mainContent}>
-                <ServicePanel isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+                <ServicePanel isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} onFilesLog={s.logFiles} />
               </div>
             ) : tab === "timesheet" ? (
               <div className={styles.mainContent}>
@@ -3409,7 +3438,7 @@ const MobileShell = ({ roundsTimeUp, record, onBack, onOpenJob, onAddLaborRate, 
           onAssigneesChange={s.changeAssignees}
           assigneeStats={s.assigneeStats} job={s.job} locked={s.readOnly} recallTo={s.serviceValues.type === "recall" ? s.serviceValues.recallTo : null} location={s.location} onLocationChange={s.changeLocation} locations={s.locations} onAddLocation={s.addLocation} equipmentCount={s.jobEquipment.length} jobProperties={s.jobProperties} onJobPropertiesChange={s.changeJobProperties} jobSources={s.jobSources} onCreateJobSource={s.createJobSource} billing={s.billing} onBillingChange={s.changeBilling} lastModified={s.lastModified} onJobChange={s.touchJob} onContactChange={s.logContactChange} onLabelsChange={s.logLabelsChange} onOpenJob={onOpenJob} convertedInto={s.convertedInto} />
             ) : t === "service" ? (
-              <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} />
+              <ServicePanel mobile isPublicView={isPublicView} readOnly={s.readOnly} serviceValues={s.serviceValues} onServiceChange={s.changeServiceValues} equipmentIds={s.equipmentIds} isEquipmentRequired={s.isEquipmentRequired} onEquipmentSave={s.saveEquipment} equipmentPool={s.equipmentPool} onCreateEquipment={s.createEquipment} locationName={s.location.name} onOpenJob={onOpenJob} onFilesLog={s.logFiles} />
             ) : t === "timesheet" ? (
           <TimesheetPanel
             assignees={s.assigneeUsers}

@@ -26,16 +26,16 @@ export const PersonValue = ({ name, avatar, isLeading = false }: { name: string;
   </ActivityLogValue>
 );
 
-/** A list of people as ONE value (Assignees). The comma sits tight against the
- *  name before it — the next person's avatar brings the space after it.
- *  `isLeading` when the list opens its line (a sub-log caption). `hasAnd` puts
- *  "and" before the last name — a log SENTENCE with one action ("assigned A, B
- *  and C"); two groups in one sentence, and sub-log values, keep commas only. */
-export const PeopleValue = ({ people, isLeading = false, hasAnd = false }: { people: LogPerson[]; isLeading?: boolean; hasAnd?: boolean }) => (
+/** A list of people as ONE value (Assignees). Names are always separated by
+ *  commas (Daniel, 2026-11-27); "and" only joins two ACTIONS in one sentence.
+ *  The comma sits tight against the name before it — the next person's avatar
+ *  brings the space after it. `isLeading` when the list opens its line (a
+ *  sub-log caption). */
+export const PeopleValue = ({ people, isLeading = false }: { people: LogPerson[]; isLeading?: boolean }) => (
   <>
     {people.map((p, index) => (
       <Fragment key={p.name}>
-        {index > 0 && (hasAnd && index === people.length - 1 ? " and" : ",")}
+        {index > 0 && ","}
         <PersonValue name={p.name} avatar={p.avatar} isLeading={isLeading && index === 0} />
       </Fragment>
     ))}

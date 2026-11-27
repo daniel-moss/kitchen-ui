@@ -5,7 +5,6 @@ import Muted from "../../components/ActivityLog/ActivityLogRemoved";
 import ActivityLogSubtle from "../../components/ActivityLog/ActivityLogSubtle";
 import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
 import ActivityLogValue from "../../components/ActivityLog/ActivityLogValue";
-import { joinWithAnd } from "../../components/ActivityLog/fieldList";
 import Avatar from "../../components/Avatar/Avatar";
 import AvatarUser from "../../components/Avatar/AvatarUser";
 import { Icon } from "../../components/Icon/Icon";
@@ -42,13 +41,13 @@ const EquipmentText = ({ event }: { event: ActivityEvent }) => {
       {added.length > 0 && (
         <>
           <S> added equipment </S>
-          {removed.length > 0 ? added.join(", ") : joinWithAnd(added)}
+          {added.join(", ")}
         </>
       )}
       {removed.length > 0 && (
         <>
           <S> {added.length > 0 ? "and removed" : "removed"} equipment </S>
-          <Muted>{added.length > 0 ? removed.join(", ") : joinWithAnd(removed)}</Muted>
+          <Muted>{removed.join(", ")}</Muted>
         </>
       )}
     </>
@@ -69,7 +68,7 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
       {added.length > 0 && (
         <>
           <S> added {noun(added)} </S>
-          {removed.length > 0 ? added.join(", ") : joinWithAnd(added)}
+          {added.join(", ")}
         </>
       )}
       {removed.length > 0 && (
@@ -78,7 +77,7 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
             {" "}
             {added.length > 0 ? "and removed" : "removed"} {noun(removed)}{" "}
           </S>
-          <Muted>{added.length > 0 ? removed.join(", ") : joinWithAnd(removed)}</Muted>
+          <Muted>{removed.join(", ")}</Muted>
         </>
       )}
     </>
@@ -192,8 +191,7 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
       {log.label != null && `${log.label}: `}
       {log.strikeValue != null && <Muted>{log.strikeValue}</Muted>}
       {log.people != null ? (
-        // One group reads "A, B and C"; with a second group, commas only.
-        <PeopleValue people={log.people} hasAnd={log.tailPeople == null} />
+        <PeopleValue people={log.people} />
       ) : (
         log.value != null &&
         (log.valueLink ? (
@@ -207,7 +205,7 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
       {log.tailText != null && <S>{log.tailText}</S>}
       {log.tailPeople != null ? (
         <Muted>
-          <PeopleValue people={log.tailPeople} hasAnd={log.people == null} />
+          <PeopleValue people={log.tailPeople} />
         </Muted>
       ) : (
         log.tailValue != null && (log.tailStrike ? <Muted>{log.tailValue}</Muted> : log.tailValue)
@@ -301,7 +299,8 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                 event.kind === "scheduling" ||
                 event.kind === "assignees" ||
                 event.kind === "createdFrom" ||
-                event.kind === "forms" ? (
+                event.kind === "forms" ||
+                event.kind === "files" ? (
                 // The job's lifecycle (Figma 24512-62842) — the status glyph is
                 // the symbol, SOLID and in the status's own color, so the
                 // sentence names the status without one. A typed reason turns

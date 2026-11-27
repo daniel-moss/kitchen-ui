@@ -93,7 +93,9 @@ export interface ActivityEvent {
     | "createdFrom"
     // The "Forms" module (Figma 24592-40934): add / remove / rename /
     // visibility / complete / save, all on the `clipboard-list` glyph.
-    | "forms";
+    | "forms"
+    // The "Files" module (Figma 24453-26236): add / remove / visibility.
+    | "files";
   date: Date;
   user: User;
   /** Update events only — the changed fields, in form order. */

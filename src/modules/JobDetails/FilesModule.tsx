@@ -16,7 +16,27 @@ import { useJobFiles } from "./jobWork";
 // The upload cap is the module's default — the company setting — so this file
 // no longer keeps a 25 of its own.
 
-export default function FilesModule({ mobile = false, isPublicView = false, readOnly = false }: { mobile?: boolean; isPublicView?: boolean; readOnly?: boolean }) {
+/**
+ * One change to the job's files, for the Activity tab (Figma 24453-26236). The
+ * module reports it and Job Details writes the sentence, like the Forms module.
+ */
+export type FilesLog =
+  | { kind: "added"; names: string[] }
+  | { kind: "removed"; names: string[] }
+  | { kind: "visibility"; name: string; visibility: FileVisibility };
+
+export default function FilesModule({
+  mobile = false,
+  isPublicView = false,
+  readOnly = false,
+  onLog,
+}: {
+  mobile?: boolean;
+  isPublicView?: boolean;
+  readOnly?: boolean;
+  /** Reports each change for the activity log. */
+  onLog?: (log: FilesLog) => void;
+}) {
   const jobId = useCurrentJobId();
 
   // Kept per job in the app store since 2026-11-14 (`jobWork.ts`), so the
@@ -38,11 +58,15 @@ export default function FilesModule({ mobile = false, isPublicView = false, read
     const now: FileVisibility = file.visibility === "private" ? "public" : "private";
     setFiles((prev) => prev.map((row) => (row.id === file.id ? { ...row, visibility: now } : row)));
     toast({ type: "neutral", icon: now === "public" ? "globe" : "lock", title: `"${file.name}" is now ${now}` });
+    onLog?.({ kind: "visibility", name: file.name, visibility: now });
   };
 
   // NO confirm and NO toast here: the shared module asks first and reports
   // afterwards, so this only has to remove the row (2026-10-06).
-  const deleteFile = (file: ModuleFile) => setFiles((prev) => prev.filter((row) => row.id !== file.id));
+  const deleteFile = (file: ModuleFile) => {
+    setFiles((prev) => prev.filter((row) => row.id !== file.id));
+    onLog?.({ kind: "removed", names: [file.name] });
+  };
 
   // The job's PUBLIC view shows the module only when it holds public files
   // ("Only shown if it contains files"); the shared module drops the private
@@ -61,7 +85,10 @@ export default function FilesModule({ mobile = false, isPublicView = false, read
       onToggleVisibility={toggleVisibility}
       onDelete={deleteFile}
       onPreview={() => {}}
-      onFilesAdded={(added) => setFiles((prev) => [...prev, ...added])}
+      onFilesAdded={(added) => {
+        setFiles((prev) => [...prev, ...added]);
+        if (added.length > 0) onLog?.({ kind: "added", names: added.map((file) => file.name) });
+      }}
     />
   );
 }

@@ -287,15 +287,16 @@ change `isText`; the sub-log has no title and its text is body-400-spacious.
 
 The sentence names the fields that changed, and the log becomes an accordion.
 Each field gets its own sub-log with its name and icon. The whole field list is
-body-500-compact `--text-strong`, commas and "and" included.
+body-500-compact `--text-strong`, commas and the "and N more" count included.
 
 <DocCaption>three changes</DocCaption>
 
 <Canvas of={ActivityLogStories.CaseSeveralFields} />
 
 The sentence names up to three fields, in the order of the form. With more than
-three, it names the first two and counts the rest. Commas separate the names,
-and "and" comes before the last one. The rule is `formatFieldList` in
+three, it names the first two and counts the rest. Commas separate the names.
+"And" comes only before the count, or between two actions in one sentence. The
+rule is `formatFieldList` in
 `fieldList.ts`; `subject` replaces the list when the fields belong to one
 object, such as a time session.
 
