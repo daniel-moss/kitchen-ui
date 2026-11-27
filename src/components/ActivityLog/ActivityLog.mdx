@@ -238,8 +238,10 @@ details read as one block. A log becomes an accordion when it has children;
 
 A log takes a different shape depending on what changed. When one ordinary
 field changes, the sentence says everything. When the change needs more space,
-the log becomes an accordion. **ActivityLogUpdate** builds all of these from a
-list of `changes` — pass the fields in form order and it picks the case.
+the log becomes an accordion. An "updated" log names only the fields that
+changed. Only logs for an action, such as Scheduled or Rescheduled, list the
+unchanged fields too. **ActivityLogUpdate** builds all of these from a list of
+`changes` — pass the fields in form order and it picks the case.
 
 ### One field changed
 
@@ -311,6 +313,16 @@ body-400-compact `--text-strong`. `oldIcon` / `newIcon` add value icons.
 <DocCaption>title set</DocCaption>
 
 <Canvas of={ActivityLogStories.SubLogTitle} />
+
+Some logs list every field of a form, not only the ones that changed. A
+rescheduled job is an example. A field that did not change shows its value
+only, with no old value and no arrow. The reader sees the full result and still
+finds what changed at a glance. Set `isUnchanged` on the sub-log: it shows
+`newValue` alone, body-400-compact `--text-strong`.
+
+<DocCaption>A changed field and an unchanged field.</DocCaption>
+
+<Canvas of={ActivityLogStories.SubLogUnchanged} />
 
 Only a text field changed on its own drops the title and icon. Its text is set
 with more space between the lines, because it reads as a paragraph, not a short

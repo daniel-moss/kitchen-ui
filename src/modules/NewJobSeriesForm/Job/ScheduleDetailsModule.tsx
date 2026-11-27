@@ -17,7 +17,7 @@ import styles from "./ScheduleDetailsModule.module.scss";
 
 // Schedule step — the "Details" module (Figma 17241-67769): Schedule now /
 // later radios ("now" selected by default; "later" = the job stays
-// Unscheduled and the fields below disappear), the "Date & time" InputGroup
+// Unscheduled and the fields below disappear), the "Scheduled for" InputGroup
 // (DateField + the time SelectField), and the required Est. duration (the shared
 // hr/min + chips widget). The duration INHERITS the picked service's default
 // (Figma 17241-70803, "Inherited From The Service"): NewJobForm pre-fills it
@@ -64,9 +64,9 @@ export default function ScheduleDetailsModule({ value, onChange, showErrors, mob
 
         {value.mode === "now" && (
           <>
-            {/* One fused field, one shared error — "Provide Date & time"
+            {/* One fused field, one shared error — "Provide Scheduled for"
                 (the InputGroup default, from the label). */}
-            <Input label="Date & time">
+            <Input label="Scheduled for">
               <InputGroup isValid={!(showErrors && dateTimeMissing)}>
                 <DateField
                   value={value.date}

@@ -1,5 +1,6 @@
 import { Fragment, ReactNode } from "react";
 
+import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
 import ActivityLogUpdate from "../../components/ActivityLog/ActivityLogUpdate";
 import { ActivityLogFieldChange } from "../../components/ActivityLog/ActivityLogUpdate.types";
 import ActivityLogValue from "../../components/ActivityLog/ActivityLogValue";
@@ -19,24 +20,46 @@ export const glyph = (icon?: ValueIcon) =>
   icon == null ? undefined : <Icon icon={icon.icon} pack={icon.pack} size={14} container="fixedHeight" />;
 
 /** A person as a log value: their xxs avatar, then their name. */
-export const PersonValue = ({ name, avatar }: { name: string; avatar: string }) => (
-  <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={avatar} />} isWhole>
+export const PersonValue = ({ name, avatar, isLeading = false }: { name: string; avatar: string; isLeading?: boolean }) => (
+  <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={avatar} />} isWhole isLeading={isLeading}>
     {name}
   </ActivityLogValue>
 );
 
 /** A list of people as ONE value (Assignees). The comma sits tight against the
- *  name before it — the next person's avatar brings the space after it. */
-export const PeopleValue = ({ people }: { people: LogPerson[] }) => (
+ *  name before it — the next person's avatar brings the space after it.
+ *  `isLeading` when the list opens its line (a sub-log caption). `hasAnd` puts
+ *  "and" before the last name — a log SENTENCE with one action ("assigned A, B
+ *  and C"); two groups in one sentence, and sub-log values, keep commas only. */
+export const PeopleValue = ({ people, isLeading = false, hasAnd = false }: { people: LogPerson[]; isLeading?: boolean; hasAnd?: boolean }) => (
   <>
     {people.map((p, index) => (
       <Fragment key={p.name}>
-        {index > 0 && ","}
-        <PersonValue name={p.name} avatar={p.avatar} />
+        {index > 0 && (hasAnd && index === people.length - 1 ? " and" : ",")}
+        <PersonValue name={p.name} avatar={p.avatar} isLeading={isLeading && index === 0} />
       </Fragment>
     ))}
   </>
 );
+
+/**
+ * One field of an ACTION log (Scheduled / Rescheduled / Unscheduled) as a
+ * sub-log. Unlike an update log, it may be unchanged — then it shows its value
+ * only. People values carry their avatars.
+ */
+export const FieldSubLog = ({ change }: { change: FieldChange }) => {
+  const people = (list: LogPerson[] | undefined, isLeading: boolean) =>
+    list != null && list.length > 0 ? <PeopleValue people={list} isLeading={isLeading} /> : undefined;
+  return (
+    <ActivityLogSubItem
+      title={change.label}
+      oldValue={people(change.oldPeople, true) ?? change.oldValue}
+      // An unchanged value opens the caption line; a new one follows the arrow.
+      newValue={people(change.newPeople, change.unchanged === true) ?? change.newValue}
+      isUnchanged={change.unchanged}
+    />
+  );
+};
 
 // One side of a change. An EMPTY people list is not a value, so it falls back
 // to the text, which may be "" — the DS shows "No value" then.

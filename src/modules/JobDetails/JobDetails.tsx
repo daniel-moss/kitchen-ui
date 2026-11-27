@@ -2,6 +2,7 @@ import { MouseEvent as ReactMouseEvent, ReactNode, useEffect, useMemo, useRef, u
 
 import clsx from "clsx";
 
+import { joinWithAnd } from "../../components/ActivityLog/fieldList";
 import Avatar from "../../components/Avatar/Avatar";
 import AvatarWarning from "../../components/Avatar/AvatarWarning";
 import ItemText from "../../components/ItemText/ItemText/ItemText";
@@ -49,9 +50,11 @@ import {
   diffBilling,
   diffEquipment,
   diffJobProperties,
+  diffScheduling,
   diffServiceValues,
   FieldChange,
   JobStatusLog,
+  schedulingActionFields,
   ValueIcon,
 } from "./activityEvents";
 import { JobContact } from "./contacts";
@@ -1104,14 +1107,13 @@ const storedMoment = (dateLabel?: string, timeLabel?: string) =>
 const sessionRangeLabel = (start: string, end: string) => `${start} → ${end}`;
 
 /** "Monday, January 1 at 12:00 PM" — how a slot is written in the logs. */
-const longSlotLabel = (s: Scheduling) => (s.date != null ? `${weekdayDate(s.date)} at ${s.time}` : "");
 
 /** A tech status as a log value: its icon in regular weight (Daniel, 2026-08-05). */
 const statusValueIcon = (status: string): ValueIcon => ({ icon: categoryIcon(status), pack: "regular" });
 
 // Each job status owns its activity-log glyph — solid, in its own color
 // (Figma 24512-62842).
-type JobGlyph = { icon: string; color: string };
+type JobGlyph = { icon: string; color: string; rotate?: number };
 // The Start / Resume form's company + viewer rules (Figma 24048-13283): the
 // company's ACTIVE sub-statuses when it has them switched on (the demo does
 // not), whether it requires one, and the viewer's check in / out choice.
@@ -1123,8 +1125,8 @@ const startFormRules = (viewerIsAssignee: boolean, runningSession: string | null
 });
 
 const JOB_GLYPH = {
-  scheduled: { icon: "circle-half-stroke", color: "var(--blue-9)" },
-  unscheduled: { icon: "circle-dashed", color: "var(--violet-9)" },
+  scheduled: { icon: "circle-half-stroke", color: "var(--blue-a9)", rotate: 180 },
+  unscheduled: { icon: "circle-dashed", color: "var(--violet-a9)" },
   active: { icon: "circle-play", color: "var(--jade-9)" },
   quickPaused: { icon: "circle-pause", color: "var(--amber-9)" },
   onHold: { icon: "circle-stop", color: "var(--crimson-9)" },
@@ -2173,13 +2175,13 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     if (log.kind === "added") {
       pushEvent({
         kind: "forms",
-        jobStatus: { ...forms, text: ` added ${log.names.length === 1 ? "a form" : "forms"} `, value: log.names.join(", ") },
+        jobStatus: { ...forms, text: ` added ${log.names.length === 1 ? "a form" : "forms"} `, value: joinWithAnd(log.names) },
       });
     } else if (log.kind === "removed") {
       // The removed names are struck through, like every value that is gone.
       pushEvent({
         kind: "forms",
-        jobStatus: { ...forms, text: ` removed ${log.names.length === 1 ? "a form" : "forms"} `, strikeValue: log.names.join(", ") },
+        jobStatus: { ...forms, text: ` removed ${log.names.length === 1 ? "a form" : "forms"} `, strikeValue: joinWithAnd(log.names) },
       });
     } else if (log.kind === "visibility") {
       pushEvent({
@@ -2382,45 +2384,41 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
     toast({ type: "success", title: "Time session saved" });
   };
 
-  // The Scheduling module's logs (Figma 24522-89331). Three shapes, and which
-  // one is written depends on WHAT moved (Daniel, 2026-08-05):
-  //   slot cleared          → "unscheduled the job ~~<old slot>~~"   calendar-xmark
-  //   slot set or moved     → "(re)scheduled the job for <slot> for <duration>"
-  //                                                                  calendar-check
-  //   duration alone        → "updated Est. duration: ~~old~~ → new" hourglass
-  //                           ("Duration" until 2026-09-14 — the node's copy
-  //                           follows the field rename)
-  const logScheduling = (was: Scheduling, next: Scheduling) => {
-    const slot = (s: Scheduling) => (s.date != null ? `${longSlotLabel(s)}` : "");
-    const dur = (s: Scheduling) => durationLabel(s.hours, s.minutes);
-    const slotChanged = slot(was) !== slot(next);
-    const durationChanged = dur(was) !== dur(next);
-
-    if (next.date == null && was.date != null) {
-      pushEvent({ kind: "scheduling", jobStatus: { icon: "calendar-xmark", color: "", text: " unscheduled the job ", strikeValue: slot(was) } });
-      return;
-    }
-    if (slotChanged) {
-      // The duration rides along in this log, changed or not. Scheduling and
-      // RE-scheduling carry different glyphs (Figma 24522-89334 / 89710).
-      const rescheduled = was.date != null;
-      pushEvent({
-        kind: "scheduling",
-        jobStatus: {
-          icon: rescheduled ? "calendar-lines-pen" : "calendar-check",
-          color: "",
-          text: ` ${rescheduled ? "rescheduled" : "scheduled"} the job for `,
-          value: `${slot(next)} for ${dur(next)}`,
-        },
-      });
-      return;
-    }
-    if (durationChanged) {
-      pushEvent({
-        kind: "scheduling",
-        jobStatus: { icon: "hourglass", color: "", text: " updated ", label: "Est. duration", strikeValue: dur(was), value: dur(next) },
-      });
-    }
+  // The Scheduling logs (Figma 24522-89331). Which shape is written depends on
+  // HOW the schedule changed (Daniel, 2026-11-27):
+  //   Schedule / Reschedule action → "(re)scheduled the job", an accordion
+  //     listing EVERY field of the form — Scheduled for, Est. duration,
+  //     Assignees; an unchanged field shows its value only (DS "Sub-logs")
+  //   Unschedule action → "unscheduled the job": Scheduled for and Assignees
+  //     → No value (production keeps the duration and clears the techs)
+  //   module edit → the DS update log ("updated Est. duration: …", or both
+  //     fields as the accordion), hourglass for the duration alone
+  // ONE status log per action (Daniel, 2026-11-27 — it used to be a
+  // Scheduling log plus a status log with the same sentence): the status
+  // glyph, then every form field as a sub-log, then the reason last.
+  const people = (ids: number[]) =>
+    ids
+      .map((id) => users.find((u) => u.id === id))
+      .filter((u): u is (typeof users)[number] => u != null)
+      .map((u) => ({ name: u.name, avatar: u.avatar }));
+  const logSchedulingAction = (
+    how: "scheduled" | "rescheduled" | "unscheduled",
+    was: Scheduling,
+    next: Scheduling,
+    teamWas: number[],
+    teamNext: number[],
+    reason?: { title: string; text: string },
+  ) => {
+    pushEvent({
+      kind: "jobStatus",
+      jobStatus: {
+        ...(how === "unscheduled" ? JOB_GLYPH.unscheduled : JOB_GLYPH.scheduled),
+        text: ` ${how} the job`,
+        reason: reason?.text,
+        reasonTitle: reason?.title,
+      },
+      changes: schedulingActionFields(was, next, people(teamWas), people(teamNext)),
+    });
   };
 
   // The Assignees module (Figma 24522-89736). One log per save, naming who
@@ -2428,11 +2426,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // joined by "and". The unassigned names are always struck through.
   const changeAssignees = (next: number[]) => {
     // Each name carries its avatar, like every other person in a log.
-    const people = (ids: number[]) =>
-      ids
-        .map((id) => users.find((u) => u.id === id))
-        .filter((u): u is (typeof users)[number] => u != null)
-        .map((u) => ({ name: u.name, avatar: u.avatar }));
     const added = people(next.filter((id) => !assignees.includes(id)));
     const removed = people(assignees.filter((id) => !next.includes(id)));
     setAssignees(next);
@@ -2456,7 +2449,15 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // Schedule / Reschedule / Unschedule actions all land here, and the job's own
   // status follows the slot — a first slot makes it Upcoming, clearing the slot
   // makes it Unscheduled, a moved slot leaves the status alone.
-  const confirmSchedule = (next: Scheduling) => {
+  // `how` says which log to write: an action names itself (its own form logs
+  // its whole state), a plain module edit (`undefined`) gets the update log —
+  // unless the edit itself booked or cleared the slot, which reads as that action.
+  const confirmSchedule = (
+    next: Scheduling,
+    how?: "scheduled" | "unscheduled",
+    teamNext: number[] = assignees,
+    reason?: { title: string; text: string },
+  ) => {
     const was = scheduling;
     setScheduling(next);
     if (next.date == null && was.date != null) {
@@ -2465,15 +2466,28 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       // Booking it NOW is this job's "Scheduled on".
       setJob({ status: "upcoming", everStarted: false, scheduledAt: formatStatusTimestamp(new Date()) });
     }
-    logScheduling(was, next);
+    const action = how ?? (next.date == null && was.date != null ? "unscheduled" : next.date != null && was.date == null ? "scheduled" : undefined);
+    if (action != null) {
+      logSchedulingAction(action, was, next, assignees, teamNext, reason);
+      return;
+    }
+    const changes = diffScheduling(was, next);
+    if (changes.length > 0) {
+      pushEvent({
+        kind: "scheduling",
+        changes,
+        symbolIcon: changes.length === 1 && changes[0].label === "Est. duration" ? "hourglass" : "calendar-lines-pen",
+      });
+    }
   };
 
   // "Schedule job" (Figma 27163-54879): the slot through the one Scheduling
   // save (an Unscheduled job becomes Upcoming and the slot is logged), plus
   // the team and the job's details from the same form.
+  // The team rides in the "scheduled" log, so it is set without a log of its own.
   const scheduleJob = (result: RescheduleResult) => {
-    confirmSchedule(result.scheduling);
-    changeAssignees(result.assignees);
+    confirmSchedule(result.scheduling, "scheduled", result.assignees);
+    setAssignees(result.assignees);
   };
 
   // "Unschedule job" (Figma 27154-49578): clears "Scheduled for" through the
@@ -2482,10 +2496,13 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   // "Unschedule reason".
   // Unscheduling checks out every assignee who is checked in (Figma
   // 27245-62594) — the form's warning banner names them first.
+  // Like production, unscheduling also takes the techs off the job (the
+  // duration stays) — the "unscheduled" log lists both.
   const unscheduleJob = (reason: string) => {
-    confirmSchedule({ ...scheduling, date: null, time: "" });
+    // One status log: the fields, then the reason.
+    confirmSchedule({ ...scheduling, date: null, time: "" }, "unscheduled", [], { title: "Unschedule reason", text: reason });
+    setAssignees([]);
     setJob((j) => ({ ...j, subStatus: undefined, statusMessage: reason, statusMessageLabel: "Unschedule reason" }));
-    pushJobStatus(JOB_GLYPH.unscheduled, { text: " unscheduled the job", reason, reasonTitle: "Unschedule reason" });
     if (checkedIn) {
       setCheckedIn(false);
       endActiveSession();
@@ -2507,8 +2524,11 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
   const rescheduleJob = (result: RescheduleResult) => {
     const was = scheduling;
     setScheduling(result.scheduling);
-    logScheduling(was, result.scheduling);
-    changeAssignees(result.assignees);
+    logSchedulingAction("rescheduled", was, result.scheduling, assignees, result.assignees, {
+      title: "Reschedule reason",
+      text: result.rescheduleReason,
+    });
+    setAssignees(result.assignees);
     setJob((j) => ({
       ...j,
       status: "upcoming",
@@ -2518,11 +2538,6 @@ function useJobShell(isDesktop: boolean, record: ListJob) {
       // Booking the new visit NOW is this job's "Scheduled on".
       scheduledAt: formatStatusTimestamp(new Date()),
     }));
-    pushJobStatus(JOB_GLYPH.scheduled, {
-      text: " rescheduled the job",
-      reason: result.rescheduleReason,
-      reasonTitle: "Reschedule reason",
-    });
     if (result.checkOut) {
       setCheckedIn(false);
       endActiveSession();

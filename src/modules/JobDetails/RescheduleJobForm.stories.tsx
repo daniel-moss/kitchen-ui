@@ -47,5 +47,5 @@ export const ClockRunning: Story = { name: "Clock running", render: () => <Demo 
 /** The same, as a mobile drawer. */
 export const ClockRunningMobile: Story = { name: "Clock running / Mobile", render: () => <Demo running mobile /> };
 
-/** "Reschedule" pressed with the empty fields: "Provide Date & time" and "Provide Reschedule reason". */
+/** "Reschedule" pressed with the empty fields: "Provide Scheduled for" and "Provide Reschedule reason". */
 export const MissingValues: Story = { name: "Missing values", render: () => <Demo press /> };

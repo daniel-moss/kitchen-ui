@@ -58,7 +58,7 @@ const toMinutes = (s: Scheduling) => (parseInt(s.hours, 10) || 0) * 60 + (parseI
 
 // "Reschedule job" (Figma 27091-45839) — opened by the "Reschedule" menu item
 // of an Active / Paused / On hold job. The fields are the New Job form's own
-// (their docs live there): Date & time (EMPTY — a new slot must be picked),
+// (their docs live there): Scheduled for (EMPTY — a new slot must be picked),
 // Est. duration and Assignees (optional), both pre-filled, then the required
 // "Reschedule reason". Reason for call and Tech instructions left the form on
 // 2026-10-23 — they are the Service module's to edit. A viewer whose clock is running also chooses whether to stay
@@ -158,9 +158,9 @@ export default function RescheduleJobForm({
       }
     >
       <div className={styles.form}>
-        {/* One fused field, one shared error — "Provide Date & time". The
+        {/* One fused field, one shared error — "Provide Scheduled for". The
             time hugs its value but never goes under 96px (New Job 17241-69326). */}
-        <Input label="Date & time">
+        <Input label="Scheduled for">
           <InputGroup isValid={!(showErrors && dateTimeBad)}>
             <DateField
               value={date}

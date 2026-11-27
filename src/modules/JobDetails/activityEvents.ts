@@ -47,6 +47,12 @@ export interface FieldChange {
    */
   oldPeople?: LogPerson[];
   newPeople?: LogPerson[];
+  /**
+   * The field did NOT change — an action log (Scheduled / Rescheduled) lists
+   * every field of its form, and an unchanged one shows its value only (DS doc
+   * "Sub-logs"). `newValue` / `newPeople` carry that value.
+   */
+  unchanged?: boolean;
 }
 
 const TYPE_ICON = (value: string): ValueIcon =>
@@ -121,6 +127,12 @@ export interface ActivityEvent {
    * job created on its own. Production never combines them.
    */
   createdVia?: { kind: "series" | "estimate" | "recall"; id: string };
+  /**
+   * A Scheduling module EDIT (no `jobStatus`, only `changes`) — the timeline
+   * glyph of its update log: `hourglass` for Est. duration alone, else
+   * `calendar-lines-pen` (Figma 24522-89331).
+   */
+  symbolIcon?: string;
 }
 
 /**
@@ -139,6 +151,8 @@ export interface JobStatusLog {
    * plain gray-12 (Scheduling / Assignees).
    */
   color: string;
+  /** The glyph's turn in degrees — Upcoming's `circle-half-stroke` is 180 (Figma 30657-47817). */
+  rotate?: number;
   text: string;
   /** An emphasised field name that closes with a colon, e.g. "Est. duration". */
   label?: string;
@@ -249,7 +263,7 @@ export function diffJobProperties(before: JobProperties, after: JobProperties): 
  * The Scheduling fields that changed, in FORM order (Daniel, 2026-08-04 —
  * same pattern as Service / Job properties). The form groups its inputs, so
  * the log follows the LABELS the user sees, not the raw state: the date and
- * the time share one "Date & time" field, the hours and minutes share one
+ * the time share one "Scheduled for" field (Daniel, 2026-11-27 — was "Date & time"), the hours and minutes share one
  * "Est. duration" (renamed with the field, 2026-09-14). A field with nothing
  * in it reads as "No value".
  */
@@ -260,7 +274,7 @@ export function diffScheduling(before: Scheduling, after: Scheduling): FieldChan
   // (unscheduling clears the date and leaves the time behind).
   const dateTime = (s: Scheduling) => (s.date != null ? scheduledForLabel(s) : "");
   if (dateTime(before) !== dateTime(after)) {
-    changes.push({ label: "Date & time", oldValue: dateTime(before), newValue: dateTime(after) });
+    changes.push({ label: "Scheduled for", oldValue: dateTime(before), newValue: dateTime(after) });
   }
 
   // durationLabel renders an empty duration as "0 min"; the log wants the
@@ -274,6 +288,33 @@ export function diffScheduling(before: Scheduling, after: Scheduling): FieldChan
   }
 
   return changes;
+}
+
+/**
+ * The sub-logs of a Schedule / Reschedule / Unschedule STATUS log (Figma
+ * 30657-47817): EVERY field of the form — Scheduled for, Est. duration,
+ * Assignees — each marked `unchanged` when it did not move (DS doc
+ * "Sub-logs"). The reason, when the action has one, is added by the caller.
+ * Assignee lists stay comma-only here (a sub-log value, not a sentence).
+ */
+export function schedulingActionFields(was: Scheduling, next: Scheduling, teamWas: LogPerson[], teamNext: LogPerson[]): FieldChange[] {
+  const duration = (s: Scheduling) => {
+    const total = (parseInt(s.hours, 10) || 0) * 60 + (parseInt(s.minutes, 10) || 0);
+    return total === 0 ? "" : durationLabel(s.hours, s.minutes);
+  };
+  const names = (team: LogPerson[]) => team.map((p) => p.name).join(", ");
+  const field = (label: string, oldValue: string, newValue: string, extra: Partial<FieldChange> = {}): FieldChange => ({
+    label,
+    oldValue,
+    newValue,
+    unchanged: oldValue === newValue,
+    ...extra,
+  });
+  return [
+    field("Scheduled for", scheduledForLabel(was), scheduledForLabel(next)),
+    field("Est. duration", duration(was), duration(next)),
+    field("Assignees", names(teamWas), names(teamNext), { oldPeople: teamWas, newPeople: teamNext }),
+  ];
 }
 
 /**

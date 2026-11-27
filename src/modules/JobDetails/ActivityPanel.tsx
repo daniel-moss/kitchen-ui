@@ -5,6 +5,7 @@ import Muted from "../../components/ActivityLog/ActivityLogRemoved";
 import ActivityLogSubtle from "../../components/ActivityLog/ActivityLogSubtle";
 import ActivityLogSubItem from "../../components/ActivityLog/ActivityLogSubItem";
 import ActivityLogValue from "../../components/ActivityLog/ActivityLogValue";
+import { joinWithAnd } from "../../components/ActivityLog/fieldList";
 import Avatar from "../../components/Avatar/Avatar";
 import AvatarUser from "../../components/Avatar/AvatarUser";
 import { Icon } from "../../components/Icon/Icon";
@@ -12,7 +13,7 @@ import { Icon } from "../../components/Icon/Icon";
 import roopairsAvatar from "../../assets/roopairs-avatar.jpg";
 
 import { ActivityEvent, ValueIcon } from "./activityEvents";
-import ActivityUpdateLog, { glyph, PeopleValue, PersonValue } from "./ActivityUpdateLog";
+import ActivityUpdateLog, { FieldSubLog, glyph, PeopleValue, PersonValue } from "./ActivityUpdateLog";
 // The Activity tab renders CONCEPT 1 of the Job lifecycle module; the other
 // four live beside it in ./JobLifecycleModule/ and take the same props, so
 // any of them can be swapped in here to try it (Daniel, 2026-08-07).
@@ -41,13 +42,13 @@ const EquipmentText = ({ event }: { event: ActivityEvent }) => {
       {added.length > 0 && (
         <>
           <S> added equipment </S>
-          {added.join(", ")}
+          {removed.length > 0 ? added.join(", ") : joinWithAnd(added)}
         </>
       )}
       {removed.length > 0 && (
         <>
           <S> {added.length > 0 ? "and removed" : "removed"} equipment </S>
-          <Muted>{removed.join(", ")}</Muted>
+          <Muted>{added.length > 0 ? removed.join(", ") : joinWithAnd(removed)}</Muted>
         </>
       )}
     </>
@@ -117,7 +118,7 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
       {added.length > 0 && (
         <>
           <S> added {noun(added)} </S>
-          {added.join(", ")}
+          {removed.length > 0 ? added.join(", ") : joinWithAnd(added)}
         </>
       )}
       {removed.length > 0 && (
@@ -126,7 +127,7 @@ const LabelsText = ({ event }: { event: ActivityEvent }) => {
             {" "}
             {added.length > 0 ? "and removed" : "removed"} {noun(removed)}{" "}
           </S>
-          <Muted>{removed.join(", ")}</Muted>
+          <Muted>{added.length > 0 ? removed.join(", ") : joinWithAnd(removed)}</Muted>
         </>
       )}
     </>
@@ -240,7 +241,8 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
       {log.label != null && `${log.label}: `}
       {log.strikeValue != null && <Muted>{log.strikeValue}</Muted>}
       {log.people != null ? (
-        <PeopleValue people={log.people} />
+        // One group reads "A, B and C"; with a second group, commas only.
+        <PeopleValue people={log.people} hasAnd={log.tailPeople == null} />
       ) : (
         log.value != null &&
         (log.valueLink ? (
@@ -254,7 +256,7 @@ const JobStatusText = ({ event }: { event: ActivityEvent }) => {
       {log.tailText != null && <S>{log.tailText}</S>}
       {log.tailPeople != null ? (
         <Muted>
-          <PeopleValue people={log.tailPeople} />
+          <PeopleValue people={log.tailPeople} hasAnd={log.people == null} />
         </Muted>
       ) : (
         log.tailValue != null && (log.tailStrike ? <Muted>{log.tailValue}</Muted> : log.tailValue)
@@ -334,6 +336,16 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                   text={<SessionText event={event} />}
                   date={event.date}
                 />
+              ) : event.kind === "scheduling" && event.changes != null && event.jobStatus == null ? (
+                // A Scheduling module EDIT (Figma 24522-89331) — the DS update
+                // log: one field inline, both fields as the accordion.
+                <ActivityUpdateLog
+                  key={event.id}
+                  userName={event.user.name}
+                  changes={event.changes}
+                  date={event.date}
+                  symbol={<Icon icon={event.symbolIcon ?? "calendar-lines-pen"} size={14} />}
+                />
               ) : event.kind === "jobStatus" ||
                 event.kind === "scheduling" ||
                 event.kind === "assignees" ||
@@ -352,16 +364,27 @@ export default function ActivityPanel({ mobile = false, billableSec, lifecycleSe
                       // a job status is solid in its own color.
                       pack={event.jobStatus?.color ? "solid" : "regular"}
                       size={14}
+                      rotate={event.jobStatus?.rotate}
                       style={event.jobStatus?.color ? { color: event.jobStatus.color } : undefined}
                     />
                   }
                   text={<JobStatusText event={event} />}
                   date={event.date}
                 >
-                  {/* undefined, not false — `false` would still read as a child
+                  {/* A Schedule / Reschedule / Unschedule status log lists every
+                      field of its form first — unchanged ones show their value
+                      only (DS doc "Sub-logs") — and the reason last.
+                      undefined, not false — `false` would still read as a child
                       and open an empty accordion. */}
-                  {event.jobStatus?.reason ? (
-                    <ActivityLogSubItem title={event.jobStatus.reasonTitle ?? "Reason"} caption={event.jobStatus.reason} />
+                  {event.changes != null || event.jobStatus?.reason ? (
+                    <>
+                      {event.changes?.map((change) => (
+                        <FieldSubLog key={change.label} change={change} />
+                      ))}
+                      {event.jobStatus?.reason ? (
+                        <ActivityLogSubItem title={event.jobStatus.reasonTitle ?? "Reason"} caption={event.jobStatus.reason} />
+                      ) : null}
+                    </>
                   ) : undefined}
                 </ActivityLogItem>
               ) : event.kind === "labels" ? (

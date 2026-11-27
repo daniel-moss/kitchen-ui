@@ -30,6 +30,13 @@ export interface ActivityLogSubItemProps extends Omit<HTMLAttributes<HTMLDivElem
   /** The new icon's tint, when the value has one. */
   newIconColor?: string;
   /**
+   * The field did NOT change — for logs that list every field of a form (a
+   * rescheduled job). Shows `newValue` alone, body/400 compact
+   * `--text-strong`, with no old value and no arrow; `oldValue` and `oldIcon`
+   * are ignored. Default false.
+   */
+  isUnchanged?: boolean;
+  /**
    * Free-form caption. Replaces the `old → new` line, for details that are not
    * a value change (a reason, a text change). `--text-strong`.
    */

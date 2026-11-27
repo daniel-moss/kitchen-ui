@@ -1,6 +1,7 @@
 import { BadgeJobStatusStatus } from "../../components/Badge/BadgeJobStatus";
 import { completedAt, historyOf, JOB_SERIES, jobById, JOBS, locationById, locationContactsOf, parentEstimateOf, startedAt } from "../../data/db";
 import { users, usersById } from "../../data/users";
+import { schedulingActionFields } from "./activityEvents";
 import type { ActivityEvent, JobStatusLog } from "./activityEvents";
 import { Job } from "../shared/jobRow";
 
@@ -208,10 +209,10 @@ export const seedSessionUsers = (job: Job): number[] => {
 
 // Each job status owns its log glyph — solid, in its own color (Figma
 // 24512-62842). Kept in step with JOB_GLYPH in JobDetails.tsx.
-const GLYPH: Record<string, { icon: string; color: string }> = {
+const GLYPH: Record<string, { icon: string; color: string; rotate?: number }> = {
   draft: { icon: "circle-dashed", color: "var(--gray-a8)" },
-  unscheduled: { icon: "circle-dashed", color: "var(--violet-9)" },
-  upcoming: { icon: "circle-half-stroke", color: "var(--blue-9)" },
+  unscheduled: { icon: "circle-dashed", color: "var(--violet-a9)" },
+  upcoming: { icon: "circle-half-stroke", color: "var(--blue-a9)", rotate: 180 },
   pastDue: { icon: "circle-exclamation", color: "var(--tomato-9)" },
   active: { icon: "circle-play", color: "var(--jade-9)" },
   quickPaused: { icon: "circle-pause", color: "var(--amber-9)" },
@@ -225,20 +226,9 @@ const GLYPH: Record<string, { icon: string; color: string }> = {
 /** Nobody did it — the clock did (Past due), or the system (Finalized). */
 const SYSTEM = { id: -1, firstName: "Roopairs", lastName: "", name: "Roopairs", avatar: "" };
 
-const longAt = (d: Date) =>
-  `${d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} at ` +
-  d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(/\u202f/g, " ");
-
 /** The sentence each transition writes, in the log's alternating parts. */
-function sentence(status: string, at: Date, note: string | undefined, visit: Date | null): Omit<JobStatusLog, "icon" | "color"> {
+function sentence(status: string, note: string | undefined): Omit<JobStatusLog, "icon" | "color"> {
   switch (status) {
-    case "draft":
-      return { text: " created the job" };
-    case "unscheduled":
-      return { text: " left the job unscheduled" };
-    case "upcoming":
-      // The value is WHEN THE VISIT IS, not when the booking was made.
-      return visit == null ? { text: " scheduled the job" } : { text: " scheduled the job for ", value: longAt(visit) };
     case "pastDue":
       return { text: " — the job passed its scheduled time" };
     case "active":
@@ -270,7 +260,6 @@ function sentence(status: string, at: Date, note: string | undefined, visit: Dat
 export function seedActivity(job: Job): ActivityEvent[] {
   const dbJob = jobById(job.id);
   if (dbJob == null) return [];
-  const visit = job.scheduledFor == null ? null : new Date(job.scheduledFor);
 
   // What the job was created from (Figma 24433-52739). Production allows only
   // one: a job with a parent estimate or a recall cannot start a series.
@@ -292,22 +281,49 @@ export function seedActivity(job: Job): ActivityEvent[] {
   )[0];
   const createdBySystem = series?.type === "rolling" && firstOfSeries?.id !== dbJob.id;
 
-  return historyOf(dbJob).transitions.map((t, index) => {
-    const at = new Date(t.at);
-    const glyph = GLYPH[t.status] ?? GLYPH.draft;
+  // The log starts at the REAL creation (Daniel, 2026-11-27). The generated
+  // history opens with a draft — the call being taken — and drafts are not
+  // logged, so the creation is the transition after it. A job created WITH a
+  // date was born Upcoming: production logs only "Created" for it, so that
+  // transition writes nothing more. A job created without a date that got one
+  // later writes the "scheduled the job" status log with its form fields. The
+  // starting Unscheduled status is not an event, so it writes nothing.
+  const transitions = historyOf(dbJob).transitions;
+  const creation = transitions[1] ?? transitions[0];
+  const actorOf = (t: (typeof transitions)[number]) =>
     // Past due is the clock and Finalized is the system — neither is a person.
-    const actor =
-      t.byUserId == null || t.status === "finalized" || (index === 0 && createdBySystem)
-        ? SYSTEM
-        : usersById.get(t.byUserId) ?? users[0];
-    return {
-      id: index + 1,
-      kind: index === 0 ? "created" : "jobStatus",
-      date: at,
-      user: actor,
-      ...(index === 0 ? { createdVia } : { jobStatus: { ...glyph, ...sentence(t.status, at, t.note, visit) } }),
-    } as ActivityEvent;
+    t.byUserId == null || t.status === "finalized" ? SYSTEM : usersById.get(t.byUserId) ?? users[0];
+
+  const events: ActivityEvent[] = [
+    {
+      id: 1,
+      kind: "created",
+      date: new Date(creation.at),
+      user: createdBySystem ? SYSTEM : actorOf(creation),
+      createdVia,
+    },
+  ];
+  const team = dbJob.assigneeIds.flatMap((id) => {
+    const user = usersById.get(id);
+    return user == null ? [] : [{ name: user.name, avatar: user.avatar }];
   });
+  const booked = seedScheduling(job);
+
+  transitions.slice(2).forEach((t, index) => {
+    const at = new Date(t.at);
+    const base = { id: index + 2, date: at, user: actorOf(t) };
+    if (t.status === "upcoming") {
+      events.push({
+        ...base,
+        kind: "jobStatus",
+        jobStatus: { ...GLYPH.upcoming, text: " scheduled the job" },
+        changes: schedulingActionFields({ ...booked, date: null, time: "" }, booked, [], team),
+      });
+      return;
+    }
+    events.push({ ...base, kind: "jobStatus", jobStatus: { ...(GLYPH[t.status] ?? GLYPH.draft), ...sentence(t.status, t.note) } });
+  });
+  return events;
 }
 
 // ---- the lifecycle breakdown -----------------------------------------------

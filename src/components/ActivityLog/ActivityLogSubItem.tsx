@@ -21,6 +21,7 @@ export default function ActivityLogSubItem({
   newValue,
   newIcon,
   newIconColor,
+  isUnchanged = false,
   caption,
   emptyText = "No value",
   className,
@@ -30,9 +31,21 @@ export default function ActivityLogSubItem({
   const oldEmpty = isEmpty(oldValue);
   const newEmpty = isEmpty(newValue);
 
+  // The new value on its own — after the arrow, or alone when unchanged.
+  const current = newEmpty ? (
+    <span className={styles.empty}>{emptyText}</span>
+  ) : (
+    <ActivityLogValue icon={newIcon} iconColor={newIconColor} isLeading={isUnchanged}>
+      {newValue}
+    </ActivityLogValue>
+  );
+
   const change =
     caption != null ? (
       caption
+    ) : isUnchanged ? (
+      // An unchanged field (DS doc "Sub-logs"): its value only, no arrow.
+      current
     ) : (
       <>
         <span className={styles.oldValue}>
@@ -43,13 +56,7 @@ export default function ActivityLogSubItem({
         </span>
         {/* Before an icon the value brings its own 6px — no word space. */}
         {!newEmpty && newIcon != null ? " →" : " → "}
-        {newEmpty ? (
-          <span className={styles.empty}>{emptyText}</span>
-        ) : (
-          <ActivityLogValue icon={newIcon} iconColor={newIconColor}>
-            {newValue}
-          </ActivityLogValue>
-        )}
+        {current}
       </>
     );
 

@@ -271,7 +271,7 @@ export default function SchedulingForm({
     >
       <div className={styles.form}>
         <Input
-          label="Date & time"
+          label="Scheduled for"
           helpText={dateLocked ? "The job has started. Reschedule it to change the date and time." : undefined}
         >
           {dateTimeGroup}

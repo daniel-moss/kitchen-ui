@@ -35,11 +35,11 @@ const Demo = ({ mobile = false, press = false }: { mobile?: boolean; press?: boo
   </FormStoryFrame>
 );
 
-/** Date & time empty; duration and assignees pre-filled. */
+/** Scheduled for empty; duration and assignees pre-filled. */
 export const Desktop: Story = { render: () => <Demo /> };
 
 /** The same, as a mobile drawer. */
 export const Mobile: Story = { render: () => <Demo mobile /> };
 
-/** "Schedule" pressed with no slot: "Provide Date & time". */
+/** "Schedule" pressed with no slot: "Provide Scheduled for". */
 export const MissingValues: Story = { name: "Missing values", render: () => <Demo press /> };

@@ -291,10 +291,10 @@ export const LogValueIcons: Story = {
 
 // A person as a value: their xxs avatar before the name. The comma sits on the
 // name before it — the next value's own 6px space follows it.
-const personValue = (name: string) => {
+const personValue = (name: string, isLeading = false) => {
   const user = users.find((u) => u.name === name);
   return (
-    <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={user?.avatar} />} isWhole>
+    <ActivityLogValue icon={<AvatarUser size="xxs" imageSrc={user?.avatar} />} isWhole isLeading={isLeading}>
       {name}
     </ActivityLogValue>
   );
@@ -472,6 +472,43 @@ export const SubLogTitle: Story = {
         label="Just now"
         defaultOpen
       />
+    </div>
+  ),
+};
+
+// Figma's "A changed field and an unchanged field" preview: a rescheduled job
+// lists every Scheduling field; only the date changed.
+export const SubLogUnchanged: Story = {
+  render: () => (
+    <div style={docsFrame}>
+      <ActivityLogItem
+        position="single"
+        symbol={<Icon icon="calendar-lines-pen" size={14} />}
+        text={
+          <>
+            Lorne Riddle<Subtle> rescheduled the job</Subtle>
+          </>
+        }
+        label="N ago"
+        defaultOpen
+      >
+        <ActivityLogSubItem
+          title="Scheduled for"
+          oldValue="Monday, January 1, 2026 at 12:00 PM"
+          newValue="Tuesday, January 2, 2026 at 12:00 PM"
+        />
+        <ActivityLogSubItem title="Est. duration" newValue="2 hr" isUnchanged />
+        <ActivityLogSubItem
+          title="Assignees"
+          newValue={
+            <>
+              {/* The first avatar opens the caption line: no space before it. */}
+              {personValue("Thiago Cummings", true)},{personValue("Amy Lowery")}
+            </>
+          }
+          isUnchanged
+        />
+      </ActivityLogItem>
     </div>
   ),
 };

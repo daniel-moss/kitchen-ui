@@ -15,7 +15,13 @@ export function formatFieldList(names: string[]): string {
   return joinWithAnd([...names.slice(0, 2), `${names.length - 2} more`]);
 }
 
-function joinWithAnd(parts: string[]): string {
+/**
+ * "A", "A and B", "A, B and C" — the list rule for names in a log sentence
+ * (people, equipment, labels, forms) when the sentence has ONE action. A
+ * sentence with two groups ("assigned …, … and unassigned …") keeps commas only
+ * inside each group, so its one "and" joins the two actions.
+ */
+export function joinWithAnd(parts: string[]): string {
   if (parts.length <= 1) return parts.join("");
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
